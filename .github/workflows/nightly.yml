@@ -1,0 +1,64 @@
+name: Nightly CI
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gitleaks (mise run secrets) scans full history
+
+      - name: Set up mise
+        uses: jdx/mise-action@v2
+        with:
+          install: false
+
+      - name: Cache Rust toolchain, Cargo, and mise tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup
+            ~/.cargo
+            ~/.local/share/mise # mise-installed tool binaries: avoids recompiling cargo: tools each run
+            target # compiled workspace artifacts: avoids a full cold rebuild each run
+          key: ${{ runner.os }}-rust-${{ hashFiles('mise.toml', 'Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-
+
+      - name: Install mise-managed tools
+        run: mise install
+
+      - name: Run nightly tier
+        run: mise run ci-nightly
+
+      - name: Open/update tracking issue on failure
+        if: failure()
+        uses: JasonEtco/create-an-issue@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          filename: .github/nightly-failure-issue.md
+          update_existing: true
+          search_existing: open
+
+      - name: Close tracking issue on success
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue list --label nightly-failure --state open --json number --jq '.[].number' \
+            | while read -r n; do
+                [ -n "$n" ] && gh issue close "$n" --comment "Nightly CI green again on ${{ github.sha }}."
+              done

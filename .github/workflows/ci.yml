@@ -7,6 +7,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 13 # blocking-CI budget: target <=10 min, headroom for cold caches / runner variance
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -18,12 +19,14 @@ jobs:
         with:
           install: false
 
-      - name: Cache Rust toolchain and Cargo
+      - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
           path: |
             ~/.rustup
             ~/.cargo
+            ~/.local/share/mise # mise-installed tool binaries: avoids recompiling cargo: tools each run
+            target # compiled workspace artifacts: avoids a full cold rebuild each run
           key: ${{ runner.os }}-rust-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-

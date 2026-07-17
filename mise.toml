@@ -1,10 +1,17 @@
 [tools]
 rust = { version = "1.97.1", components = "rustfmt,clippy" }
+# Manual-only release fallback (see release.toml); no prebuilt binary for 1.1.3,
+# so it stays a source build — compiled once, then served from the mise cache.
 "cargo:cargo-release" = "1.1.3"
-"cargo:git-cliff" = "2.13.1"
-"cargo:release-plz" = "0.3.160"
-"cargo:cargo-deny" = "0.20.2"
+# Prebuilt-binary backends (aqua = checksum-verified) so `mise install` downloads
+# instead of compiling from source — keeps blocking CI inside its wall-clock budget.
+"aqua:orhun/git-cliff" = "2.13.1"
+"aqua:release-plz/release-plz" = "0.3.160"
+"aqua:EmbarkStudios/cargo-deny" = "0.20.2"
 gitleaks = "8.30.1"
+# nextest publishes GitHub-release binaries under `cargo-nextest-*` tags (no aqua
+# registry entry); ubi fetches the prebuilt `cargo-nextest` binary.
+"ubi:nextest-rs/nextest" = { version = "cargo-nextest-0.9.140", exe = "cargo-nextest" }
 
 [tasks.fmt]
 run = "cargo fmt --all --check"
@@ -13,10 +20,18 @@ run = "cargo fmt --all --check"
 run = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
 
 [tasks.test]
-run = "cargo test --workspace"
+# Blocking fast suite: exclude pleiades-validate — its ~50 heavy release-validation
+# / numeric-gate tests (30s–280s each) dominate wall-clock and belong to the nightly
+# tier. They still run in full via `test-full` (nightly) → reachable from release-gate,
+# so nothing goes unvalidated at release time.
+run = "cargo nextest run --workspace -E 'not package(pleiades-validate)'"
+
+[tasks.doctest]
+run = "cargo test --doc --workspace"
 
 [tasks.test-full]
-run = "cargo test --workspace -- --include-ignored"
+depends = ["doctest"]
+run = "cargo nextest run --workspace --run-ignored all"
 
 [tasks.docs]
 run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --all-features"
@@ -71,7 +86,11 @@ depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "r
 run = "cargo run -q -p pleiades-validate -- release-gate"
 
 [tasks.ci]
-depends = ["fmt", "lint", "test-full", "docs", "audit", "package-check", "release-smoke", "claims-audit", "deny", "secrets"]
+depends = ["fmt", "lint", "docs", "audit", "deny", "secrets", "claims-audit", "test", "doctest", "release-smoke"]
+
+[tasks.ci-nightly]
+description = "Nightly tier: slow/broad checks (fail-loud, not fail-blocking)."
+depends = ["test-full", "package-check", "benchmark", "deny", "secrets"]
 
 [tasks.gate-houses]
 run = "cargo run -q -p pleiades-validate -- validate-houses"
