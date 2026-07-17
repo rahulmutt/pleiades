@@ -76,7 +76,7 @@ depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "r
 run = "cargo run -q -p pleiades-validate -- release-gate"
 
 [tasks.ci]
-depends = ["fmt", "lint", "test-full", "docs", "audit", "package-check", "release-smoke", "claims-audit", "deny", "secrets"]
+depends = ["fmt", "lint", "docs", "audit", "deny", "secrets", "claims-audit", "test", "doctest", "release-smoke"]
 
 [tasks.gate-houses]
 run = "cargo run -q -p pleiades-validate -- validate-houses"
