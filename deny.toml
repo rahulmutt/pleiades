@@ -1,0 +1,39 @@
+# cargo-deny configuration — SCA gate for the pleiades workspace.
+# Run via `mise run deny`. See docs/threat-model.md (inbound supply chain).
+
+[graph]
+all-features = true
+
+[advisories]
+# RustSec advisories are fail-closed; yanked crates are refused too.
+yanked = "deny"
+
+[licenses]
+# The workspace distributes MIT OR Apache-2.0, so only permissive licenses
+# are admitted. Never add a copyleft or unknown license here without an
+# explicit maintainer decision.
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "ISC",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "Unicode-3.0",
+  "Zlib",
+  "CDLA-Permissive-2.0", # webpki-roots trust-anchor data
+]
+
+[bans]
+# Duplicate major versions are a bloat signal, not (yet) an error.
+multiple-versions = "warn"
+wildcards = "deny"
+# Internal pleiades-* path deps are intentionally version-less (workspace
+# audit rule publish.internal-dev-dependency-not-path-only); only registry
+# wildcards are real supply-chain risk.
+allow-wildcard-paths = true
+
+[sources]
+# Pure crates.io supply chain — no git or alternate-registry dependencies.
+unknown-registry = "deny"
+unknown-git = "deny"
