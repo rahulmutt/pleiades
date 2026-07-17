@@ -164,6 +164,7 @@ For public Rust APIs, prefer rustdoc examples where practical.
 - Prefer mature, well-maintained crates.
 - Do not add network access, file writes, or shell execution to library paths unless clearly required.
 - Treat parsing, serialization, and external data ingestion as untrusted input boundaries.
+- Read `docs/threat-model.md` before touching security-sensitive code (ingestion, `horizons-fetch`, the release pipeline), and update it when a trust boundary changes.
 
 ### Performance
 

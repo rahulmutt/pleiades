@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Blocks commits containing secrets. Activate once per clone with:
+#   git config core.hooksPath .githooks
+set -euo pipefail
+exec mise exec -- gitleaks git --pre-commit --staged .
