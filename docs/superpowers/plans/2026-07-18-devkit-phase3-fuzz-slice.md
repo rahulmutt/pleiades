@@ -1,5 +1,21 @@
 # Devkit Phase 3 — cargo-fuzz Slice Implementation Plan
 
+> **Errata (added post-implementation, Task 9):** This plan is a historical
+> record and is left otherwise unedited; the shipped tree is correct. Two
+> errors in the text below were caught and worked around during
+> implementation:
+>
+> 1. **Task 5, Steps 2 and 4** give the FNV-1a prime as `0x1000_0000_01b3`
+>    (1 extra hex digit, evaluates to 17592186044851). The correct
+>    FNV-1a-64 prime — and the value `crates/pleiades-compression/src/codec.rs`
+>    actually uses — is `0x100_0000_01b3` = 1099511628211. The plan's own
+>    Step 4 pinning test caught this; it was implemented correctly.
+> 2. **Task 6, Step 4**'s literal `vector_table.txt` example is
+>    space/`=`-separated and does not parse against the current
+>    `vector_table.rs`, which requires at least 5 comma-separated fields. The
+>    shipped seeds instead reuse the crate's own committed fixtures
+>    (`crates/pleiades-jpl/tests/fixtures/ingest/{horizons_vectors.txt,horizons_api.json,generic.csv}`).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Fuzz every untrusted-byte parser named by `docs/threat-model.md` boundary #1 (SPK/DAF kernel loading, compression artifact decode, JPL corpus ingest) and fix every robustness defect found.
