@@ -271,3 +271,43 @@ rather than propagating a NaN.
 
 **Severity:** robustness / API fail-closed hardening (not reachable in scope) ·
 **Opened:** 2026-07-07
+
+---
+
+## FU-9: cargo-mutants surviving-mutant triage backlog
+
+**Status:** open · Opened 2026-07-18 by the devkit Phase 3 cargo-mutants slice.
+
+**What:** The first mutation-testing baseline over `pleiades-types`,
+`pleiades-time`, and `pleiades-apparent` found 318 surviving mutants out of
+1,451 — production logic that can be changed without any test noticing.
+
+**Where:** Full breakdown in
+`docs/superpowers/specs/notes/2026-07-18-mutants-baseline.md`; survivors
+concentrate in `crates/pleiades-apparent/src/apparent.rs` (49),
+`crates/pleiades-apparent/src/nutation.rs` (45),
+`crates/pleiades-apparent/src/refraction.rs` (37),
+`crates/pleiades-apparent/src/aberration.rs` (28), and
+`crates/pleiades-apparent/src/topocentric.rs` (27).
+
+**Evidence:** `mise run mutants` at `5eaeaaadd17d4271f65df9232e2c5ca035499f48`,
+cargo-mutants 27.1.0, overall score 77.1% (1070 caught / 1388 viable).
+Per-crate: `pleiades-types` 85.0%, `pleiades-time` 84.2%, `pleiades-apparent`
+71.6%. Reproduce with `mise run mutants`; per-crate with
+`mise run mutants-crate pleiades-apparent` (substitute the crate name).
+
+**Impact:** No known defect. A surviving mutant is a *coverage* signal, not a
+bug — it means the test suite does not constrain that line, so a future
+regression there would land silently. Highest concern is any survivor in
+release-grade numeric paths, where the repo's parity gates are the intended
+safety net.
+
+**Suggested fix:** Work the backlog by writing tests that express intent, NOT
+assertions that pin whatever the code currently returns — the latter locks in
+behavior without validating it and is the failure mode the report-only posture
+exists to avoid. Triage in priority order: numeric/logic survivors first;
+`Display`/`Debug`/accessor survivors are low value and may instead be excluded
+via `#[mutants::skip]` or `--skip-calls` to raise the signal of future runs.
+
+**Severity:** test-coverage hardening (report-only, non-blocking) ·
+**Opened:** 2026-07-18
