@@ -33,6 +33,7 @@ keywords = ["astrology", "astronomy", "ephemeris"]
 categories = ["science"]
 
 [workspace.dependencies]
+proptest = { version = "1", default-features = false, features = ["std"] }
 serde = { version = "1", default-features = false, features = ["derive", "std"] }
 # Pure-Rust HTTPS for the optional, default-off `horizons-fetch` path: ureq over
 # rustls with the graviola crypto provider (no `ring`/`aws-lc-rs`, so no C

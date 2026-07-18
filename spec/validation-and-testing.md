@@ -29,6 +29,12 @@ Validation should compare outputs against:
 - normalization invariants
 - monotonicity or continuity expectations within bounded windows
 - compression encode/decode roundtrip behavior
+- **Property-based tests (proptest):** invariant oracles for pure-logic
+  crates — angle normalization/idempotence and degree/radian round-trips in
+  `pleiades-types`; coordinate, state, and codec re-encode round-trips in
+  `pleiades-compression`. Run in the blocking tier via `mise run test`;
+  discovered counterexamples are committed under each crate's
+  `proptest-regressions/`.
 
 ### Golden Tests
 

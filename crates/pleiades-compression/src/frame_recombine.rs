@@ -264,4 +264,77 @@ mod tests {
         assert!((back.lon_rad - s.lon_rad).abs() < 1e-12);
         assert!((back.dist_au - s.dist_au).abs() < 1e-15);
     }
+
+    mod properties {
+        use super::*;
+        use proptest::prelude::*;
+
+        // Small positive helper: circular longitude difference in [0, 360).
+        fn lon_gap(a: f64, b: f64) -> f64 {
+            (a - b).rem_euclid(360.0)
+        }
+
+        // Small positive helper: circular longitude difference in [0, TAU) radians.
+        fn lon_gap_rad(a: f64, b: f64) -> f64 {
+            (a - b).rem_euclid(std::f64::consts::TAU)
+        }
+
+        proptest! {
+            #[test]
+            fn ecliptic_cartesian_roundtrips(
+                lon in 0.0f64..360.0,
+                lat in -85.0f64..85.0,   // away from the poles: longitude is ill-conditioned near ±90°
+                dist in 0.1f64..100.0,
+            ) {
+                let v = ecliptic_to_cartesian_au(&ec(lon, lat, dist)).unwrap();
+                let back = cartesian_au_to_ecliptic(v);
+                let g = lon_gap(back.longitude.degrees(), lon);
+                prop_assert!(!(1e-7..=360.0 - 1e-7).contains(&g), "lon {lon} -> {}", back.longitude.degrees());
+                prop_assert!((back.latitude.degrees() - lat).abs() < 1e-7);
+                prop_assert!((back.distance_au.unwrap() - dist).abs() < 1e-7 * dist);
+            }
+
+            #[test]
+            fn spherical_cartesian_state_roundtrips(
+                lon in 0.0f64..std::f64::consts::TAU,
+                lat in -1.4f64..1.4,     // radians, away from ±π/2
+                dist in 0.1f64..100.0,
+                dlon in -0.1f64..0.1,
+                dlat in -0.1f64..0.1,
+                ddist in -0.1f64..0.1,
+            ) {
+                let s = SphericalState {
+                    lon_rad: lon, lat_rad: lat, dist_au: dist,
+                    lon_rate_rad_per_day: dlon, lat_rate_rad_per_day: dlat, dist_rate_au_per_day: ddist,
+                };
+                let back = cartesian_state_to_spherical(spherical_state_to_cartesian(s));
+                let g = lon_gap_rad(back.lon_rad, lon);
+                prop_assert!(
+                    !(1e-9..=std::f64::consts::TAU - 1e-9).contains(&g),
+                    "lon {lon} -> {}",
+                    back.lon_rad
+                );
+                prop_assert!((back.lat_rad - lat).abs() < 1e-9);
+                prop_assert!((back.dist_au - dist).abs() < 1e-9 * dist);
+                prop_assert!((back.lon_rate_rad_per_day - dlon).abs() < 1e-9);
+                prop_assert!((back.lat_rate_rad_per_day - dlat).abs() < 1e-9);
+                prop_assert!((back.dist_rate_au_per_day - ddist).abs() < 1e-9);
+            }
+
+            #[test]
+            fn helio_geo_inverse_via_sun(
+                plon in 0.0f64..360.0, plat in -85.0f64..85.0, pdist in 0.5f64..50.0,
+                slon in 0.0f64..360.0, slat in -85.0f64..85.0, sdist in 0.5f64..2.0,
+            ) {
+                let planet_geo = ec(plon, plat, pdist);
+                let sun_geo = ec(slon, slat, sdist);
+                let helio = heliocentric_from_geocentric(&planet_geo, &sun_geo).unwrap();
+                let back = geocentric_from_heliocentric(&helio, &sun_geo).unwrap();
+                let g = lon_gap(back.longitude.degrees(), plon);
+                prop_assert!(!(1e-6..=360.0 - 1e-6).contains(&g), "plon {plon} -> {}", back.longitude.degrees());
+                prop_assert!((back.latitude.degrees() - plat).abs() < 1e-6);
+                prop_assert!((back.distance_au.unwrap() - pdist).abs() < 1e-6 * pdist);
+            }
+        }
+    }
 }
