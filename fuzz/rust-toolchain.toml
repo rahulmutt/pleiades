@@ -1,0 +1,22 @@
+# Pins the nightly toolchain libFuzzer's -Z sanitizer flags require. rustup
+# auto-installs this file's channel for any cargo invocation whose working
+# directory is under `fuzz/`, with zero manual steps — mirroring what the
+# `[tools] rust` array form in `../mise.toml` used to do before it was
+# reverted to keep `workspace-audit` passing (see the comment on
+# `[env] FUZZ_NIGHTLY` there).
+#
+# NOTE: mise still exports RUSTUP_TOOLCHAIN=1.97.1 into every task's
+# environment (stable is mise's `[tools] rust` pin), and that env var
+# outranks this file in rustup's resolution order. So this file only
+# self-selects the nightly for invocations made outside a mise-activated
+# shell (e.g. a human running `cd fuzz && cargo fuzz run ...` directly, or
+# an IDE/rust-analyzer inspecting this crate). The mise `fuzz`/`fuzz-target`
+# tasks keep passing `+$FUZZ_NIGHTLY` explicitly (verified necessary).
+#
+# Keep this channel identical to `FUZZ_NIGHTLY` in `../mise.toml` — that is
+# the single other place this date string appears outside frozen plan/spec
+# docs. There is no automated way to single-source it: mise's Tera
+# templating renders `[tools]`/`[tasks]` values in mise.toml itself, not
+# arbitrary files that rustup reads directly.
+[toolchain]
+channel = "nightly-2026-07-01"

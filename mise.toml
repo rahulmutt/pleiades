@@ -1,23 +1,23 @@
 [env]
-# Single source of truth for the dated fuzzing nightly — referenced by the
-# `[tools]` rust pin below and by the `fuzz`/`fuzz-target` tasks, so a future
-# date bump only requires editing this one value.
+# Single source of truth for the dated fuzzing nightly, consumed by the
+# `fuzz`/`fuzz-target` tasks below (`cargo "+$FUZZ_NIGHTLY"`). The array
+# pin form under `[tools] rust` (`rust = [{...}, "nightly-..."]`) was tried
+# here first, but `workspace-audit`'s `[tools]` parser requires `rust =` to
+# be a single inline table (main's shape) — an array trips
+# `tool-manifest.rust-entry-invalid`/`rust-components-missing`, which is a
+# real reproducibility rule (it also verifies the pinned version matches
+# `[workspace.package] rust-version` and that rustfmt+clippy are present),
+# not something to special-case away for this file. So `[tools] rust` below
+# stays byte-identical to main, and the nightly is pinned instead via
+# `fuzz/rust-toolchain.toml` (Rust's own toolchain-pinning mechanism, which
+# rustup auto-installs with zero manual steps for any cargo invocation whose
+# cwd is under `fuzz/`). That file must repeat the same date string — mise's
+# Tera templating can't reach into a file rustup reads directly — so it
+# carries a comment pointing back here; keep both dates identical on a bump.
 FUZZ_NIGHTLY = "nightly-2026-07-01"
 
 [tools]
-# Fuzzing requires a nightly toolchain (libFuzzer's -Z sanitizer flags). The
-# array form installs and registers a second toolchain — via the same
-# `core:rust`/rustup-backed mise backend — alongside the pinned stable
-# version below, with `mise install` provisioning both on a fresh clone
-# (confirmed via `rustup toolchain list` showing both entries and
-# `cargo +$FUZZ_NIGHTLY --version` resolving through `mise exec` and on
-# ambient PATH). Pinned to the DATED nightly in `FUZZ_NIGHTLY` above, never a
-# floating one — a nightly that moved under CI would break the repo's
-# reproducibility stance. Stable 1.97.1 remains the toolchain for every other
-# task; nothing in the blocking tier or release-gate uses the nightly. The
-# `fuzz`/`fuzz-target` tasks below invoke it via that same env var
-# (`cargo "+$FUZZ_NIGHTLY"`).
-rust = [{ version = "1.97.1", components = "rustfmt,clippy" }, "{{env.FUZZ_NIGHTLY}}"]
+rust = { version = "1.97.1", components = "rustfmt,clippy" }
 "cargo:cargo-fuzz" = "0.12.0"
 # Manual-only release fallback (see release.toml); no prebuilt binary for 1.1.3,
 # so it stays a source build — compiled once, then served from the mise cache.
