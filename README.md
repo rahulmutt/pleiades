@@ -188,6 +188,15 @@ mise run lint
 mise run test
 ```
 
+Activate the committed pre-commit hooks (opt-in — git cannot force hooks):
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Dependency and toolchain updates arrive as grouped [Renovate](https://docs.renovatebot.com)
+pull requests, gated by the blocking CI tier.
+
 Equivalent direct Cargo checks:
 
 ```bash
