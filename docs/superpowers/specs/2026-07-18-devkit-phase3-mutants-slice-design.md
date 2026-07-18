@@ -115,6 +115,11 @@ Supporting configuration: `--baseline auto` (proves the unmutated tree is green
 before spending hours testing 1,451 mutants against a broken baseline) and `-j`
 matched to the runner's 4 vCPUs.
 
+> **Correction (2026-07-18):** cargo-mutants 27.1.0 rejects `--baseline auto`
+> outright (`[possible values: run, skip]`); the implemented invocation uses
+> `--baseline run`. See
+> [`notes/2026-07-18-mutants-baseline.md`](./notes/2026-07-18-mutants-baseline.md).
+
 ### Report artifacts
 
 `mutants.out/` is uploaded as a CI artifact and **not** committed: it is large
@@ -212,6 +217,14 @@ previously validated elsewhere. `release-gate` is untouched.
   implementation plan measures before fixing the number. If the measured
   runtime substantially exceeds the estimate, `--shard` across consecutive
   weekly runs is the fallback — decided on evidence.
+
+  > **Correction (2026-07-18):** the measured wall-clock was 6m52s, not
+  > "on the order of 2 hours" — but that measurement is a warm-cache lower
+  > bound on a 24-core dev box, not a CI-runner-equivalent figure, so it does
+  > not simply replace the estimate above. See
+  > [`notes/2026-07-18-mutants-baseline.md`](./notes/2026-07-18-mutants-baseline.md)
+  > for the full caveat and the reasoning behind the workflow's 90-minute
+  > timeout.
 
 - **Proptest nondeterminism jitters the score.** `pleiades-types` proptests use
   random seeds, so a given mutant can be caught in one run and survive the next,

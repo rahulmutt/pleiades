@@ -1,10 +1,12 @@
 name: Mutants
 
-# Separate from nightly.yml on purpose: nightly has a 60-minute budget already
-# consumed by test-full, package-check, benchmark, deny and secrets, and a full
-# mutation run is measured in hours. Weekly rather than nightly because the
-# signal changes slowly — mutation score moves when test STRATEGY changes, not
-# on every commit.
+# Weekly rather than nightly because the signal changes slowly — mutation
+# score moves when test STRATEGY changes, not on every commit, so a nightly
+# cadence would just burn CI minutes re-measuring something that hasn't
+# changed. Separate from nightly.yml on purpose: nightly's 60-minute budget is
+# already consumed by test-full, package-check, benchmark, deny and secrets,
+# and this tier's cold-cache cost (plus future crate growth) doesn't belong
+# inside that already-tight envelope.
 on:
   schedule:
     - cron: "0 9 * * 1" # 09:00 UTC Mondays — offset from nightly (06:00) and fuzz (03:00)
@@ -23,10 +25,15 @@ env:
 jobs:
   mutants:
     runs-on: ubuntu-latest
-    # Measured 6m52s warm at -j4 on a dev box (Task 2). 90 minutes is roughly
-    # 13x that, giving headroom for a cold-cache 4-vCPU CI runner (cargo-mutants
-    # build, workspace build, and baseline all from scratch) while still
-    # failing in well under two hours if a run genuinely hangs.
+    # Measured 6m52s warm at -j4 on a 24-core dev box (Task 2) — a warm-cache
+    # lower bound, not a runner-equivalent figure. cargo-mutants'
+    # --jobserver-tasks defaults to NCPUS, so -j4 caps concurrent mutant jobs
+    # but not build parallelism inside them; a 4-vCPU CI runner building
+    # cargo-mutants, the workspace, and the baseline from scratch has far less
+    # compile throughput. The true CI multiplier is unknown, and the headroom
+    # here is smaller than a naive ratio against 6m52s suggests. 90 minutes is
+    # still better-founded than the original 240-minute estimate; the first
+    # scheduled run is the calibration point for revisiting this number.
     timeout-minutes: 90
     steps:
       - name: Checkout repository
@@ -60,7 +67,17 @@ jobs:
       # .github/scripts/mutants-exit.sh (not inlined here) so it can be
       # exercised directly in Step 5 of the implementation task instead of
       # being re-implemented and re-verified against itself.
+      #
+      # Step-level timeout is deliberately shorter than the job-level one.
+      # GitHub *cancels* a job that exceeds its job-level timeout, and
+      # `if: failure()` steps do not run on cancellation — so a wedged run,
+      # the exact case the job timeout exists to catch, would fail silently
+      # with no tracking issue opened, and nobody watches a weekly cron's UI.
+      # A step timeout instead makes the step *fail* (not get cancelled), so
+      # the job continues to the issue-open step below. The job-level 90 is
+      # the outer backstop in case something outside this step hangs.
       - name: Run mutation baseline
+        timeout-minutes: 75
         run: |
           set +e
           mise run mutants

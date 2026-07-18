@@ -305,9 +305,50 @@ safety net.
 **Suggested fix:** Work the backlog by writing tests that express intent, NOT
 assertions that pin whatever the code currently returns — the latter locks in
 behavior without validating it and is the failure mode the report-only posture
-exists to avoid. Triage in priority order: numeric/logic survivors first;
-`Display`/`Debug`/accessor survivors are low value and may instead be excluded
-via `#[mutants::skip]` or `--skip-calls` to raise the signal of future runs.
+exists to avoid. Triage in priority order: numeric/logic survivors first.
+Caution: the baseline's own assessment found survivors concentrated in
+numeric logic (arithmetic-operator swaps in polynomial series evaluation), not
+in `Display`/`Debug`/accessors as originally hypothesized, so `#[mutants::skip]`
+/ `--skip-calls` exclusion applies only to the small non-numeric tail (e.g. the
+few `provenance.rs` survivors) — the numeric bulk must be worked through, not
+suppressed, because suppressing it would hide exactly the signal this tier
+exists to surface.
 
 **Severity:** test-coverage hardening (report-only, non-blocking) ·
+**Opened:** 2026-07-18
+
+---
+
+## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
+
+**Status:** open · Opened 2026-07-18 during the devkit Phase 3 cargo-mutants
+slice final review.
+
+**What:** `mise.toml`'s `[tasks.mutants-crate]` (`{{arg(name="crate")}}`) and
+the pre-existing `[tasks.fuzz-target]` (`{{arg(name="target")}}`,
+`{{arg(name="seconds")}}`) both use mise's Tera-based `{{arg(...)}}`
+templating to accept positional task arguments. mise warns this form is
+deprecated and will be **removed in mise 2027.5.0**, directing callers to use
+the `usage` field instead.
+
+**Where:** `mise.toml` lines ~122 (`[tasks.fuzz-target]`) and ~146
+(`[tasks.mutants-crate]`).
+
+**Evidence:** mise's own deprecation warning, surfaced when running either
+task, names the removal version and the `usage`-field replacement.
+
+**Impact:** No current defect — both tasks work as written today. But the
+removal date is known and fixed, so both tasks will break with no warning
+period once the repo's pinned mise version crosses 2027.5.0, unless migrated
+first.
+
+**Suggested fix:** Migrate both tasks' argument declarations from
+`{{arg(...)}}` to the `usage` field, in one pass covering every task using the
+deprecated form (not just the mutants one) so the repo doesn't end up with a
+mix of old- and new-style argument declarations. Deferred here rather than
+fixed opportunistically in this slice because migrating one task in isolation
+while leaving `fuzz-target` on the old form would create exactly that
+inconsistency.
+
+**Severity:** low — maintenance (known removal date, no current breakage) ·
 **Opened:** 2026-07-18

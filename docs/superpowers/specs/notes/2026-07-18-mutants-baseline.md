@@ -18,9 +18,17 @@
 | `pleiades-apparent` | 817 | 576 | 228 | 13 | 71.6% |
 | **Total** | **1451** | **1070** | **318** | **63** | **77.1%** |
 
-**Wall-clock:** 6m52.478s (`real`) at `-j4` (`CARGO_MUTANTS_JOBS=4`, deliberately
-restricted on a 24-core dev box to stay comparable to the 4-vCPU GitHub
-`ubuntu-latest` runner)
+**Wall-clock:** 6m52.478s (`real`) at `-j4` (`CARGO_MUTANTS_JOBS=4`) on a
+24-core dev box with a warm build cache. This is a **warm-cache lower bound**,
+not a runner-equivalent figure: cargo-mutants' `--jobserver-tasks` defaults to
+NCPUS, so `-j4` caps concurrent mutant jobs but not build parallelism inside
+each one, and the dev box has far more compile throughput than the 4-vCPU
+`ubuntu-latest` runner, which also builds cargo-mutants, the workspace, and
+the baseline cold. The true CI multiplier is unknown and the headroom in
+`mutants.yml`'s 90-minute timeout is smaller than a naive ratio against this
+number suggests — 90 minutes is nonetheless better-founded than the original
+240-minute estimate, and the first scheduled run is the calibration point for
+revisiting it.
 **Exit code:** 2 (surviving mutants found — expected for a first baseline, and a
 passing outcome for a report-only tier)
 
