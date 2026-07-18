@@ -1,5 +1,15 @@
 [tools]
 rust = { version = "1.97.1", components = "rustfmt,clippy" }
+# Fuzzing requires a nightly toolchain (libFuzzer's -Z sanitizer flags). Pinned
+# to a DATED nightly, never a floating one — a nightly that moved under CI
+# would break the repo's reproducibility stance. Stable 1.97.1 above remains
+# the toolchain for every other task; nothing in the blocking tier or
+# release-gate uses this. mise's core `rust` backend does not accept a second
+# entry under a distinct key ("rust-nightly not found in mise tool registry"),
+# so the dated nightly is installed via rustup instead (see
+# `rustup toolchain install nightly-2026-07-01`) and the `fuzz`/`fuzz-target`
+# tasks below invoke it explicitly as `cargo +nightly-2026-07-01`.
+"cargo:cargo-fuzz" = "0.12.0"
 # Manual-only release fallback (see release.toml); no prebuilt binary for 1.1.3,
 # so it stays a source build — compiled once, then served from the mise cache.
 "cargo:cargo-release" = "1.1.3"
@@ -80,6 +90,20 @@ run = "cargo run -q -p pleiades-validate -- claims-audit"
 
 [tasks.benchmark]
 run = "cargo run -q -p pleiades-validate -- benchmark --rounds 5"
+
+[tasks.fuzz]
+description = "Run all fuzz targets for a short budget (local smoke; NOT part of ci or ci-nightly)."
+run = """
+set -euo pipefail
+for target in spk_kernel compression_framing compression_payload ingest_corpus; do
+  echo "── fuzzing $target ──"
+  cargo +nightly-2026-07-01 fuzz run "$target" -- -max_total_time=60
+done
+"""
+
+[tasks.fuzz-target]
+description = "Run one fuzz target for an explicit budget: mise run fuzz-target <name> <seconds>."
+run = "cargo +nightly-2026-07-01 fuzz run {{arg(name=\"target\")}} -- -max_total_time={{arg(name=\"seconds\")}}"
 
 [tasks.release-smoke]
 run = "cargo run -q -p pleiades-validate -- release-smoke"

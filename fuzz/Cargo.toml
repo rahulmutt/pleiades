@@ -1,0 +1,51 @@
+# Standalone, non-member crate. The root workspace uses an explicit `members`
+# list and this path is deliberately absent from it, so libfuzzer-sys and
+# arbitrary never enter any published crate's dependency graph and cargo deny's
+# view of shipped dependencies is unchanged. The empty [workspace] table below
+# makes this its own workspace root rather than an orphan inside the parent.
+[package]
+name = "pleiades-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+pleiades-jpl = { path = "../crates/pleiades-jpl" }
+pleiades-compression = { path = "../crates/pleiades-compression" }
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "spk_kernel"
+path = "fuzz_targets/spk_kernel.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "compression_framing"
+path = "fuzz_targets/compression_framing.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "compression_payload"
+path = "fuzz_targets/compression_payload.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ingest_corpus"
+path = "fuzz_targets/ingest_corpus.rs"
+test = false
+doc = false
+bench = false
