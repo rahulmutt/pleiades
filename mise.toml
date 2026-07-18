@@ -21,6 +21,11 @@ FUZZ_NIGHTLY = "nightly-2026-07-01"
 [tools]
 rust = { version = "1.97.1", components = "rustfmt,clippy" }
 "cargo:cargo-fuzz" = "0.12.0"
+# Mutation testing (report-only, weekly tier — see .github/workflows/mutants.yml).
+# Source build: no aqua/prebuilt backend for cargo-mutants, compiled once then
+# served from the mise cache. Runs on the pinned STABLE toolchain — unlike
+# cargo-fuzz it needs no nightly, so it adds no toolchain surface.
+"cargo:cargo-mutants" = "27.1.0"
 # Manual-only release fallback (see release.toml); no prebuilt binary for 1.1.3,
 # so it stays a source build — compiled once, then served from the mise cache.
 "cargo:cargo-release" = "1.1.3"
@@ -115,6 +120,30 @@ done
 [tasks.fuzz-target]
 description = "Run one fuzz target for an explicit budget: mise run fuzz-target <name> <seconds>."
 run = "cargo \"+$FUZZ_NIGHTLY\" fuzz run {{arg(name=\"target\")}} -- -max_total_time={{arg(name=\"seconds\")}}"
+
+[tasks.mutants]
+description = "Mutation testing baseline over the pure-logic crates (report-only; NOT part of ci or ci-nightly)."
+# --test-workspace=false is load-bearing, not an optimization: cargo-mutants runs
+# the ENTIRE workspace suite per mutant by default, and pleiades-validate /
+# pleiades-cli carry individual tests of 300+ seconds (see
+# docs/superpowers/plans/test-timings.md). Without this flag one mutant costs
+# minutes and 1451 of them are unschedulable at any cadence. Restricting to the
+# mutated package's own tests is also the semantically correct scope.
+# Exit code 2 (surviving mutants found) is an EXPECTED result here, not an error
+# — this tier is report-only. See .github/workflows/mutants.yml for the mapping.
+run = """
+cargo mutants \
+  --test-tool nextest \
+  --test-workspace=false \
+  --baseline auto \
+  -p pleiades-types \
+  -p pleiades-time \
+  -p pleiades-apparent
+"""
+
+[tasks.mutants-crate]
+description = "Mutation testing for one crate: mise run mutants-crate <name>."
+run = "cargo mutants --test-tool nextest --test-workspace=false --baseline auto -p {{arg(name=\"crate\")}}"
 
 [tasks.release-smoke]
 run = "cargo run -q -p pleiades-validate -- release-smoke"
