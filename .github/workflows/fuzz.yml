@@ -45,13 +45,23 @@ jobs:
       # committed corpora under fuzz/corpus are deliberately small curated seeds
       # (Task 6); the machine-discovered corpus grows here across scheduled runs
       # so coverage compounds instead of restarting from scratch every night.
+      #
+      # Key namespace is "corpus-fuzz", not "fuzz-corpus": the toolchain/build
+      # cache above restores via the bare prefix `${{ runner.os }}-fuzz-`, which
+      # is a string-prefix match against every cache key. "fuzz-corpus-..." is a
+      # superstring of that prefix, so it would satisfy the toolchain cache's
+      # restore-keys fallback too — and since a new corpus entry is created on
+      # EVERY run (unique run_id), it is almost always the newest match,
+      # silently starving the toolchain/build cache after any mise.toml or
+      # fuzz/Cargo.toml edit. "corpus-fuzz-" is not a superstring of "fuzz-" in
+      # either direction, so the two caches' restore-keys can never cross-match.
       - name: Cache fuzz corpus
         uses: actions/cache@v4
         with:
           path: fuzz/corpus
-          key: ${{ runner.os }}-fuzz-corpus-${{ github.run_id }}
+          key: ${{ runner.os }}-corpus-fuzz-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-fuzz-corpus-
+            ${{ runner.os }}-corpus-fuzz-
 
       - name: Install mise-managed tools
         run: mise install
@@ -62,6 +72,22 @@ jobs:
           for target in spk_kernel compression_framing compression_payload ingest_corpus; do
             echo "── fuzzing $target ──"
             mise run fuzz-target "$target" 600
+          done
+
+      # Runs even if the campaign above found a crash/hang/OOM (if: always()),
+      # so a bad run still gets its corpus minimized before the cache-save
+      # post-step. It does NOT flip the job back to green: a failed step earlier
+      # in the job already pins the job's conclusion to failure, and nothing
+      # here can undo that — this step only adds work, it never clears the
+      # failure signal. Uses `mise exec` (not a hardcoded toolchain date) so
+      # `$FUZZ_NIGHTLY` stays sourced from mise.toml's [env] block.
+      - name: Minimize fuzz corpus
+        if: always()
+        run: |
+          set -euo pipefail
+          for target in spk_kernel compression_framing compression_payload ingest_corpus; do
+            echo "── minimizing corpus for $target ──"
+            TARGET="$target" mise exec -- bash -c 'cargo "+$FUZZ_NIGHTLY" fuzz cmin "$TARGET"'
           done
 
       - name: Upload crash artifacts
@@ -88,7 +114,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue list --label fuzzing --state open --json number --jq '.[].number' \
+          gh issue list --label fuzzing-failure --state open --json number --jq '.[].number' \
             | while read -r n; do
                 [ -n "$n" ] && gh issue close "$n" --comment "Fuzz campaign green again on ${{ github.sha }}."
               done
