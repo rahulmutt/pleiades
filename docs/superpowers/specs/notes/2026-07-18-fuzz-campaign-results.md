@@ -44,6 +44,29 @@ Campaign completed 2026-07-18T12:32:48Z. Raw logs:
 
 All four exit rc=0. Total ~449M executions, 4 x 30 minutes.
 
+### Reading the per-target disparities
+
+The executions and coverage figures differ by an order of magnitude between targets. Both
+disparities are by design, and neither indicates a broken harness:
+
+- **`compression_framing` does 333M executions for only 770 edges** because it fuzzes the
+  framing exactly as shipped, and the unkeyed FNV-1a checksum rejects almost every mutated
+  input before any parsing happens. That is the target's purpose. `compression_payload` exists
+  precisely so the mutator's bytes reach the codec: the harness recomputes the checksum, which
+  is why it gets 1262 edges from 7x fewer executions.
+- **`spk_kernel` saturates earliest and covers the least.** Its last new edge appeared at
+  execution 35.6M of 48.5M (73% through the run), versus 81% for `compression_framing`, 95%
+  for `ingest_corpus`, and 98% for `compression_payload`; it gained only 3 edges (341 -> 344)
+  across the whole campaign and its corpus holds 128 entries. `DafFile::parse` gates on an
+  exact 8-byte magic, an enum-valued `LOCFMT`, and `ND == 2 && NI == 6` before reaching any
+  interesting logic, so the mutator plateaus once it learns to preserve those gates.
+
+The merge criterion (30 minutes, zero new crashes) is met for all four. But `spk_kernel`'s
+clean result rests on a narrower exploration than the other three, so it should not be read as
+equally exhaustive evidence. If that target's depth matters later, the lever is a richer seed
+corpus — structurally valid DAFs varying `ND`/`NI`, record counts, and endianness — rather
+than a longer budget, which the plateau suggests would buy little.
+
 Every figure above was read directly from the DONE line of each log and cross-checked
 against `summary.txt`; all match the campaign's reported evidence exactly.
 
@@ -74,6 +97,11 @@ blocking tier:
 
 This campaign establishes the clean baseline the merge criterion requires against those
 fixes; it is not expected to (and did not) find anything new. No new reproducers to record.
+
+That said, "zero defects" is evidence of a clean baseline, not proof of absence — and it is
+not uniformly strong across the four targets. See the per-target disparities above:
+`compression_payload` and `ingest_corpus` were still finding new coverage at 95-98% through
+their runs, while `spk_kernel` had effectively saturated by 73%.
 
 ## Full suite (Step 5)
 
