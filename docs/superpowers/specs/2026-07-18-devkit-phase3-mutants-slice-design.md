@@ -124,8 +124,14 @@ deliberately from the fuzz slice's committed-corpus policy — a fuzz corpus
 represents accumulated search effort that cannot be regenerated, whereas a
 mutants report is a deterministic function of the tree.
 
-`.gitignore` gains a `mutants.out/` entry; the implementation plan verifies the
-result with `git check-ignore` rather than assuming it.
+`.gitignore` needs **no change**: line 14 already carries `**/mutants.out*/`
+(inherited from the upstream Rust template), which covers `mutants.out/` at any
+depth, including the `--in-place`-style variants cargo-mutants suffixes. The
+implementation plan verifies this with `git check-ignore` against a real
+directory rather than assuming it — note that `git check-ignore mutants.out` on
+a non-existent path reports *not ignored*, a false negative, because the
+pattern's trailing slash restricts it to directories. Verify with
+`mkdir mutants.out && git check-ignore -v mutants.out/`.
 
 ## CI wiring
 
