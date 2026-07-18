@@ -1,0 +1,116 @@
+name: Mutants
+
+# Weekly rather than nightly because the signal changes slowly — mutation
+# score moves when test STRATEGY changes, not on every commit, so a nightly
+# cadence would just burn CI minutes re-measuring something that hasn't
+# changed. Separate from nightly.yml on purpose: nightly's 60-minute budget is
+# already consumed by test-full, package-check, benchmark, deny and secrets,
+# and this tier's cold-cache cost (plus future crate growth) doesn't belong
+# inside that already-tight envelope.
+on:
+  schedule:
+    - cron: "0 9 * * 1" # 09:00 UTC Mondays — offset from nightly (06:00) and fuzz (03:00)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  # ubuntu-latest is a 4-vCPU runner; cargo-mutants reads this natively.
+  # Pinned rather than left to default so the weekly wall-clock stays
+  # comparable run to run.
+  CARGO_MUTANTS_JOBS: 4
+
+jobs:
+  mutants:
+    runs-on: ubuntu-latest
+    # Measured 6m52s warm at -j4 on a 24-core dev box (Task 2) — a warm-cache
+    # lower bound, not a runner-equivalent figure. cargo-mutants'
+    # --jobserver-tasks defaults to NCPUS, so -j4 caps concurrent mutant jobs
+    # but not build parallelism inside them; a 4-vCPU CI runner building
+    # cargo-mutants, the workspace, and the baseline from scratch has far less
+    # compile throughput. The true CI multiplier is unknown, and the headroom
+    # here is smaller than a naive ratio against 6m52s suggests. 90 minutes is
+    # still better-founded than the original 240-minute estimate; the first
+    # scheduled run is the calibration point for revisiting this number.
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up mise
+        uses: jdx/mise-action@v2
+        with:
+          install: false
+
+      - name: Cache Rust toolchain, Cargo, and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup
+            ~/.cargo
+            ~/.local/share/mise
+            target
+          key: ${{ runner.os }}-mutants-${{ hashFiles('mise.toml', 'Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mutants-
+
+      - name: Install mise-managed tools
+        run: mise install
+
+      # Report-only tier: exit 2 means "surviving mutants found", which is the
+      # EXPECTED steady state and must not fail the job. Exit 1 (usage error),
+      # 3 (tests timed out) and 4 (baseline already failing) mean the run could
+      # not measure anything and must fail loud — a misconfigured run and a
+      # clean run must not look alike. The mapping itself lives in
+      # .github/scripts/mutants-exit.sh (not inlined here) so it can be
+      # exercised directly in Step 5 of the implementation task instead of
+      # being re-implemented and re-verified against itself.
+      #
+      # Step-level timeout is deliberately shorter than the job-level one.
+      # GitHub *cancels* a job that exceeds its job-level timeout, and
+      # `if: failure()` steps do not run on cancellation — so a wedged run,
+      # the exact case the job timeout exists to catch, would fail silently
+      # with no tracking issue opened, and nobody watches a weekly cron's UI.
+      # A step timeout instead makes the step *fail* (not get cancelled), so
+      # the job continues to the issue-open step below. The job-level 90 is
+      # the outer backstop in case something outside this step hangs.
+      - name: Run mutation baseline
+        timeout-minutes: 75
+        run: |
+          set +e
+          mise run mutants
+          code=$?
+          set -e
+          echo "cargo-mutants exit code: $code"
+          .github/scripts/mutants-exit.sh "$code"
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutants-report
+          path: mutants.out/
+          if-no-files-found: warn
+
+      - name: Open/update tracking issue on failure
+        if: failure()
+        uses: JasonEtco/create-an-issue@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          filename: .github/mutants-failure-issue.md
+          update_existing: true
+          search_existing: open
+
+      - name: Close tracking issue on success
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue list --label mutants-failure --state open --json number --jq '.[].number' \
+            | while read -r n; do
+                [ -n "$n" ] && gh issue close "$n" --comment "Mutation run green again on ${{ github.sha }}."
+              done

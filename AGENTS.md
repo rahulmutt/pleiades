@@ -44,6 +44,7 @@ Use `mise.toml` for things such as:
 - `cargo-deny`
 - `cargo-audit`
 - `cargo-fuzz`, plus the pinned dated nightly toolchain it requires (`FUZZ_NIGHTLY` in `mise.toml`'s `[env]`, alongside the default stable toolchain)
+- `cargo-mutants`, for report-only mutation testing on the weekly tier (`mise run mutants`); runs on the default stable toolchain, no nightly required
 - `just`
 - `taplo`
 - `mdbook`
@@ -296,7 +297,7 @@ When available and relevant, also use:
 - `cargo bench`
 - validation commands from `pleiades-validate`
 
-CI has three tiers, each with its own budget: blocking (`mise run ci`, must pass before merge), nightly (`mise run ci-nightly`, slow/broad checks, fail-loud not fail-blocking), and fuzz (`.github/workflows/fuzz.yml`, its own daily cron and timeout). Fuzzing is a **third** tier, not part of `ci-nightly` — its per-target budget would overrun nightly's.
+CI has four tiers, each with its own budget: blocking (`mise run ci`, must pass before merge), nightly (`mise run ci-nightly`, slow/broad checks, fail-loud not fail-blocking), fuzz (`.github/workflows/fuzz.yml`, its own daily cron and timeout), and mutants (`.github/workflows/mutants.yml`, weekly cron). Fuzzing and mutation testing are separate tiers, not part of `ci-nightly` — their budgets would overrun nightly's. The mutants tier is **report-only**: surviving mutants (cargo-mutants exit code 2) pass the job, and mutation score gates nothing. It fails loud only when a run could not measure at all (exit 1/3/4). The surviving-mutant backlog is tracked as FU-9 in `docs/follow-ups.md`.
 
 ### Dependency hygiene
 
