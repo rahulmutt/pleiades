@@ -1,0 +1,94 @@
+name: Fuzz
+
+# Separate from nightly.yml on purpose: nightly has a 60-minute budget already
+# consumed by test-full, package-check, benchmark, deny and secrets. Keeping
+# fuzz here lets its runtime scale independently, stops a wedged target from
+# delaying or masking a test-tier regression, and lets per-target budgets grow
+# without renegotiating nightly's envelope.
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC daily — offset from nightly's 06:00
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90 # ~10 min x 4 targets, plus toolchain install and build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up mise
+        uses: jdx/mise-action@v2
+        with:
+          install: false
+
+      - name: Cache Rust toolchain, Cargo, and fuzz build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup
+            ~/.cargo
+            ~/.local/share/mise
+            fuzz/target
+          key: ${{ runner.os }}-fuzz-${{ hashFiles('mise.toml', 'fuzz/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-fuzz-
+
+      # Kept separate from the toolchain/build cache above: that key is derived
+      # from mise.toml and fuzz/Cargo.toml, so a routine toolchain bump would
+      # otherwise evict the accumulated corpus along with the build cache. The
+      # committed corpora under fuzz/corpus are deliberately small curated seeds
+      # (Task 6); the machine-discovered corpus grows here across scheduled runs
+      # so coverage compounds instead of restarting from scratch every night.
+      - name: Cache fuzz corpus
+        uses: actions/cache@v4
+        with:
+          path: fuzz/corpus
+          key: ${{ runner.os }}-fuzz-corpus-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-fuzz-corpus-
+
+      - name: Install mise-managed tools
+        run: mise install
+
+      - name: Run fuzz campaign
+        run: |
+          set -euo pipefail
+          for target in spk_kernel compression_framing compression_payload ingest_corpus; do
+            echo "── fuzzing $target ──"
+            mise run fuzz-target "$target" 600
+          done
+
+      - name: Upload crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts
+          path: fuzz/artifacts/
+          if-no-files-found: ignore
+
+      - name: Open/update tracking issue on failure
+        if: failure()
+        uses: JasonEtco/create-an-issue@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          filename: .github/fuzz-failure-issue.md
+          update_existing: true
+          search_existing: open
+
+      - name: Close tracking issue on success
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue list --label fuzzing --state open --json number --jq '.[].number' \
+            | while read -r n; do
+                [ -n "$n" ] && gh issue close "$n" --comment "Fuzz campaign green again on ${{ github.sha }}."
+              done
