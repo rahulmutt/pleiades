@@ -135,7 +135,7 @@ run = """
 cargo mutants \
   --test-tool nextest \
   --test-workspace=false \
-  --baseline auto \
+  --baseline run \
   -p pleiades-types \
   -p pleiades-time \
   -p pleiades-apparent
@@ -143,7 +143,7 @@ cargo mutants \
 
 [tasks.mutants-crate]
 description = "Mutation testing for one crate: mise run mutants-crate <name>."
-run = "cargo mutants --test-tool nextest --test-workspace=false --baseline auto -p {{arg(name=\"crate\")}}"
+run = "cargo mutants --test-tool nextest --test-workspace=false --baseline run -p {{arg(name=\"crate\")}}"
 
 [tasks.release-smoke]
 run = "cargo run -q -p pleiades-validate -- release-smoke"
