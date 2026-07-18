@@ -11,6 +11,14 @@ use crate::format::{
     ArtifactOutput, ArtifactOutputSupport, ArtifactProfile, EndianPolicy, SpeedPolicy,
 };
 
+// ── Module constants ──────────────────────────────────────────────────────────
+
+/// Smallest number of bytes any encoded segment can occupy: two instants
+/// (`f64` + time-scale byte each) plus the channel and residual-channel count
+/// bytes. Used to reject a declared segment count that the remaining input
+/// could not possibly back, before it reaches `Vec::with_capacity`.
+const MIN_ENCODED_SEGMENT_BYTES: usize = 20;
+
 // ── Write primitives ─────────────────────────────────────────────────────────
 
 pub(crate) fn write_string(bytes: &mut Vec<u8>, value: &str) {
@@ -502,6 +510,17 @@ pub(crate) fn decode_body(
     let body = decode_celestial_body(cursor)?;
     let frame = decode_stored_frame(cursor.read_u8()?)?;
     let segment_count = cursor.read_u32()? as usize;
+    let max_possible_segments = cursor.remaining().len() / MIN_ENCODED_SEGMENT_BYTES;
+    if segment_count > max_possible_segments {
+        return Err(CompressionError::new(
+            CompressionErrorKind::InvalidFormat,
+            format!(
+                "compressed artifact declared {segment_count} segments but only \
+                 {} bytes remain (at most {max_possible_segments} possible)",
+                cursor.remaining().len()
+            ),
+        ));
+    }
     let mut segments = Vec::with_capacity(segment_count);
     for _ in 0..segment_count {
         segments.push(decode_segment(cursor)?);
@@ -912,4 +931,27 @@ pub(crate) fn validate_body_segments(segments: &[Segment]) -> Result<(), Compres
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::channels::StoredFrame;
+
+    #[test]
+    fn decode_body_rejects_segment_count_larger_than_remaining_bytes() {
+        // A body header whose declared segment count cannot possibly be backed
+        // by the bytes that follow. Without a bound, this reaches
+        // Vec::with_capacity(u32::MAX as usize) and aborts the process.
+        let mut bytes = Vec::new();
+        encode_celestial_body(&mut bytes, &CelestialBody::Sun).unwrap();
+        write_u8(&mut bytes, encode_stored_frame(StoredFrame::Geocentric));
+        write_u32(&mut bytes, u32::MAX);
+        // No segment bytes follow at all.
+
+        let mut cursor = Cursor::new(&bytes);
+        let err = decode_body(&mut cursor)
+            .expect_err("an unbacked segment count must be rejected before allocating");
+        assert_eq!(err.kind, CompressionErrorKind::InvalidFormat);
+    }
 }
