@@ -111,6 +111,64 @@ mod tests {
     use super::*;
     use crate::spk::test_support::{build_daf, type2_record, type2_segment_data, SegmentSpec};
 
+    /// Same synthetic-segment shape used by `backend.rs` and
+    /// `cross_check_tests.rs`; duplicated locally per this crate's existing
+    /// per-module `#[cfg(test)]` convention (`test_support` has no
+    /// `const_seg` of its own).
+    fn const_seg(target: i32, center: i32, pos: [f64; 3]) -> SegmentSpec {
+        let rec = type2_record(0.0, 1.0e12, &[pos[0], 0.0], &[pos[1], 0.0], &[pos[2], 0.0]);
+        let data = type2_segment_data(-1.0e12, 2.0e12, rec.len(), &[rec]);
+        SegmentSpec {
+            start_et: -1.0e12,
+            stop_et: 1.0e12,
+            target,
+            center,
+            frame: 1,
+            data_type: 2,
+            data,
+            name: "C".to_string(),
+        }
+    }
+
+    /// Overwrites the NEXT field of the summary record at record 2.
+    /// `build_daf` sets FWARD = 2, so the walk starts there and NEXT is the
+    /// little-endian f64 at byte offset 1024.
+    fn set_summary_next(blob: &mut [u8], next: f64) {
+        blob[1024..1032].copy_from_slice(&next.to_le_bytes());
+    }
+
+    #[test]
+    fn rejects_self_referential_record_chain() {
+        let mut blob = build_daf(&[const_seg(10, 0, [1.0e8, 0.0, 0.0])]);
+        // Record 2's NEXT points at record 2 — a cycle.
+        set_summary_next(&mut blob, 2.0);
+
+        let err = DafFile::parse(blob.as_slice())
+            .expect_err("a self-referential record chain must be rejected, not looped on");
+        assert_eq!(err.kind, SpkErrorKind::BadHeader);
+    }
+
+    #[test]
+    fn rejects_record_number_that_overflows_offset_arithmetic() {
+        let mut blob = build_daf(&[const_seg(10, 0, [1.0e8, 0.0, 0.0])]);
+        // `as usize` saturates this to usize::MAX, overflowing (n - 1) * 1024.
+        set_summary_next(&mut blob, 1.0e300);
+
+        let err = DafFile::parse(blob.as_slice())
+            .expect_err("an out-of-range record number must be rejected, not overflow");
+        assert_eq!(err.kind, SpkErrorKind::Truncated);
+    }
+
+    #[test]
+    fn valid_kernel_still_parses_after_hardening() {
+        let blob = build_daf(&[
+            const_seg(10, 0, [1.0e8, 0.0, 0.0]),
+            const_seg(399, 3, [0.0, 0.0, 0.0]),
+        ]);
+        let daf = DafFile::parse(blob.as_slice()).expect("a well-formed DAF must still parse");
+        assert_eq!(daf.segments.len(), 2);
+    }
+
     #[test]
     fn parses_descriptor_fields_from_synthetic_daf() {
         let rec = type2_record(0.0, 1.0, &[1.0, 0.0], &[2.0, 0.0], &[3.0, 0.0]);

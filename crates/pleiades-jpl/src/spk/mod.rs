@@ -114,4 +114,13 @@ mod tests {
             SpkErrorKind::Truncated
         );
     }
+
+    #[test]
+    fn read_at_rejects_offset_len_overflow_without_panicking() {
+        let data: &[u8] = &[1, 2, 3, 4];
+        let err = data
+            .read_at(usize::MAX, 8)
+            .expect_err("offset + len overflow must return Truncated, not panic");
+        assert_eq!(err.kind, SpkErrorKind::Truncated);
+    }
 }
