@@ -244,7 +244,7 @@ previously validated elsewhere. `release-gate` is untouched.
   > `#[mutants::skip]` is therefore not recommended, as it would suppress the signal
   > the tier exists to surface. See
   > [`notes/2026-07-18-mutants-baseline.md`](./notes/2026-07-18-mutants-baseline.md)
-  > and FU-9 in [`docs/follow-ups.md`](./docs/follow-ups.md).
+  > and FU-9 in [`docs/follow-ups.md`](../../follow-ups.md).
 
 - **A report nobody reads.** The genuine failure mode for report-only tooling:
   it runs weekly, costs CI minutes, and changes no behavior. FU-9 exists
