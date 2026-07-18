@@ -1944,3 +1944,46 @@ fn body_frame_round_trips_through_codec() {
     assert_eq!(decoded.frame, StoredFrame::Heliocentric);
     assert_eq!(decoded.body, CelestialBody::Jupiter);
 }
+
+mod codec_properties {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn encode_decode_reencode_is_stable(
+            start_day in 0.0f64..1.0e5,
+            span in 0.1f64..1.0e4,
+            // Bounded to realistic magnitudes so fixed-point encoding never overflows.
+            lon0 in -360.0f64..360.0, lon1 in -360.0f64..360.0,
+            lat0 in -90.0f64..90.0,   lat1 in -90.0f64..90.0,
+            dist0 in -100.0f64..100.0, dist1 in -100.0f64..100.0,
+        ) {
+            let artifact = CompressedArtifact::new(
+                ArtifactHeader::new("proptest", "reencode stability fixture"),
+                vec![BodyArtifact::new(
+                    CelestialBody::Sun,
+                    vec![Segment::new(
+                        Instant::new(JulianDay::from_days(start_day), TimeScale::Tt),
+                        Instant::new(JulianDay::from_days(start_day + span), TimeScale::Tt),
+                        vec![
+                            PolynomialChannel::linear(ChannelKind::Longitude, 9, lon0, lon1),
+                            PolynomialChannel::linear(ChannelKind::Latitude, 9, lat0, lat1),
+                            PolynomialChannel::linear(ChannelKind::DistanceAu, 12, dist0, dist1),
+                        ],
+                    )],
+                )],
+            );
+
+            let bytes = artifact.encode().expect("encode");
+            let decoded = CompressedArtifact::decode(&bytes).expect("decode");
+            // Re-encoding a decoded artifact reproduces identical bytes: the codec is a
+            // stable projection, robust to any quantization applied on the first encode.
+            let reencoded = decoded.encode().expect("re-encode");
+            prop_assert_eq!(&reencoded, &bytes);
+            // Decoding the re-encoded bytes yields a structurally identical artifact.
+            let redecoded = CompressedArtifact::decode(&reencoded).expect("re-decode");
+            prop_assert_eq!(redecoded, decoded);
+        }
+    }
+}
