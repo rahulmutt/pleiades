@@ -239,6 +239,13 @@ previously validated elsewhere. `release-gate` is untouched.
   first output rather than pre-emptively, since guessing at exclusions before
   seeing the report risks hiding real gaps.
 
+  > **Correction (2026-07-18):** The trivia hypothesis did not hold; survivors
+  > concentrate in numeric logic, not cosmetic paths. Blanket `--skip-calls` /
+  > `#[mutants::skip]` is therefore not recommended, as it would suppress the signal
+  > the tier exists to surface. See
+  > [`notes/2026-07-18-mutants-baseline.md`](./notes/2026-07-18-mutants-baseline.md)
+  > and FU-9 in [`docs/follow-ups.md`](./docs/follow-ups.md).
+
 - **A report nobody reads.** The genuine failure mode for report-only tooling:
   it runs weekly, costs CI minutes, and changes no behavior. FU-9 exists
   specifically to give the output a destination in the repo's existing
