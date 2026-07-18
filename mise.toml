@@ -8,12 +8,14 @@
 # real reproducibility rule (it also verifies the pinned version matches
 # `[workspace.package] rust-version` and that rustfmt+clippy are present),
 # not something to special-case away for this file. So `[tools] rust` below
-# stays byte-identical to main, and the nightly is pinned instead via
-# `fuzz/rust-toolchain.toml` (Rust's own toolchain-pinning mechanism, which
-# rustup auto-installs with zero manual steps for any cargo invocation whose
-# cwd is under `fuzz/`). That file must repeat the same date string — mise's
-# Tera templating can't reach into a file rustup reads directly — so it
-# carries a comment pointing back here; keep both dates identical on a bump.
+# stays byte-identical to main, and `[env] FUZZ_NIGHTLY` above is what the
+# mise `fuzz`/`fuzz-target` tasks and CI actually consume; CI installs it
+# explicitly (see .github/workflows/fuzz.yml). `fuzz/rust-toolchain.toml`
+# mirrors the same date for direct/IDE invocations outside mise (e.g. a bare
+# `cd fuzz && cargo fuzz run`), but provisions nothing the pipeline uses.
+# That file must repeat the same date string — mise's Tera templating can't
+# reach into a file rustup reads directly — so it carries a comment pointing
+# back here; keep both dates identical on a bump.
 FUZZ_NIGHTLY = "nightly-2026-07-01"
 
 [tools]

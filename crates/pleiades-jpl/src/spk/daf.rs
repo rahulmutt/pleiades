@@ -41,11 +41,11 @@ fn offset_overflow() -> SpkError {
     )
 }
 
-fn checked_add(a: usize, b: usize) -> Result<usize, SpkError> {
+fn try_add(a: usize, b: usize) -> Result<usize, SpkError> {
     a.checked_add(b).ok_or_else(offset_overflow)
 }
 
-fn checked_mul(a: usize, b: usize) -> Result<usize, SpkError> {
+fn try_mul(a: usize, b: usize) -> Result<usize, SpkError> {
     a.checked_mul(b).ok_or_else(offset_overflow)
 }
 
@@ -111,19 +111,18 @@ impl DafFile {
             }
             let base = record_byte(rec_no)?;
             let next = endian.f64_at(src, base)? as usize;
-            let nsum = endian.f64_at(src, checked_add(base, 16)?)? as usize; // 3rd double
-            let name_base = record_byte(checked_add(rec_no, 1)?)?; // name record follows summary record
+            let nsum = endian.f64_at(src, try_add(base, 16)?)? as usize; // 3rd double
+            let name_base = record_byte(try_add(rec_no, 1)?)?; // name record follows summary record
             for k in 0..nsum {
                 // skip NEXT/PREV/NSUM, then k summaries
-                let s = checked_add(base, checked_mul(checked_add(3, checked_mul(k, ss)?)?, 8)?)?;
+                let s = try_add(base, try_mul(try_add(3, try_mul(k, ss)?)?, 8)?)?;
                 let start_et = endian.f64_at(src, s)?;
-                let stop_et = endian.f64_at(src, checked_add(s, 8)?)?;
-                let (target, center) = endian.packed_i32_pair_at(src, checked_add(s, 16)?)?;
-                let (frame, data_type) = endian.packed_i32_pair_at(src, checked_add(s, 24)?)?;
-                let (init_addr, final_addr) =
-                    endian.packed_i32_pair_at(src, checked_add(s, 32)?)?;
-                let nc = checked_mul(ss, 8)?;
-                let raw = src.read_at(checked_add(name_base, checked_mul(k, nc)?)?, nc)?;
+                let stop_et = endian.f64_at(src, try_add(s, 8)?)?;
+                let (target, center) = endian.packed_i32_pair_at(src, try_add(s, 16)?)?;
+                let (frame, data_type) = endian.packed_i32_pair_at(src, try_add(s, 24)?)?;
+                let (init_addr, final_addr) = endian.packed_i32_pair_at(src, try_add(s, 32)?)?;
+                let nc = try_mul(ss, 8)?;
+                let raw = src.read_at(try_add(name_base, try_mul(k, nc)?)?, nc)?;
                 let name = String::from_utf8_lossy(raw).trim_end().to_string();
                 segments.push(SegmentDescriptor {
                     start_et,
@@ -194,6 +193,13 @@ mod tests {
         let err = DafFile::parse(blob.as_slice())
             .expect_err("an out-of-range record number must be rejected, not overflow");
         assert_eq!(err.kind, SpkErrorKind::Truncated);
+        // A plain short-read also yields `Truncated`; pin the specific
+        // `record_byte` overflow guard by requiring its message too.
+        assert!(
+            err.message.contains("is out of range"),
+            "expected the record_byte overflow message, got: {}",
+            err.message
+        );
     }
 
     #[test]

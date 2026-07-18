@@ -66,6 +66,9 @@ jobs:
       - name: Install mise-managed tools
         run: mise install
 
+      - name: Install pinned fuzzing nightly
+        run: mise exec -- bash -c 'rustup toolchain install "$FUZZ_NIGHTLY" --profile minimal'
+
       - name: Run fuzz campaign
         run: |
           set -euo pipefail
