@@ -1,14 +1,23 @@
+[env]
+# Single source of truth for the dated fuzzing nightly — referenced by the
+# `[tools]` rust pin below and by the `fuzz`/`fuzz-target` tasks, so a future
+# date bump only requires editing this one value.
+FUZZ_NIGHTLY = "nightly-2026-07-01"
+
 [tools]
-rust = { version = "1.97.1", components = "rustfmt,clippy" }
-# Fuzzing requires a nightly toolchain (libFuzzer's -Z sanitizer flags). Pinned
-# to a DATED nightly, never a floating one — a nightly that moved under CI
-# would break the repo's reproducibility stance. Stable 1.97.1 above remains
-# the toolchain for every other task; nothing in the blocking tier or
-# release-gate uses this. mise's core `rust` backend does not accept a second
-# entry under a distinct key ("rust-nightly not found in mise tool registry"),
-# so the dated nightly is installed via rustup instead (see
-# `rustup toolchain install nightly-2026-07-01`) and the `fuzz`/`fuzz-target`
-# tasks below invoke it explicitly as `cargo +nightly-2026-07-01`.
+# Fuzzing requires a nightly toolchain (libFuzzer's -Z sanitizer flags). The
+# array form installs and registers a second toolchain — via the same
+# `core:rust`/rustup-backed mise backend — alongside the pinned stable
+# version below, with `mise install` provisioning both on a fresh clone
+# (confirmed via `rustup toolchain list` showing both entries and
+# `cargo +$FUZZ_NIGHTLY --version` resolving through `mise exec` and on
+# ambient PATH). Pinned to the DATED nightly in `FUZZ_NIGHTLY` above, never a
+# floating one — a nightly that moved under CI would break the repo's
+# reproducibility stance. Stable 1.97.1 remains the toolchain for every other
+# task; nothing in the blocking tier or release-gate uses the nightly. The
+# `fuzz`/`fuzz-target` tasks below invoke it via that same env var
+# (`cargo "+$FUZZ_NIGHTLY"`).
+rust = [{ version = "1.97.1", components = "rustfmt,clippy" }, "{{env.FUZZ_NIGHTLY}}"]
 "cargo:cargo-fuzz" = "0.12.0"
 # Manual-only release fallback (see release.toml); no prebuilt binary for 1.1.3,
 # so it stays a source build — compiled once, then served from the mise cache.
@@ -97,13 +106,13 @@ run = """
 set -euo pipefail
 for target in spk_kernel compression_framing compression_payload ingest_corpus; do
   echo "── fuzzing $target ──"
-  cargo +nightly-2026-07-01 fuzz run "$target" -- -max_total_time=60
+  cargo "+$FUZZ_NIGHTLY" fuzz run "$target" -- -max_total_time=60
 done
 """
 
 [tasks.fuzz-target]
 description = "Run one fuzz target for an explicit budget: mise run fuzz-target <name> <seconds>."
-run = "cargo +nightly-2026-07-01 fuzz run {{arg(name=\"target\")}} -- -max_total_time={{arg(name=\"seconds\")}}"
+run = "cargo \"+$FUZZ_NIGHTLY\" fuzz run {{arg(name=\"target\")}} -- -max_total_time={{arg(name=\"seconds\")}}"
 
 [tasks.release-smoke]
 run = "cargo run -q -p pleiades-validate -- release-smoke"
