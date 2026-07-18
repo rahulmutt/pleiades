@@ -89,12 +89,18 @@ impl ReadAt for [u8] {
         <[u8]>::len(self)
     }
     fn read_at(&self, offset: usize, len: usize) -> Result<&[u8], SpkError> {
-        self.get(offset..offset + len).ok_or_else(|| {
+        let end = offset.checked_add(len).ok_or_else(|| {
+            SpkError::new(
+                SpkErrorKind::Truncated,
+                format!("read of {len} bytes at {offset} overflowed a usize"),
+            )
+        })?;
+        self.get(offset..end).ok_or_else(|| {
             SpkError::new(
                 SpkErrorKind::Truncated,
                 format!(
                     "read of {len} bytes at {offset} exceeds slice length {}",
-                    self.len()
+                    <[u8]>::len(self)
                 ),
             )
         })

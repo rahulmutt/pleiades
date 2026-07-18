@@ -34,8 +34,31 @@ pub(crate) fn addr_to_byte(addr: i32) -> usize {
     ((addr as i64 - 1) * 8) as usize
 }
 
-fn record_byte(record_number: usize) -> usize {
-    (record_number - 1) * RECORD_BYTES
+fn offset_overflow() -> SpkError {
+    SpkError::new(
+        SpkErrorKind::Truncated,
+        "DAF offset arithmetic overflowed a usize",
+    )
+}
+
+fn checked_add(a: usize, b: usize) -> Result<usize, SpkError> {
+    a.checked_add(b).ok_or_else(offset_overflow)
+}
+
+fn checked_mul(a: usize, b: usize) -> Result<usize, SpkError> {
+    a.checked_mul(b).ok_or_else(offset_overflow)
+}
+
+fn record_byte(record_number: usize) -> Result<usize, SpkError> {
+    record_number
+        .checked_sub(1)
+        .and_then(|zero_based| zero_based.checked_mul(RECORD_BYTES))
+        .ok_or_else(|| {
+            SpkError::new(
+                SpkErrorKind::Truncated,
+                format!("DAF record number {record_number} is out of range"),
+            )
+        })
 }
 
 impl DafFile {
@@ -72,21 +95,35 @@ impl DafFile {
 
         let ss = (nd + (ni + 1) / 2) as usize; // 5 for SPK
         let mut segments = Vec::new();
+        // A well-formed DAF never revisits a summary record. Tracking visited
+        // records bounds the walk by the file's own record count, so no
+        // legitimate kernel — however large — can be rejected, while a cyclic
+        // or backward-pointing NEXT field terminates with an error instead of
+        // looping until memory is exhausted.
+        let mut visited = std::collections::HashSet::new();
         let mut rec_no = fward;
         while rec_no != 0 {
-            let base = record_byte(rec_no);
+            if !visited.insert(rec_no) {
+                return Err(SpkError::new(
+                    SpkErrorKind::BadHeader,
+                    format!("DAF summary record chain revisits record {rec_no}"),
+                ));
+            }
+            let base = record_byte(rec_no)?;
             let next = endian.f64_at(src, base)? as usize;
-            let nsum = endian.f64_at(src, base + 16)? as usize; // 3rd double
-            let name_base = record_byte(rec_no + 1); // name record follows summary record
+            let nsum = endian.f64_at(src, checked_add(base, 16)?)? as usize; // 3rd double
+            let name_base = record_byte(checked_add(rec_no, 1)?)?; // name record follows summary record
             for k in 0..nsum {
-                let s = base + (3 + k * ss) * 8; // skip NEXT/PREV/NSUM, then k summaries
+                // skip NEXT/PREV/NSUM, then k summaries
+                let s = checked_add(base, checked_mul(checked_add(3, checked_mul(k, ss)?)?, 8)?)?;
                 let start_et = endian.f64_at(src, s)?;
-                let stop_et = endian.f64_at(src, s + 8)?;
-                let (target, center) = endian.packed_i32_pair_at(src, s + 16)?;
-                let (frame, data_type) = endian.packed_i32_pair_at(src, s + 24)?;
-                let (init_addr, final_addr) = endian.packed_i32_pair_at(src, s + 32)?;
-                let nc = ss * 8;
-                let raw = src.read_at(name_base + k * nc, nc)?;
+                let stop_et = endian.f64_at(src, checked_add(s, 8)?)?;
+                let (target, center) = endian.packed_i32_pair_at(src, checked_add(s, 16)?)?;
+                let (frame, data_type) = endian.packed_i32_pair_at(src, checked_add(s, 24)?)?;
+                let (init_addr, final_addr) =
+                    endian.packed_i32_pair_at(src, checked_add(s, 32)?)?;
+                let nc = checked_mul(ss, 8)?;
+                let raw = src.read_at(checked_add(name_base, checked_mul(k, nc)?)?, nc)?;
                 let name = String::from_utf8_lossy(raw).trim_end().to_string();
                 segments.push(SegmentDescriptor {
                     start_et,
