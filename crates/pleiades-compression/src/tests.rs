@@ -1945,6 +1945,21 @@ fn body_frame_round_trips_through_codec() {
     assert_eq!(decoded.body, CelestialBody::Jupiter);
 }
 
+#[test]
+fn harness_fnv1a64_matches_library() {
+    fn harness_fnv1a64(bytes: &[u8]) -> u64 {
+        let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+        for byte in bytes {
+            hash ^= *byte as u64;
+            hash = hash.wrapping_mul(0x100_0000_01b3);
+        }
+        hash
+    }
+    for case in [b"".as_slice(), b"a", b"PLDEPHEM", &[0xff; 64]] {
+        assert_eq!(harness_fnv1a64(case), fnv1a64(case), "case {case:?}");
+    }
+}
+
 mod codec_properties {
     use super::*;
     use proptest::prelude::*;
