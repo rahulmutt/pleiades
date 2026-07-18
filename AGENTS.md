@@ -43,6 +43,7 @@ Use `mise.toml` for things such as:
 - `cargo-nextest`
 - `cargo-deny`
 - `cargo-audit`
+- `cargo-fuzz`, plus the pinned dated nightly toolchain it requires (`FUZZ_NIGHTLY` in `mise.toml`'s `[env]`, alongside the default stable toolchain)
 - `just`
 - `taplo`
 - `mdbook`
@@ -165,6 +166,8 @@ For public Rust APIs, prefer rustdoc examples where practical.
 - Do not add network access, file writes, or shell execution to library paths unless clearly required.
 - Treat parsing, serialization, and external data ingestion as untrusted input boundaries.
 - Read `docs/threat-model.md` before touching security-sensitive code (ingestion, `horizons-fetch`, the release pipeline), and update it when a trust boundary changes.
+- The untrusted-byte parsers (SPK/DAF kernel loading, compression artifact decode, JPL corpus ingest) are fuzzed continuously on a daily cron (`.github/workflows/fuzz.yml`); fuzz findings are fixed with a committed reproducer that runs as an ordinary regression test in the blocking tier, not only as a corpus entry.
+- `fuzz/corpus/` holds only a small curated seed set, committed and reviewable. The machine-discovered corpus that `cargo fuzz run`/`cmin` accumulates is deliberately not committed — it lives in the fuzz workflow's GitHub Actions cache instead. Running fuzz targets locally grows `fuzz/corpus/`; do not commit that growth back.
 
 ### Performance
 
@@ -292,6 +295,8 @@ When available and relevant, also use:
 - `cargo nextest run`
 - `cargo bench`
 - validation commands from `pleiades-validate`
+
+CI has three tiers, each with its own budget: blocking (`mise run ci`, must pass before merge), nightly (`mise run ci-nightly`, slow/broad checks, fail-loud not fail-blocking), and fuzz (`.github/workflows/fuzz.yml`, its own daily cron and timeout). Fuzzing is a **third** tier, not part of `ci-nightly` — its per-target budget would overrun nightly's.
 
 ### Dependency hygiene
 

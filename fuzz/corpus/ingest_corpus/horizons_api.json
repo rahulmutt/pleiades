@@ -1,0 +1,4 @@
+{
+  "signature": { "source": "NASA/JPL Horizons API", "version": "1.2" },
+  "result": "Target body name: Mars (499)\nCenter body name: Solar System Barycenter (0)\nReference frame : Ecliptic of J2000.0\nOutput units    : KM-S\nJDTDB, Calendar Date (TDB), X, Y, Z, VX, VY, VZ,\n$$SOE\n2451545.000000000, A.D. 2000-Jan-01 12:00:00.0000, 1.0, 2.0, 3.0, 0.1, 0.2, 0.3,\n$$EOE\n"
+}

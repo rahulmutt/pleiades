@@ -28,7 +28,7 @@ Not assumed: targeted nation-state attackers, physical access.
 
 | # | Boundary | What crosses it | Controls |
 | --- | --- | --- | --- |
-| 1 | Data ingestion (`pleiades-jpl::ingest`, kernel/corpus loading, `pleiades-compression` decode) | Untrusted bytes | Parsers return structured errors and must never panic (AGENTS.md rule); corpora are checksum-pinned with fail-closed gates; fuzzing planned (design Phase 3) |
+| 1 | Data ingestion (`pleiades-jpl::ingest`, kernel/corpus loading, `pleiades-compression` decode) | Untrusted bytes | Parsers return structured errors and must never panic (AGENTS.md rule); corpora are checksum-pinned with fail-closed gates; fuzzed continuously by four cargo-fuzz targets (`spk_kernel` — DAF container parsing only, SPK segment-record evaluation is a known gap — `compression_framing`, `compression_payload`, `ingest_corpus`) on a daily cron; findings are fixed with regression tests in the blocking tier |
 | 2 | `horizons-fetch` (default-off feature) | HTTPS to JPL Horizons | rustls with pinned webpki-roots trust anchors, pure-Rust TLS; feature is default-off so consumers never get network unless they opt in |
 | 3 | CI release pipeline | `RELEASE_PLZ_TOKEN`, `CARGO_REGISTRY_TOKEN` | Secrets injected at runtime, never committed (gitleaks pre-commit + CI + history scan: `mise run secrets`); publishing only from `main` via release-plz |
 | 4 | Inbound supply chain (third-party crates) | Code we did not write | `mise run deny` (RustSec advisories, license allowlist, bans, crates.io-only sources); committed `Cargo.lock`; Renovate cadence updates gated by CI; AGENTS.md minimal-dependency policy |

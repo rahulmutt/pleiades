@@ -89,12 +89,18 @@ impl ReadAt for [u8] {
         <[u8]>::len(self)
     }
     fn read_at(&self, offset: usize, len: usize) -> Result<&[u8], SpkError> {
-        self.get(offset..offset + len).ok_or_else(|| {
+        let end = offset.checked_add(len).ok_or_else(|| {
+            SpkError::new(
+                SpkErrorKind::Truncated,
+                format!("read of {len} bytes at {offset} overflowed a usize"),
+            )
+        })?;
+        self.get(offset..end).ok_or_else(|| {
             SpkError::new(
                 SpkErrorKind::Truncated,
                 format!(
                     "read of {len} bytes at {offset} exceeds slice length {}",
-                    self.len()
+                    <[u8]>::len(self)
                 ),
             )
         })
@@ -113,5 +119,14 @@ mod tests {
             data.read_at(2, 5).unwrap_err().kind,
             SpkErrorKind::Truncated
         );
+    }
+
+    #[test]
+    fn read_at_rejects_offset_len_overflow_without_panicking() {
+        let data: &[u8] = &[1, 2, 3, 4];
+        let err = data
+            .read_at(usize::MAX, 8)
+            .expect_err("offset + len overflow must return Truncated, not panic");
+        assert_eq!(err.kind, SpkErrorKind::Truncated);
     }
 }

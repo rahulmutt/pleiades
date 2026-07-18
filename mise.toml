@@ -1,5 +1,26 @@
+[env]
+# Single source of truth for the dated fuzzing nightly, consumed by the
+# `fuzz`/`fuzz-target` tasks below (`cargo "+$FUZZ_NIGHTLY"`). The array
+# pin form under `[tools] rust` (`rust = [{...}, "nightly-..."]`) was tried
+# here first, but `workspace-audit`'s `[tools]` parser requires `rust =` to
+# be a single inline table (main's shape) — an array trips
+# `tool-manifest.rust-entry-invalid`/`rust-components-missing`, which is a
+# real reproducibility rule (it also verifies the pinned version matches
+# `[workspace.package] rust-version` and that rustfmt+clippy are present),
+# not something to special-case away for this file. So `[tools] rust` below
+# stays byte-identical to main, and `[env] FUZZ_NIGHTLY` above is what the
+# mise `fuzz`/`fuzz-target` tasks and CI actually consume; CI installs it
+# explicitly (see .github/workflows/fuzz.yml). `fuzz/rust-toolchain.toml`
+# mirrors the same date for direct/IDE invocations outside mise (e.g. a bare
+# `cd fuzz && cargo fuzz run`), but provisions nothing the pipeline uses.
+# That file must repeat the same date string — mise's Tera templating can't
+# reach into a file rustup reads directly — so it carries a comment pointing
+# back here; keep both dates identical on a bump.
+FUZZ_NIGHTLY = "nightly-2026-07-01"
+
 [tools]
 rust = { version = "1.97.1", components = "rustfmt,clippy" }
+"cargo:cargo-fuzz" = "0.12.0"
 # Manual-only release fallback (see release.toml); no prebuilt binary for 1.1.3,
 # so it stays a source build — compiled once, then served from the mise cache.
 "cargo:cargo-release" = "1.1.3"
@@ -80,6 +101,20 @@ run = "cargo run -q -p pleiades-validate -- claims-audit"
 
 [tasks.benchmark]
 run = "cargo run -q -p pleiades-validate -- benchmark --rounds 5"
+
+[tasks.fuzz]
+description = "Run all fuzz targets for a short budget (local smoke; NOT part of ci or ci-nightly)."
+run = """
+set -euo pipefail
+for target in spk_kernel compression_framing compression_payload ingest_corpus; do
+  echo "── fuzzing $target ──"
+  cargo "+$FUZZ_NIGHTLY" fuzz run "$target" -- -max_total_time=60
+done
+"""
+
+[tasks.fuzz-target]
+description = "Run one fuzz target for an explicit budget: mise run fuzz-target <name> <seconds>."
+run = "cargo \"+$FUZZ_NIGHTLY\" fuzz run {{arg(name=\"target\")}} -- -max_total_time={{arg(name=\"seconds\")}}"
 
 [tasks.release-smoke]
 run = "cargo run -q -p pleiades-validate -- release-smoke"

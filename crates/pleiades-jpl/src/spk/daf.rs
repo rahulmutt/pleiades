@@ -34,8 +34,31 @@ pub(crate) fn addr_to_byte(addr: i32) -> usize {
     ((addr as i64 - 1) * 8) as usize
 }
 
-fn record_byte(record_number: usize) -> usize {
-    (record_number - 1) * RECORD_BYTES
+fn offset_overflow() -> SpkError {
+    SpkError::new(
+        SpkErrorKind::Truncated,
+        "DAF offset arithmetic overflowed a usize",
+    )
+}
+
+fn try_add(a: usize, b: usize) -> Result<usize, SpkError> {
+    a.checked_add(b).ok_or_else(offset_overflow)
+}
+
+fn try_mul(a: usize, b: usize) -> Result<usize, SpkError> {
+    a.checked_mul(b).ok_or_else(offset_overflow)
+}
+
+fn record_byte(record_number: usize) -> Result<usize, SpkError> {
+    record_number
+        .checked_sub(1)
+        .and_then(|zero_based| zero_based.checked_mul(RECORD_BYTES))
+        .ok_or_else(|| {
+            SpkError::new(
+                SpkErrorKind::Truncated,
+                format!("DAF record number {record_number} is out of range"),
+            )
+        })
 }
 
 impl DafFile {
@@ -72,21 +95,34 @@ impl DafFile {
 
         let ss = (nd + (ni + 1) / 2) as usize; // 5 for SPK
         let mut segments = Vec::new();
+        // A well-formed DAF never revisits a summary record. Tracking visited
+        // records bounds the walk by the file's own record count, so no
+        // legitimate kernel — however large — can be rejected, while a cyclic
+        // or backward-pointing NEXT field terminates with an error instead of
+        // looping until memory is exhausted.
+        let mut visited = std::collections::HashSet::new();
         let mut rec_no = fward;
         while rec_no != 0 {
-            let base = record_byte(rec_no);
+            if !visited.insert(rec_no) {
+                return Err(SpkError::new(
+                    SpkErrorKind::BadHeader,
+                    format!("DAF summary record chain revisits record {rec_no}"),
+                ));
+            }
+            let base = record_byte(rec_no)?;
             let next = endian.f64_at(src, base)? as usize;
-            let nsum = endian.f64_at(src, base + 16)? as usize; // 3rd double
-            let name_base = record_byte(rec_no + 1); // name record follows summary record
+            let nsum = endian.f64_at(src, try_add(base, 16)?)? as usize; // 3rd double
+            let name_base = record_byte(try_add(rec_no, 1)?)?; // name record follows summary record
             for k in 0..nsum {
-                let s = base + (3 + k * ss) * 8; // skip NEXT/PREV/NSUM, then k summaries
+                // skip NEXT/PREV/NSUM, then k summaries
+                let s = try_add(base, try_mul(try_add(3, try_mul(k, ss)?)?, 8)?)?;
                 let start_et = endian.f64_at(src, s)?;
-                let stop_et = endian.f64_at(src, s + 8)?;
-                let (target, center) = endian.packed_i32_pair_at(src, s + 16)?;
-                let (frame, data_type) = endian.packed_i32_pair_at(src, s + 24)?;
-                let (init_addr, final_addr) = endian.packed_i32_pair_at(src, s + 32)?;
-                let nc = ss * 8;
-                let raw = src.read_at(name_base + k * nc, nc)?;
+                let stop_et = endian.f64_at(src, try_add(s, 8)?)?;
+                let (target, center) = endian.packed_i32_pair_at(src, try_add(s, 16)?)?;
+                let (frame, data_type) = endian.packed_i32_pair_at(src, try_add(s, 24)?)?;
+                let (init_addr, final_addr) = endian.packed_i32_pair_at(src, try_add(s, 32)?)?;
+                let nc = try_mul(ss, 8)?;
+                let raw = src.read_at(try_add(name_base, try_mul(k, nc)?)?, nc)?;
                 let name = String::from_utf8_lossy(raw).trim_end().to_string();
                 segments.push(SegmentDescriptor {
                     start_et,
@@ -110,6 +146,71 @@ impl DafFile {
 mod tests {
     use super::*;
     use crate::spk::test_support::{build_daf, type2_record, type2_segment_data, SegmentSpec};
+
+    /// Same synthetic-segment shape used by `backend.rs` and
+    /// `cross_check_tests.rs`; duplicated locally per this crate's existing
+    /// per-module `#[cfg(test)]` convention (`test_support` has no
+    /// `const_seg` of its own).
+    fn const_seg(target: i32, center: i32, pos: [f64; 3]) -> SegmentSpec {
+        let rec = type2_record(0.0, 1.0e12, &[pos[0], 0.0], &[pos[1], 0.0], &[pos[2], 0.0]);
+        let data = type2_segment_data(-1.0e12, 2.0e12, rec.len(), &[rec]);
+        SegmentSpec {
+            start_et: -1.0e12,
+            stop_et: 1.0e12,
+            target,
+            center,
+            frame: 1,
+            data_type: 2,
+            data,
+            name: "C".to_string(),
+        }
+    }
+
+    /// Overwrites the NEXT field of the summary record at record 2.
+    /// `build_daf` sets FWARD = 2, so the walk starts there and NEXT is the
+    /// little-endian f64 at byte offset 1024.
+    fn set_summary_next(blob: &mut [u8], next: f64) {
+        blob[1024..1032].copy_from_slice(&next.to_le_bytes());
+    }
+
+    #[test]
+    fn rejects_self_referential_record_chain() {
+        let mut blob = build_daf(&[const_seg(10, 0, [1.0e8, 0.0, 0.0])]);
+        // Record 2's NEXT points at record 2 — a cycle.
+        set_summary_next(&mut blob, 2.0);
+
+        let err = DafFile::parse(blob.as_slice())
+            .expect_err("a self-referential record chain must be rejected, not looped on");
+        assert_eq!(err.kind, SpkErrorKind::BadHeader);
+    }
+
+    #[test]
+    fn rejects_record_number_that_overflows_offset_arithmetic() {
+        let mut blob = build_daf(&[const_seg(10, 0, [1.0e8, 0.0, 0.0])]);
+        // `as usize` saturates this to usize::MAX, overflowing (n - 1) * 1024.
+        set_summary_next(&mut blob, 1.0e300);
+
+        let err = DafFile::parse(blob.as_slice())
+            .expect_err("an out-of-range record number must be rejected, not overflow");
+        assert_eq!(err.kind, SpkErrorKind::Truncated);
+        // A plain short-read also yields `Truncated`; pin the specific
+        // `record_byte` overflow guard by requiring its message too.
+        assert!(
+            err.message.contains("is out of range"),
+            "expected the record_byte overflow message, got: {}",
+            err.message
+        );
+    }
+
+    #[test]
+    fn valid_kernel_still_parses_after_hardening() {
+        let blob = build_daf(&[
+            const_seg(10, 0, [1.0e8, 0.0, 0.0]),
+            const_seg(399, 3, [0.0, 0.0, 0.0]),
+        ]);
+        let daf = DafFile::parse(blob.as_slice()).expect("a well-formed DAF must still parse");
+        assert_eq!(daf.segments.len(), 2);
+    }
 
     #[test]
     fn parses_descriptor_fields_from_synthetic_daf() {
