@@ -209,6 +209,10 @@ mise run release-gate
 
 ## Documentation map
 
+**New to the codebase?** Start with
+[spec/architecture.md](spec/architecture.md) — the workspace layering and
+crate-dependency map.
+
 - [SPEC.md](SPEC.md) — top-level specification and crate family.
 - [spec/architecture.md](spec/architecture.md) — workspace layering and dependency boundaries.
 - [spec/requirements.md](spec/requirements.md) — functional and non-functional requirements.
