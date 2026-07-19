@@ -219,3 +219,96 @@ fn precession_shift_at_negative_180_boundary_does_not_wrap() {
     let s = precession_shift_arcsec(100.0, 280.0); // 100 - 280 = -180.0 exactly
     assert!((s - (-180.0 * 3600.0)).abs() < 1e-6, "shift {s}");
 }
+
+#[test]
+fn apparent_position_provenance_is_fully_specified() {
+    let jd = 2_451_545.0 + 36_525.0; // one century from J2000, precession resolvable
+    let instant = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+    let (l0, b0) = (100.0, 5.0);
+    let out =
+        apparent_position::<_, ApparentPlaceError>(instant, 280.0, 8, |_| Ok(fixed(l0, b0, 1.0)))
+            .unwrap();
+
+    // Independent recomposition of the corrections.
+    let p = crate::precession::precess_ecliptic_j2000_to_date(l0, b0, jd).unwrap();
+    let ab = crate::aberration::annual_aberration(p.longitude_deg, p.latitude_deg, 280.0, jd);
+    let nut = crate::nutation::nutation(jd).unwrap();
+
+    assert!((out.provenance.nutation_longitude_arcsec - nut.delta_psi_arcsec).abs() < 1e-12);
+    assert!((out.provenance.aberration_longitude_arcsec - ab.d_lambda_arcsec).abs() < 1e-12);
+    assert!(
+        (out.provenance.precession_longitude_arcsec - precession_shift_arcsec(p.longitude_deg, l0))
+            .abs()
+            < 1e-9
+    );
+    assert!(
+        out.provenance.light_time_days > 0.0,
+        "light-time must be applied"
+    );
+    assert!(out.provenance.iterations >= 1);
+    assert_eq!(
+        out.ecliptic.distance_au,
+        Some(1.0),
+        "distance passes through"
+    );
+    // CorrectionSet — every flag pinned.
+    assert!(out.provenance.corrections.light_time);
+    assert!(out.provenance.corrections.precession);
+    assert!(out.provenance.corrections.annual_aberration);
+    assert!(out.provenance.corrections.nutation_longitude);
+    assert!(!out.provenance.corrections.diurnal_parallax);
+    assert!(!out.provenance.corrections.diurnal_aberration);
+}
+
+#[test]
+fn apparent_sun_position_provenance_is_fully_specified() {
+    let jd = 2_451_545.0;
+    let instant = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+    let sun_j2000 = fixed(280.0, 0.0, 0.983);
+    let out = apparent_sun_position(instant, sun_j2000).unwrap();
+
+    let p = crate::precession::precess_ecliptic_j2000_to_date(280.0, 0.0, jd).unwrap();
+    // Sun is its own aberration argument: ⊙ = λ.
+    let ab =
+        crate::aberration::annual_aberration(p.longitude_deg, p.latitude_deg, p.longitude_deg, jd);
+    let nut = crate::nutation::nutation(jd).unwrap();
+
+    assert!((out.provenance.nutation_longitude_arcsec - nut.delta_psi_arcsec).abs() < 1e-12);
+    assert!((out.provenance.aberration_longitude_arcsec - ab.d_lambda_arcsec).abs() < 1e-12);
+    assert_eq!(
+        out.provenance.light_time_days, 0.0,
+        "Sun applies no light-time"
+    );
+    assert_eq!(out.provenance.iterations, 0);
+    assert_eq!(out.ecliptic.distance_au, Some(0.983));
+    // CorrectionSet — light_time false, the Sun-specific difference.
+    assert!(!out.provenance.corrections.light_time);
+    assert!(out.provenance.corrections.precession);
+    assert!(out.provenance.corrections.annual_aberration);
+    assert!(out.provenance.corrections.nutation_longitude);
+    assert!(!out.provenance.corrections.diurnal_parallax);
+    assert!(!out.provenance.corrections.diurnal_aberration);
+}
+
+#[test]
+fn apparent_apsis_position_provenance_is_fully_specified() {
+    let jd = 2_451_545.0;
+    let instant = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+    let j2000 = fixed(100.0, 5.0, 0.0025);
+    let out = apparent_apsis_position(instant, j2000).unwrap();
+
+    let nut = crate::nutation::nutation(jd).unwrap();
+    assert!((out.provenance.nutation_longitude_arcsec - nut.delta_psi_arcsec).abs() < 1e-12);
+    // Apse line carries NO aberration term.
+    assert_eq!(out.provenance.aberration_longitude_arcsec, 0.0);
+    assert_eq!(out.provenance.light_time_days, 0.0);
+    assert_eq!(out.provenance.iterations, 0);
+    assert_eq!(out.ecliptic.distance_au, Some(0.0025));
+    // CorrectionSet — annual_aberration false, the apsis-specific difference.
+    assert!(!out.provenance.corrections.light_time);
+    assert!(out.provenance.corrections.precession);
+    assert!(!out.provenance.corrections.annual_aberration);
+    assert!(out.provenance.corrections.nutation_longitude);
+    assert!(!out.provenance.corrections.diurnal_parallax);
+    assert!(!out.provenance.corrections.diurnal_aberration);
+}
