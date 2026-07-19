@@ -13,34 +13,36 @@ The repository is currently a release-hardening foundation, not a finished end-u
 `pleiades` is a release-hardening foundation, not a finished end-user
 ephemeris. Each surface below is guarded by a fail-closed numeric gate; measured
 residuals, carve-outs, and caveats live in the linked crate docs and in the
-`pleiades-core` compatibility registry, not restated here.
+[`pleiades-core` compatibility registry](crates/pleiades-core/src/compatibility/mod.rs),
+not restated here.
 
 Release-grade numeric compatibility today: 24 house systems pass the SE numeric
 gate, and 48 ayanamsas pass theirs — of 25 and 59 catalogued respectively.
 
 | Surface | Crate | Gate | Accuracy class |
 | --- | --- | --- | --- |
-| Body positions / packaged artifact | `pleiades-data` | `validate-corpus` | sub-arcsecond (majors) |
-| House systems | `pleiades-houses` | `validate-houses` | sub-arcsecond |
-| Ayanamsas | `pleiades-ayanamsa` | `validate-ayanamsa` | sub-arcsecond |
-| Sidereal time & chart angles | `pleiades-houses` | `validate-angles` | sub-arcsecond |
-| Apparent place (of-date ecliptic) | `pleiades-core` | `validate-apparent` | arcsecond-class |
-| Apparent equatorial (RA/Dec) | `pleiades-core` | `validate-equatorial` | sub-arcsecond |
-| Civil time conversion | `pleiades-time` | (unit/property) | leap-second-exact |
-| Topocentric correction | `pleiades-core` | `validate-topocentric` | opt-in correction |
-| Backend frame consistency (J2000) | `pleiades-core` | `release-gate` | invariant gate |
-| Eclipses (global) | `pleiades-eclipse` | `validate-eclipses` | arcsecond-class; timing seconds-of-time |
-| Eclipses (local circumstances) | `pleiades-eclipse` | `validate-eclipses-local` | arcsecond-class; timing seconds-of-time |
-| Longitude crossings | `pleiades-events` | `validate-crossings` | arcsecond-class |
-| Rise/set/transit & horizontal | `pleiades-events` | `validate-rise-trans` | sub-arcsecond (horizontal); timing seconds-of-time |
-| Fictitious bodies | `pleiades-fict` | `validate-fictitious` | definitional (sub-arcsecond) |
-| Nodes & apsides | `pleiades-events` | `validate-nod-aps` | sub-arcsecond (mean) / arcminute-class (osculating) |
-| Phase & magnitude | `pleiades-events` | `validate-pheno` | arcsecond-class |
-| Lunar occultations | `pleiades-events` | `validate-occultations` | timing seconds-of-time; position arcminute-class |
-| True (osculating) Lilith | `pleiades-apsides` | `validate-lilith` | arcminute-class |
+| Body positions / packaged artifact | [`pleiades-data`](crates/pleiades-data) | `validate-corpus` | sub-arcsecond (majors) |
+| House systems | [`pleiades-houses`](https://docs.rs/pleiades-houses) | `validate-houses` | sub-arcsecond |
+| Ayanamsas | [`pleiades-ayanamsa`](https://docs.rs/pleiades-ayanamsa) | `validate-ayanamsa` | sub-arcsecond |
+| Sidereal time & chart angles | [`pleiades-houses`](https://docs.rs/pleiades-houses) | `validate-angles` | sub-arcsecond |
+| Apparent place (of-date ecliptic) | [`pleiades-core`](https://docs.rs/pleiades-core) | `validate-apparent` | arcsecond-class |
+| Apparent equatorial (RA/Dec) | [`pleiades-core`](https://docs.rs/pleiades-core) | `validate-equatorial` | sub-arcsecond |
+| Civil time conversion | [`pleiades-time`](https://docs.rs/pleiades-time) | (unit/property) | leap-second-exact |
+| Topocentric correction | [`pleiades-core`](https://docs.rs/pleiades-core) | `validate-topocentric` | opt-in correction |
+| Backend frame consistency (J2000) | [`pleiades-core`](https://docs.rs/pleiades-core) | `release-gate` | invariant gate |
+| Eclipses (global) | [`pleiades-eclipse`](crates/pleiades-eclipse) | `validate-eclipses` | arcsecond-class; timing seconds-of-time |
+| Eclipses (local circumstances) | [`pleiades-eclipse`](crates/pleiades-eclipse) | `validate-eclipses-local` | arcsecond-class; timing seconds-of-time |
+| Longitude crossings | [`pleiades-events`](crates/pleiades-events) | `validate-crossings` | arcsecond-class |
+| Rise/set/transit & horizontal | [`pleiades-events`](crates/pleiades-events) | `validate-rise-trans` | sub-arcsecond (horizontal); timing seconds-of-time |
+| Fictitious bodies | [`pleiades-fict`](crates/pleiades-fict) | `validate-fictitious` | definitional (sub-arcsecond) |
+| Nodes & apsides | [`pleiades-events`](crates/pleiades-events) | `validate-nod-aps` | sub-arcsecond (mean) / arcminute-class (osculating) |
+| Phase & magnitude | [`pleiades-events`](crates/pleiades-events) | `validate-pheno` | arcsecond-class |
+| Lunar occultations | [`pleiades-events`](crates/pleiades-events) | `validate-occultations` | timing seconds-of-time; position arcminute-class |
+| True (osculating) Lilith | [`pleiades-apsides`](crates/pleiades-apsides) | `validate-lilith` | arcminute-class |
 
-Crate names link to their docs.rs pages; gate names to the module rustdoc that
-records the measured residuals for that surface.
+Crate names link to their docs.rs API docs where published, otherwise to the
+crate source in this repo; gate names are the runnable `validate-*` subcommands
+(and `release-gate`) that guard each surface.
 
 ### Known limits
 
