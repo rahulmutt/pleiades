@@ -189,7 +189,7 @@ fn check_surfaces(errors: &mut Vec<CompatClaimAuditError>) {
     // the README and the descriptor count are wrong together — Checks A and B
     // backstop that case.
     let house_token = format!(" {house_count} house systems pass");
-    let aya_token = format!(" {aya_count} release-claimed");
+    let aya_token = format!(" {aya_count} ayanamsas pass");
     if !README.contains(&house_token) {
         errors.push(CompatClaimAuditError::SurfaceDisagrees {
             surface: "README:houses",

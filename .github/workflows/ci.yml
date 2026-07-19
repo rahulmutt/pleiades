@@ -7,7 +7,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 13 # blocking-CI budget: target <=10 min, headroom for cold caches / runner variance
+    timeout-minutes: 20 # blocking-CI budget: target <=10 min; hard cap raised to 20 for cold-cache / runner-variance headroom (real runs land ~10-13 min)
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
