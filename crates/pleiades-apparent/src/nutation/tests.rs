@@ -97,3 +97,38 @@ fn mean_obliquity_matches_published_polynomial_across_range() {
         mean_obliquity_degrees(2_670_695.0)
     );
 }
+
+/// `nutation` sums the 19 published IAU-1980 terms. Reference values are an
+/// independent evaluation of those same 19 published rows (NOT captured from
+/// this code) at large |t|, where the `psi_b * t` / `eps_d * t` rate terms are
+/// amplified — so a swapped operator in the accumulation, argument reduction,
+/// or the 0.0001 scaling diverges above the 1e-6" tolerance. The Meeus 22.a
+/// example (near t=0) is retained by `meeus_example_22a`.
+#[test]
+fn nutation_series_matches_independent_term_sum_across_range() {
+    // jd = 2305445.0 (t = -4)
+    let a = nutation(2_305_445.0).unwrap();
+    assert!(
+        (a.delta_psi_arcsec - 14.651_980_644_9).abs() < 1e-6,
+        "Δψ(t=-4) = {}",
+        a.delta_psi_arcsec
+    );
+    assert!(
+        (a.delta_eps_arcsec - 4.198_298_187_3).abs() < 1e-6,
+        "Δε(t=-4) = {}",
+        a.delta_eps_arcsec
+    );
+
+    // jd = 2670695.0 (t = +6)
+    let b = nutation(2_670_695.0).unwrap();
+    assert!(
+        (b.delta_psi_arcsec - (-10.499_930_688_4)).abs() < 1e-6,
+        "Δψ(t=+6) = {}",
+        b.delta_psi_arcsec
+    );
+    assert!(
+        (b.delta_eps_arcsec - 6.406_441_965_2).abs() < 1e-6,
+        "Δε(t=+6) = {}",
+        b.delta_eps_arcsec
+    );
+}
