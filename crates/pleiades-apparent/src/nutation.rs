@@ -23,6 +23,7 @@ pub struct Nutation {
     pub delta_eps_arcsec: f64,
 }
 
+#[derive(Debug)]
 struct Term {
     multipliers: [f64; 5],
     psi_a: f64,
@@ -32,11 +33,20 @@ struct Term {
 }
 
 fn table() -> Result<Vec<Term>, ApparentPlaceError> {
-    if fnv1a64(NUTATION_CSV) != NUTATION_CSV_CHECKSUM {
+    parse_table(NUTATION_CSV, NUTATION_CSV_CHECKSUM)
+}
+
+/// Parse the IAU-1980 nutation term table from `csv`, rejecting input whose
+/// FNV-1a checksum does not match `expected_checksum`. Taking the checksum as a
+/// parameter (rather than reading the module constant) keeps the function pure
+/// and lets tests exercise the malformed-input branches with a matching
+/// checksum for the crafted input.
+fn parse_table(csv: &str, expected_checksum: u64) -> Result<Vec<Term>, ApparentPlaceError> {
+    if fnv1a64(csv) != expected_checksum {
         return Err(ApparentPlaceError::StaleModelData { kind: "nutation" });
     }
     let mut terms = Vec::new();
-    for line in NUTATION_CSV.lines().skip(1) {
+    for line in csv.lines().skip(1) {
         let line = line.trim();
         if line.is_empty() {
             continue;

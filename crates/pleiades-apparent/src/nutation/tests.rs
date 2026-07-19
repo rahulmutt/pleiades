@@ -132,3 +132,42 @@ fn nutation_series_matches_independent_term_sum_across_range() {
         b.delta_eps_arcsec
     );
 }
+
+#[test]
+fn parse_table_accepts_embedded_table() {
+    // The wrapper's own input must parse to the full 19-term table.
+    let terms = parse_table(NUTATION_CSV, NUTATION_CSV_CHECKSUM).unwrap();
+    assert_eq!(terms.len(), 19);
+}
+
+#[test]
+fn parse_table_rejects_checksum_mismatch() {
+    // Any body that does not hash to the expected checksum is refused before parsing.
+    let err = parse_table("not the real table", NUTATION_CSV_CHECKSUM).unwrap_err();
+    assert!(matches!(
+        err,
+        ApparentPlaceError::StaleModelData { kind: "nutation" }
+    ));
+}
+
+#[test]
+fn parse_table_rejects_wrong_column_count() {
+    // Passes the checksum (computed for this crafted body) but has 3 columns, not 9.
+    let body = "h1,h2,h3\n1,2,3";
+    let err = parse_table(body, fnv1a64(body)).unwrap_err();
+    assert!(matches!(
+        err,
+        ApparentPlaceError::StaleModelData { kind: "nutation" }
+    ));
+}
+
+#[test]
+fn parse_table_rejects_non_numeric_cell() {
+    // Passes the checksum but a data cell is non-numeric.
+    let body = "D,M,M1,F,Om,psi_a,psi_b,eps_c,eps_d\n0,0,0,0,1,-171996,-174.2,92025,NOPE";
+    let err = parse_table(body, fnv1a64(body)).unwrap_err();
+    assert!(matches!(
+        err,
+        ApparentPlaceError::StaleModelData { kind: "nutation" }
+    ));
+}
