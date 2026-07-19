@@ -34,3 +34,37 @@ fn j2000_mean_obliquity_matches_anchor() {
     // At J2000 (t=0) the mean obliquity is the anchor constant used elsewhere.
     assert!((mean_obliquity_degrees(2_451_545.0) - 23.439_291_111_111_11).abs() < 1e-9);
 }
+
+/// `fundamental_arguments` must reproduce the published Meeus 22.x polynomials
+/// exactly. Reference values are an independent evaluation of those published
+/// polynomials (NOT captured from this code) at large |t|, where every term —
+/// including the cubic — is individually resolvable, so any per-term operator
+/// or sign swap moves the result far above the 1e-6° tolerance.
+#[test]
+fn fundamental_arguments_matches_published_polynomials_large_t() {
+    // t = -4.0 (~1600 CE)
+    let a = fundamental_arguments(-4.0);
+    let expected_m4 = [
+        -1_780_770.626_524_977_2,
+        -143_638.675_991_466_6,
+        -1_908_660.368_594_577_5,
+        -1_932_714.857_357_557_4,
+        7_861.622_554_577_8,
+    ];
+    for (i, (got, want)) in a.iter().zip(expected_m4.iter()).enumerate() {
+        assert!((got - want).abs() < 1e-6, "t=-4 arg[{i}] = {got}, want {want}");
+    }
+
+    // t = +6.0 (~2600 CE)
+    let b = fundamental_arguments(6.0);
+    let expected_p6 = [
+        2_671_900.451_468_798_3,
+        216_351.823_269_200_0,
+        2_863_328.484_307_199_7,
+        2_899_305.245_228_006_0,
+        -11_479.698_017_200_0,
+    ];
+    for (i, (got, want)) in b.iter().zip(expected_p6.iter()).enumerate() {
+        assert!((got - want).abs() < 1e-6, "t=+6 arg[{i}] = {got}, want {want}");
+    }
+}
