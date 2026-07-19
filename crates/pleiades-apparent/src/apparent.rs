@@ -16,6 +16,41 @@ use crate::provenance::{ApparentProvenance, CorrectionSet, MODEL_SOURCES};
 /// Default light-time iteration cap (planets converge in 2–3 steps).
 pub const DEFAULT_MAX_ITERATIONS: u8 = 8;
 
+/// Combines mean-of-date ecliptic (λ, β) in degrees with arcsecond corrections
+/// into an apparent (longitude, latitude) pair in degrees, normalizing longitude
+/// to `[0, 360)` and failing closed on non-finite output.
+///
+/// The apsis path (nutation only, no aberration) calls this with
+/// `d_lambda_arcsec = d_beta_arcsec = 0.0`.
+fn combine_apparent(
+    lambda_deg: f64,
+    beta_deg: f64,
+    d_lambda_arcsec: f64,
+    d_beta_arcsec: f64,
+    delta_psi_arcsec: f64,
+    stage: &'static str,
+) -> Result<(f64, f64), ApparentPlaceError> {
+    let apparent_lon =
+        (lambda_deg + (d_lambda_arcsec + delta_psi_arcsec) / 3600.0).rem_euclid(360.0);
+    let apparent_lat = beta_deg + d_beta_arcsec / 3600.0;
+    if !apparent_lon.is_finite() || !apparent_lat.is_finite() {
+        return Err(ApparentPlaceError::NonFiniteCorrection { stage });
+    }
+    Ok((apparent_lon, apparent_lat))
+}
+
+/// Longitude precession shift (λ − λ_J2000) for provenance, wrapped to
+/// `(−180, 180]` degrees and returned in arcseconds.
+fn precession_shift_arcsec(lambda_deg: f64, lambda_j2000_deg: f64) -> f64 {
+    let mut shift = lambda_deg - lambda_j2000_deg;
+    if shift > 180.0 {
+        shift -= 360.0;
+    } else if shift < -180.0 {
+        shift += 360.0;
+    }
+    shift * 3600.0
+}
+
 /// An apparent ecliptic-of-date position and its provenance.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ApparentPosition {
@@ -53,24 +88,17 @@ where
     let aberration = annual_aberration(lambda, beta, sun_true_longitude_of_date_deg, jd_tt);
     let nut = nutation(jd_tt).map_err(ApparentLightTimeError::Apparent)?;
 
-    let apparent_lon =
-        (lambda + (aberration.d_lambda_arcsec + nut.delta_psi_arcsec) / 3600.0).rem_euclid(360.0);
-    let apparent_lat = beta + aberration.d_beta_arcsec / 3600.0;
-    if !apparent_lon.is_finite() || !apparent_lat.is_finite() {
-        return Err(ApparentLightTimeError::Apparent(
-            ApparentPlaceError::NonFiniteCorrection {
-                stage: "apparent-combine",
-            },
-        ));
-    }
+    let (apparent_lon, apparent_lat) = combine_apparent(
+        lambda,
+        beta,
+        aberration.d_lambda_arcsec,
+        aberration.d_beta_arcsec,
+        nut.delta_psi_arcsec,
+        "apparent-combine",
+    )
+    .map_err(ApparentLightTimeError::Apparent)?;
 
-    // Precession shift in longitude for provenance, wrapped to (-180, 180].
-    let mut precession_shift = lambda - lambda_j2000;
-    if precession_shift > 180.0 {
-        precession_shift -= 360.0;
-    } else if precession_shift < -180.0 {
-        precession_shift += 360.0;
-    }
+    let precession_longitude_arcsec = precession_shift_arcsec(lambda, lambda_j2000);
 
     let ecliptic = EclipticCoordinates::new(
         Longitude::from_degrees(apparent_lon),
@@ -80,7 +108,7 @@ where
     let provenance = ApparentProvenance {
         light_time_days: light_timed.light_time_days,
         iterations: light_timed.iterations,
-        precession_longitude_arcsec: precession_shift * 3600.0,
+        precession_longitude_arcsec,
         nutation_longitude_arcsec: nut.delta_psi_arcsec,
         aberration_longitude_arcsec: aberration.d_lambda_arcsec,
         corrections: CorrectionSet {
@@ -134,21 +162,16 @@ pub fn apparent_sun_position(
     let aberration = annual_aberration(lambda, beta, lambda, jd_tt);
     let nut = nutation(jd_tt)?;
 
-    let apparent_lon =
-        (lambda + (aberration.d_lambda_arcsec + nut.delta_psi_arcsec) / 3600.0).rem_euclid(360.0);
-    let apparent_lat = beta + aberration.d_beta_arcsec / 3600.0;
-    if !apparent_lon.is_finite() || !apparent_lat.is_finite() {
-        return Err(ApparentPlaceError::NonFiniteCorrection {
-            stage: "apparent-sun-combine",
-        });
-    }
+    let (apparent_lon, apparent_lat) = combine_apparent(
+        lambda,
+        beta,
+        aberration.d_lambda_arcsec,
+        aberration.d_beta_arcsec,
+        nut.delta_psi_arcsec,
+        "apparent-sun-combine",
+    )?;
 
-    let mut precession_shift = lambda - lambda_j2000;
-    if precession_shift > 180.0 {
-        precession_shift -= 360.0;
-    } else if precession_shift < -180.0 {
-        precession_shift += 360.0;
-    }
+    let precession_longitude_arcsec = precession_shift_arcsec(lambda, lambda_j2000);
 
     let ecliptic = EclipticCoordinates::new(
         Longitude::from_degrees(apparent_lon),
@@ -158,7 +181,7 @@ pub fn apparent_sun_position(
     let provenance = ApparentProvenance {
         light_time_days: 0.0,
         iterations: 0,
-        precession_longitude_arcsec: precession_shift * 3600.0,
+        precession_longitude_arcsec,
         nutation_longitude_arcsec: nut.delta_psi_arcsec,
         aberration_longitude_arcsec: aberration.d_lambda_arcsec,
         corrections: CorrectionSet {
@@ -198,20 +221,16 @@ pub fn apparent_apsis_position(
     let beta = precessed.latitude_deg;
     let nut = nutation(jd_tt)?;
 
-    let apparent_lon = (lambda + nut.delta_psi_arcsec / 3600.0).rem_euclid(360.0);
-    let apparent_lat = beta;
-    if !apparent_lon.is_finite() || !apparent_lat.is_finite() {
-        return Err(ApparentPlaceError::NonFiniteCorrection {
-            stage: "apparent-apsis-combine",
-        });
-    }
+    let (apparent_lon, apparent_lat) = combine_apparent(
+        lambda,
+        beta,
+        0.0,
+        0.0,
+        nut.delta_psi_arcsec,
+        "apparent-apsis-combine",
+    )?;
 
-    let mut precession_shift = lambda - lambda_j2000;
-    if precession_shift > 180.0 {
-        precession_shift -= 360.0;
-    } else if precession_shift < -180.0 {
-        precession_shift += 360.0;
-    }
+    let precession_longitude_arcsec = precession_shift_arcsec(lambda, lambda_j2000);
 
     let ecliptic = EclipticCoordinates::new(
         Longitude::from_degrees(apparent_lon),
@@ -221,7 +240,7 @@ pub fn apparent_apsis_position(
     let provenance = ApparentProvenance {
         light_time_days: 0.0,
         iterations: 0,
-        precession_longitude_arcsec: precession_shift * 3600.0,
+        precession_longitude_arcsec,
         nutation_longitude_arcsec: nut.delta_psi_arcsec,
         aberration_longitude_arcsec: 0.0,
         corrections: CorrectionSet {
