@@ -275,6 +275,12 @@ fn apparent_sun_position_provenance_is_fully_specified() {
 
     assert!((out.provenance.nutation_longitude_arcsec - nut.delta_psi_arcsec).abs() < 1e-12);
     assert!((out.provenance.aberration_longitude_arcsec - ab.d_lambda_arcsec).abs() < 1e-12);
+    assert!(
+        (out.provenance.precession_longitude_arcsec
+            - precession_shift_arcsec(p.longitude_deg, 280.0))
+        .abs()
+            < 1e-9
+    );
     assert_eq!(
         out.provenance.light_time_days, 0.0,
         "Sun applies no light-time"
@@ -298,7 +304,14 @@ fn apparent_apsis_position_provenance_is_fully_specified() {
     let out = apparent_apsis_position(instant, j2000).unwrap();
 
     let nut = crate::nutation::nutation(jd).unwrap();
+    let p = crate::precession::precess_ecliptic_j2000_to_date(100.0, 5.0, jd).unwrap();
     assert!((out.provenance.nutation_longitude_arcsec - nut.delta_psi_arcsec).abs() < 1e-12);
+    assert!(
+        (out.provenance.precession_longitude_arcsec
+            - precession_shift_arcsec(p.longitude_deg, 100.0))
+        .abs()
+            < 1e-9
+    );
     // Apse line carries NO aberration term.
     assert_eq!(out.provenance.aberration_longitude_arcsec, 0.0);
     assert_eq!(out.provenance.light_time_days, 0.0);
