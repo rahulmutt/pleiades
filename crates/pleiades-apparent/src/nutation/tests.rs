@@ -177,3 +177,20 @@ fn parse_table_rejects_non_numeric_cell() {
         ApparentPlaceError::StaleModelData { kind: "nutation" }
     ));
 }
+
+/// A non-finite input drives the accumulation non-finite, and the engine must
+/// return a typed error rather than propagating NaN. This kills the survivors on
+/// the `is_finite` guard by making the guarded branch reachable.
+#[test]
+fn nutation_returns_typed_error_on_non_finite_input() {
+    for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        let err = nutation(bad).unwrap_err();
+        assert!(
+            matches!(
+                err,
+                ApparentPlaceError::NonFiniteCorrection { stage: "nutation" }
+            ),
+            "input {bad} produced {err:?}"
+        );
+    }
+}
