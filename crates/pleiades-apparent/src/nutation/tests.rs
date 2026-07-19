@@ -52,20 +52,26 @@ fn fundamental_arguments_matches_published_polynomials_large_t() {
         7_861.622_554_577_8,
     ];
     for (i, (got, want)) in a.iter().zip(expected_m4.iter()).enumerate() {
-        assert!((got - want).abs() < 1e-6, "t=-4 arg[{i}] = {got}, want {want}");
+        assert!(
+            (got - want).abs() < 1e-6,
+            "t=-4 arg[{i}] = {got}, want {want}"
+        );
     }
 
     // t = +6.0 (~2600 CE)
     let b = fundamental_arguments(6.0);
     let expected_p6 = [
         2_671_900.451_468_798_3,
-        216_351.823_269_200_0,
+        216_351.823_269_2,
         2_863_328.484_307_199_7,
-        2_899_305.245_228_006_0,
+        2_899_305.245_228_006,
         -11_479.698_017_200_0,
     ];
     for (i, (got, want)) in b.iter().zip(expected_p6.iter()).enumerate() {
-        assert!((got - want).abs() < 1e-6, "t=+6 arg[{i}] = {got}, want {want}");
+        assert!(
+            (got - want).abs() < 1e-6,
+            "t=+6 arg[{i}] = {got}, want {want}"
+        );
     }
 }
 
