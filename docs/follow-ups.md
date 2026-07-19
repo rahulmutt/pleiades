@@ -317,6 +317,30 @@ exists to surface.
 **Severity:** test-coverage hardening (report-only, non-blocking) ·
 **Opened:** 2026-07-18
 
+**Progress (2026-07-19) — `pleiades-apparent/src/nutation.rs`:** triaged from
+`45` → `1` surviving mutant by adding intent-expressing white-box unit tests
+(spec/plan:
+`docs/superpowers/specs/2026-07-19-fu9-nutation-mutant-triage-design.md`). The
+single residual is a documented **equivalent mutant** (`replace || with && in
+nutation`): the non-finite guard `!Δψ.is_finite() || !Δε.is_finite()` cannot be
+distinguished from its `&&` form by any reachable input, because a non-finite
+`jd_tt` poisons the shared fundamental arguments and drives *both* Δψ and Δε
+non-finite together — no input makes exactly one non-finite. A function-level
+`#[mutants::skip]` would blanket-suppress the whole `nutation` fn's numeric
+mutants, so it is intentionally NOT applied; the mutant is left visible and
+documented instead. **Reusable method** for the remaining files: regenerate the
+per-file survivor list with `cargo mutants -p <crate> --test-tool nextest
+--test-workspace=false --file <crate-relative path>`; classify each survivor as
+polynomial, series-accumulation, parse/validation, or guard; add a white-box
+test asserting against an *independent* reference (published coefficients
+evaluated outside the code, or a crafted-input branch), never the code's own
+output; re-run `--file` to confirm the residual is 0 or a documented equivalent
+mutant. No parity gate was touched; the tier stays report-only. **Remaining
+slices** (priority order): `apparent.rs` (49), `refraction.rs` (37),
+`aberration.rs` (28), `topocentric.rs` (27), `sidereal.rs` (17), `precession.rs`
+(17), `lighttime.rs` (5), then the `pleiades-time` and `pleiades-types`
+survivors.
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide

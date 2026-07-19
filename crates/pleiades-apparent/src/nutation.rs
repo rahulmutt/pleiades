@@ -23,6 +23,7 @@ pub struct Nutation {
     pub delta_eps_arcsec: f64,
 }
 
+#[derive(Debug)]
 struct Term {
     multipliers: [f64; 5],
     psi_a: f64,
@@ -32,11 +33,20 @@ struct Term {
 }
 
 fn table() -> Result<Vec<Term>, ApparentPlaceError> {
-    if fnv1a64(NUTATION_CSV) != NUTATION_CSV_CHECKSUM {
+    parse_table(NUTATION_CSV, NUTATION_CSV_CHECKSUM)
+}
+
+/// Parse the IAU-1980 nutation term table from `csv`, rejecting input whose
+/// FNV-1a checksum does not match `expected_checksum`. Taking the checksum as a
+/// parameter (rather than reading the module constant) keeps the function pure
+/// and lets tests exercise the malformed-input branches with a matching
+/// checksum for the crafted input.
+fn parse_table(csv: &str, expected_checksum: u64) -> Result<Vec<Term>, ApparentPlaceError> {
+    if fnv1a64(csv) != expected_checksum {
         return Err(ApparentPlaceError::StaleModelData { kind: "nutation" });
     }
     let mut terms = Vec::new();
-    for line in NUTATION_CSV.lines().skip(1) {
+    for line in csv.lines().skip(1) {
         let line = line.trim();
         if line.is_empty() {
             continue;
@@ -110,41 +120,4 @@ pub fn nutation(jd_tt: f64) -> Result<Nutation, ApparentPlaceError> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn pinned_checksum() {
-        assert_eq!(
-            fnv1a64(NUTATION_CSV),
-            NUTATION_CSV_CHECKSUM,
-            "checksum = {}",
-            fnv1a64(NUTATION_CSV)
-        );
-    }
-
-    #[test]
-    fn meeus_example_22a() {
-        // Meeus Example 22.a: 1987 April 10, 0h TD -> JDE 2446895.5.
-        // Δψ = -3.788", Δε = +9.443", ε0 = 23°26'27.407" = 23.4409463°.
-        let n = nutation(2_446_895.5).unwrap();
-        assert!(
-            (n.delta_psi_arcsec - (-3.788)).abs() < 0.03,
-            "Δψ = {}",
-            n.delta_psi_arcsec
-        );
-        assert!(
-            (n.delta_eps_arcsec - 9.443).abs() < 0.03,
-            "Δε = {}",
-            n.delta_eps_arcsec
-        );
-        let eps0 = mean_obliquity_degrees(2_446_895.5);
-        assert!((eps0 - 23.440946).abs() < 1e-5, "ε0 = {eps0}");
-    }
-
-    #[test]
-    fn j2000_mean_obliquity_matches_anchor() {
-        // At J2000 (t=0) the mean obliquity is the anchor constant used elsewhere.
-        assert!((mean_obliquity_degrees(2_451_545.0) - 23.439_291_111_111_11).abs() < 1e-9);
-    }
-}
+mod tests;
