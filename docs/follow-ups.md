@@ -341,6 +341,43 @@ slices** (priority order): `apparent.rs` (49), `refraction.rs` (37),
 (17), `lighttime.rs` (5), then the `pleiades-time` and `pleiades-types`
 survivors.
 
+**Progress (2026-07-19) — `pleiades-apparent/src/apparent.rs`:** triaged to
+`0` surviving mutants (spec/plan:
+`docs/superpowers/specs/2026-07-19-fu9-apparent-mutant-triage-design.md`). A
+count note: the baseline above lists `apparent.rs` at `49`, but that figure came
+from the whole-workspace `mise run mutants` run (default test-tool, and measured
+*before* this slice's refactor). Running the reusable method's authoritative
+per-file command for the first time — `cargo mutants -p pleiades-apparent
+--test-tool nextest --test-workspace=false --file
+crates/pleiades-apparent/src/apparent.rs`, against the *post-refactor* file —
+measured `10` survivors, which were then driven to `0`. The two numbers reflect
+two different invocations, not a regression; the `10 → 0` figure is the
+authoritative per-file result. Because `apparent.rs` is an **orchestrator** (it
+composes already-tested light-time, precession, nutation Δψ, and annual
+aberration into an apparent place with provenance) rather than a polynomial
+evaluator, the method adapted in two ways. First, a minimal
+**behavior-preserving refactor** (its own separate commit, no runtime-result
+change) extracted the two combine primitives `combine_apparent` and
+`precession_shift_arcsec` from the three near-identical public functions, so the
+combine/scaling/`rem_euclid`/wrap/guard mutant surface is defined and tested
+once. Second, the reference strategy is **independent recomposition**: every
+expected value comes from crafted inputs or from independently-invoked
+sub-correction functions, never from the orchestrator's own output — non-circular
+by construction. The relocated, expanded white-box suite covers the combine
+primitives directly, both `precession_shift_arcsec` wrap branches (including the
+exact `±180°` comparison boundaries), full per-function `ApparentProvenance`
+assertions, an end-to-end recomposition-equality check, and fail-closed
+non-finite propagation (which surfaces the `"precession"` stage, since precession
+rejects a non-finite input longitude before the combine guard is reached).
+**No documented residual this slice** — unlike `nutation.rs`'s one equivalent
+mutant, `apparent.rs` reached a genuine `0`. The design's residual candidate,
+`DEFAULT_MAX_ITERATIONS`, produces no mutant at all (cargo-mutants does not mutate
+a bare `pub const`), so there was nothing to suppress or document. No parity gate
+was touched; the tier stays report-only; `mise run ci` is green. **Remaining
+slices** (priority order): `refraction.rs` (37), `aberration.rs` (28),
+`topocentric.rs` (27), `sidereal.rs` (17), `precession.rs` (17), `lighttime.rs`
+(5), then the `pleiades-time` and `pleiades-types` survivors.
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
