@@ -325,3 +325,89 @@ fn apparent_apsis_position_provenance_is_fully_specified() {
     assert!(!out.provenance.corrections.diurnal_parallax);
     assert!(!out.provenance.corrections.diurnal_aberration);
 }
+
+#[test]
+fn apparent_position_equals_independent_recomposition() {
+    let jd = 2_451_545.0 + 36_525.0;
+    let instant = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+    let (l0, b0) = (100.0, 5.0);
+    let sun = 280.0;
+    let out =
+        apparent_position::<_, ApparentPlaceError>(instant, sun, 8, |_| Ok(fixed(l0, b0, 1.0)))
+            .unwrap();
+
+    let p = crate::precession::precess_ecliptic_j2000_to_date(l0, b0, jd).unwrap();
+    let ab = crate::aberration::annual_aberration(p.longitude_deg, p.latitude_deg, sun, jd);
+    let nut = crate::nutation::nutation(jd).unwrap();
+    let (exp_lon, exp_lat) = combine_apparent(
+        p.longitude_deg,
+        p.latitude_deg,
+        ab.d_lambda_arcsec,
+        ab.d_beta_arcsec,
+        nut.delta_psi_arcsec,
+        "apparent-combine",
+    )
+    .unwrap();
+
+    let dlon = (out.ecliptic.longitude.degrees() - exp_lon) * 3600.0;
+    let dlat = (out.ecliptic.latitude.degrees() - exp_lat) * 3600.0;
+    assert!(dlon.abs() < 1e-6, "lon off by {dlon}\"");
+    assert!(dlat.abs() < 1e-6, "lat off by {dlat}\"");
+}
+
+#[test]
+fn apparent_position_propagates_non_finite_query() {
+    // A NaN longitude out of `query` is rejected by
+    // `precess_ecliptic_j2000_to_date` BEFORE it ever reaches the
+    // `apparent-combine` guard in `combine_apparent`, so the actually-produced
+    // stage is "precession", not "apparent-combine". This still pins the
+    // fail-closed behavior of `apparent_position` end-to-end.
+    let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let err = apparent_position::<_, ApparentPlaceError>(instant, 280.0, 8, |_| {
+        Ok(fixed(f64::NAN, 0.0, 1.0))
+    })
+    .unwrap_err();
+    assert!(
+        matches!(
+            err,
+            ApparentLightTimeError::Apparent(ApparentPlaceError::NonFiniteCorrection {
+                stage: "precession"
+            })
+        ),
+        "unexpected error: {err:?}"
+    );
+}
+
+#[test]
+fn apparent_sun_position_propagates_non_finite_input() {
+    // As above: precession rejects the NaN input longitude first, so the
+    // actual stage is "precession" rather than "apparent-sun-combine".
+    let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let err = apparent_sun_position(instant, fixed(f64::NAN, 0.0, 0.983)).unwrap_err();
+    assert!(
+        matches!(
+            err,
+            ApparentPlaceError::NonFiniteCorrection {
+                stage: "precession"
+            }
+        ),
+        "unexpected error: {err:?}"
+    );
+}
+
+#[test]
+fn apparent_apsis_position_propagates_non_finite_input() {
+    // As above: precession rejects the NaN input longitude first, so the
+    // actual stage is "precession" rather than "apparent-apsis-combine".
+    let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let err = apparent_apsis_position(instant, fixed(f64::NAN, 0.0, 0.0025)).unwrap_err();
+    assert!(
+        matches!(
+            err,
+            ApparentPlaceError::NonFiniteCorrection {
+                stage: "precession"
+            }
+        ),
+        "unexpected error: {err:?}"
+    );
+}
