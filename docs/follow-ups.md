@@ -336,7 +336,7 @@ test asserting against an *independent* reference (published coefficients
 evaluated outside the code, or a crafted-input branch), never the code's own
 output; re-run `--file` to confirm the residual is 0 or a documented equivalent
 mutant. No parity gate was touched; the tier stays report-only. **Remaining
-slices** (priority order): `apparent.rs` (49), `aberration.rs` (28),
+slices** (priority order): `aberration.rs` (28),
 `topocentric.rs` (27), `sidereal.rs` (17), `precession.rs`
 (17), `lighttime.rs` (5), then the `pleiades-time` and `pleiades-types`
 survivors.
