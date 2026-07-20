@@ -195,7 +195,7 @@ fn non_finite_inputs_fail_closed() {
     // never a NaN coordinate. This cannot distinguish the remaining `||`→`&&`
     // guard mutant at the output-finiteness check (L95, documented equivalent
     // — see `overflowing_distance_fails_closed` for the L57 guard, which this
-    // does not exercise) — it pins the fail-closed contract itself.
+    // cannot distinguish) — it pins the fail-closed contract itself.
     let err = topocentric_position(ecl(100.0, 5.0, 1.0), &palomar(), f64::NAN, 23.44).unwrap_err();
     assert_eq!(
         err,

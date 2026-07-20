@@ -155,8 +155,9 @@ This is an *unreachability* argument (like `nutation.rs`'s equivalent), not
 *would* differ, but no input produces that value. The `≪ 2°` bound holds for
 any `distance_au` at or beyond the observer's geocentric radius (~1 Earth
 radius, the physical regime); a nonphysical sub-Earth-radius distance could in
-principle produce a much larger raw Δlon, but no such input pins the value to
-exactly ±180.0 either, so the practical-equivalence verdict is unaffected.
+principle produce a much larger raw Δlon, but an exact ±180.0 hit would be a
+measure-zero float coincidence not targetable by a principled test, so the
+practical-equivalence verdict is unaffected.
 
 **Expected residual: 3 documented equivalents** (L95, L83 `>=`, L85
 `<=`), left visible and documented in `docs/follow-ups.md`, not

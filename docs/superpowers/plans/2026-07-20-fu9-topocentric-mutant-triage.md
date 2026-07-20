@@ -14,7 +14,7 @@
 
 - Tests-only: the ONLY edit to `topocentric.rs` is replacing the inline test module with `#[cfg(test)] mod tests;` (relocation). No numeric or structural production change.
 - No `validate-*` gate file is touched; the mutants tier stays **report-only**.
-- No `#[mutants::skip]` anywhere; the 4 equivalent mutants stay visible and documented.
+- No `#[mutants::skip]` anywhere; the equivalent mutants (planned as 4, 3 after review — see Goal) stay visible and documented.
 - Independence discipline: every expected literal comes from the Appendix A script, never from the crate's own output.
 - Assertion tolerances: `1e-9` (degrees), `1e-6` (arcsec fields), `1e-12` (AU distance).
 - Branch: `fu9-topocentric-mutant-triage` (already exists, spec committed on it).
