@@ -501,6 +501,39 @@ are ≲0.001″, negligible for this slice's purpose, and production code is
 untouched by this note — flagged here only so a future slice can decide
 whether to re-derive the constants independently.
 
+**Progress (2026-07-20) — sidereal (`pleiades-apparent/src/sidereal.rs` +
+`pleiades-time/src/sidereal.rs`):** triaged from `17 + 5` → `0` surviving
+mutants (spec/plan:
+`docs/superpowers/specs/2026-07-20-fu9-sidereal-mutant-triage-design.md`).
+The first **two-file slice**: after FU-5's single-sourcing, the apparent-side
+file is a thin composition layer delegating the GMST polynomial to
+`pleiades-time`, so the `pleiades-time` sidereal survivors (queued in the
+backlog tail) were folded in rather than re-deriving the same references
+later. Both baselines confirmed by the authoritative per-file commands
+(apparent: `46 tested, 17 missed, 28 caught, 1 unviable`; time: `30 tested,
+5 missed, 25 caught`). **Tests-only** like `refraction.rs`/`topocentric.rs`:
+the only source edits were relocating both inline test modules to
+`src/sidereal/tests.rs`. Root causes: on the time side, all 5 survivors were
+the small quadratic/cubic Meeus 12.4 terms invisible to a single-epoch 1e-4°
+test — killed by literals evaluated outside the code at **t = ±4** Julian
+centuries (JD 2597645.0 / 2305445.0, ≈ years 2400/1600, inside the project's
+coverage target) at 2e-7° tolerance, with design-stage verified margins
+(smallest mutant displacement 153 ulp of the raw value vs a ~27 ulp
+tolerance); the ± pair separates the even quadratic term from the odd cubic
+term (the aberration slice's ±1 trick at larger |t|). On the apparent side,
+15 survivors were three entirely untested hours accessors and 2 were the
+`gmst + lon` composition in `local_mean_deg` (the one field no test
+constrained by value) — all 17 killed by a single recomposition-pinning test
+at `(jd = 2446895.5, lon = +52.5°)` asserting every `_deg` field and every
+hours accessor against expectations rebuilt from independently-invoked
+sub-functions, plus a Meeus example 12.b GAST anchor (197.692230°, 1e-4°)
+tying the composed output to a published value. **No documented residual
+this slice** — like `apparent.rs` and `aberration.rs`, a genuine `0 + 0`;
+no equivalent-mutant candidates surfaced. No parity gate was touched; the
+tier stays report-only; `mise run ci` is green. **Remaining slices**
+(priority order): `precession.rs` (17), `lighttime.rs` (5), then the
+remaining `pleiades-time` (non-sidereal) and `pleiades-types` survivors.
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide

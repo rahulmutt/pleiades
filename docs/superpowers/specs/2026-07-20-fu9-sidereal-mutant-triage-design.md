@@ -198,10 +198,16 @@ integration tests.
 
 ## 9. Deliverables
 
-1. Commit 1 — `test(sidereal): FU-9 mutant triage — Meeus 12.4 large-t
-   literals, recomposition pinning, and 12.b anchor` (includes both test
-   relocations).
-2. Commit 2 — `docs(follow-ups): record FU-9 sidereal triage (17+5 → 0)`.
+1. Commit 1 — `test(time): FU-9 sidereal — pin gmst_degrees_raw to Meeus
+   12.4 literals at t = ±4 (5 -> 0)` (includes the pleiades-time test
+   relocation).
+2. Commit 2 — `test(apparent): FU-9 sidereal — recomposition pinning +
+   Meeus 12.b anchor (17 -> 0)` (includes the pleiades-apparent test
+   relocation).
+3. Commit 3 — `docs(follow-ups): record FU-9 sidereal triage (17+5 -> 0)`.
+
+(Refined during planning: one test commit per crate — each independently
+testable and reviewable — instead of a single cross-crate test commit.)
 
 Branch `fu9-sidereal-mutant-triage`, PR flow as in prior slices.
 
