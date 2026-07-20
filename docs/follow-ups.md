@@ -518,7 +518,7 @@ the small quadratic/cubic Meeus 12.4 terms invisible to a single-epoch 1e-4°
 test — killed by literals evaluated outside the code at **t = ±4** Julian
 centuries (JD 2597645.0 / 2305445.0, ≈ years 2400/1600, inside the project's
 coverage target) at 2e-7° tolerance, with design-stage verified margins
-(smallest mutant displacement 153 ulp of the raw value vs a ~27 ulp
+(smallest mutant displacement 111 ulp of the raw value vs a ~27 ulp
 tolerance); the ± pair separates the even quadratic term from the odd cubic
 term (the aberration slice's ±1 trick at larger |t|). On the apparent side,
 15 survivors were three entirely untested hours accessors and 2 were the

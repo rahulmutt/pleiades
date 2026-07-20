@@ -102,10 +102,12 @@ noise. Verified margins (design-stage numeric check):
 | quadratic `+` → `-` | 1.24e-2° | ~1.7e6 ulp |
 | t-scaling `-` → `/` | 6.2e-3° | ~8.3e5 ulp |
 | cubic `-` → `+` | 3.3e-6° | 444 ulp |
-| `t·t·t` `*` → `+` (both) | 1.14e-6° | 153 ulp |
+| `t·t·t` `*` → `+`, `(t+t)·t` | 8.3e-7° | ~111 ulp |
+| `t·t·t` `*` → `+`, `(t·t)+t` | 1.14e-6° | ~153 ulp |
 
-The 2e-7° tolerance is ~27 ulp — ≥5× below the smallest mutant displacement
-and ≥25× above last-ulp evaluation noise. A companion assertion ties
+The 2e-7° tolerance is ~27 ulp — ≥4× below the smallest single-epoch mutant
+displacement (~8.3e-7°, ~111 ulp) and ≥25× above last-ulp evaluation noise.
+A companion assertion ties
 `gmst_degrees` to `gmst_degrees_raw(jd).rem_euclid(360.0)` at the same epochs
 (its mutants are already caught; this pins the normalized path at the new
 epochs).

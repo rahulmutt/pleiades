@@ -65,8 +65,8 @@ fn gmst_raw_matches_meeus_12_4_at_large_t() {
     // (JD 2451545 ± 4·36525). Large |t| makes the quadratic (~6.2e-3°) and
     // cubic (~1.65e-6°) terms visible; the ± pair separates the even
     // quadratic term (same sign at ±t) from the odd cubic term (flips sign).
-    // Tolerance 2e-7° is ~27 ulp of the ~5.27e7° raw value — ≥5× below the
-    // smallest surviving-mutant displacement (~1.14e-6°) and ≥25× above
+    // Tolerance 2e-7° is ~27 ulp of the ~5.27e7° raw value — ≥4× below the
+    // smallest single-epoch mutant displacement (~8.3e-7°) and ≥25× above
     // last-ulp evaluation noise (margins verified in the slice design doc §4.1).
     assert!(
         (gmst_degrees_raw(2_597_645.0) - 52_740_283.547_038_615).abs() < 2e-7,
@@ -180,7 +180,7 @@ git commit -m "test(time): FU-9 sidereal — pin gmst_degrees_raw to Meeus 12.4 
 
 - [ ] **Step 1: Create the relocated + expanded test file**
 
-Create `crates/pleiades-apparent/src/sidereal/tests.rs`. The six existing tests move verbatim (they carry intent the new tests do not replace: J2000 GMST value, GAST+lon relationship, normalization/hours consistency, EE magnitude, helper equivalence, cross-crate GMST agreement); two new tests are appended:
+Create `crates/pleiades-apparent/src/sidereal/tests.rs`. The seven existing tests move verbatim (they carry intent the new tests do not replace: J2000 GMST value, GAST+lon relationship, normalization/hours consistency, EE magnitude, helper equivalence, EE wrapper/helper agreement, cross-crate GMST agreement); two new tests are appended:
 
 ```rust
 use super::*;
@@ -362,7 +362,7 @@ No other change to the file.
 cargo nextest run -p pleiades-apparent sidereal
 ```
 
-Expected: PASS, 8 tests (6 relocated + 2 new). The two new tests must pass on unmutated code. If `sidereal_time_fields_match_independent_recomposition` fails at 1e-12, check the recomposition's operation order against production (`(gmst + ee) + lon` left-to-right) before touching tolerances.
+Expected: PASS, 9 tests (7 relocated + 2 new). The two new tests must pass on unmutated code. If `sidereal_time_fields_match_independent_recomposition` fails at 1e-12, check the recomposition's operation order against production (`(gmst + ee) + lon` left-to-right) before touching tolerances.
 
 - [ ] **Step 4: Format and lint**
 
