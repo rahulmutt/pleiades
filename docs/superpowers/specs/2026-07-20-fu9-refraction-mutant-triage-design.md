@@ -91,12 +91,18 @@ Authoritative per-file run at design time
 **101 mutants tested in 2m — 37 missed, 64 caught.** This matches the baseline's
 recorded 37 for the file.
 
-### 4.1 Group A — `true_from_apparent_below_horizon` is entirely untested (20 survivors)
+Group counts below are verified against the run's `missed.txt` line-by-line and
+sum to 37: A = 23 (21 in the function + 2 killable dispatcher mutants), B = 6,
+C = 5, D = 3.
 
-Every mutant in this function survives, including the three whole-function
+### 4.1 Group A — `true_from_apparent_below_horizon` is entirely untested (23 survivors)
+
+All 21 mutants in this function survive, including the three whole-function
 replacements (`-> 0.0`, `-> 1.0`, `-> -1.0`). The existing corpus test exercises
 only the `apparent_from_true` direction; nothing calls the apparent→true
-below-horizon path at all.
+below-horizon path at all. Grouped with them are the two killable dispatcher
+mutants at line 147 (`< with ==`, `< with >`), which misroute negative altitudes
+into the above-horizon formula and are killed by the same tests.
 
 **Treatment:** mirror the coverage the other direction gets, at three pinned
 altitudes chosen to isolate each region:
@@ -122,7 +128,7 @@ full Bennett), `h = -1.0` (the boundary), and `h = -5.5` (mid-fade, `fade =
 0.5`) — each asserted against an independently computed literal at tight
 tolerance (~1e-9 deg). The existing corpus rows are left untouched.
 
-### 4.3 Group C — loose-tolerance formula survivors (8 survivors)
+### 4.3 Group C — loose-tolerance formula survivors (5 survivors)
 
 Four distinct causes, all masked by wide assertion bands in the current tests:
 
