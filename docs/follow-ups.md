@@ -336,8 +336,8 @@ test asserting against an *independent* reference (published coefficients
 evaluated outside the code, or a crafted-input branch), never the code's own
 output; re-run `--file` to confirm the residual is 0 or a documented equivalent
 mutant. No parity gate was touched; the tier stays report-only. **Remaining
-slices** (priority order): `apparent.rs` (49), `refraction.rs` (37),
-`aberration.rs` (28), `topocentric.rs` (27), `sidereal.rs` (17), `precession.rs`
+slices** (priority order): `aberration.rs` (28),
+`topocentric.rs` (27), `sidereal.rs` (17), `precession.rs`
 (17), `lighttime.rs` (5), then the `pleiades-time` and `pleiades-types`
 survivors.
 
@@ -374,9 +374,41 @@ mutant, `apparent.rs` reached a genuine `0`. The design's residual candidate,
 `DEFAULT_MAX_ITERATIONS`, produces no mutant at all (cargo-mutants does not mutate
 a bare `pub const`), so there was nothing to suppress or document. No parity gate
 was touched; the tier stays report-only; `mise run ci` is green. **Remaining
-slices** (priority order): `refraction.rs` (37), `aberration.rs` (28),
+slices** (priority order): `aberration.rs` (28),
 `topocentric.rs` (27), `sidereal.rs` (17), `precession.rs` (17), `lighttime.rs`
 (5), then the `pleiades-time` and `pleiades-types` survivors.
+
+**Progress (2026-07-20) — `pleiades-apparent/src/refraction.rs`:** triaged from
+`37` → `3` documented equivalent mutants (spec/plan:
+`docs/superpowers/specs/2026-07-20-fu9-refraction-mutant-triage-design.md`).
+Baseline confirmed by the authoritative per-file command (`101 mutants tested,
+37 missed, 64 caught`). This slice was **tests-only** — no refactor was needed,
+unlike `apparent.rs`: the file was already decomposed into small pure functions
+at exactly the right seams, so the only source edit was relocating the inline
+test module to `src/refraction/tests.rs` per AGENTS.md. The dominant finding was
+a plain **coverage hole** rather than tolerance masking: `true_from_apparent_below_horizon`
+had no test at all (the committed SE corpus exercises only the
+`apparent_from_true` direction), accounting for 21 of the 37 survivors including
+all three whole-function replacements. The remainder split into blend-region gaps
+(the corpus reaches only `h <= -9.96`, where the fade contributes ~9″ under a 15″
+tolerance, leaving the `h ∈ [-1, 0)` branch and the fade slope unconstrained) and
+loose-tolerance formula survivors (`scale -> 1.0` hides because the default
+atmosphere's scale is 0.9858 ≈ 1.0). Reference strategy: **crafted-exact
+atmospheres** — `(1010 mbar, 10 °C)` makes `scale` exactly `1.0` and
+`(2020 mbar, 25 °C)` makes both factors non-unit and distinct — combined with
+Bennett/Saemundsson literals evaluated outside the code from the published
+formulas, and fade midpoints chosen so `fade` is an exact binary fraction
+(`h = -5.5` → `fade = 0.5`). The blend model is repo-invented (SE's own
+below-horizon model is discontinuous and deliberately not reproduced), so its
+authority is its own documented spec: anchor = R(-1), linear fade to zero at -10.
+**Documented residual — 3 equivalent mutants**, left visible rather than
+`#[mutants::skip]`-suppressed: `saemundsson`'s `scale * 1.0` → `/ 1.0`
+(bit-identical), and `< → <=` in both public dispatchers, which differ only at
+exactly `h == 0.0` where both branches evaluate the identical expression. No
+parity gate was touched; the tier stays report-only; `mise run ci` is green.
+**Remaining slices** (priority order): `aberration.rs` (28), `topocentric.rs`
+(27), `sidereal.rs` (17), `precession.rs` (17), `lighttime.rs` (5), then the
+`pleiades-time` and `pleiades-types` survivors.
 
 ---
 
