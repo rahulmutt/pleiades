@@ -106,11 +106,6 @@ const DENSE: Atmosphere = Atmosphere {
 /// f64 carries ~1e-16 relative precision; 1e-11 absorbs any last-ULP `tan()`
 /// variation between platform libm implementations while staying far tighter
 /// than the smallest mutant-induced shift (~1e-3 deg).
-// Not consumed by this task's tests; produced here for the degree-valued
-// assertions Tasks 3 and 4 add on top of this file. Allowed narrowly rather
-// than dropped so the two tolerance constants stay defined together at the
-// point their rationale is documented.
-#[allow(dead_code)]
 const TOL_DEG: f64 = 1e-11;
 
 /// Same rationale, for arcminute-valued refraction assertions (values O(10)).
@@ -179,4 +174,76 @@ fn saemundsson_matches_independently_evaluated_formula() {
             "saemundsson h={h} got={got} expected={expected_arcmin}"
         );
     }
+}
+
+#[test]
+fn apparent_from_true_below_horizon_matches_blend_spec() {
+    // The hold-then-fade blend is this crate's own model (SE's real
+    // below-horizon behavior is a step discontinuity that was deliberately not
+    // reproduced — see `apparent_from_true_below_horizon`'s rustdoc). Its
+    // specification is therefore the reference: full Bennett down to -1 deg,
+    // then the -1 deg refraction value faded linearly to zero at -10 deg.
+    //
+    // Expected values were evaluated independently from that spec plus the
+    // published Bennett formula, with EXACT chosen so `scale` is 1.
+    for (h, expected) in [
+        // h in [-1, 0): full Bennett applied, no fade yet.
+        (-0.5, 0.061_463_268_244_547_065),
+        // h == -1: the >= boundary, still full Bennett.
+        (-1.0, -0.353_419_379_118_975_14),
+        // Mid-fade: fade = (-5.5 + 10)/(-1 + 10) = 0.5 exactly, so this pins
+        // the anchor scaling with no rounding slack.
+        (-5.5, -5.176_709_689_559_487_5),
+    ] {
+        let got = apparent_from_true(h, EXACT);
+        assert!(
+            (got - expected).abs() < TOL_DEG,
+            "apparent_from_true h={h} got={got} expected={expected}"
+        );
+    }
+}
+
+#[test]
+fn apparent_from_true_is_identity_at_and_below_fade_end() {
+    // At/below BELOW_HORIZON_BLEND_END_DEG the blend has faded to exactly
+    // zero, so the function returns its input unchanged — exact equality, no
+    // tolerance needed.
+    assert_eq!(
+        apparent_from_true(BELOW_HORIZON_BLEND_END_DEG, EXACT),
+        BELOW_HORIZON_BLEND_END_DEG
+    );
+    assert_eq!(apparent_from_true(-20.0, EXACT), -20.0);
+    assert_eq!(apparent_from_true(-45.0, DENSE), -45.0);
+}
+
+#[test]
+fn apparent_from_true_blend_scales_with_atmosphere() {
+    // Same mid-fade altitude under a denser/warmer atmosphere: the anchor is
+    // Bennett(-1) under DENSE, so the blend must carry the non-unit scale
+    // through. Independently evaluated.
+    let got = apparent_from_true(-5.5, DENSE);
+    let expected = -4.885_965_383_525_738;
+    assert!(
+        (got - expected).abs() < TOL_DEG,
+        "dense blend got={got} expected={expected}"
+    );
+}
+
+// The last two assertions below are on values that are, today, compile-time
+// constants, which clippy flags as always-true. That is the point: this test
+// exists to catch a future edit to either constant breaking the ordering
+// invariant the fade computation depends on, so the runtime assertion form
+// (not a `const { assert!(..) }` block, which would turn a broken invariant
+// into a compile error instead of a mutation-testing-visible test failure)
+// is kept deliberately.
+#[allow(clippy::assertions_on_constants)]
+#[test]
+fn blend_boundary_constants_have_expected_signs_and_ordering() {
+    // Guards the two constants directly: both are below the horizon and the
+    // fade start sits above the fade end. A sign flip on either would invert
+    // the fade denominator and silently reshape the whole below-horizon model.
+    assert_eq!(BELOW_HORIZON_BLEND_START_DEG, -1.0);
+    assert_eq!(BELOW_HORIZON_BLEND_END_DEG, -10.0);
+    assert!(BELOW_HORIZON_BLEND_END_DEG < BELOW_HORIZON_BLEND_START_DEG);
+    assert!(BELOW_HORIZON_BLEND_START_DEG < 0.0);
 }
