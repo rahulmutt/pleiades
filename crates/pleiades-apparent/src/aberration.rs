@@ -19,6 +19,19 @@ fn julian_centuries(jd_tt: f64) -> f64 {
     (jd_tt - 2_451_545.0) / 36_525.0
 }
 
+/// Earth's orbital eccentricity and longitude of perihelion ϖ (degrees),
+/// both of date. Meeus 25.4.
+///
+/// Extracted from `annual_aberration` so the polynomial coefficients have a
+/// direct test seam: they reach the public output only through the ~0.34″
+/// `e κ cos(ϖ - λ)` term, where a coefficient error moves the result by
+/// ~0.001-0.006″ — far below any tolerance the model's own accuracy justifies.
+fn earth_orbit_elements(t: f64) -> (f64, f64) {
+    let e = 0.016_708_634 - 0.000_042_037 * t - 0.000_000_126_7 * t * t;
+    let pi_deg = 102.937_35 + 1.719_46 * t + 0.000_46 * t * t;
+    (e, pi_deg)
+}
+
 /// Annual aberration for an ecliptic position, given the Sun's true longitude ⊙.
 ///
 /// Meeus 23.2:
@@ -32,9 +45,7 @@ pub fn annual_aberration(
     sun_true_longitude_deg: f64,
     jd_tt: f64,
 ) -> AberrationOffset {
-    let t = julian_centuries(jd_tt);
-    let e = 0.016_708_634 - 0.000_042_037 * t - 0.000_000_126_7 * t * t;
-    let pi_deg = 102.937_35 + 1.719_46 * t + 0.000_46 * t * t;
+    let (e, pi_deg) = earth_orbit_elements(julian_centuries(jd_tt));
 
     let lambda = lambda_deg.to_radians();
     let beta = beta_deg.to_radians();
