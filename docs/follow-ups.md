@@ -445,6 +445,62 @@ the tier stays report-only; `mise run ci` is green. **Remaining slices**
 (17), `lighttime.rs` (5), then the `pleiades-time` and `pleiades-types`
 survivors.
 
+**Progress (2026-07-20) — `pleiades-apparent/src/topocentric.rs`:** triaged from
+`27` → `3` documented equivalent mutants (spec/plan:
+`docs/superpowers/specs/2026-07-20-fu9-topocentric-mutant-triage-design.md`).
+Baseline confirmed by the authoritative per-file command (`82 mutants tested,
+27 missed, 54 caught, 1 unviable`) — the first slice where the per-file and
+whole-workspace figures agree exactly. **Tests-only** like `refraction.rs`: the
+only source edit was relocating the inline test module to
+`src/topocentric/tests.rs` per AGENTS.md. The dominant root cause was
+**sign-free and degenerate assertions**: every parallax assertion used `hypot`
+(no sign), the diurnal-aberration bound (`< 0.36″`) constrained no term, and —
+decisively — the existing test observer (equator, sea level) makes
+`ρcosφ′ = 1.0` exactly, so the `* rho_cos_phi_prime → /` mutants were
+**bit-identical** and unkillable from those tests. Reference strategy:
+**independent recomposition** — a Python reimplementation of the published
+Meeus ch. 11/40 pipeline (script reproduced in the plan doc), cross-validated
+against the crate at ~1e-11″, pins exact literals at one discriminating
+geometry (Palomar `ρcosφ′ = 0.836`, `dec_topo ≈ 27.9°`, `H ≈ 328.2°` — 17
+kills including all four provenance fields) plus two wrap-crossing geometries
+(body at λ = 0.02°/359.98°, Moon-scale parallax carrying the topocentric
+longitude across the 0°/360° seam — 6 kills). Rejected geometries recorded in
+the spec so they are not re-proposed: equator/sea-level observer
+(`ρcosφ′ = 1`), and `β ≈ 0` for the primary geometry (`cos δ = 1`,
+`sin δ = 0` degeneracies). **Documented residual — 3 equivalent mutants**,
+left visible rather than `#[mutants::skip]`-suppressed: `||`→`&&` in the
+output non-finite guard (the `nutation.rs` shape — the guard returns the
+byte-identical error regardless of which operand triggers it, since
+`to_ecliptic` mixes RA and Dec into both outputs and any non-finite value
+poisons both together, so no reachable input distinguishes the operators),
+and `>`→`>=` / `<`→`<=` in the Δlon wrap comparisons (they differ only at a
+raw Δlon of exactly ±180.0°, unreachable for physical inputs since the
+topocentric shift is bounded ≪ 2° beyond the observer's geocentric radius).
+A fourth candidate — `||`→`&&` in the *input* non-finite guard
+(`!topo_distance.is_finite() || topo_distance <= 0.0`) — was originally
+classified equivalent alongside the output guard, but the final whole-branch
+review found it killable: a finite `distance_au` as large as `1e301`
+overflows the squared-norm sum to `+inf`, and under the `&&` mutant
+`inf <= 0.0` is false, so the guard fails to fire and every downstream value
+stays finite (`tz / inf == 0.0`), producing `Ok(Some(inf))` instead of the
+expected `Err`. Per the spec's own killed-instead-of-documented rule, it is
+killed by an added overflow fail-closed test rather than documented as
+equivalent. No parity gate was touched; the tier stays report-only;
+`mise run ci` is green. **Remaining slices** (priority order): `sidereal.rs`
+(17), `precession.rs` (17), `lighttime.rs` (5), then the `pleiades-time` and
+`pleiades-types` survivors.
+
+**Residual audit gap (future slice):** the independence discipline behind
+this slice's reference script covers *formulas*, not *constants* — the
+script inherits the crate's own `DIURNAL_ABERRATION_ARCSEC = 0.3192` (whose
+doc comment, "0.0213 s × 15", actually works out to 0.3195; a first-principles
+derivation gives ≈0.3200) and `AU_IN_EARTH_RADII = 23454.779` (the IAU-1976
+value, not the WGS84 value named beside it; the true WGS84-consistent ratio
+is ≈23454.791) rather than re-deriving them independently. Both discrepancies
+are ≲0.001″, negligible for this slice's purpose, and production code is
+untouched by this note — flagged here only so a future slice can decide
+whether to re-derive the constants independently.
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
