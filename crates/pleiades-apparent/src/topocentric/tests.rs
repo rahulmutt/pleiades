@@ -125,6 +125,9 @@ fn palomar_moon_matches_independent_meeus_pipeline() {
         "diurnal {}",
         p.diurnal_aberration_arcsec
     );
+    // Deliberately tight (1e-15): `distance_au_used` is a verbatim pass-through
+    // of the input distance, so bit-equality holds — the tight bound is what
+    // kills replacement mutants on this field.
     assert!(
         (p.distance_au_used - 0.002_57).abs() < 1e-15,
         "distance used {}",
@@ -189,9 +192,10 @@ fn wrap_eastward_across_zero() {
 #[test]
 fn non_finite_inputs_fail_closed() {
     // Guard intent: a non-finite LAST or obliquity yields the typed error,
-    // never a NaN coordinate. This cannot distinguish the two `||`→`&&` guard
-    // mutants (documented equivalents, spec §5.1) — it pins the fail-closed
-    // contract itself.
+    // never a NaN coordinate. This cannot distinguish the remaining `||`→`&&`
+    // guard mutant at the output-finiteness check (L95, documented equivalent
+    // — see `overflowing_distance_fails_closed` for the L57 guard, which this
+    // does not exercise) — it pins the fail-closed contract itself.
     let err = topocentric_position(ecl(100.0, 5.0, 1.0), &palomar(), f64::NAN, 23.44).unwrap_err();
     assert_eq!(
         err,
@@ -200,6 +204,24 @@ fn non_finite_inputs_fail_closed() {
         }
     );
     let err = topocentric_position(ecl(100.0, 5.0, 1.0), &palomar(), 70.0, f64::NAN).unwrap_err();
+    assert_eq!(
+        err,
+        ApparentPlaceError::NonFiniteCorrection {
+            stage: "topocentric"
+        }
+    );
+}
+
+#[test]
+fn overflowing_distance_fails_closed() {
+    // A finite but absurdly large distance overflows the squared-norm sum to
+    // +inf. The guard must reject it: under the `||`→`&&` mutant at the
+    // topo_distance check, `inf <= 0.0` is false, the guard passes, and
+    // `tz / inf == 0.0` keeps every downstream value finite — the function
+    // would return Ok with `distance_au = Some(inf)`. This pins fail-closed
+    // behavior on the overflow path (found in review; kills the L57 mutant
+    // the spec originally classified as equivalent).
+    let err = topocentric_position(ecl(100.0, 0.0, 1e301), &palomar(), 70.0, 23.44).unwrap_err();
     assert_eq!(
         err,
         ApparentPlaceError::NonFiniteCorrection {
