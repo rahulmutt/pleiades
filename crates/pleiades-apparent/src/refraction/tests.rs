@@ -334,11 +334,12 @@ fn refraction_is_suppressed_below_horizon_in_both_directions() {
 //
 //   2. `134:10 replace < with <= in apparent_from_true`
 //   3. `147:10 replace < with <= in true_from_apparent`
-//      Both differ from the original only at exactly `h == 0.0`. At that value
-//      the two paths compute the same expression: the below-horizon helper's
-//      first branch is `h >= BELOW_HORIZON_BLEND_START_DEG` (-1.0), which holds
-//      at 0.0 and applies the identical full-refraction formula the `h >= 0`
-//      path applies. So routing h == 0.0 either way yields the same result.
+//      Both differ from the original only at zero (`h == 0.0`, and equally
+//      `h == -0.0`, which compares equal to it). At that value the two paths
+//      compute the same expression: the below-horizon helper's first branch is
+//      `h >= BELOW_HORIZON_BLEND_START_DEG` (-1.0), which holds at 0.0 and
+//      applies the identical full-refraction formula the `h >= 0` path applies.
+//      So routing zero either way yields the same result.
 //
 // Note the sibling mutants `147:10 < with ==` and `147:10 < with >` are NOT
 // equivalent — they misroute ordinary inputs — and are killed above by the

@@ -388,7 +388,7 @@ at exactly the right seams, so the only source edit was relocating the inline
 test module to `src/refraction/tests.rs` per AGENTS.md. The dominant finding was
 a plain **coverage hole** rather than tolerance masking: `true_from_apparent_below_horizon`
 had no test at all (the committed SE corpus exercises only the
-`apparent_from_true` direction), accounting for 20 of the 37 survivors including
+`apparent_from_true` direction), accounting for 21 of the 37 survivors including
 all three whole-function replacements. The remainder split into blend-region gaps
 (the corpus reaches only `h <= -9.96`, where the fade contributes ~9″ under a 15″
 tolerance, leaving the `h ∈ [-1, 0)` branch and the fade slope unconstrained) and
