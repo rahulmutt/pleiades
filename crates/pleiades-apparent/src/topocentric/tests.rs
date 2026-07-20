@@ -144,3 +144,66 @@ fn parallax_displaces_toward_horizon() {
     assert!(out.provenance.parallax_longitude_arcsec > 0.0);
     assert!(out.provenance.parallax_latitude_arcsec < 0.0);
 }
+
+#[test]
+fn wrap_westward_across_zero() {
+    // λ=0.02°: the ~0.93° westward parallax carries the topocentric longitude
+    // across 0° to ~359.09°, so raw Δlon = +359.07° and the `> 180 → −360`
+    // wrap branch fires. Unwrapped, the provenance would read ~+1.29e6″; the
+    // exact literal pins the wrap and its direction.
+    let out = topocentric_position(ecl(0.02, 0.0, 0.002_57), &palomar(), 80.0, 23.44).unwrap();
+    let lon = out.ecliptic.longitude.degrees();
+    assert!((lon - 359.092_861_428_952_8).abs() < 1e-9, "lon {lon}");
+    assert!(
+        (out.provenance.parallax_longitude_arcsec - -3_337.698_855_769_849_6).abs() < 1e-6,
+        "parallax lon {}",
+        out.provenance.parallax_longitude_arcsec
+    );
+    assert!(
+        (out.provenance.parallax_latitude_arcsec - -597.126_617_152_460_1).abs() < 1e-6,
+        "parallax lat {}",
+        out.provenance.parallax_latitude_arcsec
+    );
+}
+
+#[test]
+fn wrap_eastward_across_zero() {
+    // λ=359.98°: the ~0.51° eastward parallax carries the topocentric
+    // longitude across 360° to ~0.49°, so raw Δlon = −359.49° and the
+    // `< −180 → +360` wrap branch fires.
+    let out = topocentric_position(ecl(359.98, 0.0, 0.002_57), &palomar(), 280.0, 23.44).unwrap();
+    let lon = out.ecliptic.longitude.degrees();
+    assert!((lon - 0.492_685_616_714_902_74).abs() < 1e-9, "lon {lon}");
+    assert!(
+        (out.provenance.parallax_longitude_arcsec - 1_845.668_220_173_502).abs() < 1e-6,
+        "parallax lon {}",
+        out.provenance.parallax_longitude_arcsec
+    );
+    assert!(
+        (out.provenance.parallax_latitude_arcsec - -2_844.541_308_965_105).abs() < 1e-6,
+        "parallax lat {}",
+        out.provenance.parallax_latitude_arcsec
+    );
+}
+
+#[test]
+fn non_finite_inputs_fail_closed() {
+    // Guard intent: a non-finite LAST or obliquity yields the typed error,
+    // never a NaN coordinate. This cannot distinguish the two `||`→`&&` guard
+    // mutants (documented equivalents, spec §5.1) — it pins the fail-closed
+    // contract itself.
+    let err = topocentric_position(ecl(100.0, 5.0, 1.0), &palomar(), f64::NAN, 23.44).unwrap_err();
+    assert_eq!(
+        err,
+        ApparentPlaceError::NonFiniteCorrection {
+            stage: "topocentric"
+        }
+    );
+    let err = topocentric_position(ecl(100.0, 5.0, 1.0), &palomar(), 70.0, f64::NAN).unwrap_err();
+    assert_eq!(
+        err,
+        ApparentPlaceError::NonFiniteCorrection {
+            stage: "topocentric"
+        }
+    );
+}
