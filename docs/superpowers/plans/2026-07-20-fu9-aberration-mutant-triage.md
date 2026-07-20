@@ -4,7 +4,7 @@
 
 **Goal:** Drive `crates/pleiades-apparent/src/aberration.rs` from 28 surviving cargo-mutants mutants to 0, via one behavior-preserving extraction plus white-box unit tests whose expected values come from independently evaluated published coefficients.
 
-**Architecture:** Extract the Earth-orbit element polynomials into a private `earth_orbit_elements(t)` seam (16 of the 28 survivors perturb the public output by only 0.001–0.006″ and are unreachable through the public API). Relocate the inline test module to a co-located `aberration/tests.rs`. Then add tests in two groups: polynomial/epoch tests against Meeus 25.4 coefficients hand-evaluated at three epochs, and formula-line tests at a single crafted geometry proven to discriminate all 12 remaining mutants.
+**Architecture:** Extract the Earth-orbit element polynomials into a private `earth_orbit_elements(t)` seam (11 of the 28 survivors perturb the public output by only 0.001–0.006″ and are unreachable through the public API). Relocate the inline test module to a co-located `aberration/tests.rs`. Then add tests in two groups: polynomial/epoch tests against Meeus 25.4 coefficients hand-evaluated at three epochs, and formula-line tests at a single crafted geometry proven to discriminate all 12 remaining mutants.
 
 **Tech Stack:** Rust 2021, `cargo-mutants` 27.1.0, `cargo-nextest`, `mise` task runner.
 
@@ -584,7 +584,7 @@ Append a new paragraph to the FU-9 entry, immediately after the `Progress (2026-
 `docs/superpowers/specs/2026-07-20-fu9-aberration-mutant-triage-design.md`).
 Baseline confirmed by the authoritative per-file command (`56 mutants tested,
 28 missed, 27 caught, 1 unviable`). The distinguishing finding of this slice is
-that **16 of the 28 survivors were arithmetically unreachable through the
+that **11 of the 28 survivors were arithmetically unreachable through the
 public API**: the Earth-orbit elements `e` and `ϖ` enter the output only via the
 ~0.34″ `e κ cos(ϖ - λ)` term, so mutating their polynomial coefficients moves
 Δλ by only ~0.001″ (`e`) to ~0.006″ (`ϖ`) — below any tolerance the model's own
@@ -633,7 +633,7 @@ FU-9 slice 4. Drives `crates/pleiades-apparent/src/aberration.rs` from 28
 surviving cargo-mutants mutants to 0.
 
 - **Task 1** extracts `earth_orbit_elements` (behavior-preserving, own commit).
-  16 of the 28 survivors sit in the `e`/`ϖ` polynomials, which reach the public
+  11 of the 28 survivors sit in the `e`/`ϖ` polynomials, which reach the public
   output only through a ~0.34″ term — a coefficient mutation moves Δλ by
   0.001-0.006″, so no honest end-to-end tolerance can catch them. The seam is
   what makes them testable without pinning the function's own output.

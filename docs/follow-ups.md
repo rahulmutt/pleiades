@@ -415,7 +415,7 @@ parity gate was touched; the tier stays report-only; `mise run ci` is green.
 `docs/superpowers/specs/2026-07-20-fu9-aberration-mutant-triage-design.md`).
 Baseline confirmed by the authoritative per-file command (`56 mutants tested,
 28 missed, 27 caught, 1 unviable`). The distinguishing finding of this slice is
-that **16 of the 28 survivors were arithmetically unreachable through the
+that **11 of the 28 survivors were arithmetically unreachable through the
 public API**: the Earth-orbit elements `e` and `ϖ` enter the output only via the
 ~0.34″ `e κ cos(ϖ - λ)` term, so mutating their polynomial coefficients moves
 Δλ by only ~0.001″ (`e`) to ~0.006″ (`ϖ`) — below any tolerance the model's own
