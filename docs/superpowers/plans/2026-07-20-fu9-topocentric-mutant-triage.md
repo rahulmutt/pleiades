@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Drive `crates/pleiades-apparent/src/topocentric.rs` from 27 surviving mutants to exactly 4 documented equivalents, using tests pinned to an independent reference — tests-only, no production-code change.
+**Goal:** Drive `crates/pleiades-apparent/src/topocentric.rs` from 27 surviving mutants to 3 documented equivalents (planned as 4; review found one killable), using tests pinned to an independent reference — tests-only, no production-code change.
 
 **Architecture:** One exact-literal test at a crafted discriminating geometry (Palomar observer, Moon-scale distance) kills 17 survivors; two wrap-crossing tests kill the 6 killable Δlon-wrap mutants; a fail-closed test pins guard intent. Expected literals were computed by an independent Python reimplementation of the published Meeus ch. 11/40 pipeline (Appendix A) and cross-validated against the crate to ~1e-11″ during planning — they are final, not placeholders.
 
@@ -453,8 +453,8 @@ verification runs — it is gitignored; do not commit it).
 
 Use the **superpowers:finishing-a-development-branch** skill. PR flow as in
 prior slices (#35, #36): title
-`test(topocentric): FU-9 topocentric.rs mutant triage (27 -> 4 documented equivalents)`,
-body summarizing the kill strategy and the 4 documented equivalents, then
+`test(topocentric): FU-9 topocentric.rs mutant triage (27 -> 3 documented equivalents)`,
+body summarizing the kill strategy and the 3 documented equivalents, then
 watch checks green before merging. **Never use `gh pr merge --auto` on this
 repo** (it merges immediately — see memory note); wait for checks, then merge
 and delete the branch.

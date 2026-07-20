@@ -112,29 +112,37 @@ equivalent-mutant candidates, next.
 
 ## 5. Equivalent-mutant analysis
 
-### 5.1 The two guard `|| → &&` mutants (L57, L95) — equivalent
+### 5.1 The L95 guard `|| → &&` mutant — equivalent
 
-Both guards return the **byte-identical** error value,
-`ApparentPlaceError::NonFiniteCorrection { stage: "topocentric" }`, which is
-what makes them mutually indistinguishable:
+**L95 (final guard, `!lon.is_finite() || !lat.is_finite()`).** The
+nutation-precedent shape: distinguishing `||` from `&&` needs **exactly one**
+of the two operands non-finite, but `to_ecliptic` mixes RA and Dec into both
+outputs, so any non-finite reaching L95 poisons longitude and latitude
+together. The only exactly-one route would be an infinite `aberr_ra` from
+`cos(dec_topo) == 0.0` — which requires `tz / topo_distance == 1.0` in exact
+f64, unreachable from any physical input. This guard's mutant remains a
+documented equivalent, returning the byte-identical error value,
+`ApparentPlaceError::NonFiniteCorrection { stage: "topocentric" }`, on every
+reachable input.
 
-- **L57 (early guard, `!topo_distance.is_finite() || topo_distance <= 0.0`).**
-  Under the `&&` mutant, a non-finite `topo_distance` (NaN input in
-  `local_sidereal_time_deg`, `obliquity_deg`, or the coordinates) slips past —
-  but NaN poisons `dec_topo`, both aberration terms, and the ecliptic
-  reconversion, so the L95 guard returns the *same* error. The other disjunct
-  alone (`<= 0.0` with a finite value) requires `tx = ty = tz = 0.0` exactly —
-  the body at the observer's float-exact position — and even then `tz / 0.0`
-  yields NaN caught at L95 identically. `Latitude`/`Longitude` do not clamp
-  (`pleiades-types/src/angles.rs`), so no NaN is laundered into a finite value
-  on the way. No reachable input distinguishes the mutant.
-- **L95 (final guard, `!lon.is_finite() || !lat.is_finite()`).** The
-  nutation-precedent shape: distinguishing `||` from `&&` needs **exactly one**
-  of the two operands non-finite, but `to_ecliptic` mixes RA and Dec into both
-  outputs, so any non-finite reaching L95 poisons longitude and latitude
-  together. The only exactly-one route would be an infinite `aberr_ra` from
-  `cos(dec_topo) == 0.0` — which requires `tz / topo_distance == 1.0` in exact
-  f64, unreachable from any physical input.
+**Correction — L57 is not equivalent; it is killed.** The original analysis
+here (early guard, `!topo_distance.is_finite() || topo_distance <= 0.0`)
+considered only NaN inputs and the `<= 0.0` disjunct in isolation, and
+concluded both routes collapse into the same L95 error. It missed a third
+route: a **finite** but astronomically large `distance_au` (e.g. `1e301` AU)
+makes `d = distance_au * AU_IN_EARTH_RADII` finite but pushes
+`tx*tx + ty*ty + tz*tz` past `f64::MAX`, so `topo_distance` overflows to
+**`+inf`**. Under the `||`→`&&` mutant, `!topo_distance.is_finite()` is true
+but `topo_distance <= 0.0` is false (`inf <= 0.0` is false), so the `&&`
+guard does *not* fire. Execution falls through with `topo_distance = inf`;
+`tz / inf` and `tx / inf`-style divisions all evaluate to `0.0`, which is
+finite, so `dec_topo`, both aberration terms, and the ecliptic reconversion
+all stay finite and the L95 guard never fires either. The unmutated function
+returns `Err(NonFiniteCorrection { stage: "topocentric" })` at L57; the
+mutant returns `Ok(TopocentricPosition { distance_au: Some(inf), .. })` —
+observably different. Per this spec's own rule (§8), a mutant found killable
+during implementation is killed, not documented: it is killed by
+`overflowing_distance_fails_closed` in `topocentric/tests.rs`.
 
 ### 5.2 The wrap comparison forms (L83 `> → >=`, L85 `< → <=`) — equivalent
 
@@ -144,12 +152,16 @@ These differ from the original only when the raw Δlon equals **exactly**
 longitudes lies in (−2°, 2°) ∪ ±(358°, 360°); ±180.0 exactly is unreachable.
 This is an *unreachability* argument (like `nutation.rs`'s equivalent), not
 `refraction.rs`'s identical-expression argument — at Δlon = 180.0 the branches
-*would* differ, but no input produces that value.
+*would* differ, but no input produces that value. The `≪ 2°` bound holds for
+any `distance_au` at or beyond the observer's geocentric radius (~1 Earth
+radius, the physical regime); a nonphysical sub-Earth-radius distance could in
+principle produce a much larger raw Δlon, but no such input pins the value to
+exactly ±180.0 either, so the practical-equivalence verdict is unaffected.
 
-**Expected residual: 4 documented equivalents** (L57, L95, L83 `>=`, L85
+**Expected residual: 3 documented equivalents** (L95, L83 `>=`, L85
 `<=`), left visible and documented in `docs/follow-ups.md`, not
 `#[mutants::skip]`-suppressed. If implementation finds any of them killable
-after all, it is killed instead of documented.
+after all, it is killed instead of documented — as happened with L57 (§5.1).
 
 ## 6. Reference strategy (independence discipline)
 
@@ -236,7 +248,7 @@ to integration tests.
 
 1. `cargo mutants -p pleiades-apparent --test-tool nextest
    --test-workspace=false --file crates/pleiades-apparent/src/topocentric.rs`
-   reports **4 missed**, each one of the §5 documented equivalents — or fewer,
+   reports **3 missed**, each one of the §5 documented equivalents — or fewer,
    if implementation finds one killable.
 2. `mise run ci` is green; `cargo fmt` / clippy clean.
 3. No source change to `topocentric.rs` other than the test-module relocation.
@@ -249,7 +261,7 @@ to integration tests.
    recomposition, wrap-crossing, and fail-closed tests` (includes the
    relocation to `src/topocentric/tests.rs`).
 2. Commit 2 — `docs(follow-ups): record FU-9 topocentric.rs triage
-   (27 → 4 documented equivalents)`.
+   (27 → 3 documented equivalents)`.
 
 Branch `fu9-topocentric-mutant-triage`, PR flow as in prior slices.
 
