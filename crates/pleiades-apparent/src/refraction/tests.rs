@@ -247,3 +247,73 @@ fn blend_boundary_constants_have_expected_signs_and_ordering() {
     assert!(BELOW_HORIZON_BLEND_END_DEG < BELOW_HORIZON_BLEND_START_DEG);
     assert!(BELOW_HORIZON_BLEND_START_DEG < 0.0);
 }
+
+#[test]
+fn true_from_apparent_below_horizon_matches_blend_spec() {
+    // Mirror of `apparent_from_true_below_horizon_matches_blend_spec` for the
+    // opposite direction: Saemundsson in place of Bennett, subtracted rather
+    // than added. Same hold-then-fade spec, same independent evaluation.
+    for (h, expected) in [
+        // h in [-1, 0): full Saemundsson subtracted.
+        (-0.5, -1.194_684_954_988_428_4),
+        // h == -1: the >= boundary.
+        (-1.0, -1.830_262_105_990_099_2),
+        // Mid-fade: fade = 0.5 exactly.
+        (-5.5, -5.915_131_052_995_05),
+    ] {
+        let got = true_from_apparent(h, EXACT);
+        assert!(
+            (got - expected).abs() < TOL_DEG,
+            "true_from_apparent h={h} got={got} expected={expected}"
+        );
+    }
+}
+
+#[test]
+fn true_from_apparent_is_identity_at_and_below_fade_end() {
+    // As with the forward direction, the fade reaches exactly zero at
+    // BELOW_HORIZON_BLEND_END_DEG and stays there.
+    assert_eq!(
+        true_from_apparent(BELOW_HORIZON_BLEND_END_DEG, EXACT),
+        BELOW_HORIZON_BLEND_END_DEG
+    );
+    assert_eq!(true_from_apparent(-20.0, EXACT), -20.0);
+    assert_eq!(true_from_apparent(-45.0, DENSE), -45.0);
+}
+
+#[test]
+fn true_from_apparent_blend_scales_with_atmosphere() {
+    // Mid-fade under DENSE: the anchor is Saemundsson(-1) scaled by 1.8993...,
+    // independently evaluated.
+    let got = true_from_apparent(-5.5, DENSE);
+    let expected = -6.288_470_389_245_631_5;
+    assert!(
+        (got - expected).abs() < TOL_DEG,
+        "dense reverse blend got={got} expected={expected}"
+    );
+}
+
+#[test]
+fn true_from_apparent_below_horizon_helper_matches_public_entry_point() {
+    // The public `true_from_apparent` must delegate to the below-horizon
+    // helper for every negative altitude — nothing may bypass it. Asserted
+    // across all three regions (full-Saemundsson, mid-fade, identity).
+    for h in [-0.5, -1.0, -5.5, -10.0, -20.0] {
+        assert_eq!(
+            true_from_apparent(h, EXACT),
+            true_from_apparent_below_horizon(h, EXACT),
+            "delegation mismatch at h={h}"
+        );
+    }
+}
+
+#[test]
+fn refraction_is_suppressed_below_horizon_in_both_directions() {
+    // Both directions hold the same identity floor. Pinning them together
+    // documents that the two blends are deliberate mirrors of one another
+    // rather than independently drifting approximations.
+    for h in [-10.0, -12.5, -30.0, -70.739_219] {
+        assert_eq!(apparent_from_true(h, EXACT), h, "forward at h={h}");
+        assert_eq!(true_from_apparent(h, EXACT), h, "reverse at h={h}");
+    }
+}
