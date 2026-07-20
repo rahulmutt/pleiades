@@ -116,3 +116,66 @@ fn earth_orbit_elements_match_meeus_25_4() {
         );
     }
 }
+
+#[test]
+fn meeus_23_2_matches_independent_evaluation_at_crafted_geometry() {
+    // Crafted discriminating geometry (design §6):
+    //   λ = 30°, β = 60°, ⊙ = 120°, jd = J2000 (t = 0)
+    //
+    // Chosen so that:
+    //   cos β = 0.5   -> `/ cos_beta` and `* cos_beta` differ by a factor of 4
+    //   ⊙ - λ = 90°   -> cos = 0, sin = 1, isolating the e·κ term in Δλ
+    //   λ ≠ 0         -> otherwise ϖ + λ ≡ ϖ - λ and the `-` → `+` mutant lives
+    //   λ ≠ ϖ         -> otherwise sin(ϖ - λ) = 0, annihilating the whole
+    //                    `e sin(ϖ - λ)` subtraction and letting its mutants live
+    //   β ≠ 0         -> Δβ is non-zero, so its sign is assertable
+    //
+    // Expected values evaluated OUTSIDE this code from Meeus 23.2, using the
+    // t = 0 elements e = 0.016708634 and ϖ = 102.93735, so ϖ - λ = 72.93735°:
+    //   Δλ = (0 + 0.34245214231967996 * 0.29341719999540683) / 0.5
+    //      = 0.20096269746373557
+    //   Δβ = -20.49552 * sin(60°) * (1 - 0.016708634 * 0.9559844908505867)
+    //      = -17.46612250773869
+    let off = annual_aberration(30.0, 60.0, 120.0, 2_451_545.0);
+
+    assert!(
+        (off.d_lambda_arcsec - 0.200_962_697_463_735_57).abs() < 1e-9,
+        "Δλ = {}",
+        off.d_lambda_arcsec
+    );
+    assert!(
+        (off.d_beta_arcsec - (-17.466_122_507_738_69)).abs() < 1e-9,
+        "Δβ = {}",
+        off.d_beta_arcsec
+    );
+}
+
+#[test]
+fn aberration_in_latitude_is_signed_not_merely_bounded() {
+    // The pre-existing tests assert only |Δβ| against a bound, which leaves
+    // the leading `-` of the Δβ formula completely unconstrained. Pin the
+    // sign directly: at β = +60° with ⊙ - λ = +90°, sin β > 0 and the
+    // bracket (1 - e sin(ϖ-λ)) > 0, so Δβ must be strictly negative.
+    let off = annual_aberration(30.0, 60.0, 120.0, 2_451_545.0);
+    assert!(
+        off.d_beta_arcsec < -17.0,
+        "Δβ should be strictly negative here: {}",
+        off.d_beta_arcsec
+    );
+
+    // sin β is odd, so mirroring the ecliptic latitude must negate Δβ exactly
+    // while leaving Δλ (which depends on β only through the even cos β) alone.
+    let mirrored = annual_aberration(30.0, -60.0, 120.0, 2_451_545.0);
+    assert!(
+        (mirrored.d_beta_arcsec + off.d_beta_arcsec).abs() < 1e-12,
+        "Δβ(-β) should negate Δβ(+β): {} vs {}",
+        mirrored.d_beta_arcsec,
+        off.d_beta_arcsec
+    );
+    assert!(
+        (mirrored.d_lambda_arcsec - off.d_lambda_arcsec).abs() < 1e-12,
+        "Δλ should be even in β: {} vs {}",
+        mirrored.d_lambda_arcsec,
+        off.d_lambda_arcsec
+    );
+}
