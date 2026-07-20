@@ -445,6 +445,40 @@ the tier stays report-only; `mise run ci` is green. **Remaining slices**
 (17), `lighttime.rs` (5), then the `pleiades-time` and `pleiades-types`
 survivors.
 
+**Progress (2026-07-20) — `pleiades-apparent/src/topocentric.rs`:** triaged from
+`27` → `4` documented equivalent mutants (spec/plan:
+`docs/superpowers/specs/2026-07-20-fu9-topocentric-mutant-triage-design.md`).
+Baseline confirmed by the authoritative per-file command (`82 mutants tested,
+27 missed, 54 caught, 1 unviable`) — the first slice where the per-file and
+whole-workspace figures agree exactly. **Tests-only** like `refraction.rs`: the
+only source edit was relocating the inline test module to
+`src/topocentric/tests.rs` per AGENTS.md. The dominant root cause was
+**sign-free and degenerate assertions**: every parallax assertion used `hypot`
+(no sign), the diurnal-aberration bound (`< 0.36″`) constrained no term, and —
+decisively — the existing test observer (equator, sea level) makes
+`ρcosφ′ = 1.0` exactly, so the `* rho_cos_phi_prime → /` mutants were
+**bit-identical** and unkillable from those tests. Reference strategy:
+**independent recomposition** — a Python reimplementation of the published
+Meeus ch. 11/40 pipeline (script reproduced in the plan doc), cross-validated
+against the crate at ~1e-11″, pins exact literals at one discriminating
+geometry (Palomar `ρcosφ′ = 0.836`, `dec_topo ≈ 27.9°`, `H ≈ 328.2°` — 17
+kills including all four provenance fields) plus two wrap-crossing geometries
+(body at λ = 0.02°/359.98°, Moon-scale parallax carrying the topocentric
+longitude across the 0°/360° seam — 6 kills). Rejected geometries recorded in
+the spec so they are not re-proposed: equator/sea-level observer
+(`ρcosφ′ = 1`), and `β ≈ 0` for the primary geometry (`cos δ = 1`,
+`sin δ = 0` degeneracies). **Documented residual — 4 equivalent mutants**,
+left visible rather than `#[mutants::skip]`-suppressed: `||`→`&&` in both
+non-finite guards (both guards return the byte-identical error, and any
+non-finite poisons every downstream value, so no reachable input distinguishes
+the operators — the L95 case is the `nutation.rs` shape), and `>`→`>=` /
+`<`→`<=` in the Δlon wrap comparisons (they differ only at a raw Δlon of
+exactly ±180.0°, unreachable since the topocentric shift is bounded ≪ 2°). No
+parity gate was touched; the tier stays report-only; `mise run ci` is green.
+**Remaining slices** (priority order): `sidereal.rs` (17), `precession.rs`
+(17), `lighttime.rs` (5), then the `pleiades-time` and `pleiades-types`
+survivors.
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
