@@ -317,3 +317,30 @@ fn refraction_is_suppressed_below_horizon_in_both_directions() {
         assert_eq!(true_from_apparent(h, EXACT), h, "reverse at h={h}");
     }
 }
+
+// ---------------------------------------------------------------------------
+// Documented equivalent mutants (FU-9 slice 3)
+//
+// After this suite, `cargo mutants -p pleiades-apparent --test-tool nextest
+// --test-workspace=false --file refraction.rs` reports exactly three surviving
+// mutants. All three are provably equivalent — no input distinguishes them from
+// the original — so they are documented here rather than suppressed with
+// `#[mutants::skip]`, which would also hide that function's genuine numeric
+// mutants:
+//
+//   1. `51:18 replace * with / in saemundsson_refraction_arcmin`
+//      The operand is the literal `1.0`, so `scale * 1.0` and `scale / 1.0`
+//      are bit-identical for every f64 input, non-finite ones included.
+//
+//   2. `134:10 replace < with <= in apparent_from_true`
+//   3. `147:10 replace < with <= in true_from_apparent`
+//      Both differ from the original only at exactly `h == 0.0`. At that value
+//      the two paths compute the same expression: the below-horizon helper's
+//      first branch is `h >= BELOW_HORIZON_BLEND_START_DEG` (-1.0), which holds
+//      at 0.0 and applies the identical full-refraction formula the `h >= 0`
+//      path applies. So routing h == 0.0 either way yields the same result.
+//
+// Note the sibling mutants `147:10 < with ==` and `147:10 < with >` are NOT
+// equivalent — they misroute ordinary inputs — and are killed above by the
+// -5.5 deg cases.
+// ---------------------------------------------------------------------------
