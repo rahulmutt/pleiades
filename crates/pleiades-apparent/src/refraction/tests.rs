@@ -85,3 +85,98 @@ fn refraction_matches_se_below_horizon() {
         );
     }
 }
+
+/// Atmosphere crafted so `scale` is exactly `1.0`: `1010/1010 = 1` and
+/// `283/(273+10) = 1`. Lets a refraction literal be compared without any
+/// scaling factor folded in.
+const EXACT: Atmosphere = Atmosphere {
+    pressure_mbar: 1010.0,
+    temperature_c: 10.0,
+};
+
+/// Atmosphere where BOTH scale factors differ from 1 and from each other
+/// (`2020/1010 = 2`, `283/298 = 0.9497`), so no operator swap inside `scale`
+/// can alias another and still produce the right answer.
+const DENSE: Atmosphere = Atmosphere {
+    pressure_mbar: 2020.0,
+    temperature_c: 25.0,
+};
+
+/// Tolerance for degree-valued altitude assertions. Values here are O(1) and
+/// f64 carries ~1e-16 relative precision; 1e-11 absorbs any last-ULP `tan()`
+/// variation between platform libm implementations while staying far tighter
+/// than the smallest mutant-induced shift (~1e-3 deg).
+// Not consumed by this task's tests; produced here for the degree-valued
+// assertions Tasks 3 and 4 add on top of this file. Allowed narrowly rather
+// than dropped so the two tolerance constants stay defined together at the
+// point their rationale is documented.
+#[allow(dead_code)]
+const TOL_DEG: f64 = 1e-11;
+
+/// Same rationale, for arcminute-valued refraction assertions (values O(10)).
+const TOL_ARCMIN: f64 = 1e-10;
+
+#[test]
+fn scale_matches_independent_pressure_temperature_ratio() {
+    // scale = (p/1010) * (283/(273+t)), evaluated independently.
+    // EXACT is constructed so both factors are exactly 1.
+    assert_eq!(scale(EXACT), 1.0);
+    // Pressure doubled, temperature factor still exactly 1.
+    assert_eq!(
+        scale(Atmosphere {
+            pressure_mbar: 2020.0,
+            temperature_c: 10.0,
+        }),
+        2.0
+    );
+    // Both factors non-unit: 2 * (283/298) = 1.8993288590604027. This case is
+    // what distinguishes `*` from `/` between the two factors — with a unity
+    // second factor the swap would be invisible.
+    assert!(
+        (scale(DENSE) - 1.899_328_859_060_402_7).abs() < 1e-15,
+        "dense scale {}",
+        scale(DENSE)
+    );
+}
+
+#[test]
+fn bennett_matches_independently_evaluated_formula() {
+    // R = scale * 1.02 / tan(h + 10.3/(h + 5.11)) arcmin, h in degrees,
+    // evaluated outside this crate from the published Bennett (1982) formula.
+    for (h, atmos, expected_arcmin) in [
+        (-0.5, EXACT, 33.687_796_094_672_83),
+        (-1.0, EXACT, 38.794_837_252_861_49),
+        (-1.0, DENSE, 73.684_153_976_911_42),
+    ] {
+        let got = bennett_refraction_arcmin(h, atmos);
+        assert!(
+            (got - expected_arcmin).abs() < TOL_ARCMIN,
+            "bennett h={h} got={got} expected={expected_arcmin}"
+        );
+    }
+}
+
+#[test]
+fn saemundsson_matches_independently_evaluated_formula() {
+    // R = scale * 1.0 / tan(h + 7.31/(h + 4.4)) arcmin, h in degrees,
+    // evaluated outside this crate from the published Saemundsson (1986)
+    // formula.
+    //
+    // Documented equivalent mutant: `replace * with / in
+    // saemundsson_refraction_arcmin` cannot be killed here or anywhere. The
+    // operand is the literal `1.0`, so `scale * 1.0` and `scale / 1.0` are
+    // bit-identical for every input, including non-finite ones. The `* 1.0` is
+    // kept in the source because it mirrors the published coefficient in the
+    // formula the rustdoc cites; it is not dead weight.
+    for (h, atmos, expected_arcmin) in [
+        (-0.5, EXACT, 41.681_097_299_305_71),
+        (-1.0, EXACT, 49.815_726_359_405_96),
+        (-1.0, DENSE, 94.616_446_709_475_74),
+    ] {
+        let got = saemundsson_refraction_arcmin(h, atmos);
+        assert!(
+            (got - expected_arcmin).abs() < TOL_ARCMIN,
+            "saemundsson h={h} got={got} expected={expected_arcmin}"
+        );
+    }
+}
