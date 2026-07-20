@@ -410,6 +410,41 @@ parity gate was touched; the tier stays report-only; `mise run ci` is green.
 (27), `sidereal.rs` (17), `precession.rs` (17), `lighttime.rs` (5), then the
 `pleiades-time` and `pleiades-types` survivors.
 
+**Progress (2026-07-20) — `pleiades-apparent/src/aberration.rs`:** triaged from
+`28` → `0` surviving mutants (spec/plan:
+`docs/superpowers/specs/2026-07-20-fu9-aberration-mutant-triage-design.md`).
+Baseline confirmed by the authoritative per-file command (`56 mutants tested,
+28 missed, 27 caught, 1 unviable`). The distinguishing finding of this slice is
+that **16 of the 28 survivors were arithmetically unreachable through the
+public API**: the Earth-orbit elements `e` and `ϖ` enter the output only via the
+~0.34″ `e κ cos(ϖ - λ)` term, so mutating their polynomial coefficients moves
+Δλ by only ~0.001″ (`e`) to ~0.006″ (`ϖ`) — below any tolerance the model's own
+accuracy justifies. Killing them without pinning the function's own output
+therefore required a testability seam, so a minimal **behavior-preserving
+refactor** (its own commit, no runtime-result change) extracted
+`earth_orbit_elements(t) -> (e, pi_deg)`; the polynomials are now asserted
+directly against Meeus 25.4 coefficients evaluated outside the code at
+`t = 0, +1, -1` (the `±1` pair is what separates the linear term, which flips
+sign, from the quadratic, which does not). `julian_centuries` needed no refactor
+— it was already a seam with no test, and every prior test passed the J2000
+epoch, the one input where `t = 0` is indistinguishable from the `-> 0.0`
+whole-function mutant; a single half-century epoch (`2469807.5` → `t = 0.5`)
+kills all five. The remaining 12 formula-line survivors were genuine coverage
+holes — notably every prior Δβ assertion used `.abs()` against a bound, leaving
+the sign free — and fall to one **crafted discriminating geometry**
+(`λ = 30°, β = 60°, ⊙ = 120°`, `t = 0`) which makes `cos β = 0.5` (so
+`/cos_beta` and `*cos_beta` differ 4×) while avoiding two degeneracies that a
+more obvious choice would hit: `λ = ϖ` zeroes `sin(ϖ - λ)` and lets the
+bracket-minus mutant survive bit-identically, and `λ = 0` makes `ϖ + λ ≡ ϖ - λ`.
+Both rejected geometries are recorded in the design so they are not
+re-proposed. **No documented residual this slice** — like `apparent.rs`, and
+unlike `nutation.rs` (1) and `refraction.rs` (3), `aberration.rs` reached a
+genuine `0`, so nothing was suppressed or excused. No parity gate was touched;
+the tier stays report-only; `mise run ci` is green. **Remaining slices**
+(priority order): `topocentric.rs` (27), `sidereal.rs` (17), `precession.rs`
+(17), `lighttime.rs` (5), then the `pleiades-time` and `pleiades-types`
+survivors.
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
