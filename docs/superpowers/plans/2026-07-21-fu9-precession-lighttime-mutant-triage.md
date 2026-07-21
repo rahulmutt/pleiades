@@ -358,11 +358,17 @@ fn converged_position_is_queried_at_retarded_epoch() {
     // retarded-epoch mutants survived the baseline. Here the query's
     // longitude depends on the instant (1000 °/day, constant 5 AU), so the
     // retarded epoch is observable: expected longitude = 100 − 1000τ
-    // ≈ 71.1224085°. Mutant margins at this geometry (design doc §4.2):
-    // `-` -> `+` queries base + τ → 128.878° (57.8° off); `-` -> `/`
-    // queries jd = base/τ ≈ 8.49e7 → 183.967° (112.8° off); convergence
-    // `<` -> `>` converges on iteration 1 with the UNRETARDED position
-    // → 100.0° (28.9° off) and iterations == 1.
+    // ≈ 71.1224083°. The expected value is recomputed below from the same
+    // crafted constants via the REPRESENTABLE retarded epoch fl(BASE − τ):
+    // one ulp at this JD magnitude is 2^-31 ≈ 4.66e-10 days, and the
+    // 1000 °/day rate amplifies the JD grid, so the naive hand value
+    // 100 − 1000·τ lands up to 2.33e-7° away from the longitude at any
+    // representable epoch (measured: 2.14e-7°) — it cannot carry a 1e-9°
+    // tolerance. Mutant margins at this geometry (design doc §4.2) dwarf
+    // both figures: `-` -> `+` queries base + τ → 128.878° (57.8° off);
+    // `-` -> `/` queries jd = base/τ ≈ 8.49e7 → 183.967° (112.8° off);
+    // convergence `<` -> `>` converges on iteration 1 with the UNRETARDED
+    // position → 100.0° (28.9° off) and iterations == 1.
     const BASE: f64 = 2_451_545.0;
     let tau = 5.0 * LIGHT_TIME_DAYS_PER_AU;
     let instant = Instant::new(JulianDay::from_days(BASE), TimeScale::Tt);
@@ -371,7 +377,10 @@ fn converged_position_is_queried_at_retarded_epoch() {
         Ok(at(i.julian_day.days(), lon, 5.0))
     })
     .unwrap();
-    let expected_lon = 100.0 - 1000.0 * tau;
+    // The same f64 ops the closure performs at the retarded epoch
+    // fl(BASE − τ); production subtracts the identical τ product, so the
+    // difference is exactly 0.0 and the 1e-9 tolerance is pure headroom.
+    let expected_lon = 100.0 + 1000.0 * ((BASE - tau) - BASE);
     assert!(
         (out.ecliptic.longitude.degrees() - expected_lon).abs() < 1e-9,
         "longitude {} should be {expected_lon} (queried at the retarded epoch)",
@@ -391,13 +400,15 @@ fn light_time_exactly_at_cap_is_accepted() {
     // (design-stage representability check; asserted below as a
     // precondition so a future constant change cannot silently degrade
     // this test into the non-boundary case).
-    const D_CAP: f64 = 1731.446_336_166_920_2;
-    assert_eq!(D_CAP * LIGHT_TIME_DAYS_PER_AU, MAX_PLAUSIBLE_LIGHT_TIME_DAYS);
+    const D_CAP: f64 = 1_731.446_336_166_920_2;
+    assert_eq!(
+        D_CAP * LIGHT_TIME_DAYS_PER_AU,
+        MAX_PLAUSIBLE_LIGHT_TIME_DAYS
+    );
     let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
-    let out = apparent_via_light_time::<_, ApparentPlaceError>(instant, 8, |_| {
-        Ok(at(0.0, 90.0, D_CAP))
-    })
-    .unwrap();
+    let out =
+        apparent_via_light_time::<_, ApparentPlaceError>(instant, 8, |_| Ok(at(0.0, 90.0, D_CAP)))
+            .unwrap();
     assert_eq!(out.light_time_days, MAX_PLAUSIBLE_LIGHT_TIME_DAYS);
     assert_eq!(out.iterations, 2);
 }
@@ -413,14 +424,19 @@ fn convergence_requires_strict_retardation_decrease() {
     const D_CONV: f64 = 8.657_231_680_834_6e-5;
     assert_eq!(D_CONV * LIGHT_TIME_DAYS_PER_AU, CONVERGENCE_DAYS);
     let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
-    let out = apparent_via_light_time::<_, ApparentPlaceError>(instant, 8, |_| {
-        Ok(at(0.0, 90.0, D_CONV))
-    })
-    .unwrap();
+    let out =
+        apparent_via_light_time::<_, ApparentPlaceError>(instant, 8, |_| Ok(at(0.0, 90.0, D_CONV)))
+            .unwrap();
     assert_eq!(out.iterations, 2);
     assert_eq!(out.light_time_days, CONVERGENCE_DAYS);
 }
 ```
+
+*(As-built correction: the retarded-epoch test's expected value uses the
+representable retarded epoch `fl(BASE − τ)` — the originally planned naive
+`100 − 1000τ ≈ 71.1224085°` with a 1e-9° tolerance was unachievable, sitting
+~2.14e-7° (half-ulp(2451545) × 1000 °/day) from the longitude at any
+representable epoch. Mutant kills and margins unaffected; see design §4.2.)*
 
 - [ ] **Step 4: Run the new tests**
 

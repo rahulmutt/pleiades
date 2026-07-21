@@ -139,16 +139,21 @@ needed.
    (jd − base), constant distance 5 AU, at base JD 2451545.0. Converges on
    iteration 2 with τ = 5 × `LIGHT_TIME_DAYS_PER_AU` ≈ 0.0288776 days and
    ecliptic longitude 100 − 1000τ ≈ 71.122°. Asserts the longitude within
-   1e-9° of `100.0 − 1000.0 * (5.0 * LIGHT_TIME_DAYS_PER_AU)` (recomputed
-   in-test from the same crafted constants), `iterations == 2`, and
+   1e-9° of `100.0 + 1000.0 * ((BASE - tau) - BASE)` — the longitude at the
+   representable retarded epoch `fl(BASE − τ)`, recomputed in-test from the
+   same crafted constants — `iterations == 2`, and
    `light_time_days == 5.0 * LIGHT_TIME_DAYS_PER_AU` exactly (identical
-   f64 product). Kills: `-`→`+` (queries
+   f64 product). (As-built correction: the original naive form
+   `100.0 − 1000.0·τ` was unachievable at a 1e-9° tolerance — JD-grid
+   quantization at this magnitude puts it ~2.14e-7° off the longitude at
+   any representable epoch, against a 2.33e-7° bound, so the test instead
+   pins the representable epoch directly.) Kills: `-`→`+` (queries
    at base + τ → ≈ 128.88°, off 57.8°); `<`→`>` (declares convergence on
    iteration 1, returning the *unretarded* position, off 28.9°); `-`→`/`
    (queries at jd = base/τ ≈ 8.5e7 → an unrelated longitude; the actual
    mutated value and its margin are computed and recorded during
    implementation — pseudo-random mod 360, but verified, not assumed).
-2. **`cap_boundary_light_time_is_accepted`** (kills `>`→`>=`) — distance
+2. **`light_time_exactly_at_cap_is_accepted`** (kills `>`→`>=`) — distance
    **1731.4463361669202 AU** (0x1.b0dc90c591fc7p+10), for which
    `distance × LIGHT_TIME_DAYS_PER_AU == 10.0` **exactly** (design-stage f64
    check; the next-ulp neighbour also lands exactly). The cap's documented
@@ -156,7 +161,7 @@ needed.
    light-time exactly *at* the cap converges normally: original returns `Ok`
    with `light_time_days == 10.0`, `iterations == 2`; the `>=` mutant
    returns `NonConvergentLightTime` at step 1.
-3. **`convergence_requires_strict_decrease_at_boundary`** (kills `<`→`<=`) —
+3. **`convergence_requires_strict_retardation_decrease`** (kills `<`→`<=`) —
    distance **8.6572316808346e-05 AU**, for which the first-iteration
    `|new_tau − tau| == 5e-7` (`CONVERGENCE_DAYS`) **exactly**. The strict
    `<` does not converge on iteration 1; convergence lands on iteration 2
@@ -242,8 +247,8 @@ integration tests.
 | `date_to_j2000_matches_independent_literals_at_pm4_centuries` | precession | all 15 group-A kills: ±4-century pinned literals at 1e-9° |
 | `date_to_j2000_identity_at_j2000` | precession | redundant group-A kill via the t = 0 NaN route; closes the inverse-identity intent gap |
 | `converged_position_is_queried_at_retarded_epoch` | lighttime | group C (3 kills): instant-dependent query pins the retarded epoch, iteration count, and τ |
-| `cap_boundary_light_time_is_accepted` | lighttime | `>`→`>=` kill at the exactly-representable cap boundary |
-| `convergence_requires_strict_decrease_at_boundary` | lighttime | `<`→`<=` kill at the exactly-representable convergence boundary; redundant `<`→`>` re-kill |
+| `light_time_exactly_at_cap_is_accepted` | lighttime | `>`→`>=` kill at the exactly-representable cap boundary |
+| `convergence_requires_strict_retardation_decrease` | lighttime | `<`→`<=` kill at the exactly-representable convergence boundary; redundant `<`→`>` re-kill |
 
 ## 8. Verification & acceptance criteria
 
