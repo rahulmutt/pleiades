@@ -88,3 +88,33 @@ fn time_range_validation_rejects_non_finite_bounds_and_invalid_order() {
     );
     assert_eq!(error.to_string(), error.summary_line());
 }
+
+#[test]
+fn time_range_contains_and_validate_respect_boundaries() {
+    let start = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let end = Instant::new(JulianDay::from_days(2_451_546.0), TimeScale::Tt);
+    let range = TimeRange::new(Some(start), Some(end));
+
+    // Same scale, but outside each bound: the && form excludes these; the ||
+    // mutant would wrongly include a value that fails exactly one clause.
+    let before = Instant::new(JulianDay::from_days(2_451_544.5), TimeScale::Tt);
+    let after = Instant::new(JulianDay::from_days(2_451_546.5), TimeScale::Tt);
+    assert!(
+        !range.contains(before),
+        "instant before start must not be contained"
+    );
+    assert!(
+        !range.contains(after),
+        "instant after end must not be contained"
+    );
+    // A same-scale in-range instant IS contained (guards the 37 && overall).
+    assert!(range.contains(Instant::new(
+        JulianDay::from_days(2_451_545.5),
+        TimeScale::Tt
+    )));
+
+    // Degenerate range start == end must validate Ok; the >= mutant flags it
+    // as out-of-order.
+    let point = TimeRange::new(Some(start), Some(start));
+    assert_eq!(point.validate(), Ok(()));
+}

@@ -84,3 +84,41 @@ fn custom_ayanamsa_validate_against_reserved_labels_rejects_builtin_collisions()
         "custom ayanamsa name must not match a built-in label: Lahiri"
     );
 }
+
+#[test]
+fn custom_ayanamsa_accepts_finite_offset_pair_and_rejects_non_finite() {
+    // Both epoch and a FINITE offset present -> Ok. The deleted `!` in
+    // `if !offset.is_finite()` would reject this finite pair.
+    let finite = CustomAyanamsa {
+        name: "Local Calibration".to_string(),
+        description: None,
+        epoch: Some(JulianDay::from_days(2_451_545.0)),
+        offset_degrees: Some(Angle::from_degrees(24.0)),
+    };
+    assert_eq!(finite.validate(), Ok(()));
+
+    // Both present but offset non-finite -> Err. The deleted `!` would accept it.
+    let non_finite = CustomAyanamsa {
+        name: "Local Calibration".to_string(),
+        description: None,
+        epoch: Some(JulianDay::from_days(2_451_545.0)),
+        offset_degrees: Some(Angle::from_degrees(f64::INFINITY)),
+    };
+    assert!(non_finite.validate().is_err());
+}
+
+#[test]
+fn ayanamsa_enum_validate_against_reserved_labels_checks_wrapped_custom() {
+    // The enum method (and its Self::Custom arm) must forward to the wrapped
+    // custom's reserved-label check. Existing tests call the struct method
+    // directly and never traverse this arm.
+    let wrapped = Ayanamsa::Custom(CustomAyanamsa::new("Lahiri"));
+    assert!(wrapped
+        .validate_against_reserved_labels(|label| label.eq_ignore_ascii_case("Lahiri"))
+        .is_err());
+    // Built-in variants are always Ok (documents the `_ => Ok(())` arm).
+    assert_eq!(
+        Ayanamsa::Lahiri.validate_against_reserved_labels(|_| true),
+        Ok(())
+    );
+}

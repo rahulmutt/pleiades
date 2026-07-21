@@ -33,6 +33,18 @@ fn longitude_is_always_normalized() {
     assert_eq!(Longitude::from(Angle::from_degrees(-30.0)).degrees(), 330.0);
 }
 
+#[test]
+fn angle_is_finite_and_latitude_from_angle_preserve_values() {
+    // is_finite must track the value, not a constant (kills -> true / -> false).
+    assert!(Angle::from_degrees(42.0).is_finite());
+    assert!(!Angle::from_degrees(f64::NAN).is_finite());
+    assert!(!Angle::from_degrees(f64::INFINITY).is_finite());
+
+    // From<Angle> for Latitude must carry the value, not Default (0.0).
+    let lat = Latitude::from(Angle::from_degrees(-33.5));
+    assert!((lat.degrees() - (-33.5)).abs() < 1e-12);
+}
+
 mod angle_properties {
     use super::*;
     use proptest::prelude::*;

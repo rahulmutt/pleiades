@@ -315,3 +315,46 @@ fn coordinate_validation_rejects_non_finite_and_out_of_range_values() {
         "ecliptic coordinate field `distance_au` must be non-negative, got -0.5"
     );
 }
+
+#[test]
+fn coordinate_validation_accepts_zero_distance_and_rejects_non_finite_angle() {
+    // distance exactly 0.0 is valid; the `<` -> `<=` mutant would reject it.
+    let zero_distance = EclipticCoordinates::new(
+        Longitude::from_degrees(12.0),
+        Latitude::from_degrees(12.0),
+        Some(0.0),
+    );
+    assert_eq!(zero_distance.validate(), Ok(()));
+
+    // A non-finite longitude survives Longitude normalization (NaN.rem_euclid
+    // = NaN) and must be rejected by validate_finite_coordinate_value; the
+    // `-> Ok(())` mutant would skip that check.
+    let nan_longitude = EclipticCoordinates::new(
+        Longitude::from_degrees(f64::NAN),
+        Latitude::from_degrees(12.0),
+        None,
+    );
+    assert!(matches!(
+        nan_longitude.validate(),
+        Err(CoordinateValidationError::NonFiniteValue {
+            coordinate: "ecliptic",
+            field: "longitude",
+            value,
+        }) if value.is_nan()
+    ));
+}
+
+#[test]
+fn coordinate_validation_error_display_matches_summary_line() {
+    let err = CoordinateValidationError::LatitudeOutOfRange {
+        coordinate: "ecliptic",
+        field: "latitude",
+        value: 91.0,
+    };
+    // Ties the Display wrapper (205) to the already-pinned summary_line.
+    assert_eq!(err.to_string(), err.summary_line());
+    assert_eq!(
+        err.to_string(),
+        "ecliptic coordinate field `latitude` must stay within [-90, 90], got 91"
+    );
+}

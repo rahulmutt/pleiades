@@ -123,3 +123,15 @@ fn house_system_validate_reuses_the_structured_validator() {
         "custom house system aliases must be unique: duplicate mch"
     );
 }
+
+#[test]
+fn house_system_enum_validate_against_reserved_labels_checks_wrapped_custom() {
+    let wrapped = HouseSystem::Custom(CustomHouseSystem::new("Equal"));
+    assert!(wrapped
+        .validate_against_reserved_labels(|label| label.eq_ignore_ascii_case("Equal"))
+        .is_err());
+    assert_eq!(
+        HouseSystem::Placidus.validate_against_reserved_labels(|_| true),
+        Ok(())
+    );
+}
