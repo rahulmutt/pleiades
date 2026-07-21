@@ -534,6 +534,48 @@ tier stays report-only; `mise run ci` is green. **Remaining slices**
 (priority order): `precession.rs` (17), `lighttime.rs` (5), then the
 remaining `pleiades-time` (non-sidereal) and `pleiades-types` survivors.
 
+**Progress (2026-07-21) — precession + lighttime
+(`pleiades-apparent/src/precession.rs` + `lighttime.rs`):** triaged from
+`17` → `2` documented equivalent mutants and `5` → `0` (spec/plan:
+`docs/superpowers/specs/2026-07-21-fu9-precession-lighttime-mutant-triage-design.md`).
+The second two-file slice, closing out `pleiades-apparent` entirely. Both
+baselines confirmed by the authoritative per-file commands (precession:
+`238 tested, 17 missed, 219 caught, 2 unviable`; lighttime: `14 tested,
+5 missed, 8 caught, 1 unviable`), both matching the whole-workspace figures
+exactly. **Tests-only** like refraction/topocentric/sidereal: the only
+source edits were relocating both inline test modules to
+`src/precession/tests.rs` and `src/lighttime/tests.rs`. Root causes: all 15
+precession polynomial survivors (`*`→`/` on the quadratic/cubic ζ/z/θ
+terms) sit in the **inverse** function, whose only test was the 1900
+round-trip at t ≈ −1 — where `t*t ≈ t/t` displaces the output by ~1e-8°,
+under the 1e-6° tolerance — while the forward twin's identical mutants die
+at t = 0 (`/t` → NaN) in the forward-only identity test; lighttime's 5
+survived because every query closure ignored the instant it was given, so
+no test could observe the retarded epoch, plus two never-hit exact
+comparison boundaries. Kills: pinned literals for the inverse at t = ±4
+(independent Python implementation of the published Meeus 20.3/21.4/13.x
+pipeline, cross-validated against the genuinely different Meeus 21.5/21.7
+direct-ecliptic formulation to ~3e-3″; smallest mutant displacement 0.961″
+vs a 1e-9° tolerance, ~2.7e5× margin), an inverse identity test (closing a
+real intent gap), an instant-dependent 1000 °/day query pinning the
+retarded epoch (mutant margins 28.9°/57.8°/112.8°), and crafted-exact f64
+boundary distances landing the light-time exactly on the 10-day cap and
+the 5e-7-day convergence threshold (both representability-checked, with
+in-test precondition asserts). A fail-closed overflow test at
+jd_tt = 7.0e107 (the window where θ's cubic term alone overflows) records
+why the residual exists. **Documented residual — 2 equivalent mutants**,
+left visible rather than `#[mutants::skip]`-suppressed: `||`→`&&` in both
+output non-finite guards — the `nutation.rs`/`topocentric.rs` shape,
+checked against the overflow lens rather than by analogy: every non-finite
+route (NaN inputs, or finite-huge `jd_tt` overflowing θ first) flows
+through shared variables (t, ζ/z/θ, α/δ, ε) that poison both outputs
+together, the outputs themselves cannot overflow (bounded `atan2`, clamped
+`asin`), so no reachable input makes exactly one output non-finite. No
+parity gate was touched; the tier stays report-only; `mise run ci` is
+green. **Remaining slices** (priority order): `pleiades-time` non-sidereal
+(`convert.rs` 16, `deltat.rs` 10, `tdb.rs` 9), then `pleiades-types`
+(`zodiac.rs` 12, `time.rs` 10, and the small tail).
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
