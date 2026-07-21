@@ -476,3 +476,25 @@ fn instant_with_time_scale_offset_checked_rejects_non_finite_offsets() {
     assert_eq!(converted.scale, TimeScale::Tdb);
     assert!((converted.julian_day.days() - 2_451_545.000_000_019).abs() < 1e-12);
 }
+
+#[test]
+fn mean_obliquity_matches_published_cubic_off_epoch() {
+    // t = (jd - 2451545.0) / 36525.0. These two epochs make jd - 2451545
+    // exactly +/-36525.0, so t is exactly +/-1.0 (JD-grid representable).
+    // Expected values come from the published IAU-1976 mean-obliquity cubic
+    // evaluated outside the code (23d26m21.448s - 46.8150"t - 0.00059"t^2
+    // + 0.001813"t^3), not from mean_obliquity itself.
+    let plus_one = Instant::new(JulianDay::from_days(2_488_070.0), TimeScale::Tt);
+    assert!(
+        (plus_one.mean_obliquity().degrees() - 23.426_287_284_166_67).abs() < 1e-12,
+        "t=+1 obliquity was {}",
+        plus_one.mean_obliquity().degrees()
+    );
+
+    let minus_one = Instant::new(JulianDay::from_days(2_415_020.0), TimeScale::Tt);
+    assert!(
+        (minus_one.mean_obliquity().degrees() - 23.452_294_610_277_775).abs() < 1e-12,
+        "t=-1 obliquity was {}",
+        minus_one.mean_obliquity().degrees()
+    );
+}
