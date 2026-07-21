@@ -73,3 +73,20 @@ fn observer_location_validation_rejects_invalid_values() {
     );
     assert!(bad_elevation.validated_summary_line().is_err());
 }
+
+#[test]
+fn observer_location_validation_errors_render_stable_strings() {
+    // The existing test asserts summary_line; this asserts the Display wrapper
+    // (observer.rs:130), which the -> Ok(default) mutant empties.
+    assert_eq!(
+        ObserverLocationValidationError::LatitudeOutOfRange { value: 91.0 }.to_string(),
+        "observer latitude must stay within [-90, 90], got 91"
+    );
+    assert_eq!(
+        ObserverLocationValidationError::NonFiniteElevation {
+            value: f64::INFINITY
+        }
+        .to_string(),
+        "observer elevation must be finite, got inf"
+    );
+}

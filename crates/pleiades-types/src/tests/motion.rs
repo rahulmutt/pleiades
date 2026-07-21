@@ -70,3 +70,19 @@ fn motion_validation_rejects_non_finite_components() {
         })
     );
 }
+
+#[test]
+fn motion_direction_and_error_render_stable_strings() {
+    assert_eq!(MotionDirection::Direct.to_string(), "Direct");
+    assert_eq!(MotionDirection::Stationary.to_string(), "Stationary");
+    assert_eq!(MotionDirection::Retrograde.to_string(), "Retrograde");
+
+    let err = MotionValidationError::NonFiniteSpeed {
+        field: "longitude_deg_per_day",
+        value: f64::NAN,
+    };
+    assert_eq!(
+        err.to_string(),
+        "motion field `longitude_deg_per_day` must be finite, got NaN"
+    );
+}
