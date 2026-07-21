@@ -576,6 +576,49 @@ green. **Remaining slices** (priority order): `pleiades-time` non-sidereal
 (`convert.rs` 16, `deltat.rs` 10, `tdb.rs` 9), then `pleiades-types`
 (`zodiac.rs` 12, `time.rs` 10, and the small tail).
 
+**Progress (2026-07-21) — `pleiades-time` non-sidereal (`calendar.rs` +
+`deltat.rs` + `tdb.rs` + `convert.rs`):** triaged from `9 + 10 + 9 + 16`
+→ `0` surviving mutants (spec/plan:
+`docs/superpowers/specs/2026-07-21-fu9-time-mutant-triage-design.md`),
+closing out `pleiades-time` entirely. Scope note: the previous entries'
+remaining-slices line listed only `convert.rs`/`deltat.rs`/`tdb.rs` —
+`calendar.rs` (9 survivors in the baseline notes) was omitted by
+transcription oversight; this slice covers it. The first four-file
+slice, and **tests-only** like refraction/topocentric/sidereal/
+precession: the only source edits were relocating the four inline test
+modules to `src/<module>/tests.rs`. All four baselines confirmed by the
+authoritative per-file commands (calendar: `130 tested, 9 missed, 120
+caught, 1 unviable`; deltat: `65 tested, 10 missed, 52 caught, 3
+unviable`; tdb: `17 tested, 9 missed, 8 caught`; convert: `47 tested,
+16 missed, 23 caught, 8 unviable`), all matching the whole-workspace
+figures exactly. Root causes: diagnostics never string-asserted and JD
+values never pinned on either ΔT path (`convert.rs`); a `dt > 69.0`
+bound as the only extrapolation test (`deltat.rs`); a magnitude-bound
+test that can never kill a phase mutant because the USNO term is <2 ms
+by construction for any g (`tdb.rs`); and coincidence-degenerate test
+dates — at 1987, `floor(alpha/4) == alpha % 4` — plus no January
+(e=14), February (e=15), or negative/≥61-second coverage
+(`calendar.rs`, where the surviving `||`→`&&` re-associates by
+precedence to `A || (B && C)`, verified by hand-applying the mutant:
+it silently accepts `second = -1.0` and `61.5`). Kills: pinned literals
+from a Python mirror of the published formulas (Espenak–Meeus at
+exactly t = 80 via representable JD 2480765.0, margin ~2.6e10×; USNO
+two-term at two epochs, min displacement 2.04e-6 s vs 1e-9 s
+tolerance), hand-interpolated ΔT table references, a signed TDB−TT
+assertion near the annual peak (the topocentric slice's sign-free
+`.abs()` lesson), exact leap-epoch boundary acceptance, full six-field
+`from_julian_day` literals at 2100-01-01 (alpha=16, e=14) and
+2000-02-29 12:00 (e=15, month==2), and direct white-box fail-closed
+tests of the `finite` guard (unreachable via the bounded public API —
+overflow lens checked — so tested at the seam, per the `apparent.rs`
+private-primitive precedent). **No documented residual this slice** —
+a genuine `0` across all four files; no equivalent-mutant candidates
+surfaced at design time (like sidereal). No parity gate was touched;
+the tier stays report-only; `mise run ci` is green. **Remaining
+slices:** `pleiades-types` only (`zodiac.rs` 12, `time.rs` 10,
+`time_range.rs` 4, and the small tail) — the final slice of the FU-9
+baseline.
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide

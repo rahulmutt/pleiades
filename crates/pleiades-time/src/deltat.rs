@@ -105,47 +105,4 @@ pub fn delta_t(jd: f64) -> Result<(f64, DeltaTQuality), CivilTimeError> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn pinned_checksum() {
-        assert_eq!(
-            fnv1a64(DELTA_T_CSV),
-            DELTA_T_CSV_CHECKSUM,
-            "checksum = {}",
-            fnv1a64(DELTA_T_CSV)
-        );
-    }
-
-    #[test]
-    fn observed_spot_values() {
-        // 2000-01-01 12:00 -> node 2000 -> 63.8, Observed
-        let (dt, q) = delta_t(2451545.0).unwrap();
-        assert!((dt - 63.8).abs() < 0.5, "got {dt}");
-        assert_eq!(q, DeltaTQuality::Observed);
-        // 1900 node -> -2.8
-        let (dt, _) = delta_t(2415020.5).unwrap();
-        assert!((dt - (-2.8)).abs() < 0.5, "got {dt}");
-    }
-
-    #[test]
-    fn boundary_at_observed_through_jd() {
-        assert_eq!(
-            delta_t(OBSERVED_THROUGH_JD).unwrap().1,
-            DeltaTQuality::Predicted
-        );
-        assert_eq!(
-            delta_t(OBSERVED_THROUGH_JD - 1.0).unwrap().1,
-            DeltaTQuality::Observed
-        );
-    }
-
-    #[test]
-    fn future_is_predicted() {
-        // 2080-ish: past the 2020 observed node -> Predicted
-        let (dt, q) = delta_t(2480000.0).unwrap();
-        assert_eq!(q, DeltaTQuality::Predicted);
-        assert!(dt > 69.0, "got {dt}");
-    }
-}
+mod tests;
