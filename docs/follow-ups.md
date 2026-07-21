@@ -619,6 +619,71 @@ slices:** `pleiades-types` only (`zodiac.rs` 12, `time.rs` 10,
 `time_range.rs` 4, and the small tail) — the final slice of the FU-9
 baseline.
 
+**Progress (2026-07-21) — `pleiades-types` (10 files) + `pleiades-apparent/src/provenance.rs`
+— FU-9 measured baseline COMPLETE:** triaged from `41` → `0`
+(`pleiades-types`) and `3` → `0` (`provenance.rs`) surviving mutants
+(spec/plan:
+`docs/superpowers/specs/2026-07-21-fu9-types-mutant-triage-design.md`), the
+ninth and **final** slice. Scope note: `provenance.rs` (3 survivors) was
+recorded in the 2026-07-18 baseline notes but omitted from every prior
+remaining-slices line — the prior `pleiades-apparent` slices (through
+precession+lighttime, whose entry above calls the crate "closed out entirely")
+closed every *numeric* survivor file but not this non-numeric diagnostic tail;
+that "entirely" referred to the crate's numeric survivor count, and
+`provenance.rs` is its last piece, folded in here the way the sidereal slice
+folded in `pleiades-time/src/sidereal.rs`, so the crate's "entirely" is now
+literally true and the entire measured baseline reaches a terminal state in one
+pass. The first slice
+dominated by **enum plumbing** rather than numeric logic (`Display` impls,
+match-arm dispatch, validation guards, one conversion) plus a single polynomial
+(`Instant::mean_obliquity`). **Tests-only** like refraction/topocentric/
+sidereal/precession/time: the only source edits were relocating the monolithic
+`pleiades-types/src/tests.rs` (1,464 lines, 69 tests) into a per-source-module
+`src/tests/` directory per AGENTS.md, and relocating `provenance.rs`'s inline
+test module to `src/provenance/tests.rs`. All eleven baselines confirmed by the
+authoritative per-file commands, all matching the whole-workspace figures;
+whole-crate re-check `cargo mutants -p pleiades-types --test-tool nextest
+--test-workspace=false` reports `0 missed` (was `311 tested, 41 missed`), and
+`provenance.rs` `0 missed` (was `6 tested, 3 missed`). Per-file: `zodiac.rs`
+12→0, `time.rs` 10→0, `time_range.rs` 4→0, `coordinates.rs` 3→0, `ayanamsa.rs`
+3→0, `angles.rs` 3→0, `house_systems.rs` 2→0, `motion.rs` 2→0, `observer.rs`
+1→0, `frames.rs` 1→0, `provenance.rs` 3→0. Root causes: `Display`/`name`/
+`summary_line` renderings never string-asserted (11 mutants — release-facing
+diagnostics that could silently empty or drift); nine `from_longitude` match
+arms unreached because the only test checked the 0°/30° boundary, killed by a
+mid-band longitude per sign plus a wraparound case (`780°`→Gemini pins the
+`floor(deg/30) % 12` reduction); the ten `mean_obliquity` cubic
+operator-swaps invisible at the sole J2000 (t = 0) test where every t/t²/t³
+term vanishes, killed by two off-epochs at t = ±1 (JD 2488070.0 / 2415020.0,
+`jd − 2451545` exactly ±36525.0 so t is exactly ±1.0) pinned to the published
+IAU-1976 cubic evaluated outside the code at 1e-12° (true-minimum mutant
+displacement ~1.64e-7°, a ~1.6e5× margin); and reachable-boundary/inverted
+validation guards plus enum-vs-struct dispatch gaps (the existing
+`validate_against_reserved_labels` tests called the *struct* method, never the
+`Ayanamsa`/`HouseSystem` enum's `Self::Custom` arm). The `coordinates.rs:216`
+`validate_finite_coordinate_value → Ok(())` mutant is reachable through the
+public constructor (a NaN longitude survives `rem_euclid` normalization), so it
+is **killed, not documented** — the overflow-lens exception of prior slices
+does not apply (the input itself is non-finite). **No documented residual this
+slice** — a genuine `0` across all eleven files; no equivalent-mutant candidate
+surfaced (like `apparent.rs`/`aberration.rs`/sidereal/time). No parity gate was
+touched; the tier stays report-only; `mise run ci` is green.
+
+**FU-9 measured baseline CLOSED.** Every file in the 2026-07-18 three-crate
+measurement (`pleiades-types`, `pleiades-time`, `pleiades-apparent`) now reaches
+`0` surviving mutants or a documented equivalent. Nine slices; **total
+documented-equivalent tally = 9**: `nutation.rs` 1, `refraction.rs` 3,
+`topocentric.rs` 3, `precession.rs` 2 — every one a guard `||`↔`&&` on a shared
+poisoned variable or an unreachable exact comparison boundary, each left visible
+with a reachability argument rather than `#[mutants::skip]`-suppressed;
+`apparent.rs`, `aberration.rs`, sidereal (both files), `lighttime.rs`,
+`pleiades-time` (all files), `pleiades-types` (all files), and `provenance.rs`
+all reached a genuine `0`. FU-9 stays **open only as a standing posture entry**: there are no
+remaining slices for the original three-crate baseline, but the report-only
+mutants tier remains, so any future `mise run mutants` expansion to `pleiades-*`
+domain/backend crates outside the original three would open new slices under
+this follow-up (new work, not part of the closed baseline).
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
