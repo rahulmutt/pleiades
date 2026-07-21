@@ -205,7 +205,7 @@ fn zodiac_signs_cover_every_thirty_degree_band() {
         ZodiacSign::Aries
     );
     assert_eq!(
-        ZodiacSign::from_longitude(Longitude::from_degrees(750.0)),
+        ZodiacSign::from_longitude(Longitude::from_degrees(780.0)),
         ZodiacSign::Gemini
     );
 }

@@ -178,9 +178,11 @@ representative longitude inside each of the 12 sign bands (e.g. band mid-point
 `15 + 30·k`) maps to the correct sign, plus the two existing boundary
 assertions (0°→Aries, 30.0°→Taurus) are retained. Every deleted arm now
 returns Pisces where the correct sign is expected → categorical mismatch, no
-tolerance. Also add a `≥360°`/wraparound case (e.g. 360.0°→Aries, 750.0°→
-Aries via the `% 12`) to pin the `floor … % 12` reduction that the arm
-dispatch depends on.
+tolerance. Also add a `≥360°`/wraparound case (e.g. 360.0°→Aries, 780.0°→
+Gemini via the `% 12`) to pin the `floor … % 12` reduction that the arm
+dispatch depends on. (Implementation note: an earlier draft used `750.0°`,
+which normalizes to `30.0°`→Taurus, not the intended distinct third band;
+`780.0°`→`60.0°`→Gemini is the corrected value that landed in the test.)
 
 ### Shape 3 — `mean_obliquity` polynomial (10 mutants, `time.rs`)
 
