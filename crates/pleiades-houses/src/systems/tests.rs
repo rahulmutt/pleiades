@@ -1902,3 +1902,15 @@ fn longitude_in_arc_handles_wraparound() {
     assert!(longitude_in_arc(15.0, 10.0, 20.0));
     assert!(!longitude_in_arc(25.0, 10.0, 20.0));
 }
+
+#[test]
+fn longitude_opposite_is_the_antipode() {
+    // `longitude_opposite(x) = from_degrees(x + 180)`. NOTE: the cargo-mutants
+    // survivor `+ -> -` here is a DOCUMENTED EQUIVALENT MUTANT, not a coverage
+    // hole: from_degrees normalizes mod 360 and x+180 ≡ x-180 (mod 360) for all
+    // x, so no reachable input distinguishes `+` from `-`. It is left visible
+    // (no #[mutants::skip]) per FU-9 posture. This test pins the antipode
+    // intent; it cannot and does not claim to kill the equivalent mutant.
+    assert!((longitude_opposite(Longitude::from_degrees(50.0)).degrees() - 230.0).abs() < 1e-9);
+    assert!((longitude_opposite(Longitude::from_degrees(300.0)).degrees() - 120.0).abs() < 1e-9);
+}
