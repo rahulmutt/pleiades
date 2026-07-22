@@ -1827,3 +1827,78 @@ fn asc_mc_from_pins_all_points_across_pole_and_flip_branches() {
         8.500_387_274_068,
     ]);
 }
+
+#[test]
+fn interpolate_longitude_wraps_and_scales() {
+    // span = (end-start).rem_euclid(360) = 30; start + span*frac = 357.5.
+    // start=350,end=20,frac=0.25 keeps every mutant (- -> +//, + -> *//-,
+    // * -> +//) observably wrong. Hand-computed.
+    let got = interpolate_longitude(
+        Longitude::from_degrees(350.0),
+        Longitude::from_degrees(20.0),
+        0.25,
+    )
+    .degrees();
+    assert!((got - 357.5).abs() < 1e-9, "interp = {got}");
+}
+
+#[test]
+fn porphyry_houses_trisect_each_quadrant() {
+    // asc=100, mc=10 -> desc=280, ic=190. Each quadrant spans 90°, trisected
+    // at 30°/60°. Independent hand arithmetic (houses-reference.py `porphyry`)
+    // makes the 1/3 and 2/3 fractions observable (mutating / -> % or *).
+    let cusps = porphyry_houses(HouseAngles::new(
+        Longitude::from_degrees(100.0),
+        Longitude::from_degrees(10.0),
+    ));
+    let expected = [
+        100.0, 130.0, 160.0, 190.0, 220.0, 250.0, 280.0, 310.0, 340.0, 10.0,
+        40.0, 70.0,
+    ];
+    for (i, e) in expected.iter().enumerate() {
+        assert!(
+            (cusps[i].degrees() - e).abs() < 1e-9,
+            "cusp[{i}] = {}, want {e}",
+            cusps[i].degrees()
+        );
+    }
+}
+
+#[test]
+fn signed_longitude_difference_both_branches() {
+    // delta<180 branch: (10-350).rem_euclid(360)=20 -> 20.
+    assert!((signed_longitude_difference(10.0, 350.0) - 20.0).abs() < 1e-9);
+    // delta>=180 branch: (200-10).rem_euclid(360)=190 -> 190-360 = -170.
+    assert!((signed_longitude_difference(200.0, 10.0) + 170.0).abs() < 1e-9);
+}
+
+#[test]
+fn right_ascension_from_ecliptic_longitude_matches_reference() {
+    // atan2(sinλ·cosε, cosλ) at λ=60°, ε=23.4366°. Independent reference.
+    let eps = 23.4366_f64;
+    let got = right_ascension_from_ecliptic_longitude(
+        Longitude::from_degrees(60.0),
+        eps.to_radians(),
+    );
+    assert!((got - 57.819_266_732_173).abs() < 1e-9, "ra = {got}");
+}
+
+#[test]
+fn whole_sign_first_cusp_floors_to_sign_boundary() {
+    // asc=95° -> first cusp floor(95/30)*30 = 90°. The `* 30` mutant (-> /30)
+    // collapses the cusp to 0.1; pin the first two cusps.
+    let cusps = whole_sign_houses(Longitude::from_degrees(95.0));
+    assert!((cusps[0].degrees() - 90.0).abs() < 1e-9, "c0 = {}", cusps[0].degrees());
+    assert!((cusps[1].degrees() - 120.0).abs() < 1e-9, "c1 = {}", cusps[1].degrees());
+}
+
+#[test]
+fn longitude_in_arc_handles_wraparound() {
+    // Wraparound arc [350,10): membership is `lon>=350 || lon<10`. A point at
+    // 355 is in via the first disjunct only, so || -> && flips it to false.
+    assert!(longitude_in_arc(355.0, 350.0, 10.0), "355 in [350,10)");
+    assert!(longitude_in_arc(5.0, 350.0, 10.0), "5 in [350,10)");
+    // Non-wrap arc [10,20): 15 in, 25 out.
+    assert!(longitude_in_arc(15.0, 10.0, 20.0));
+    assert!(!longitude_in_arc(25.0, 10.0, 20.0));
+}
