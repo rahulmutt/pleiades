@@ -1742,3 +1742,44 @@ fn spherical_cotrans_matches_independent_x_axis_rotation() {
     assert!((coord[1] - 14.918_178_485_226).abs() < 1e-9, "lat' = {}", coord[1]);
     assert!((coord[2] - 2.000_000_000_000).abs() < 1e-9, "r' = {}", coord[2]);
 }
+
+#[test]
+fn asc2_matches_independent_swehouse_kernel() {
+    // Independent reference (houses-reference.py `asc2`, swehouse.c Asc2) at
+    // pole height 52°, obliquity sine/cosine. Four x values, one per asc1
+    // quadrant; each takes the normal atan branch. Cross-validated to 1e-12.
+    let eps = 23.4366_f64;
+    let (sine, cose) = (eps.to_radians().sin(), eps.to_radians().cos());
+    let cases = [
+        (30.0_f64, 60.273_411_210_075),
+        (120.0, 138.177_359_444_927),
+        (210.0, 20.983_664_735_370),
+        (300.0, 86.674_198_092_798),
+    ];
+    for (x, expected) in cases {
+        assert!(
+            (asc2(x, 52.0, sine, cose) - expected).abs() < 1e-9,
+            "asc2({x}) = {}",
+            asc2(x, 52.0, sine, cose)
+        );
+    }
+}
+
+#[test]
+fn asc1_dispatches_each_quadrant_to_independent_reference() {
+    // houses-reference.py `asc1` (swehouse.c Asc1): quadrant fold into Asc2.
+    // 30° -> Q1, 120° -> Q2, 210° -> Q3, 300° -> Q4 exercise all four match
+    // arms and the ±pole / (180-x)/(x-180)/(360-x) argument folding.
+    let eps = 23.4366_f64;
+    let (sine, cose) = (eps.to_radians().sin(), eps.to_radians().cos());
+    let cases = [
+        (30.0_f64, 60.273_411_210_075),
+        (120.0, 138.177_359_444_927),
+        (210.0, 200.983_664_735_370),
+        (300.0, 266.674_198_092_798),
+    ];
+    for (x, expected) in cases {
+        let got = asc1(x, 52.0, sine, cose).degrees();
+        assert!((got - expected).abs() < 1e-9, "asc1({x}) = {got}");
+    }
+}
