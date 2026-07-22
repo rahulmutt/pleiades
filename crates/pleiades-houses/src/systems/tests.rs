@@ -1738,9 +1738,21 @@ fn spherical_cotrans_matches_independent_x_axis_rotation() {
     // each `*`/`+` term is observable. Cross-validated to 1e-12 vs the crate.
     let mut coord = [40.0_f64, 25.0, 2.0];
     spherical_cotrans(&mut coord, 15.0);
-    assert!((coord[0] - 44.070_120_506_012).abs() < 1e-9, "lon' = {}", coord[0]);
-    assert!((coord[1] - 14.918_178_485_226).abs() < 1e-9, "lat' = {}", coord[1]);
-    assert!((coord[2] - 2.000_000_000_000).abs() < 1e-9, "r' = {}", coord[2]);
+    assert!(
+        (coord[0] - 44.070_120_506_012).abs() < 1e-9,
+        "lon' = {}",
+        coord[0]
+    );
+    assert!(
+        (coord[1] - 14.918_178_485_226).abs() < 1e-9,
+        "lat' = {}",
+        coord[1]
+    );
+    assert!(
+        (coord[2] - 2.000_000_000_000).abs() < 1e-9,
+        "r' = {}",
+        coord[2]
+    );
 }
 
 #[test]
@@ -1805,27 +1817,54 @@ fn asc_mc_from_pins_all_points_across_pole_and_flip_branches() {
             p.polar_ascendant.degrees(),
         ];
         for (i, (g, e)) in got.iter().zip(exp.iter()).enumerate() {
-            assert!((g - e).abs() < 1e-8, "armc={armc} lat={lat} point[{i}] = {g}, want {e}");
+            assert!(
+                (g - e).abs() < 1e-8,
+                "armc={armc} lat={lat} point[{i}] = {g}, want {e}"
+            );
         }
     };
     // G1: armc=45, lat=52 (> obl) — non-flip, f_pole = 38.
-    check(45.0, 52.0, [
-        148.587_249_395_771, 47.463_595_280_938, 295.549_781_631_009,
-        132.536_404_719_062, 101.175_335_496_703, 143.611_940_830_436,
-        281.175_335_496_703,
-    ]);
+    check(
+        45.0,
+        52.0,
+        [
+            148.587_249_395_771,
+            47.463_595_280_938,
+            295.549_781_631_009,
+            132.536_404_719_062,
+            101.175_335_496_703,
+            143.611_940_830_436,
+            281.175_335_496_703,
+        ],
+    );
     // G2: armc=200, lat=10 (0<lat<=obl) — vertex flip active.
-    check(200.0, 10.0, [
-        284.537_224_659_332, 201.638_102_932_963, 159.911_766_495_904,
-        288.466_379_243_755, 292.223_701_037_155, 205.822_995_524_640,
-        112.223_701_037_155,
-    ]);
+    check(
+        200.0,
+        10.0,
+        [
+            284.537_224_659_332,
+            201.638_102_932_963,
+            159.911_766_495_904,
+            288.466_379_243_755,
+            292.223_701_037_155,
+            205.822_995_524_640,
+            112.223_701_037_155,
+        ],
+    );
     // G3: armc=100, lat=-33 (< 0) — f_pole = -90-lat = -57.
-    check(100.0, -33.0, [
-        195.061_993_029_707, 99.189_697_612_154, 6.534_310_124_205,
-        190.878_573_217_375, 188.500_387_274_068, 210.816_655_151_624,
-        8.500_387_274_068,
-    ]);
+    check(
+        100.0,
+        -33.0,
+        [
+            195.061_993_029_707,
+            99.189_697_612_154,
+            6.534_310_124_205,
+            190.878_573_217_375,
+            188.500_387_274_068,
+            210.816_655_151_624,
+            8.500_387_274_068,
+        ],
+    );
 }
 
 #[test]
@@ -1852,8 +1891,7 @@ fn porphyry_houses_trisect_each_quadrant() {
         Longitude::from_degrees(10.0),
     ));
     let expected = [
-        100.0, 130.0, 160.0, 190.0, 220.0, 250.0, 280.0, 310.0, 340.0, 10.0,
-        40.0, 70.0,
+        100.0, 130.0, 160.0, 190.0, 220.0, 250.0, 280.0, 310.0, 340.0, 10.0, 40.0, 70.0,
     ];
     for (i, e) in expected.iter().enumerate() {
         assert!(
@@ -1876,10 +1914,8 @@ fn signed_longitude_difference_both_branches() {
 fn right_ascension_from_ecliptic_longitude_matches_reference() {
     // atan2(sinλ·cosε, cosλ) at λ=60°, ε=23.4366°. Independent reference.
     let eps = 23.4366_f64;
-    let got = right_ascension_from_ecliptic_longitude(
-        Longitude::from_degrees(60.0),
-        eps.to_radians(),
-    );
+    let got =
+        right_ascension_from_ecliptic_longitude(Longitude::from_degrees(60.0), eps.to_radians());
     assert!((got - 57.819_266_732_173).abs() < 1e-9, "ra = {got}");
 }
 
@@ -1888,8 +1924,16 @@ fn whole_sign_first_cusp_floors_to_sign_boundary() {
     // asc=95° -> first cusp floor(95/30)*30 = 90°. The `* 30` mutant (-> /30)
     // collapses the cusp to 0.1; pin the first two cusps.
     let cusps = whole_sign_houses(Longitude::from_degrees(95.0));
-    assert!((cusps[0].degrees() - 90.0).abs() < 1e-9, "c0 = {}", cusps[0].degrees());
-    assert!((cusps[1].degrees() - 120.0).abs() < 1e-9, "c1 = {}", cusps[1].degrees());
+    assert!(
+        (cusps[0].degrees() - 90.0).abs() < 1e-9,
+        "c0 = {}",
+        cusps[0].degrees()
+    );
+    assert!(
+        (cusps[1].degrees() - 120.0).abs() < 1e-9,
+        "c1 = {}",
+        cusps[1].degrees()
+    );
 }
 
 #[test]
