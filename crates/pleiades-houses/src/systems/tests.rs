@@ -1958,3 +1958,103 @@ fn longitude_opposite_is_the_antipode() {
     assert!((longitude_opposite(Longitude::from_degrees(50.0)).degrees() - 230.0).abs() < 1e-9);
     assert!((longitude_opposite(Longitude::from_degrees(300.0)).degrees() - 120.0).abs() < 1e-9);
 }
+
+#[test]
+fn asc2_degenerate_sinx_zero_branch_pins() {
+    // The four quadrant inputs in `asc2_matches_independent_swehouse_kernel`
+    // all take the normal `atan(sinx/value)` path, leaving asc2's degenerate
+    // guard branch (`sinx.abs() < 1e-12`) uncovered. x on the sinx~0 axis
+    // reaches it. Independent reference (houses-reference.py `asc2`):
+    //   asc2(0)   -> value>0, so the branch returns the +1e-12 sentinel exactly.
+    //   asc2(180) -> value<0, so it returns -1e-12, folded by `+180` to ~180.
+    // Kills the sinx~0 guard/sign mutants: 1811 `< -> ==`, 1812 `< -> ==`/`>`,
+    // and `delete -` on the -1e-12 sentinel (1813).
+    let eps = 23.4366_f64;
+    let (sine, cose) = (eps.to_radians().sin(), eps.to_radians().cos());
+    // asc2(0) is the +1e-12 sentinel exactly; tolerance below the sentinel so a
+    // mutant that skips the branch (returns 0.0) or flips the sign (returns
+    // ~180) fails.
+    let a0 = asc2(0.0, 52.0, sine, cose);
+    assert!((a0 - 1e-12).abs() < 1e-13, "asc2(0) = {a0}");
+    // asc2(180) folds -1e-12 to ~180; mutants that skip the branch return ~1e-12.
+    let a180 = asc2(180.0, 52.0, sine, cose);
+    assert!(
+        (a180 - 179.999_999_999_999).abs() < 1e-9,
+        "asc2(180) = {a180}"
+    );
+}
+
+#[test]
+fn asc_mc_from_vertex_flip_actually_fires() {
+    // G2 in `asc_mc_from_pins_all_points_across_pole_and_flip_branches` enters
+    // the `|lat| <= obl` flip block but vemc <= 0, so the vertex never rotates
+    // and the flip guards/arithmetic stay uncovered. This geometry
+    // (armc=15, lat=5) makes vemc > 0 so the flip FIRES, rotating the vertex by
+    // 180. Independent reference (houses-reference.py `asc_mc_from`, G4). Kills
+    // the flip-trigger mutants: 202 `<= -> >`, 207 `> -> ==`, 208 `+ -> *`.
+    let eps = 23.4366_f64;
+    let p = asc_mc_from(15.0, 5.0, eps).expect("finite");
+    let got = [
+        p.ascendant.degrees(),
+        p.midheaven.degrees(),
+        p.vertex.degrees(),
+        p.equatorial_ascendant.degrees(),
+        p.coascendant_koch.degrees(),
+        p.coascendant_munkasey.degrees(),
+        p.polar_ascendant.degrees(),
+    ];
+    let exp = [
+        105.741_462_639_643,
+        16.280_047_054_689,
+        12.635_804_712_026,
+        103.811_888_609_499,
+        101.849_837_950_278,
+        168.584_056_229_968,
+        281.849_837_950_278,
+    ];
+    for (i, (g, e)) in got.iter().zip(exp.iter()).enumerate() {
+        assert!((g - e).abs() < 1e-8, "point[{i}] = {g}, want {e}");
+    }
+}
+
+#[test]
+fn asc_geometry_equivalent_mutants_are_documented() {
+    // The measured cargo-mutants residual for the Foundation functions is a set
+    // of DOCUMENTED EQUIVALENT MUTANTS, left visible (no #[mutants::skip]) per
+    // the FU-9 posture. Each is behavior-preserving on every reachable input:
+    //
+    //   * 360-periodicity of asc2 in x (asc2 uses only sin(x)/cos(x)): asc1
+    //     arm-3 `x1 - 180 -> x1 + 180` (1799) and `delete match arm 3` (arm 3
+    //     is identical to the `_` arm); asc_mc `armc - 180 -> + 180` at 201 and
+    //     215 (armc±180 differ by exactly 360).
+    //   * 180-periodicity of tan in the pole height: asc_mc `f_pole = 90-lat`
+    //     vs `-90-lat` differ by exactly 180 and asc2/ascendant_for use only
+    //     tan(pole), so the `lat>=0 -> lat<0` branch swap (192) and the
+    //     `delete -` that turns -90-lat into 90-lat (195) are unobservable.
+    //   * exact mod-360 fold symmetry: asc_mc vertex flip `+180 -> -180` (208)
+    //     normalizes to the same longitude.
+    //   * unreachable exact-equality boundaries: vemc==180 (204 `> -> >=`),
+    //     vemc==0 (207 `> -> >=`), and asc2's 1e-12 guard thresholds
+    //     (1807/1811/1812/1818 `< -> <=`) — no representable input hits equality.
+    //   * ±90 / ±1e-12 sentinel fold: asc2 1818 `< -> ==`/`>`, 1819 `delete -`,
+    //     1826 `< -> <=`, 1807 `< -> ==` leave the folded result unchanged or
+    //     shift it below the crate's 1e-9 parity tolerance.
+    //
+    // The identities below are asserted so the reasoning itself is regression-
+    // tested; each difference is far below the 1e-9 parity tolerance, which is
+    // exactly why no 1e-9 white-box pin can distinguish the mutated operators.
+    let eps = 23.4366_f64;
+    let (sine, cose) = (eps.to_radians().sin(), eps.to_radians().cos());
+    // 360-periodicity of asc2 in x (asc1 arm-3 `x1-180 -> x1+180`):
+    assert!(
+        (asc2(30.0 - 180.0, -52.0, sine, cose) - asc2(30.0 + 180.0, -52.0, sine, cose)).abs()
+            < 1e-9
+    );
+    // 180-periodicity of tan(pole) (asc_mc pole-branch 90-lat vs -90-lat):
+    assert!((asc2(70.0, 38.0, sine, cose) - asc2(70.0, 38.0 - 180.0, sine, cose)).abs() < 1e-9);
+    // exact mod-360 fold symmetry (asc_mc vertex `+180 -> -180`):
+    assert_eq!(
+        (200.0_f64 + 180.0).rem_euclid(360.0),
+        (200.0_f64 - 180.0).rem_euclid(360.0)
+    );
+}

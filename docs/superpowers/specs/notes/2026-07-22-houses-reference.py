@@ -151,6 +151,13 @@ if __name__ == "__main__":
     for x in (30.0, 120.0, 210.0, 300.0):
         print(f"  asc1({x}) = {fmt(asc1(x, 52.0, SINE, COSE))}")
 
+    # Degenerate-guard pins (FU-9 follow-up): x on the sinx~0 axis exercises
+    # asc2's sinx.abs()<1e-12 branch, which the normal-atan quadrant inputs
+    # never reach. asc2(0)=+1e-12 sentinel; asc2(180) folds -1e-12 -> ~180.
+    print("# asc2 degenerate sinx~0 branch (pole=52):")
+    print(f"  asc2(0)   = {asc2(0.0, 52.0, SINE, COSE)!r}")
+    print(f"  asc2(180) = {asc2(180.0, 52.0, SINE, COSE)!r}")
+
     print("# asc_mc_from — G1 lat>obl non-flip (armc=45, lat=52, obl=EPS):")
     for k, v in asc_mc_from(45.0, 52.0, EPS).items():
         print(f"    {k:12s} = {fmt(v)}")
@@ -159,6 +166,12 @@ if __name__ == "__main__":
         print(f"    {k:12s} = {fmt(v)}")
     print("# asc_mc_from — G3 southern -90-lat branch (armc=100, lat=-33, obl=EPS):")
     for k, v in asc_mc_from(100.0, -33.0, EPS).items():
+        print(f"    {k:12s} = {fmt(v)}")
+    # G4 (FU-9 follow-up): a geometry where the vertex flip ACTUALLY fires
+    # (vemc>0 rotates the vertex by 180). G2 enters the flip block but does not
+    # flip, so the flip guards/arithmetic stay uncovered until this geometry.
+    print("# asc_mc_from — G4 vertex flip fires (armc=15, lat=5, obl=EPS):")
+    for k, v in asc_mc_from(15.0, 5.0, EPS).items():
         print(f"    {k:12s} = {fmt(v)}")
 
     print("# interpolate_longitude(350, 20, 0.25):", fmt(interp(350.0, 20.0, 0.25)))
