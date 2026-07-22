@@ -27,14 +27,47 @@ Drive surviving mutants in `pleiades-houses` to **0-or-documented-equivalent**,
 measured by the authoritative per-file cargo-mutants command, using
 intent-expressing white-box tests referenced to independent authorities.
 
-Delivered as **two sub-slices under this one design doc**:
+### Measured baseline (2026-07-22)
 
-- **Sub-slice A (PR1) — `systems/mod.rs`** (1,912 lines): the numeric heart —
-  ~25 house-system formula functions, shared trig primitives, two iterative
-  solvers, and validation guards.
-- **Sub-slice B (PR2) — `catalog/mod.rs` + `thresholds.rs`**: the
-  string-render / match-arm / validation-guard / threshold-constant class.
-  Also the crate-completing PR.
+Whole-crate `cargo mutants -p pleiades-houses --test-tool nextest
+--test-workspace=false --baseline run` at `7572b234c`, cargo-mutants 27.1.0:
+**1,231 mutants, 569 missed / 638 caught / 24 unviable** (27 min wall-clock,
+test suite itself 0.06 s — the run is compile-bound). Survivors by file:
+
+| File | Survivors | Dominant classes |
+|------|-----------|------------------|
+| `systems/mod.rs` | **554** | 372 arith-op swaps, 72 comparison swaps, 36 `/`→`%`, 28 match-arm deletes, spread across ~20 house-formula functions + shared primitives + 2 solvers |
+| `catalog/mod.rs` | 15 | 4 `||`→`&&` guards, 1 match-arm delete, 3 return-value replacements, 4 `+=`→`*=`, 3 `vec![]`/return-value |
+| `thresholds.rs` | 0 | its 1 mutant is **caught**; only the AGENTS.md test relocation remains |
+
+`554` in one file is ~15× the previous largest slice (refraction's 37), so
+`systems/mod.rs` is a **multi-PR campaign, not a single PR**. Crucially the
+effort is **per-system, not per-survivor**: one independent-recomputation test
+pinning all 12 cusps at a discriminating geometry kills a whole system's
+40–70 arith-op survivors at once, so the real work is ~20 units grouped by
+formula-family.
+
+### Delivery — a ~6-PR family-grouped campaign (one design doc)
+
+All PRs share **one** independent house-math reference (a Python
+reimplementation of the published SE `swehouse.c` / Meeus ch. 20 pipeline,
+reproduced in the plan and cross-validated against the crate at ~machine
+precision) established by the Foundation PR and reused thereafter.
+
+| PR | Focus | Functions (survivors) |
+|----|-------|-----------------------|
+| **1 — Foundation** | Shared primitives + angles + trivial/Porphyry family | `spherical_cotrans` (34), `asc2` (16), `asc1` (12), `asc_mc_from` (22), `interpolate_longitude` (6), `signed_longitude_difference` (3), RA/ecliptic transforms (1), `longitude_opposite`/`longitude_in_arc` (2), `porphyry_houses` (16), `whole_sign_houses` (1) — pinning the shared primitives once kills survivors across every composing system |
+| **2 — Great-circle** | GreatCircle family | `apc_sector` (58), `krusinski_pisa_goelzer_houses` (19), `horizon_houses` (12), `apc_houses` (1) |
+| **3 — Sector** | Sector family | `pullen_sr_houses` (73), `pullen_sd_houses` (42), `albategnius_houses` (42), `solve_gauquelin_sector` (4) + `gauquelin_houses` |
+| **4 — Sunshine/solar-arc** | SolarArc family | `sunshine_houses` (68), `sunshine_offsets` (34), `apparent_solar_declination` (20), `apparent_midheaven_declination` (2), `nutation_for` (2) |
+| **5 — Quadrant/projection** | Quadrant + EquatorialProjection families | `solve_placidian_cusp` (6), `topocentric_latitude` (9), `regiomontanus_houses` (5), `koch_houses` (1), campanus/alcabitius/morinus/carter residuals |
+| **6 — Catalog + thresholds** | Non-numeric tail; **crate-completing PR** | `catalog/mod.rs` (15) + `catalog_name` match arms in `systems/mod.rs` (26) + `thresholds.rs` test relocation |
+
+PR ordering is Foundation-first (it establishes the shared reference every later
+PR builds on); PRs 2–5 are independent of one another and may be sequenced in
+any order; PR 6 lands last and enables the weekly-tier expansion. Exact survivor
+membership per PR is confirmed against the measured `mutants.out/missed.txt` at
+the start of each PR's plan.
 
 ### In scope
 
@@ -47,7 +80,8 @@ Delivered as **two sub-slices under this one design doc**:
 - `lib.rs` — re-exports and doctests only; no branch/arithmetic surface. (Its
   doctests still run under `mise run ci` and are not weakened.)
 - `error.rs` — a small error enum + `Display`; if the per-crate baseline
-  surfaces a survivor here it is folded into PR2, but it is not a planned focus.
+  surfaces a survivor here it is folded into the crate-completing PR (PR 6), but
+  it is not a planned focus.
 
 ### Non-goals
 
@@ -184,8 +218,8 @@ input-guard precedent: a finite `1e301` overflowing a squared-norm sum to
 ## Weekly-tier expansion (`[tasks.mutants]`)
 
 The default `[tasks.mutants]` task in `mise.toml` currently enumerates only
-`-p pleiades-types -p pleiades-time -p pleiades-apparent`. **In PR2 (the
-crate-completing sub-slice), add `-p pleiades-houses`** so the weekly report-only
+`-p pleiades-types -p pleiades-time -p pleiades-apparent`. **In the
+crate-completing PR (PR 6), add `-p pleiades-houses`** so the weekly report-only
 tier regression-checks the crate going forward — the "make it stick" step,
 mirroring how the baseline three are enumerated. Accepted trade-off: extra
 weekly wall-clock. `mutants-crate` already covers houses ad hoc via its
@@ -203,7 +237,8 @@ argument; this makes the default set include it.
   tolerances, and code unchanged.
 - Mutants tier **stays report-only**; no score gate introduced.
 - `mise run ci` green (fmt + clippy `-D warnings` + workspace test).
-- `[tasks.mutants]` includes `-p pleiades-houses` after PR2.
+- `[tasks.mutants]` includes `-p pleiades-houses` after the crate-completing PR
+  (PR 6).
 - An **FU-9 Progress note** appended to `docs/follow-ups.md` per PR, in the
   established format, framed as a new post-baseline expansion slice (not part of
   the closed baseline). Any documented equivalents added to the running tally
