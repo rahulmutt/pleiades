@@ -2,7 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Drive the **Foundation** functions of `crates/pleiades-houses/src/systems/mod.rs` (shared geometry primitives, chart-point set, and the trivial/Porphyry family) from **113 surviving mutants to 1 documented equivalent**, establishing the independent house-math reference that PRs 2–6 reuse.
+**Goal:** Drive the **Foundation** functions of `crates/pleiades-houses/src/systems/mod.rs` (shared geometry primitives, chart-point set, and the trivial/Porphyry family) from **113 surviving mutants to a measured set of documented equivalents**, establishing the independent house-math reference that PRs 2–6 reuse.
+
+> **Execution correction (2026-07-22):** this plan predicted a `113 → 1` residual. Mutation verification during execution measured **26** survivors: **7** were real coverage gaps the crafted normal-path geometries never reached (`asc2`'s `sinx ≈ 0` guard branch; an `asc_mc_from` geometry where the vertex flip actually fires) and **19** are genuine equivalents. Tasks 5–6 were extended to kill the 7 (two degenerate `asc2` pins + a flip-firing `asc_mc_from` geometry) and document the 19 (see `asc_geometry_equivalent_mutants_are_documented` and the `docs/follow-ups.md` note). The true residual is **113 → 19 documented equivalents**.
 
 **Architecture:** First PR of the ~6-PR `pleiades-houses` FU-9 campaign (spec: `docs/superpowers/specs/2026-07-22-fu9-houses-mutant-triage-design.md`). **Tests-only** — no production-code change; every added test lives in the existing `crates/pleiades-houses/src/systems/tests.rs` (`use super::*;` reaches the private functions). Expected values come from an **independent reference** (`docs/superpowers/specs/notes/2026-07-22-houses-reference.py`, a from-scratch port of the published swehouse.c Asc1/Asc2 + `swe_houses_armc` point set and Meeus ch. 26 angle formulas), cross-validated against the crate to **all 12 decimals** — never from the code's own output.
 
@@ -401,14 +403,13 @@ mise exec -- cargo mutants -p pleiades-houses \
   --file crates/pleiades-houses/src/systems/mod.rs \
   -F 'in (spherical_cotrans|asc1|asc2|asc_mc_from|interpolate_longitude|signed_longitude_difference|right_ascension_from_ecliptic_longitude|longitude_opposite|longitude_in_arc|whole_sign_houses|porphyry_houses)$'
 ```
-Expected: `1 missed` (only `longitude_opposite`'s `+ -> -`), all others **caught**. Confirm with:
-`grep -c '' mutants.out/missed.txt` → `1`, and `cat mutants.out/missed.txt` shows only the `longitude_opposite` line.
+Expected (as measured during execution): **`19 missed`**, all documented equivalents (see the execution-correction note at the top of this plan and `asc_geometry_equivalent_mutants_are_documented`); all others **caught**. Confirm with `grep -c '' mutants.out/missed.txt` → `19` and `cat mutants.out/missed.txt` matches the enumerated equivalent set.
 
-If any other mutant is still missed, classify it (it will be an arithmetic/comparison swap in a function above), add a discriminating assertion to the matching test using the independent reference, and re-run — do not proceed until the residual is exactly the one documented equivalent.
+If any *other* mutant is still missed (not in the documented-equivalent set), classify it (it will be an arithmetic/comparison swap in a function above), add a discriminating assertion to the matching test using the independent reference, and re-run — do not proceed until the residual is exactly the documented equivalents.
 
 - [ ] **Step 3: Append the FU-9 Progress note to `docs/follow-ups.md`**
 
-Under the FU-9 section, after the "FU-9 measured baseline CLOSED" paragraph, add a new post-baseline-expansion progress entry. Use this exact text:
+Under the FU-9 section, after the "FU-9 measured baseline CLOSED" paragraph, add a new post-baseline-expansion progress entry. **Note (execution correction):** the block below was the plan's draft assuming a `113 → 1` residual; the note actually committed to `docs/follow-ups.md` reflects the measured `113 → 19 documented equivalents` (7 killable gaps also killed). Use the committed note, not this draft, as the source of truth:
 
 ```markdown
 **Progress (2026-07-22) — houses Foundation

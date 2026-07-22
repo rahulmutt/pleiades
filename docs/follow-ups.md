@@ -684,6 +684,61 @@ mutants tier remains, so any future `mise run mutants` expansion to `pleiades-*`
 domain/backend crates outside the original three would open new slices under
 this follow-up (new work, not part of the closed baseline).
 
+**Progress (2026-07-22) — houses Foundation
+(`pleiades-houses/src/systems/mod.rs`, shared primitives):** first PR of the
+post-baseline `pleiades-houses` expansion campaign (spec:
+`docs/superpowers/specs/2026-07-22-fu9-houses-mutant-triage-design.md`). The
+whole-crate baseline measured `1,231 mutants, 569 missed` — `systems/mod.rs`
+alone has `554`, ~15× the previous largest slice, so the crate is worked as a
+~6-PR family-grouped campaign. This Foundation PR triaged the shared geometry
+primitives + chart-point set + trivial/Porphyry family from `113` surviving
+mutants to **19 documented equivalents**: `spherical_cotrans` (34),
+`asc1`/`asc2` (28), `asc_mc_from` (22), `porphyry_houses` (16),
+`interpolate_longitude` (6), `signed_longitude_difference` (3), and one each in
+`right_ascension_from_ecliptic_longitude`, `whole_sign_houses`,
+`longitude_in_arc`. **Tests-only** — every expected value comes from an
+independent from-scratch port of the published swehouse.c Asc1/Asc2 +
+`swe_houses_armc` point set (`docs/superpowers/specs/notes/2026-07-22-houses-reference.py`),
+cross-validated against the crate to 1e-12 before its literals were trusted.
+Killing the shared primitives once removes their survivors from every composing
+system, which the later family PRs build on.
+
+The plan predicted a `113 → 1` residual, but mutation verification measured
+`26` survivors: `7` were real coverage gaps the crafted normal-path geometries
+never reached, and `19` are genuine equivalents. The `7` were killed by two
+degenerate-axis `asc2` pins (x on the `sinx ≈ 0` axis, reaching the
+`sinx.abs() < 1e-12` branch) and one `asc_mc_from` geometry where the vertex
+flip actually fires (`vemc > 0`), which the plan's three geometries never
+triggered. **Documented residual — 19 equivalent mutants**, all left visible
+(no `#[mutants::skip]`), enumerated in
+`asc_geometry_equivalent_mutants_are_documented` with a per-mutant reachability
+argument grouped by structural reason:
+
+- **360-periodicity of `asc2` in `x`** (it uses only `sin(x)`/`cos(x)`):
+  `asc1` arm-3 `x1 - 180 → x1 + 180` and `delete match arm 3` (arm 3 is
+  identical to the `_` arm); `asc_mc_from` `armc - 180 → + 180` at both call
+  sites (`armc ± 180` differ by exactly 360). [4]
+- **180-periodicity of `tan` in the pole height**: `f_pole = 90 - lat` vs
+  `-90 - lat` differ by exactly 180 and both `asc2` and `ascendant_for` use
+  only `tan(pole)`, so the `lat >= 0 → lat < 0` branch swap and the `delete -`
+  that turns `-90 - lat` into `90 - lat` are unobservable. [2]
+- **Exact mod-360 fold symmetry**: the vertex flip `vertex + 180 → vertex - 180`
+  normalizes to the same longitude. [1]
+- **Unreachable exact-equality boundaries**: `vemc == 180`, `vemc == 0`, and
+  `asc2`'s `1e-12` guard thresholds (`< → <=`) — no representable input hits
+  equality. [7, incl. `longitude_opposite`'s `x + 180 ≡ x - 180 (mod 360)`]
+- **±90 / ±1e-12 sentinel fold**: `asc2`'s `value == 0` and longitude-fold
+  branches (`< → ==`/`>`, `delete -`, `< → <=`) leave the folded result
+  unchanged or shift it below the crate's 1e-9 parity tolerance. [5]
+
+These bring the **running documented-equivalent tally to `9 + 19 = 28`** (the
+`19` here are the first from the post-baseline houses campaign). No parity gate
+was touched; the tier stays report-only; `mise run ci` is green. **Remaining
+houses PRs:** great-circle (`apc_sector`/`krusinski`/`horizon`), sector
+(`pullen_sr`/`pullen_sd`/`albategnius`/`gauquelin`), sunshine/solar-arc,
+quadrant/projection, then catalog + thresholds (which adds `-p pleiades-houses`
+to `[tasks.mutants]`).
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
