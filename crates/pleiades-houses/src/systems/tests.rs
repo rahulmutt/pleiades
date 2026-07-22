@@ -1783,3 +1783,47 @@ fn asc1_dispatches_each_quadrant_to_independent_reference() {
         assert!((got - expected).abs() < 1e-9, "asc1({x}) = {got}");
     }
 }
+
+#[test]
+fn asc_mc_from_pins_all_points_across_pole_and_flip_branches() {
+    // Independent reference (houses-reference.py `asc_mc_from`, swehouse.c
+    // swe_houses_armc). obl = 23.4366°. Three geometries cover:
+    //   G1 lat>obl  -> f_pole = 90-lat, vertex flip inactive
+    //   G2 0<lat<=obl -> flip branch active (vemc>0 path)
+    //   G3 lat<0    -> f_pole = -90-lat branch
+    // Every literal cross-validated to 1e-12 against the crate.
+    let eps = 23.4366_f64;
+    let check = |armc: f64, lat: f64, exp: [f64; 7]| {
+        let p = asc_mc_from(armc, lat, eps).expect("finite");
+        let got = [
+            p.ascendant.degrees(),
+            p.midheaven.degrees(),
+            p.vertex.degrees(),
+            p.equatorial_ascendant.degrees(),
+            p.coascendant_koch.degrees(),
+            p.coascendant_munkasey.degrees(),
+            p.polar_ascendant.degrees(),
+        ];
+        for (i, (g, e)) in got.iter().zip(exp.iter()).enumerate() {
+            assert!((g - e).abs() < 1e-8, "armc={armc} lat={lat} point[{i}] = {g}, want {e}");
+        }
+    };
+    // G1: armc=45, lat=52 (> obl) — non-flip, f_pole = 38.
+    check(45.0, 52.0, [
+        148.587_249_395_771, 47.463_595_280_938, 295.549_781_631_009,
+        132.536_404_719_062, 101.175_335_496_703, 143.611_940_830_436,
+        281.175_335_496_703,
+    ]);
+    // G2: armc=200, lat=10 (0<lat<=obl) — vertex flip active.
+    check(200.0, 10.0, [
+        284.537_224_659_332, 201.638_102_932_963, 159.911_766_495_904,
+        288.466_379_243_755, 292.223_701_037_155, 205.822_995_524_640,
+        112.223_701_037_155,
+    ]);
+    // G3: armc=100, lat=-33 (< 0) — f_pole = -90-lat = -57.
+    check(100.0, -33.0, [
+        195.061_993_029_707, 99.189_697_612_154, 6.534_310_124_205,
+        190.878_573_217_375, 188.500_387_274_068, 210.816_655_151_624,
+        8.500_387_274_068,
+    ]);
+}
