@@ -1727,3 +1727,18 @@ fn porphyry_fallback_snapshot_carries_consistent_asc_mc() {
     .expect("asc_mc_from");
     assert_eq!(snap.asc_mc, expected);
 }
+
+// --- FU-9 Foundation: shared geometry primitives ---
+
+#[test]
+fn spherical_cotrans_matches_independent_x_axis_rotation() {
+    // Independent reference (houses-reference.py `spherical_cotrans`): a pure
+    // x-axis rotation of (lon,lat,r) -> Cartesian -> rotate by `angle` -> back.
+    // Geometry avoids every degeneracy (no 0°/90° angle, non-unit radius) so
+    // each `*`/`+` term is observable. Cross-validated to 1e-12 vs the crate.
+    let mut coord = [40.0_f64, 25.0, 2.0];
+    spherical_cotrans(&mut coord, 15.0);
+    assert!((coord[0] - 44.070_120_506_012).abs() < 1e-9, "lon' = {}", coord[0]);
+    assert!((coord[1] - 14.918_178_485_226).abs() < 1e-9, "lat' = {}", coord[1]);
+    assert!((coord[2] - 2.000_000_000_000).abs() < 1e-9, "r' = {}", coord[2]);
+}
