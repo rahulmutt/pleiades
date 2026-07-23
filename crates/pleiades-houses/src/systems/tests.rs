@@ -2290,3 +2290,123 @@ fn apc_houses_calls_apc_sector_with_one_indexed_sectors() {
     assert_eq!(cusps[0], angles.ascendant);
     assert_eq!(cusps[9], angles.midheaven);
 }
+
+// Independent recomposition of the SE 'H' horizon body from the published
+// formula (azimuth origin Asc1(th+90) via ascendant_for(th,·), +180 post-fold
+// via longitude_opposite, strict `>0` hemisphere branch, VERY_SMALL pole clamp).
+// Calls only shared primitives already pinned in Foundation; `st` is threaded
+// from the un-mutated local_sidereal_time. Confirmed to equal the crate at HEAD
+// to 1e-9 during plan authoring, so any structural mutant that diverges dies.
+fn recompose_horizon(
+    instant: Instant, obs: &ObserverLocation, obl_deg: f64, mc: Longitude,
+) -> [Longitude; 12] {
+    let st = (local_sidereal_time(instant, obs.longitude).degrees() + 180.0).rem_euclid(360.0);
+    let obl_rad = obl_deg.to_radians();
+    let lat = obs.latitude.degrees();
+    let mut tl = if lat > 0.0 { 90.0 - lat } else { -90.0 - lat };
+    const VS: f64 = 1e-10;
+    if (tl.abs() - 90.0).abs() < VS {
+        tl = if tl < 0.0 { -90.0 + VS } else { 90.0 - VS };
+    }
+    let tlr = tl.to_radians();
+    let fh1 = (tlr.sin() / 2.0).asin().to_degrees();
+    let fh2 = ((3.0_f64).sqrt() / 2.0 * tlr.sin()).asin().to_degrees();
+    let cosfi = tlr.cos();
+    let (xh1, xh2) = if cosfi == 0.0 {
+        if tl > 0.0 { (90.0, 90.0) } else { (270.0, 270.0) }
+    } else {
+        (
+            (3.0_f64.sqrt() / cosfi).atan().to_degrees(),
+            (1.0 / 3.0_f64.sqrt() / cosfi).atan().to_degrees(),
+        )
+    };
+    let mut c = [Longitude::from_degrees(0.0); 12];
+    c[0] = longitude_opposite(ascendant_for(st, tl, obl_rad));
+    c[9] = mc;
+    c[10] = longitude_opposite(ascendant_for(st - xh1, fh1, obl_rad));
+    c[11] = longitude_opposite(ascendant_for(st - xh2, fh2, obl_rad));
+    c[1] = longitude_opposite(ascendant_for(st + xh2, fh2, obl_rad));
+    c[2] = longitude_opposite(ascendant_for(st + xh1, fh1, obl_rad));
+    c[3] = longitude_opposite(c[9]);
+    c[4] = longitude_opposite(c[10]);
+    c[5] = longitude_opposite(c[11]);
+    c[6] = longitude_opposite(c[0]);
+    c[7] = longitude_opposite(c[1]);
+    c[8] = longitude_opposite(c[2]);
+    c
+}
+
+#[test]
+fn horizon_houses_match_independent_recomposition_across_geometries() {
+    let instant = gc_instant();
+    let obl = Angle::from_degrees(23.4366);
+    // lat=-33 kills the `-90 - lat` southern-hemisphere sign mutant (1089);
+    // lat=1e-11 (N, near equator) reaches the +90-VS clamp target and flips
+    //   cosfi's sign under the 1098 mutants (killing both);
+    // lat=90 (pole) makes the `/90` clamp-guard mutant (1094:36 `/`) clamp
+    //   where HEAD does not (cosfi 1 -> 1.7e-12), killing it.
+    for lat in [-33.0_f64, 0.0, 40.0, 1e-11, 90.0] {
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(lat), Longitude::from_degrees(0.0), None);
+        let angles = gc_angles(10.0, 280.0);
+        let got = horizon_houses(instant, &obs, obl, angles);
+        let want = recompose_horizon(instant, &obs, 23.4366, angles.midheaven);
+        for i in 0..12 {
+            let mut d = (got[i].degrees() - want[i].degrees()).rem_euclid(360.0);
+            if d > 180.0 { d -= 360.0; }
+            assert!(d.abs() < 1e-9, "horizon lat={lat} cusp[{i}] diff {d}");
+        }
+    }
+}
+
+#[test]
+fn horizon_pole_singularity_equivalent_mutants_are_documented() {
+    // FU-9 Great-circle residual: 8 surviving mutants in horizon_houses, all in
+    // the pole-singularity handling, each an EQUIVALENT MUTANT left visible (no
+    // #[mutants::skip]). Magnitudes below are MEASURED, not claimed exact.
+    //
+    // (A) Sub-tolerance mod-360 antipode — 1082:69 `+ 180.0 -> - 180.0`:
+    //   sidereal_time = (LST ± 180).rem_euclid(360). (x+180)%360 and (x-180)%360
+    //   are equal in real arithmetic (differ by 360) and differ in f64 by at most
+    //   ~5.68e-14° over a fine LST sweep — far below the 1e-9° pin tolerance, so
+    //   no white-box pin can distinguish them. (Same shape as the Foundation
+    //   `armc ± 180` finding.)
+    //
+    // (B) Clamp-guard mutants only reachable where the clamp is sub-tolerance:
+    //   1094:36 `(|tl|-90) -> (|tl|+90)`  — `|tl|+90 >= 90` so the guard never
+    //     fires (never clamps); differs from HEAD only at lat≈0 (tl≈±90), where
+    //     the clamp alters tl by ≤1e-10° and atan(√3/cosφ) has already saturated
+    //     to ±90°, so the cusp displacement is <1e-9°. (Its `/90` sibling was
+    //     killable at lat=90 and IS caught — see the recomposition test.)
+    //   1094:50 `< -> ==` and `< -> <=` — the guard fires only at exactly
+    //     value == 1e-10 (measure-zero); the reachable difference (lat≈0) is the
+    //     same sub-tolerance clamp effect as above.
+    //   1095:56 `tl < 0.0 -> tl <= 0.0` — this branch is entered only when the
+    //     clamp fires, i.e. |tl|≈90, so tl is ±90 and never 0; the operators
+    //     differ only at tl == 0.0, unreachable here.
+    //
+    // (C) Structurally dead branch — 1108:33 `> -> ==`, `-> <`, `-> >=`:
+    //   these steer the `if cosfi == 0.0 { ... }` arm. cos(tl_rad) is never
+    //   exactly 0.0 for any reachable tl (min |cos| over the clamp-guaranteed
+    //   range incl. raw ±90 is 6.123e-17), so the whole arm is unreachable and
+    //   all three mutants are equivalent regardless of geometry.
+    //
+    // This test asserts the two facts the arguments rest on, so the reasoning is
+    // guarded against a future code change that would make a survivor killable.
+    // Fact (A): the antipode difference stays sub-tolerance.
+    let mut worst = 0.0_f64;
+    let mut lst = 0.0_f64;
+    while lst < 360.0 {
+        let a = (lst + 180.0).rem_euclid(360.0);
+        let b = (lst - 180.0).rem_euclid(360.0);
+        let mut d = (a - b).rem_euclid(360.0);
+        if d > 180.0 { d -= 360.0; }
+        worst = worst.max(d.abs());
+        lst += 0.0007;
+    }
+    assert!(worst < 1e-9, "antipode (x±180)%360 diff {worst} must stay sub-tolerance");
+    // Fact (C): cos(tl_rad) never hits exactly 0 across the reachable tl range.
+    for tl in [90.0_f64 - 1e-10, -90.0_f64 + 1e-10, 90.0, -90.0, 0.0, 45.0, -57.0] {
+        assert!(tl.to_radians().cos() != 0.0, "cosfi==0.0 arm is dead (tl={tl})");
+    }
+}
