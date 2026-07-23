@@ -2410,3 +2410,65 @@ fn horizon_pole_singularity_equivalent_mutants_are_documented() {
         assert!(tl.to_radians().cos() != 0.0, "cosfi==0.0 arm is dead (tl={tl})");
     }
 }
+
+// Independent recomposition of the Krusinski-Pisa-Goelzer body from the
+// published great-circle projection: flip the ascendant when it trails the MC,
+// rotate the house-circle anchor into the horizon frame, then step 30° arcs and
+// project back to ecliptic longitude. Calls only Foundation-pinned primitives;
+// `st` threaded from the un-mutated local_sidereal_time. Confirmed == crate at
+// HEAD to 1e-9 during plan authoring.
+fn recompose_krusinski(
+    instant: Instant, obs: &ObserverLocation, obl_deg: f64, angles: HouseAngles,
+) -> [Longitude; 12] {
+    let st = local_sidereal_time(instant, obs.longitude).degrees();
+    let lat = obs.latitude.degrees();
+    let mut ascendant = angles.ascendant;
+    if signed_longitude_difference(ascendant.degrees(), angles.midheaven.degrees()) < 0.0 {
+        ascendant = longitude_opposite(ascendant);
+    }
+    let mut hcp = [ascendant.degrees(), 0.0, 1.0];
+    spherical_cotrans(&mut hcp, -obl_deg);
+    hcp[0] = normalize_degrees(hcp[0] - (st - 90.0));
+    spherical_cotrans(&mut hcp, -(90.0 - lat));
+    let horizon_offset = hcp[0];
+    let mut c = [Longitude::from_degrees(0.0); 12];
+    for index in 0..6 {
+        let mut p = [30.0 * index as f64, 0.0, 1.0];
+        spherical_cotrans(&mut p, 90.0);
+        p[0] = normalize_degrees(p[0] + horizon_offset);
+        spherical_cotrans(&mut p, 90.0 - lat);
+        p[0] = normalize_degrees(p[0] + (st - 90.0));
+        c[index] = ecliptic_longitude_from_ra(p[0], obl_deg.to_radians());
+        c[index + 6] = longitude_opposite(c[index]);
+    }
+    c[0] = ascendant;
+    c[6] = longitude_opposite(ascendant);
+    c
+}
+
+#[test]
+fn krusinski_houses_match_independent_recomposition_across_geometries() {
+    let instant = gc_instant();
+    let obl = Angle::from_degrees(23.4366);
+    // (asc=10, mc=100): signed_diff = -90 < 0 -> flip fires.
+    // (asc=200, mc=100): signed_diff = +100 > 0 -> flip does not fire.
+    // (-33, ...): southern observer.
+    // (asc=100, mc=100): signed_diff == 0 -> kills the `< -> <=` boundary mutant.
+    for (lat, asc, mc) in [
+        (52.0_f64, 10.0, 100.0),
+        (52.0, 200.0, 100.0),
+        (-33.0, 10.0, 100.0),
+        (52.0, 100.0, 100.0),
+    ] {
+        let obs = ObserverLocation::new(
+            Latitude::from_degrees(lat), Longitude::from_degrees(0.0), None);
+        let angles = gc_angles(asc, mc);
+        let got = krusinski_pisa_goelzer_houses(instant, &obs, obl, angles);
+        let want = recompose_krusinski(instant, &obs, 23.4366, angles);
+        for i in 0..12 {
+            let mut d = (got[i].degrees() - want[i].degrees()).rem_euclid(360.0);
+            if d > 180.0 { d -= 360.0; }
+            assert!(d.abs() < 1e-9, "krusinski lat={lat} asc={asc} cusp[{i}] diff {d}");
+        }
+    }
+}
