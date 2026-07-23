@@ -790,6 +790,57 @@ great-circle (`apc_sector`/`krusinski`/`horizon`), sector
 quadrant/projection, then catalog + thresholds (which adds `-p pleiades-houses`
 to `[tasks.mutants]`).
 
+**Progress (2026-07-23) — houses Great-circle
+(`pleiades-houses/src/systems/mod.rs`, `apc_sector`/`apc_houses`/`horizon_houses`/
+`krusinski_pisa_goelzer_houses`):** second PR of the post-baseline
+`pleiades-houses` expansion campaign (spec:
+`docs/superpowers/specs/2026-07-22-fu9-houses-mutant-triage-design.md`; plan:
+`docs/superpowers/plans/2026-07-23-fu9-houses-greatcircle-mutant-triage.md`).
+Triaged the Great-circle family from `90` surviving mutants (`apc_sector` 58,
+`krusinski` 19, `horizon_houses` 12, `apc_houses` 1 — matching the design's
+whole-crate prediction exactly) to **8 documented equivalents**, all in
+`horizon_houses`'s pole-singularity clamp. **Tests-only.** Two reference
+strategies keyed to survivor structure: `apc_sector` is a pure function, so its
+58 arith survivors fell to a single **independent-port** pin of all 12 sector
+outputs at one non-degenerate geometry (lat=52°, obl=23.4366°, sidereal=45° —
+measured 59/59 caught); the other three take `Instant`/`ObserverLocation` and
+call `local_sidereal_time` (GMST+nutation, not reproduced), so their
+**structural** survivors (sector index, hemisphere sign, rotation-angle signs,
+offset arithmetic — the inner trig was already gate-killed) fell to
+**independent recomposition** (the `apparent.rs` precedent): the test threads
+`st` from the un-mutated `local_sidereal_time` and recomposes expected cusps
+from the published SE formula plus Foundation-pinned primitives (`ascendant_for`,
+`longitude_opposite`, `spherical_cotrans`, `ecliptic_longitude_from_ra`,
+`signed_longitude_difference`), then asserts equality with the crate. The
+`apc_sector` port extends the shared `houses-reference.py`. Per the Foundation
+lesson (probe extremes before documenting equivalence), four horizon survivors
+first classified as pole-clamp equivalents were **killed** by extreme
+geometries: the `-90 - lat` hemisphere sign by a southern observer, the `/90`
+clamp-guard variant at the pole (`lat=90`, where it clamps and HEAD does not),
+and both N-side clamp-target mutants by a near-equator northern observer
+(`lat=1e-11`, where `cosfi` flips sign); krusinski's `< -> <=` flip-boundary
+mutant was killed by an `asc == mc` (signed_diff == 0) geometry. **Documented
+residual — 8 equivalent mutants**, all `horizon_houses`, left visible (no
+`#[mutants::skip]`) and enumerated with per-mutant reachability arguments in
+`horizon_pole_singularity_equivalent_mutants_are_documented`, grouped:
+(A) `1082:69` `+180 -> -180` — `(LST±180).rem_euclid(360)` differ by at most
+`~5.68e-14°` (measured over a fine sweep; the Foundation `armc±180` shape),
+far below the 1e-9° tolerance; (B) `1094:36` `-` -> `+` (never-clamp),
+`1094:50` `<` -> `==`/`<=` (measure-zero clamp-fire boundary), and `1095:56`
+`<` -> `<=` (unreachable `tl==0` inside the clamp branch) — all four reachable
+only where the clamp effect is itself sub-tolerance or at a measure-zero
+equality; (C) `1108:33` `>` -> `==`/`<`/`>=` (×3) — the `if cosfi == 0.0` arm is
+structurally dead (`cos(tl_rad)` is never exactly `0.0`; min `|cos|` over the
+reachable range is `6.123e-17`). This brings the **running documented-equivalent
+tally to `22 + 8 = 30`**. The `8` is **measured, not predicted**: the
+authoritative scoped run (`-F 'in (apc_sector|apc_houses|
+krusinski_pisa_goelzer_houses|horizon_houses)$'`, 131 mutants) reports
+`8 missed / 123 caught / 0 unviable`. No parity gate was touched; the tier stays
+report-only; `mise run ci` is green. **Remaining houses PRs:** sector
+(`pullen_sr`/`pullen_sd`/`albategnius`/`gauquelin`), sunshine/solar-arc,
+quadrant/projection, then catalog + thresholds (which adds `-p pleiades-houses`
+to `[tasks.mutants]`).
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide

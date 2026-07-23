@@ -139,6 +139,26 @@ def fmt(x):
     return f"{x:.12f}"
 
 
+def apc_sector(n, lat_rad, obl_rad, sid_rad):
+    """crate `apc_sector`: APC in-between-sector longitude (SE 'B'/APC family).
+    Independent port from the published APC algorithm; NOT copied from the Rust."""
+    tan_lat = math.tan(lat_rad)
+    tan_obl = math.tan(obl_rad)
+    kv = math.atan2(tan_lat * tan_obl * math.cos(sid_rad),
+                    1.0 + tan_lat * tan_obl * math.sin(sid_rad))
+    sin_kv = math.sin(kv)
+    below = n < 8
+    k = float(n - 1) if below else float(n - 13)
+    if below:
+        a = kv + sid_rad + math.pi / 2 + k * (math.pi / 2 - kv) / 3.0
+    else:
+        a = kv + sid_rad + math.pi / 2 + k * (math.pi / 2 + kv) / 3.0
+    y = sin_kv * math.sin(sid_rad) + math.sin(a)
+    x = math.cos(obl_rad) * (sin_kv * math.cos(sid_rad) + math.cos(a)) \
+        + math.sin(obl_rad) * tan_lat * math.sin(sid_rad - a)
+    return norm360(math.degrees(math.atan2(y, x)))
+
+
 if __name__ == "__main__":
     print("# spherical_cotrans([40,25,2], 15):")
     print("  ", tuple(fmt(v) for v in spherical_cotrans(40.0, 25.0, 2.0, 15.0)))
@@ -231,4 +251,10 @@ if __name__ == "__main__":
     print("# interpolate_longitude(350, 20, 0.25):", fmt(interp(350.0, 20.0, 0.25)))
     print("# porphyry(asc=100, mc=10):", [fmt(v) for v in porphyry(100.0, 10.0)])
     print("# ra_from_lon(60, EPS):", fmt(ra_from_lon(60.0, EPS)))
+
+    print("# apc_sector — lat=52, obl=EPS, sidereal=45 (non-degenerate):")
+    _lat, _obl, _sid = math.radians(52.0), math.radians(EPS), math.radians(45.0)
+    for _n in range(1, 13):
+        print(f"    apc_sector({_n:2d}) = {fmt(apc_sector(_n, _lat, _obl, _sid))}")
+
     print("# whole_sign first_cusp(asc=95):", fmt(math.floor(95.0 / 30.0) * 30.0))
