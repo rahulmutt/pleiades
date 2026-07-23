@@ -737,8 +737,8 @@ with a per-mutant reachability argument grouped by structural reason:
 - **Structurally unreachable / bit-identical** (no floating-point
   approximation involved — no representable input can distinguish the
   operators, independent of tolerance): `asc1` `delete match arm 3` (arm 3 is
-  algebraically identical to the `_` arm); `asc2` 1818's `< → ==` and `< → >`
-  variants and 1811's `< → <=` variant paired with 1819 `delete -` (all four
+  algebraically identical to the `_` arm); `asc2` 1818's `< → ==`, `< → >` and
+  `< → <=` variants paired with 1819 `delete -` (all four
   are only reached once the 1811 guard has already forced `sinx == 0`
   exactly, and folding `-90` to `+90` there is a bit-identical relabeling,
   not an approximation); `asc2` 1826 `< → <=` (`longitude == 0.0` is
@@ -760,15 +760,14 @@ with a per-mutant reachability argument grouped by structural reason:
   claim the earlier writeup made — that stronger claim is exactly what was
   wrong for the two guard mutants killed above. [2]
 
-These bring the **running documented-equivalent tally to `9 + 13 = 22`**
-(the `13` is this fix's *predicted* residual, computed by enumerating the
-surviving-mutant buckets above; it supersedes the earlier `9 + 19 = 28`
-figure, which is now known to have counted 6 killable mutants as equivalent.
-**This `13`/`22` figure is a prediction pending a fresh scoped
-`cargo mutants` measurement — it has not itself been re-verified by running
-cargo-mutants after this fix, only by manually injecting each of the 6
-newly-targeted mutations and confirming the new tests fail**; treat it as
-provisional until that measurement lands). No parity gate was touched;
+These bring the **running documented-equivalent tally to `9 + 13 = 22`**,
+superseding the earlier `9 + 19 = 28` figure, which counted 6 killable mutants
+as equivalent. The `13` is **measured, not predicted**: the authoritative
+scoped run (`cargo mutants -p pleiades-houses --test-tool nextest
+--test-workspace=false --file crates/pleiades-houses/src/systems/mod.rs -F
+'in (…Foundation functions…)$'`, 164 mutants) reports **`13 missed / 151
+caught / 0 unviable`**, and `mutants.out/missed.txt` matches the three buckets
+above line-for-line. No parity gate was touched;
 the tier stays report-only; `mise run ci` is green. **Remaining houses PRs:**
 great-circle (`apc_sector`/`krusinski`/`horizon`), sector
 (`pullen_sr`/`pullen_sd`/`albategnius`/`gauquelin`), sunshine/solar-arc,
