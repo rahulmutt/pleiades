@@ -730,8 +730,10 @@ branch swap and the `delete -` turning `-90 - lat` into `90 - lat`
 (mod.rs 1812, 1807). Some of the surviving prose also overstated bit-exactness
 where the true behavior is only *below the 1e-9 parity tolerance*
 (e.g. `armc ± 180` and `(x ± 180) mod 360` differ by up to `~6.25e-13` /
-`~5.68e-14` respectively, not exactly 0); that prose was rewritten to state
-the measured magnitude instead of claiming exactness. **Documented residual —
+`~5.68e-14` respectively, not exactly 0 — the `armc ± 180` figure was later
+re-measured at `~1.31e-12` on a finer sweep; see the corrected per-bucket
+breakdown below); that prose was rewritten to state the measured magnitude
+instead of claiming exactness. **Documented residual —
 13 equivalent mutants** (down from 19), all left visible (no
 `#[mutants::skip]`), enumerated in `asc_geometry_equivalent_mutants_are_documented`
 with a per-mutant reachability argument grouped by structural reason:
