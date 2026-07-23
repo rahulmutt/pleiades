@@ -2229,3 +2229,26 @@ fn asc_geometry_equivalent_mutants_are_documented() {
         "a={a} b={b}"
     );
 }
+
+// ===== FU-9 Great-circle PR: apc_sector / apc_houses / horizon / krusinski =====
+
+#[test]
+fn apc_sector_pins_all_twelve_against_independent_reference() {
+    // Independent reference (houses-reference.py `apc_sector`, published APC
+    // algorithm) at lat=52°, obl=23.4366°, sidereal=45° — non-degenerate, so
+    // every `*`/`+`/`-`/`/` swap and the `n < 8` split is observable. Pinning
+    // all 12 sectors kills all 58 arith survivors (measured 59/59 caught).
+    let lat = 52.0_f64.to_radians();
+    let obl = 23.4366_f64.to_radians();
+    let sid = 45.0_f64.to_radians();
+    let expected = [
+        148.587_249_395_771, 166.495_240_772_036, 189.747_228_099_578,
+        227.463_595_280_938, 275.481_343_990_138, 308.273_382_675_614,
+        328.587_249_395_771, 350.866_340_446_180, 14.729_289_455_955,
+        47.463_595_280_938, 88.169_411_590_291, 122.556_859_248_324,
+    ];
+    for (i, e) in expected.iter().enumerate() {
+        let got = apc_sector(i + 1, lat, obl, sid).degrees();
+        assert!((got - e).abs() < 1e-9, "apc_sector({}) = {got}, want {e}", i + 1);
+    }
+}
