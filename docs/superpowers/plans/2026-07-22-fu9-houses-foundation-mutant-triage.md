@@ -4,7 +4,9 @@
 
 **Goal:** Drive the **Foundation** functions of `crates/pleiades-houses/src/systems/mod.rs` (shared geometry primitives, chart-point set, and the trivial/Porphyry family) from **113 surviving mutants to a measured set of documented equivalents**, establishing the independent house-math reference that PRs 2–6 reuse.
 
-> **Execution correction (2026-07-22):** this plan predicted a `113 → 1` residual. Mutation verification during execution measured **26** survivors: **7** were real coverage gaps the crafted normal-path geometries never reached (`asc2`'s `sinx ≈ 0` guard branch; an `asc_mc_from` geometry where the vertex flip actually fires) and **19** are genuine equivalents. Tasks 5–6 were extended to kill the 7 (two degenerate `asc2` pins + a flip-firing `asc_mc_from` geometry) and document the 19 (see `asc_geometry_equivalent_mutants_are_documented` and the `docs/follow-ups.md` note). The true residual is **113 → 19 documented equivalents**.
+> **Execution correction (2026-07-22):** this plan predicted a `113 → 1` residual. Mutation verification during execution measured **26** survivors: **7** were real coverage gaps the crafted normal-path geometries never reached (`asc2`'s `sinx ≈ 0` guard branch; an `asc_mc_from` geometry where the vertex flip actually fires) and **19** were *initially* documented as genuine equivalents. Tasks 5–6 were extended to kill the 7 (two degenerate `asc2` pins + a flip-firing `asc_mc_from` geometry) and document the 19 (see `asc_geometry_equivalent_mutants_are_documented` and the `docs/follow-ups.md` note).
+>
+> **Further correction (final whole-branch review, 2026-07-23):** 6 of those 19 "equivalents" were themselves misclassified — the equivalence sweep never sampled `lat = 0` (pole height exactly `±90°`, where `tan` is not 180-periodic in f64), and `asc2`'s `1e-12` guard assignment made a comparison reachable at equality that was assumed unreachable. All 6 are now killed by two additional tests. **The true residual is `113 → 13` documented equivalents** (predicted; pending a fresh scoped `cargo mutants` measurement to confirm — see the `docs/follow-ups.md` note for the corrected per-bucket breakdown).
 
 **Architecture:** First PR of the ~6-PR `pleiades-houses` FU-9 campaign (spec: `docs/superpowers/specs/2026-07-22-fu9-houses-mutant-triage-design.md`). **Tests-only** — no production-code change; every added test lives in the existing `crates/pleiades-houses/src/systems/tests.rs` (`use super::*;` reaches the private functions). Expected values come from an **independent reference** (`docs/superpowers/specs/notes/2026-07-22-houses-reference.py`, a from-scratch port of the published swehouse.c Asc1/Asc2 + `swe_houses_armc` point set and Meeus ch. 26 angle formulas), cross-validated against the crate to **all 12 decimals** — never from the code's own output.
 
@@ -16,7 +18,7 @@
 
 - **Tests-only:** no production-code change anywhere in this PR; the only file modified is `crates/pleiades-houses/src/systems/tests.rs` (plus the reference note and the follow-up entry).
 - **No parity-gate change:** no `validate-*` file is touched; the mutants tier stays report-only.
-- **No `#[mutants::skip]`:** the 1 residual `longitude_opposite` mutant is a documented equivalent, left visible with a reachability argument.
+- **No `#[mutants::skip]`:** the residual documented-equivalent mutants (13, per the 2026-07-23 correction — see the note above) are left visible with a reachability argument each, e.g. `longitude_opposite`'s `+ -> -`.
 - **Independence discipline:** every expected value comes from the independent reference or hand arithmetic, never from running the code under test and pinning its output. The reference is cross-validated against the crate to 1e-12 before its literals are trusted.
 - **Branch:** `fu9-houses-mutant-triage` (already created; the design spec + re-scope commits are on it). This branch is the Foundation PR.
 - All commands run through mise: prefix cargo invocations with `mise exec --`.
@@ -404,6 +406,8 @@ mise exec -- cargo mutants -p pleiades-houses \
   -F 'in (spherical_cotrans|asc1|asc2|asc_mc_from|interpolate_longitude|signed_longitude_difference|right_ascension_from_ecliptic_longitude|longitude_opposite|longitude_in_arc|whole_sign_houses|porphyry_houses)$'
 ```
 Expected (as measured during execution): **`19 missed`**, all documented equivalents (see the execution-correction note at the top of this plan and `asc_geometry_equivalent_mutants_are_documented`); all others **caught**. Confirm with `grep -c '' mutants.out/missed.txt` → `19` and `cat mutants.out/missed.txt` matches the enumerated equivalent set.
+
+> **Update (final whole-branch review, 2026-07-23):** 6 of the 19 were later found killable (see the correction note at the top of this plan). After the fix, the expected residual is **`13 missed`** (predicted, pending a fresh scoped `cargo mutants` run to confirm) — the 6 newly-added tests should catch `lat_deg >= 0.0 -> < 0.0` (192), `delete -` at 195, `vemc > 180.0 -> >= 180.0` (204), `vemc > 0.0 -> >= 0.0` (207), `value.abs() < 1e-12 -> == 1e-12` (1807), and `value < 0.0 -> <= 0.0` (1812).
 
 If any *other* mutant is still missed (not in the documented-equivalent set), classify it (it will be an arithmetic/comparison swap in a function above), add a discriminating assertion to the matching test using the independent reference, and re-run — do not proceed until the residual is exactly the documented equivalents.
 

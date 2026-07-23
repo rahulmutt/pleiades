@@ -705,36 +705,72 @@ system, which the later family PRs build on.
 
 The plan predicted a `113 → 1` residual, but mutation verification measured
 `26` survivors: `7` were real coverage gaps the crafted normal-path geometries
-never reached, and `19` are genuine equivalents. The `7` were killed by two
-degenerate-axis `asc2` pins (x on the `sinx ≈ 0` axis, reaching the
-`sinx.abs() < 1e-12` branch) and one `asc_mc_from` geometry where the vertex
-flip actually fires (`vemc > 0`), which the plan's three geometries never
-triggered. **Documented residual — 19 equivalent mutants**, all left visible
-(no `#[mutants::skip]`), enumerated in
-`asc_geometry_equivalent_mutants_are_documented` with a per-mutant reachability
-argument grouped by structural reason:
+never reached, and `19` were *initially* classified as genuine equivalents. The
+`7` were killed by two degenerate-axis `asc2` pins (x on the `sinx ≈ 0` axis,
+reaching the `sinx.abs() < 1e-12` branch) and one `asc_mc_from` geometry where
+the vertex flip actually fires (`vemc > 0`), which the plan's three geometries
+never triggered.
 
-- **360-periodicity of `asc2` in `x`** (it uses only `sin(x)`/`cos(x)`):
-  `asc1` arm-3 `x1 - 180 → x1 + 180` and `delete match arm 3` (arm 3 is
-  identical to the `_` arm); `asc_mc_from` `armc - 180 → + 180` at both call
-  sites (`armc ± 180` differ by exactly 360). [4]
-- **180-periodicity of `tan` in the pole height**: `f_pole = 90 - lat` vs
-  `-90 - lat` differ by exactly 180 and both `asc2` and `ascendant_for` use
-  only `tan(pole)`, so the `lat >= 0 → lat < 0` branch swap and the `delete -`
-  that turns `-90 - lat` into `90 - lat` are unobservable. [2]
-- **Exact mod-360 fold symmetry**: the vertex flip `vertex + 180 → vertex - 180`
-  normalizes to the same longitude. [1]
-- **Unreachable exact-equality boundaries**: `vemc == 180`, `vemc == 0`, and
-  `asc2`'s `1e-12` guard thresholds (`< → <=`) — no representable input hits
-  equality. [7, incl. `longitude_opposite`'s `x + 180 ≡ x - 180 (mod 360)`]
-- **±90 / ±1e-12 sentinel fold**: `asc2`'s `value == 0` and longitude-fold
-  branches (`< → ==`/`>`, `delete -`, `< → <=`) leave the folded result
-  unchanged or shift it below the crate's 1e-9 parity tolerance. [5]
+**Correction (final whole-branch review, 2026-07-23):** 6 of those 19
+"equivalents" were misclassified — the equivalence sweep never sampled
+`lat = 0`, where the pole height is exactly `±90°` and `tan` is **not**
+180-periodic in f64 (`tan(90°) = +1.633123935319537e16` vs
+`tan(-90°) = -1.633123935319537e16`), and `asc2`'s `1e-12` guard at
+`value.abs() < 1e-12` **assigns** `value = 0.0`, making the downstream
+`value < 0.0` comparison reachable at equality for a real observer geometry
+(pole `= 90 - obliquity`). All 6 are now killed by two new tests
+(`asc_mc_from_equator_pole_asymmetry_kills_tan_periodicity_mutants` and
+`asc2_value_zero_guard_reachable_at_exact_equality`): the `lat >= 0 → lat < 0`
+branch swap and the `delete -` turning `-90 - lat` into `90 - lat`
+(mod.rs 192, 195 — the "180-periodicity of tan" claim), the `vemc == 180` /
+`vemc == 0` exact-equality boundaries (mod.rs 204, 207), and `asc2`'s
+`value < 0.0 → <= 0.0` / `value.abs() < 1e-12 → == 1e-12` guard mutants
+(mod.rs 1812, 1807). Some of the surviving prose also overstated bit-exactness
+where the true behavior is only *below the 1e-9 parity tolerance*
+(e.g. `armc ± 180` and `(x ± 180) mod 360` differ by up to `~6.25e-13` /
+`~5.68e-14` respectively, not exactly 0); that prose was rewritten to state
+the measured magnitude instead of claiming exactness. **Documented residual —
+13 equivalent mutants** (down from 19), all left visible (no
+`#[mutants::skip]`), enumerated in `asc_geometry_equivalent_mutants_are_documented`
+with a per-mutant reachability argument grouped by structural reason:
 
-These bring the **running documented-equivalent tally to `9 + 19 = 28`** (the
-`19` here are the first from the post-baseline houses campaign). No parity gate
-was touched; the tier stays report-only; `mise run ci` is green. **Remaining
-houses PRs:** great-circle (`apc_sector`/`krusinski`/`horizon`), sector
+- **Structurally unreachable / bit-identical** (no floating-point
+  approximation involved — no representable input can distinguish the
+  operators, independent of tolerance): `asc1` `delete match arm 3` (arm 3 is
+  algebraically identical to the `_` arm); `asc2` 1818's `< → ==` and `< → >`
+  variants and 1811's `< → <=` variant paired with 1819 `delete -` (all four
+  are only reached once the 1811 guard has already forced `sinx == 0`
+  exactly, and folding `-90` to `+90` there is a bit-identical relabeling,
+  not an approximation); `asc2` 1826 `< → <=` (`longitude == 0.0` is
+  unreachable from all three producing branches). [6]
+- **Sub-tolerance, but measurably NOT bit-identical (I2 correction)**: `asc1`
+  arm-3 `x1 - 180 → x1 + 180` (measured max diff `~2.56e-13` over a sweep);
+  `asc_mc_from` `armc - 180 → + 180` at both call sites 201 and 215 (measured
+  max circular diff `~6.25e-13`); the vertex flip `vertex + 180 → vertex - 180`
+  at 208 and `longitude_opposite`'s `+ → -` at 1833 (measured max circular
+  diff `~5.68e-14`). None of these differences are exactly 0 — each is simply
+  far below the crate's 1e-9 parity tolerance, which is why no 1e-9 white-box
+  pin can distinguish the mutated operators. [5]
+- **`asc2`'s remaining `1e-12` guard thresholds, below tolerance under
+  generic inputs**: `value.abs() < 1e-12 → <=` (1807, the `<=` variant —
+  distinct from the `== 1e-12` variant killed above) and
+  `sinx.abs() < 1e-12 → <=` (1811) — for non-adversarial inputs the reachable
+  boundary difference is `~1.4e-10`, below the 1e-9 tolerance. This is a
+  below-tolerance claim, not the "no representable input hits equality"
+  claim the earlier writeup made — that stronger claim is exactly what was
+  wrong for the two guard mutants killed above. [2]
+
+These bring the **running documented-equivalent tally to `9 + 13 = 22`**
+(the `13` is this fix's *predicted* residual, computed by enumerating the
+surviving-mutant buckets above; it supersedes the earlier `9 + 19 = 28`
+figure, which is now known to have counted 6 killable mutants as equivalent.
+**This `13`/`22` figure is a prediction pending a fresh scoped
+`cargo mutants` measurement — it has not itself been re-verified by running
+cargo-mutants after this fix, only by manually injecting each of the 6
+newly-targeted mutations and confirming the new tests fail**; treat it as
+provisional until that measurement lands). No parity gate was touched;
+the tier stays report-only; `mise run ci` is green. **Remaining houses PRs:**
+great-circle (`apc_sector`/`krusinski`/`horizon`), sector
 (`pullen_sr`/`pullen_sd`/`albategnius`/`gauquelin`), sunshine/solar-arc,
 quadrant/projection, then catalog + thresholds (which adds `-p pleiades-houses`
 to `[tasks.mutants]`).

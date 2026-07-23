@@ -174,6 +174,60 @@ if __name__ == "__main__":
     for k, v in asc_mc_from(15.0, 5.0, EPS).items():
         print(f"    {k:12s} = {fmt(v)}")
 
+    # FU-9 final-review fix (2026-07-23): the equivalence sweep never sampled
+    # lat=0, where the pole height is exactly +-90 deg and tan is NOT
+    # 180-periodic in f64 (tan(90 deg) != tan(-90 deg) in float arithmetic).
+    # These equator geometries kill mutants C1-C3 (mod.rs 192/195/204/207) and
+    # I1 (mod.rs 195, southern branch at lat just below 0).
+    print("# asc_mc_from — equator degeneracy, C1 (armc=45, lat=0, obl=EPS):")
+    for k, v in asc_mc_from(45.0, 0.0, EPS).items():
+        print(f"    {k:12s} = {v!r}")
+    print("# asc_mc_from — equator degeneracy, C2 (armc=0, lat=0, obl=EPS):")
+    for k, v in asc_mc_from(0.0, 0.0, EPS).items():
+        print(f"    {k:12s} = {v!r}")
+    print("# asc_mc_from — equator degeneracy, C3 (armc=180, lat=0, obl=EPS):")
+    for k, v in asc_mc_from(180.0, 0.0, EPS).items():
+        print(f"    {k:12s} = {v!r}")
+    print("# asc_mc_from — I1 southern just-below-equator (armc=45, lat=-1e-16, obl=EPS):")
+    for k, v in asc_mc_from(45.0, -1e-16, EPS).items():
+        print(f"    {k:12s} = {v!r}")
+
+    # asc2's guard at value.abs()<1e-12 assigns value=0.0, which makes the
+    # value<0.0 comparison reachable at equality (C4/C5). pole=90-EPS=66.5634
+    # is the f_pole of an observer at latitude=obliquity; it drives value to
+    # exactly 0.0 at x=0.
+    print("# asc2 value==0.0 guard pins (C4/C5, pole = 90-EPS and a neighbor):")
+    print(f"  asc2(0, 66.5634,          sine, cose) = {asc2(0.0, 66.5634, SINE, COSE)!r}")
+    print(f"  asc2(0, 66.5634000000001, sine, cose) = {asc2(0.0, 66.5634000000001, SINE, COSE)!r}")
+
+    # I2 sanity check: independently confirm the two "periodicity" claims are
+    # only sub-tolerance, not bit-identical, by sweeping a lat/armc grid and
+    # taking the max circular difference (min(d, 360-d)).
+    def circ_diff(a, b):
+        d = abs(norm360(a) - norm360(b))
+        return min(d, 360.0 - d)
+
+    max_asc_diff = 0.0
+    for armc in range(0, 360, 3):
+        for lat in (-66.0, -33.0, -10.0, 10.0, 33.0, 66.0):
+            obl = EPS * D2R
+            a = ascendant_for(armc - 180.0, lat, obl)
+            b = ascendant_for(armc + 180.0, lat, obl)
+            max_asc_diff = max(max_asc_diff, circ_diff(a, b))
+    print(f"# I2 sanity: max circular diff ascendant_for(armc-180) vs (armc+180) = {max_asc_diff!r}")
+
+    max_fold_diff = 0.0
+    for x in (v * 0.1 for v in range(0, 3600)):
+        max_fold_diff = max(max_fold_diff, circ_diff((x + 180.0) % 360.0, (x - 180.0) % 360.0))
+    print(f"# I2 sanity: max circular diff (x+180)%360 vs (x-180)%360 = {max_fold_diff!r}")
+
+    max_asc2_x_diff = 0.0
+    for x in (v * 0.3 for v in range(0, 1200)):
+        a = asc2(x - 180.0, -52.0, SINE, COSE)
+        b = asc2(x + 180.0, -52.0, SINE, COSE)
+        max_asc2_x_diff = max(max_asc2_x_diff, abs(a - b))
+    print(f"# I2 sanity: max diff asc2(x-180) vs asc2(x+180) (pole=-52) = {max_asc2_x_diff!r}")
+
     print("# interpolate_longitude(350, 20, 0.25):", fmt(interp(350.0, 20.0, 0.25)))
     print("# porphyry(asc=100, mc=10):", [fmt(v) for v in porphyry(100.0, 10.0)])
     print("# ra_from_lon(60, EPS):", fmt(ra_from_lon(60.0, EPS)))

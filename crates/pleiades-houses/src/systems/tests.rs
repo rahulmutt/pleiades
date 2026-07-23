@@ -1769,11 +1769,8 @@ fn asc2_matches_independent_swehouse_kernel() {
         (300.0, 86.674_198_092_798),
     ];
     for (x, expected) in cases {
-        assert!(
-            (asc2(x, 52.0, sine, cose) - expected).abs() < 1e-9,
-            "asc2({x}) = {}",
-            asc2(x, 52.0, sine, cose)
-        );
+        let got = asc2(x, 52.0, sine, cose);
+        assert!((got - expected).abs() < 1e-9, "asc2({x}) = {got}");
     }
 }
 
@@ -2018,43 +2015,195 @@ fn asc_mc_from_vertex_flip_actually_fires() {
 }
 
 #[test]
-fn asc_geometry_equivalent_mutants_are_documented() {
-    // The measured cargo-mutants residual for the Foundation functions is a set
-    // of DOCUMENTED EQUIVALENT MUTANTS, left visible (no #[mutants::skip]) per
-    // the FU-9 posture. Each is behavior-preserving on every reachable input:
-    //
-    //   * 360-periodicity of asc2 in x (asc2 uses only sin(x)/cos(x)): asc1
-    //     arm-3 `x1 - 180 -> x1 + 180` (1799) and `delete match arm 3` (arm 3
-    //     is identical to the `_` arm); asc_mc `armc - 180 -> + 180` at 201 and
-    //     215 (armc±180 differ by exactly 360).
-    //   * 180-periodicity of tan in the pole height: asc_mc `f_pole = 90-lat`
-    //     vs `-90-lat` differ by exactly 180 and asc2/ascendant_for use only
-    //     tan(pole), so the `lat>=0 -> lat<0` branch swap (192) and the
-    //     `delete -` that turns -90-lat into 90-lat (195) are unobservable.
-    //   * exact mod-360 fold symmetry: asc_mc vertex flip `+180 -> -180` (208)
-    //     normalizes to the same longitude.
-    //   * unreachable exact-equality boundaries: vemc==180 (204 `> -> >=`),
-    //     vemc==0 (207 `> -> >=`), and asc2's 1e-12 guard thresholds
-    //     (1807/1811/1812/1818 `< -> <=`) — no representable input hits equality.
-    //   * ±90 / ±1e-12 sentinel fold: asc2 1818 `< -> ==`/`>`, 1819 `delete -`,
-    //     1826 `< -> <=`, 1807 `< -> ==` leave the folded result unchanged or
-    //     shift it below the crate's 1e-9 parity tolerance.
-    //
-    // The identities below are asserted so the reasoning itself is regression-
-    // tested; each difference is far below the 1e-9 parity tolerance, which is
-    // exactly why no 1e-9 white-box pin can distinguish the mutated operators.
+fn asc_mc_from_equator_pole_asymmetry_kills_tan_periodicity_mutants() {
+    // Final-review fix (2026-07-23): the original Foundation PR's equivalence
+    // sweep sampled lat in [-66,-50,-33,-20,-10,-5,5,10,20,23,33,50,66] and
+    // never tried lat = 0. At lat = 0 the pole height `f_pole` used by the
+    // vertex/coascendant_munkasey branch is exactly +-90 deg, where `tan` is
+    // NOT 180-periodic in f64 (`tan(90 deg) = +1.633...e16` vs
+    // `tan(-90 deg) = -1.633...e16`, not equal). That makes several mutants
+    // that were documented as "180-periodicity of tan" equivalents actually
+    // observable at the equator. Independent reference (houses-reference.py
+    // `asc_mc_from`), cross-validated to 1e-12.
+    let eps = 23.4366_f64;
+
+    // C1: kills mod.rs `lat_deg >= 0.0 -> < 0.0` (the f_pole branch select).
+    // At lat=0.0 HEAD takes the `>=` arm (f_pole = 90-lat = 90); the mutant
+    // takes the `<` arm's `else` (f_pole = -90-lat = -90), giving tan(pole)
+    // the opposite huge-magnitude sign and moving coascendant_munkasey from
+    // 180.0 to ~6.2e-15 -- a ~180 degree miss.
+    let c1 = asc_mc_from(45.0, 0.0, eps).expect("finite");
+    let got = c1.coascendant_munkasey.degrees();
+    assert!(
+        signed_longitude_difference(got, 180.0).abs() < 1e-9,
+        "coascendant_munkasey = {got}, want ~180.0"
+    );
+
+    // C2: kills mod.rs `vemc > 180.0 -> >= 180.0`. At armc=0, lat=0 the raw
+    // vemc is exactly 180.0. HEAD's strict `>` leaves it unfolded and the
+    // vertex then flips (vemc > 0.0) to 0.0; the mutant's `>=` folds it to
+    // -180.0 first, so the flip guard sees a negative vemc and never fires,
+    // leaving the vertex at 180.0 -- a ~180 degree miss.
+    let c2 = asc_mc_from(0.0, 0.0, eps).expect("finite");
+    let got = c2.vertex.degrees();
+    assert!(
+        signed_longitude_difference(got, 0.0).abs() < 1e-9,
+        "vertex = {got}, want ~0.0"
+    );
+
+    // C3: kills mod.rs `vemc > 0.0 -> >= 0.0`. At armc=180, lat=0 the raw vemc
+    // is exactly 0.0. HEAD's strict `>` does not flip, leaving vertex at
+    // 180.0; the mutant's `>=` flips it to 0.0 -- a ~180 degree miss.
+    let c3 = asc_mc_from(180.0, 0.0, eps).expect("finite");
+    let got = c3.vertex.degrees();
+    assert!(
+        signed_longitude_difference(got, 180.0).abs() < 1e-9,
+        "vertex = {got}, want ~180.0"
+    );
+
+    // I1: kills mod.rs `delete -` turning `-90.0 - lat` into `90.0 - lat` in
+    // the southern (`lat < 0`) branch. lat = -1e-16 is a hair below zero, so
+    // it takes that branch: HEAD computes f_pole = -90.0 - (-1e-16) ~ -90,
+    // giving coascendant_munkasey ~6.2e-15; the mutant computes
+    // f_pole = 90.0 - (-1e-16) ~ +90, giving ~180.0 -- again a ~180 degree
+    // miss, mirroring C1 but through the southern branch.
+    let i1 = asc_mc_from(45.0, -1e-16, eps).expect("finite");
+    let got = i1.coascendant_munkasey.degrees();
+    assert!(
+        signed_longitude_difference(got, 0.0).abs() < 1e-9,
+        "coascendant_munkasey = {got}, want ~0.0"
+    );
+}
+
+#[test]
+fn asc2_value_zero_guard_reachable_at_exact_equality() {
+    // Final-review fix (2026-07-23): the old equivalence writeup claimed
+    // "no representable input hits equality" for asc2's `1.0e-12` guard
+    // thresholds. That is wrong: the guard at mod.rs `value.abs() < 1.0e-12`
+    // ASSIGNS `value = 0.0`, and pole = 90 - EPS = 66.5634 (the f_pole of an
+    // observer at latitude == obliquity) drives `value` to exactly 0.0 at
+    // x = 0, making the downstream `value < 0.0` comparison reachable at
+    // equality too. Independent reference (houses-reference.py `asc2`),
+    // cross-validated to 1e-12: both calls below equal 1e-12 exactly.
     let eps = 23.4366_f64;
     let (sine, cose) = (eps.to_radians().sin(), eps.to_radians().cos());
-    // 360-periodicity of asc2 in x (asc1 arm-3 `x1-180 -> x1+180`):
+
+    // Kills mod.rs `value < 0.0 -> <= 0.0`: value is exactly 0.0 here, so
+    // HEAD's strict `<` takes the `else` arm (+1e-12 sentinel); the mutant's
+    // `<=` takes the `if` arm (-1e-12), which the final `< 0.0 -> += 180.0`
+    // fold turns into ~180.0 -- a ~180 degree miss.
+    let at_pole = asc2(0.0, 66.5634, sine, cose);
+    assert!(
+        (at_pole - 1e-12).abs() < 1e-13,
+        "asc2(0, 66.5634) = {at_pole}"
+    );
+
+    // Kills mod.rs `value.abs() < 1.0e-12 -> == 1.0e-12`: at this neighboring
+    // pole, the raw `value` is a tiny unrounded epsilon, not exactly 1e-12,
+    // so the mutant guard never fires and value is never snapped to 0.0. The
+    // sign of that unrounded epsilon leaks through to the same ~180 degree
+    // miss as above.
+    let near_pole = asc2(0.0, 66.5634000000001, sine, cose);
+    assert!(
+        (near_pole - 1e-12).abs() < 1e-13,
+        "asc2(0, 66.5634000000001) = {near_pole}"
+    );
+}
+
+#[test]
+fn asc_geometry_equivalent_mutants_are_documented() {
+    // The measured cargo-mutants residual for the Foundation functions is a
+    // set of DOCUMENTED EQUIVALENT MUTANTS, left visible (no
+    // `#[mutants::skip]`) per the FU-9 posture.
+    //
+    // CORRECTION (final-review fix, 2026-07-23): an earlier version of this
+    // test claimed six of these were equivalent by "180-periodicity of tan in
+    // the pole height" and "unreachable exact-equality boundaries". Both
+    // claims were wrong — the equivalence sweep never sampled lat = 0 (pole
+    // height exactly +-90, where f64 `tan` is NOT 180-periodic) and never
+    // noticed that asc2's `value.abs() < 1e-12` guard EXPLICITLY assigns
+    // `value = 0.0`, making the downstream `value < 0.0` reachable at
+    // equality. Those six mutants (mod.rs 192, 195, 204, 207, 1807, 1812) are
+    // now KILLED by `asc_mc_from_equator_pole_asymmetry_kills_tan_periodicity_mutants`
+    // and `asc2_value_zero_guard_reachable_at_exact_equality` above, and are
+    // no longer documented as equivalent here. The remaining residual splits
+    // into two honestly-distinguished categories:
+    //
+    // STRUCTURALLY UNREACHABLE / BIT-IDENTICAL (no representable input can
+    // distinguish the operators, independent of tolerance):
+    //   * asc1 `delete match arm 3` (1799): arm 3's formula is algebraically
+    //     identical to the `_` arm for every `x1` that reaches it.
+    //   * asc2 1818 `< -> ==`/`< -> >`, 1819 `delete -`: only reached once the
+    //     1811 guard has already forced `sinx == 0` exactly; folding `-90` to
+    //     `+90` there is a bit-identical relabeling, not an approximation.
+    //   * asc2 1826 `< -> <=` (final `longitude < 0.0` fold): `longitude ==
+    //     0.0` is unreachable from all three producing branches.
+    //
+    // BELOW THE 1e-9 PARITY TOLERANCE, BUT MEASURABLY NOT BIT-IDENTICAL
+    // (I2 correction — do not claim "differ by exactly 360" or "no
+    // representable input hits equality" here; state the measured magnitude):
+    //   * asc1 arm-3 `x1 - 180 -> x1 + 180` (360-periodicity of asc2 in x):
+    //     measured max diff ~2.56e-13 over a sweep (houses-reference.py sanity
+    //     check), not exactly 0.
+    //   * asc_mc `armc - 180 -> + 180` at 201 and 215: measured max circular
+    //     diff ~6.25e-13 over a lat/armc sweep, not exactly 0.
+    //   * asc_mc vertex flip `+180 -> -180` (208) and `longitude_opposite`'s
+    //     `+ -> -` (1833): measured max circular diff ~5.68e-14 over a sweep,
+    //     not exactly 0.
+    //   * asc2 1811 `< -> <=` (`sinx.abs() < 1e-12` guard): under generic
+    //     (non-adversarial) inputs the reachable boundary difference is
+    //     ~1.4e-10 — below tolerance, but not a strict-unreachability claim.
+    //
+    // All measured magnitudes above are independently confirmed by
+    // `houses-reference.py`'s sanity-check sweeps, never by running the
+    // crate. The identities below are asserted so the reasoning itself is
+    // regression-tested.
+    let eps = 23.4366_f64;
+    let (sine, cose) = (eps.to_radians().sin(), eps.to_radians().cos());
+
+    // 360-periodicity of asc2 in x (asc1 arm-3 `x1-180 -> x1+180`): below
+    // tolerance, not bit-identical (see comment above).
     assert!(
         (asc2(30.0 - 180.0, -52.0, sine, cose) - asc2(30.0 + 180.0, -52.0, sine, cose)).abs()
             < 1e-9
     );
-    // 180-periodicity of tan(pole) (asc_mc pole-branch 90-lat vs -90-lat):
+
+    // 180-periodicity of tan(pole) holds well away from the poles (asc_mc
+    // pole-branch 90-lat vs -90-lat, both far from +-90):
     assert!((asc2(70.0, 38.0, sine, cose) - asc2(70.0, 38.0 - 180.0, sine, cose)).abs() < 1e-9);
-    // exact mod-360 fold symmetry (asc_mc vertex `+180 -> -180`):
+    // ...but the identity FAILS exactly at the degenerate pole (lat = 0,
+    // pole = +-90): tan(90 deg) and tan(-90 deg) are not equal in f64, so the
+    // difference blows well past the parity tolerance instead of vanishing.
+    // This is precisely the case
+    // `asc_mc_from_equator_pole_asymmetry_kills_tan_periodicity_mutants`
+    // exercises to kill mutants 192/195/204/207 above — it is not
+    // re-documented as equivalent here.
+    assert!(
+        (asc2(0.0, 90.0, sine, cose) - asc2(0.0, -90.0, sine, cose)).abs() > 1.0,
+        "the tan(pole) periodicity identity must FAIL at pole = +-90"
+    );
+
+    // Vertex-fold `+180 -> -180`: exact for these particular literals (pure
+    // rem_euclid arithmetic on 200.0, no trig involved)...
     assert_eq!(
         (200.0_f64 + 180.0).rem_euclid(360.0),
         (200.0_f64 - 180.0).rem_euclid(360.0)
+    );
+    // ...but not universally bit-identical once trig-derived vertex values are
+    // involved: x = 332.3 is a measured near-worst-case (~5.68e-14 diff),
+    // still comfortably below the 1e-9 tolerance.
+    assert!(
+        ((332.3_f64 + 180.0).rem_euclid(360.0) - (332.3_f64 - 180.0).rem_euclid(360.0)).abs()
+            < 1e-9
+    );
+
+    // asc_mc `armc - 180 -> + 180` (201/215): below tolerance, not exact.
+    // armc=88.9, lat=66.0 is a measured near-worst-case (~1.3e-12 diff).
+    let obl = eps.to_radians();
+    let a = ascendant_for(88.9 - 180.0, 66.0, obl).degrees();
+    let b = ascendant_for(88.9 + 180.0, 66.0, obl).degrees();
+    assert!(
+        signed_longitude_difference(a, b).abs() < 1e-9,
+        "a={a} b={b}"
     );
 }
