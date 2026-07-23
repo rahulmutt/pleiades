@@ -2242,14 +2242,26 @@ fn apc_sector_pins_all_twelve_against_independent_reference() {
     let obl = 23.4366_f64.to_radians();
     let sid = 45.0_f64.to_radians();
     let expected = [
-        148.587_249_395_771, 166.495_240_772_036, 189.747_228_099_578,
-        227.463_595_280_938, 275.481_343_990_138, 308.273_382_675_614,
-        328.587_249_395_771, 350.866_340_446_180, 14.729_289_455_955,
-        47.463_595_280_938, 88.169_411_590_291, 122.556_859_248_324,
+        148.587_249_395_771,
+        166.495_240_772_036,
+        189.747_228_099_578,
+        227.463_595_280_938,
+        275.481_343_990_138,
+        308.273_382_675_614,
+        328.587_249_395_771,
+        350.866_340_446_180,
+        14.729_289_455_955,
+        47.463_595_280_938,
+        88.169_411_590_291,
+        122.556_859_248_324,
     ];
     for (i, e) in expected.iter().enumerate() {
         let got = apc_sector(i + 1, lat, obl, sid).degrees();
-        assert!((got - e).abs() < 1e-9, "apc_sector({}) = {got}, want {e}", i + 1);
+        assert!(
+            (got - e).abs() < 1e-9,
+            "apc_sector({}) = {got}, want {e}",
+            i + 1
+        );
     }
 }
 
@@ -2276,16 +2288,25 @@ fn apc_houses_calls_apc_sector_with_one_indexed_sectors() {
     // check is non-circular; apc_sector's own arithmetic is pinned in Task 1.
     let instant = gc_instant();
     let obs = ObserverLocation::new(
-        Latitude::from_degrees(52.0), Longitude::from_degrees(0.0), None);
+        Latitude::from_degrees(52.0),
+        Longitude::from_degrees(0.0),
+        None,
+    );
     let obl = Angle::from_degrees(23.4366);
     let angles = gc_angles(10.0, 280.0);
     let cusps = apc_houses(instant, &obs, obl, angles);
-    let st_rad = local_sidereal_time(instant, obs.longitude).degrees().to_radians();
+    let st_rad = local_sidereal_time(instant, obs.longitude)
+        .degrees()
+        .to_radians();
     let (lat_rad, obl_rad) = (52.0_f64.to_radians(), 23.4366_f64.to_radians());
     for i in [1usize, 2, 3, 4, 5, 6, 7, 8, 10, 11] {
         let want = apc_sector(i + 1, lat_rad, obl_rad, st_rad).degrees();
-        assert!((cusps[i].degrees() - want).abs() < 1e-9,
-            "apc cusp[{i}] = {}, want apc_sector({}) = {want}", cusps[i].degrees(), i + 1);
+        assert!(
+            (cusps[i].degrees() - want).abs() < 1e-9,
+            "apc cusp[{i}] = {}, want apc_sector({}) = {want}",
+            cusps[i].degrees(),
+            i + 1
+        );
     }
     assert_eq!(cusps[0], angles.ascendant);
     assert_eq!(cusps[9], angles.midheaven);
@@ -2298,7 +2319,10 @@ fn apc_houses_calls_apc_sector_with_one_indexed_sectors() {
 // from the un-mutated local_sidereal_time. Confirmed to equal the crate at HEAD
 // to 1e-9 during plan authoring, so any structural mutant that diverges dies.
 fn recompose_horizon(
-    instant: Instant, obs: &ObserverLocation, obl_deg: f64, mc: Longitude,
+    instant: Instant,
+    obs: &ObserverLocation,
+    obl_deg: f64,
+    mc: Longitude,
 ) -> [Longitude; 12] {
     let st = (local_sidereal_time(instant, obs.longitude).degrees() + 180.0).rem_euclid(360.0);
     let obl_rad = obl_deg.to_radians();
@@ -2313,7 +2337,11 @@ fn recompose_horizon(
     let fh2 = ((3.0_f64).sqrt() / 2.0 * tlr.sin()).asin().to_degrees();
     let cosfi = tlr.cos();
     let (xh1, xh2) = if cosfi == 0.0 {
-        if tl > 0.0 { (90.0, 90.0) } else { (270.0, 270.0) }
+        if tl > 0.0 {
+            (90.0, 90.0)
+        } else {
+            (270.0, 270.0)
+        }
     } else {
         (
             (3.0_f64.sqrt() / cosfi).atan().to_degrees(),
@@ -2347,13 +2375,18 @@ fn horizon_houses_match_independent_recomposition_across_geometries() {
     //   where HEAD does not (cosfi 1 -> 1.7e-12), killing it.
     for lat in [-33.0_f64, 0.0, 40.0, 1e-11, 90.0] {
         let obs = ObserverLocation::new(
-            Latitude::from_degrees(lat), Longitude::from_degrees(0.0), None);
+            Latitude::from_degrees(lat),
+            Longitude::from_degrees(0.0),
+            None,
+        );
         let angles = gc_angles(10.0, 280.0);
         let got = horizon_houses(instant, &obs, obl, angles);
         let want = recompose_horizon(instant, &obs, 23.4366, angles.midheaven);
         for i in 0..12 {
             let mut d = (got[i].degrees() - want[i].degrees()).rem_euclid(360.0);
-            if d > 180.0 { d -= 360.0; }
+            if d > 180.0 {
+                d -= 360.0;
+            }
             assert!(d.abs() < 1e-9, "horizon lat={lat} cusp[{i}] diff {d}");
         }
     }
@@ -2400,14 +2433,30 @@ fn horizon_pole_singularity_equivalent_mutants_are_documented() {
         let a = (lst + 180.0).rem_euclid(360.0);
         let b = (lst - 180.0).rem_euclid(360.0);
         let mut d = (a - b).rem_euclid(360.0);
-        if d > 180.0 { d -= 360.0; }
+        if d > 180.0 {
+            d -= 360.0;
+        }
         worst = worst.max(d.abs());
         lst += 0.0007;
     }
-    assert!(worst < 1e-9, "antipode (x±180)%360 diff {worst} must stay sub-tolerance");
+    assert!(
+        worst < 1e-9,
+        "antipode (x±180)%360 diff {worst} must stay sub-tolerance"
+    );
     // Fact (C): cos(tl_rad) never hits exactly 0 across the reachable tl range.
-    for tl in [90.0_f64 - 1e-10, -90.0_f64 + 1e-10, 90.0, -90.0, 0.0, 45.0, -57.0] {
-        assert!(tl.to_radians().cos() != 0.0, "cosfi==0.0 arm is dead (tl={tl})");
+    for tl in [
+        90.0_f64 - 1e-10,
+        -90.0_f64 + 1e-10,
+        90.0,
+        -90.0,
+        0.0,
+        45.0,
+        -57.0,
+    ] {
+        assert!(
+            tl.to_radians().cos() != 0.0,
+            "cosfi==0.0 arm is dead (tl={tl})"
+        );
     }
 }
 
@@ -2418,7 +2467,10 @@ fn horizon_pole_singularity_equivalent_mutants_are_documented() {
 // `st` threaded from the un-mutated local_sidereal_time. Confirmed == crate at
 // HEAD to 1e-9 during plan authoring.
 fn recompose_krusinski(
-    instant: Instant, obs: &ObserverLocation, obl_deg: f64, angles: HouseAngles,
+    instant: Instant,
+    obs: &ObserverLocation,
+    obl_deg: f64,
+    angles: HouseAngles,
 ) -> [Longitude; 12] {
     let st = local_sidereal_time(instant, obs.longitude).degrees();
     let lat = obs.latitude.degrees();
@@ -2461,14 +2513,22 @@ fn krusinski_houses_match_independent_recomposition_across_geometries() {
         (52.0, 100.0, 100.0),
     ] {
         let obs = ObserverLocation::new(
-            Latitude::from_degrees(lat), Longitude::from_degrees(0.0), None);
+            Latitude::from_degrees(lat),
+            Longitude::from_degrees(0.0),
+            None,
+        );
         let angles = gc_angles(asc, mc);
         let got = krusinski_pisa_goelzer_houses(instant, &obs, obl, angles);
         let want = recompose_krusinski(instant, &obs, 23.4366, angles);
         for i in 0..12 {
             let mut d = (got[i].degrees() - want[i].degrees()).rem_euclid(360.0);
-            if d > 180.0 { d -= 360.0; }
-            assert!(d.abs() < 1e-9, "krusinski lat={lat} asc={asc} cusp[{i}] diff {d}");
+            if d > 180.0 {
+                d -= 360.0;
+            }
+            assert!(
+                d.abs() < 1e-9,
+                "krusinski lat={lat} asc={asc} cusp[{i}] diff {d}"
+            );
         }
     }
 }
