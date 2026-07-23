@@ -35,12 +35,10 @@ rust = { version = "1.97.1", components = "rustfmt,clippy" }
 "aqua:release-plz/release-plz" = "0.3.160"
 "aqua:EmbarkStudios/cargo-deny" = "0.20.2"
 gitleaks = "8.30.1"
-# nextest is a monorepo publishing several tag prefixes (cargo-nextest-*,
-# nextest-runner-*, …); no aqua registry entry. The github backend fetches the
-# prebuilt `cargo-nextest` binary and verifies its GitHub artifact attestation.
-# Pin the full tag as the version so mise resolves within the cargo-nextest-*
-# series (ubi mis-resolved "latest" across the mixed prefixes and is deprecated).
-"github:nextest-rs/nextest" = { version = "cargo-nextest-0.9.140", exe = "cargo-nextest" }
+# cargo-nextest is published to crates.io as the `cargo-nextest` crate, so the
+# cargo backend resolves plain semver versions directly — no monorepo tag-prefix
+# ambiguity (the nextest repo tags cargo-nextest-*, nextest-runner-*, …).
+"cargo:cargo-nextest" = "0.9.140"
 
 [tasks.fmt]
 run = "cargo fmt --all --check"
