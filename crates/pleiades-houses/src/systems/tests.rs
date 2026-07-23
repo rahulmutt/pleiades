@@ -2252,3 +2252,41 @@ fn apc_sector_pins_all_twelve_against_independent_reference() {
         assert!((got - e).abs() < 1e-9, "apc_sector({}) = {got}, want {e}", i + 1);
     }
 }
+
+fn gc_instant() -> Instant {
+    Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt)
+}
+
+fn gc_angles(asc: f64, mc: f64) -> HouseAngles {
+    HouseAngles {
+        ascendant: Longitude::from_degrees(asc),
+        descendant: Longitude::from_degrees(asc + 180.0),
+        midheaven: Longitude::from_degrees(mc),
+        imum_coeli: Longitude::from_degrees(mc + 180.0),
+    }
+}
+
+#[test]
+fn apc_houses_calls_apc_sector_with_one_indexed_sectors() {
+    // Recomposition (independent of apc_houses's own indexing arithmetic): each
+    // non-angle cusp i must equal the pure apc_sector for sector n = i+1. The
+    // `index + 1 -> index * 1` mutant makes cusp[i] = apc_sector(i), differing
+    // from apc_sector(i+1) at every reachable geometry. `st` is threaded from
+    // the un-mutated local_sidereal_time (not mutated in this slice), so the
+    // check is non-circular; apc_sector's own arithmetic is pinned in Task 1.
+    let instant = gc_instant();
+    let obs = ObserverLocation::new(
+        Latitude::from_degrees(52.0), Longitude::from_degrees(0.0), None);
+    let obl = Angle::from_degrees(23.4366);
+    let angles = gc_angles(10.0, 280.0);
+    let cusps = apc_houses(instant, &obs, obl, angles);
+    let st_rad = local_sidereal_time(instant, obs.longitude).degrees().to_radians();
+    let (lat_rad, obl_rad) = (52.0_f64.to_radians(), 23.4366_f64.to_radians());
+    for i in [1usize, 2, 3, 4, 5, 6, 7, 8, 10, 11] {
+        let want = apc_sector(i + 1, lat_rad, obl_rad, st_rad).degrees();
+        assert!((cusps[i].degrees() - want).abs() < 1e-9,
+            "apc cusp[{i}] = {}, want apc_sector({}) = {want}", cusps[i].degrees(), i + 1);
+    }
+    assert_eq!(cusps[0], angles.ascendant);
+    assert_eq!(cusps[9], angles.midheaven);
+}
