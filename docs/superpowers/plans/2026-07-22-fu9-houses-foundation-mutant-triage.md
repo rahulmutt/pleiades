@@ -405,9 +405,9 @@ mise exec -- cargo mutants -p pleiades-houses \
   --file crates/pleiades-houses/src/systems/mod.rs \
   -F 'in (spherical_cotrans|asc1|asc2|asc_mc_from|interpolate_longitude|signed_longitude_difference|right_ascension_from_ecliptic_longitude|longitude_opposite|longitude_in_arc|whole_sign_houses|porphyry_houses)$'
 ```
-Expected (as measured during execution): **`19 missed`**, all documented equivalents (see the execution-correction note at the top of this plan and `asc_geometry_equivalent_mutants_are_documented`); all others **caught**. Confirm with `grep -c '' mutants.out/missed.txt` → `19` and `cat mutants.out/missed.txt` matches the enumerated equivalent set.
+Expected (final measured result): **`13 missed / 151 caught / 0 unviable`** out of 164 mutants — all 13 documented equivalents (see the execution-correction notes at the top of this plan and `asc_geometry_equivalent_mutants_are_documented`); all others **caught**. Confirm with `grep -c '' mutants.out/missed.txt` → `13` and `cat mutants.out/missed.txt` matches the enumerated equivalent set.
 
-> **Update (final whole-branch review, 2026-07-23):** 6 of the 19 were later found killable (see the correction note at the top of this plan). After the fix, the expected residual is **`13 missed`** (predicted, pending a fresh scoped `cargo mutants` run to confirm) — the 6 newly-added tests should catch `lat_deg >= 0.0 -> < 0.0` (192), `delete -` at 195, `vemc > 180.0 -> >= 180.0` (204), `vemc > 0.0 -> >= 0.0` (207), `value.abs() < 1e-12 -> == 1e-12` (1807), and `value < 0.0 -> <= 0.0` (1812).
+> **Update (final whole-branch review, 2026-07-23):** an intermediate revision of this step expected `19 missed`; the final review found 6 of those 19 were actually killable (see the correction note at the top of this plan). The 6 added tests now catch `lat_deg >= 0.0 -> < 0.0` (192), `delete -` at 195, `vemc > 180.0 -> >= 180.0` (204), `vemc > 0.0 -> >= 0.0` (207), `value.abs() < 1e-12 -> == 1e-12` (1807), and `value < 0.0 -> <= 0.0` (1812), giving the measured `13` above.
 
 If any *other* mutant is still missed (not in the documented-equivalent set), classify it (it will be an arithmetic/comparison swap in a function above), add a discriminating assertion to the matching test using the independent reference, and re-run — do not proceed until the residual is exactly the documented equivalents.
 

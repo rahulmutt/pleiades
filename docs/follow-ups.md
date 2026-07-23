@@ -692,7 +692,9 @@ whole-crate baseline measured `1,231 mutants, 569 missed` — `systems/mod.rs`
 alone has `554`, ~15× the previous largest slice, so the crate is worked as a
 ~6-PR family-grouped campaign. This Foundation PR triaged the shared geometry
 primitives + chart-point set + trivial/Porphyry family from `113` surviving
-mutants to **19 documented equivalents**: `spherical_cotrans` (34),
+mutants to **13 documented equivalents** (measured; an intermediate revision of
+this note said `19`, before the final review found 6 of those were actually
+killable — see the correction below): `spherical_cotrans` (34),
 `asc1`/`asc2` (28), `asc_mc_from` (22), `porphyry_houses` (16),
 `interpolate_longitude` (6), `signed_longitude_difference` (3), and one each in
 `right_ascension_from_ecliptic_longitude`, `whole_sign_houses`,
@@ -736,21 +738,30 @@ with a per-mutant reachability argument grouped by structural reason:
 
 - **Structurally unreachable / bit-identical** (no floating-point
   approximation involved — no representable input can distinguish the
-  operators, independent of tolerance): `asc1` `delete match arm 3` (arm 3 is
-  algebraically identical to the `_` arm); `asc2` 1818's `< → ==`, `< → >` and
-  `< → <=` variants paired with 1819 `delete -` (all four
-  are only reached once the 1811 guard has already forced `sinx == 0`
-  exactly, and folding `-90` to `+90` there is a bit-identical relabeling,
-  not an approximation); `asc2` 1826 `< → <=` (`longitude == 0.0` is
-  unreachable from all three producing branches). [6]
-- **Sub-tolerance, but measurably NOT bit-identical (I2 correction)**: `asc1`
-  arm-3 `x1 - 180 → x1 + 180` (measured max diff `~2.56e-13` over a sweep);
-  `asc_mc_from` `armc - 180 → + 180` at both call sites 201 and 215 (measured
-  max circular diff `~6.25e-13`); the vertex flip `vertex + 180 → vertex - 180`
-  at 208 and `longitude_opposite`'s `+ → -` at 1833 (measured max circular
-  diff `~5.68e-14`). None of these differences are exactly 0 — each is simply
-  far below the crate's 1e-9 parity tolerance, which is why no 1e-9 white-box
-  pin can distinguish the mutated operators. [5]
+  operators, independent of tolerance): `asc2` 1818's `< → ==`, `< → >` and
+  `< → <=` variants paired with 1819 `delete -` — this `else if value == 0.0`
+  arm is reached only when `sinx.abs() >= 1e-12` (the 1811 guard consumed the
+  small-`sinx` case), so `sinx` is never `0` here; the arm is reached because
+  the 1807 guard *assigned* `value = 0.0`. However these four steer the
+  `sinx < 0.0` test, the result is `±90.0`, and the 1826 fold maps
+  `-90.0 + 180.0` to exactly `90.0`, so all four return a bit-identical
+  `90.0`. (An earlier revision of this note stated the inverted premise "the
+  1811 guard already forced `sinx == 0`" — the conclusion held, the reason did
+  not.) Plus `asc2` 1826 `< → <=` (`longitude == 0.0` is unreachable from all
+  three producing branches). [5]
+- **Sub-tolerance, but measurably NOT bit-identical (I2 correction).** Every
+  magnitude below is a **sweep maximum, not a proven bound**: `asc1`
+  `delete match arm 3` — arm 3 and the `_` arm are *algebraically* identical
+  but not f64-identical, since `(180-u)·π/180` and `π - u·π/180` differ in the
+  last bits (measured max diff `~5.68e-14` at `x1 ≈ 180.315`, pole `-52`; this
+  was previously mis-filed as bit-identical); `asc1` arm-3
+  `x1 - 180 → x1 + 180` (measured max diff `~2.56e-13`); `asc_mc_from`
+  `armc - 180 → + 180` at both call sites 201 and 215 (measured max circular
+  diff `~1.31e-12`); the vertex flip `vertex + 180 → vertex - 180` at 208 and
+  `longitude_opposite`'s `+ → -` at 1833 (measured max circular diff
+  `~5.68e-14`). None of these differences are exactly 0 — each is simply far
+  below the crate's 1e-9 parity tolerance, which is why no 1e-9 white-box pin
+  can distinguish the mutated operators. [6]
 - **`asc2`'s remaining `1e-12` guard thresholds, below tolerance under
   generic inputs**: `value.abs() < 1e-12 → <=` (1807, the `<=` variant —
   distinct from the `== 1e-12` variant killed above) and
@@ -758,7 +769,10 @@ with a per-mutant reachability argument grouped by structural reason:
   boundary difference is `~1.4e-10`, below the 1e-9 tolerance. This is a
   below-tolerance claim, not the "no representable input hits equality"
   claim the earlier writeup made — that stronger claim is exactly what was
-  wrong for the two guard mutants killed above. [2]
+  wrong for the two guard mutants killed above. **These two are therefore
+  best read as "not proven equivalent, not currently killable"**: an
+  adversarial input sitting exactly on the threshold could exceed the
+  tolerance, so a later campaign PR may yet kill them. [2]
 
 These bring the **running documented-equivalent tally to `9 + 13 = 22`**,
 superseding the earlier `9 + 19 = 28` figure, which counted 6 killable mutants

@@ -2129,30 +2129,52 @@ fn asc_geometry_equivalent_mutants_are_documented() {
     // no longer documented as equivalent here. The remaining residual splits
     // into two honestly-distinguished categories:
     //
-    // STRUCTURALLY UNREACHABLE / BIT-IDENTICAL (no representable input can
-    // distinguish the operators, independent of tolerance):
-    //   * asc1 `delete match arm 3` (1799): arm 3's formula is algebraically
-    //     identical to the `_` arm for every `x1` that reaches it.
-    //   * asc2 1818 `< -> ==`/`< -> >`, 1819 `delete -`: only reached once the
-    //     1811 guard has already forced `sinx == 0` exactly; folding `-90` to
-    //     `+90` there is a bit-identical relabeling, not an approximation.
+    // All 13 measured survivors are enumerated below, in three honestly
+    // distinguished categories.
+    //
+    // (A) STRUCTURALLY UNREACHABLE / BIT-IDENTICAL — no representable input can
+    // distinguish the operators, independent of tolerance. [5 mutants]
+    //   * asc2 1818 `< -> ==`, `< -> >`, `< -> <=`, and 1819 `delete -`: this
+    //     `else if value == 0.0` arm is reached ONLY when `sinx.abs() >= 1e-12`
+    //     (the 1811 guard consumed the small-sinx case), so `sinx` is never 0
+    //     here — the arm is instead reached because the 1807 guard ASSIGNED
+    //     `value = 0.0`. Whichever way these mutants steer the `sinx < 0.0`
+    //     test, the result is `-90.0` or `+90.0`, and the 1826 fold maps
+    //     `-90.0 + 180.0` to exactly `90.0`. So every variant returns bit-
+    //     identical `90.0`. (NOTE: an earlier revision of this comment stated
+    //     the inverted premise "the 1811 guard already forced sinx == 0" — the
+    //     conclusion held but the reason did not.)
     //   * asc2 1826 `< -> <=` (final `longitude < 0.0` fold): `longitude ==
     //     0.0` is unreachable from all three producing branches.
     //
-    // BELOW THE 1e-9 PARITY TOLERANCE, BUT MEASURABLY NOT BIT-IDENTICAL
+    // (B) BELOW THE 1e-9 PARITY TOLERANCE, BUT MEASURABLY NOT BIT-IDENTICAL
     // (I2 correction — do not claim "differ by exactly 360" or "no
-    // representable input hits equality" here; state the measured magnitude):
+    // representable input hits equality" here; state the measured magnitude).
+    // Each magnitude is a sweep MAXIMUM, not a proven bound. [6 mutants]
+    //   * asc1 `delete match arm 3` (1799): arm 3 and the `_` arm are
+    //     ALGEBRAICALLY identical, but not f64-identical — `(180-u)*pi/180`
+    //     and `pi - u*pi/180` differ in the last bits, so the trig arguments
+    //     differ. Measured max diff ~5.68e-14 (at x1 ~ 180.315, pole -52).
+    //     This was previously mis-filed under (A) as "bit-identical".
     //   * asc1 arm-3 `x1 - 180 -> x1 + 180` (360-periodicity of asc2 in x):
-    //     measured max diff ~2.56e-13 over a sweep (houses-reference.py sanity
-    //     check), not exactly 0.
+    //     measured max diff ~2.56e-13 over a sweep, not exactly 0.
     //   * asc_mc `armc - 180 -> + 180` at 201 and 215: measured max circular
-    //     diff ~6.25e-13 over a lat/armc sweep, not exactly 0.
+    //     diff ~1.31e-12 over a lat/armc sweep, not exactly 0.
     //   * asc_mc vertex flip `+180 -> -180` (208) and `longitude_opposite`'s
     //     `+ -> -` (1833): measured max circular diff ~5.68e-14 over a sweep,
     //     not exactly 0.
-    //   * asc2 1811 `< -> <=` (`sinx.abs() < 1e-12` guard): under generic
-    //     (non-adversarial) inputs the reachable boundary difference is
-    //     ~1.4e-10 — below tolerance, but not a strict-unreachability claim.
+    //
+    // (C) asc2's REMAINING 1e-12 GUARD THRESHOLDS — below tolerance under
+    // generic inputs; explicitly NOT a strict-unreachability claim. [2 mutants]
+    //   * asc2 1807 `< -> <=` (`value.abs() < 1e-12`) and 1811 `< -> <=`
+    //     (`sinx.abs() < 1e-12`): under generic (non-adversarial) inputs the
+    //     reachable boundary difference is ~1.4e-10 — below the 1e-9 parity
+    //     tolerance. An adversarial input sitting exactly on the threshold
+    //     could exceed it, so these two are best read as "not proven
+    //     equivalent, not currently killable", and are flagged as such in the
+    //     docs/follow-ups.md note rather than asserted to be unreachable.
+    //
+    // 5 + 6 + 2 = 13, matching the measured `mutants.out/missed.txt`.
     //
     // All measured magnitudes above are independently confirmed by
     // `houses-reference.py`'s sanity-check sweeps, never by running the
