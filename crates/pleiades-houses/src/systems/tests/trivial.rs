@@ -176,3 +176,32 @@ fn whole_sign_first_cusp_floors_to_sign_boundary() {
         cusps[1].degrees()
     );
 }
+
+/// FU-9: `sripati_midpoints_follow_porphyry_segments` compares the crate's
+/// Sripati cusps against `midpoint_longitude` — the same function on both
+/// sides — so the `-> Default::default()` mutant at mod.rs:1790 makes both
+/// sides `0` and still passes. Swiss Ephemeris never calls our function, so
+/// this row breaks the circularity.
+#[test]
+fn sripati_cusps_match_swiss_ephemeris_corpus() {
+    // houses-corpus/cusps.csv row c1_lat40 (JD 2451545.0, lat 40N, lon 0).
+    assert_corpus_cusps(
+        "Sripati c1_lat40",
+        HouseSystem::Sripati,
+        40.0,
+        [
+            1.356_934,
+            31.356_934,
+            58.658_595,
+            85.960_257,
+            115.960_257,
+            148.658_595,
+            181.356_934,
+            211.356_934,
+            238.658_595,
+            265.960_257,
+            295.960_257,
+            328.658_595,
+        ],
+    );
+}

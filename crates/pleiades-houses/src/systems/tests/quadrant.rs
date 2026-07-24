@@ -622,3 +622,50 @@ fn topocentric_latitude_at_sea_level_matches_the_closed_form() {
         );
     }
 }
+
+/// FU-9: the pre-existing Regiomontanus coverage runs at lat 0, where
+/// `sin(lat) = 0` and `cos(lat) = 1` make three of the four factors at
+/// mod.rs:947-949 degenerate. These two non-equatorial charts restore them.
+#[test]
+fn regiomontanus_cusps_match_swiss_ephemeris_corpus() {
+    // houses-corpus/cusps.csv row c1_lat40 (JD 2451545.0, lat 40N, lon 0).
+    assert_corpus_cusps(
+        "Regiomontanus c1_lat40",
+        HouseSystem::Regiomontanus,
+        40.0,
+        [
+            17.706_103,
+            57.771_262,
+            81.547_840,
+            99.611_088,
+            119.384_226,
+            149.836_713,
+            197.706_103,
+            237.771_262,
+            261.547_840,
+            279.611_088,
+            299.384_226,
+            329.836_713,
+        ],
+    );
+    // houses-corpus/cusps.csv row c2_lat55 (JD 2451545.0, lat 55N, lon 0).
+    assert_corpus_cusps(
+        "Regiomontanus c2_lat55",
+        HouseSystem::Regiomontanus,
+        55.0,
+        [
+            28.505_186,
+            72.373_244,
+            88.608_626,
+            99.611_088,
+            112.251_819,
+            138.090_289,
+            208.505_186,
+            252.373_244,
+            268.608_626,
+            279.611_088,
+            292.251_819,
+            318.090_289,
+        ],
+    );
+}
