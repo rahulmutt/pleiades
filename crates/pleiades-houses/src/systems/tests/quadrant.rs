@@ -1,6 +1,6 @@
 //! Quadrant/projection house systems and the numeric primitives they solve:
 //! Topocentric (`topocentric_latitude`), Placidus (`solve_placidian_cusp`),
-//! Regiomontanus, Koch, Campanus, Carter, Meridian/Axial, and Morinus.
+//! Regiomontanus, Koch, Campanus, Carter, Alcabitius, Meridian/Axial, and Morinus.
 
 use super::support::*;
 use crate::systems::*;
@@ -812,19 +812,9 @@ fn solve_placidian_cusp_fails_closed_when_the_iteration_does_not_converge() {
 ///   only at the exact-equality coincidence `|delta| == 1e-9` — every escape
 ///   route needs delta's Newton iterate to land on that boundary bit-for-bit,
 ///   which a quadratically-shrinking sequence does not do. (An earlier
-///   revision of this note additionally claimed the mutant is unconditionally
-///   bit-identical even when that coincidence fires, reasoning that `q` has
-///   ALREADY been updated by the time the loop notices, so the only effect is
-///   one extra Newton step whose correction — `~delta^2 ~ 1e-18` — is far
-///   below `ulp(q) ~ 3.6e-15`. That claim has two holes and is dropped: (a) if
-///   `|delta| == 1e-9` lands on the 64th (final) iteration, HEAD exits with
-///   `converged == false` -> `Err`, while the mutant's relaxed `<=` lets that
-///   same iteration report converged -> `Ok` — distinguishable, not
-///   bit-identical; (b) the `delta^2` correction estimate silently assumes a
-///   moderate `|g''/2g'|`, and near this function's own near-vanishing-
-///   derivative guard (`|gp| < 1e-12`) that ratio can reach `~1e12`, putting
-///   the correction at `~1e-6`, far above `ulp(q)`. The conclusion still holds
-///   resting on the exact-equality measure-zero step alone.
+///   bit-identity claim is dropped — it had two holes: the 64th-iteration
+///   `Err`/`Ok` split and the `|g''/2g'|` assumption — but the exact-equality
+///   measure-zero step alone sustains the conclusion.)
 ///
 /// The live paths all three operators share are pinned by the sibling tests:
 #[test]

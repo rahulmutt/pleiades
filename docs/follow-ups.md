@@ -1049,16 +1049,16 @@ bisection root to **≤ 2.84e-14**, a ~352× margin on the passing side.
   would return `Err`, so the whole-function replacement is byte-identical on
   every path.
 - **(PL-1)** `solve_placidian_cusp` `1741:21` `<` → `<=`: the zero-derivative
-  guard differs only at `gp.abs() == 1e-12` exactly; latitude is a free input,
-  but near the vanishing-derivative latitude one ulp of latitude moves `gp` by
-  ~5e-15 while `1e-12` has an ulp of ~2e-28 — the reachable `gp` values step
-  straight past the boundary, ~1e14× coarser than the target. Measure-zero and
+  guard differs only at `gp.abs() == 1e-12` exactly. `gp` is a function of three
+  free test inputs — latitude, `st_deg`, and `obliquity_deg` — and near the
+  vanishing-derivative latitude, all three perturb it comparably (~5e-15 per ulp).
+  Even so, landing bit-exactly on the `1e-12` boundary from any combination of
+  the three free parameters is a lattice-search coincidence. Measure-zero and
   unreachable.
-- **(PL-2)** `solve_placidian_cusp` `1750:24` `<` → `<=`: doubly unreachable —
-  differs only at `delta.abs() == 1e-9` exactly, and even there `q` has
-  already been updated by the time the test runs, so the only effect is one
-  extra Newton step whose correction (`~delta^2 ~ 1e-18`) is far below
-  `ulp(q) ~ 3.6e-15`. The extra iteration cannot change a single bit of `q`.
+- **(PL-2)** `solve_placidian_cusp` `1750:24` `<` → `<=`: unreachable because it
+  differs only at the exact-equality coincidence `|delta| == 1e-9` — every escape
+  route needs delta's Newton iterate to land on that boundary bit-for-bit, which a
+  quadratically-shrinking sequence does not do.
 
 This brings the **running documented-equivalent tally to `41 + 3 = 44`**,
 continuing the campaign-wide series the prior entries maintain
