@@ -689,9 +689,86 @@ fn koch_houses_fails_closed_inside_the_polar_circle() {
 
     let error = koch_houses(instant, &observer, obliquity, angles)
         .expect_err("Koch inside the polar circle must fail closed");
-    assert_eq!(error.kind, HouseErrorKind::NumericalFailure);
+    assert_eq!(error.kind, crate::error::HouseErrorKind::NumericalFailure);
     assert!(
         error.message.contains("undefined within the polar circle"),
+        "unexpected message: {}",
+        error.message
+    );
+}
+
+/// FU-9: pins all four solved Placidus cusps against an independent BISECTION
+/// root of the published residual (`houses-reference.py`), not against the
+/// crate's own Newton output.
+///
+/// Geometry `RAMC = 90°, lat = 61°, eps = 23.4392811°` was chosen by search to
+/// maximise the weakest derivative-mutant displacement. It also kills the two
+/// derivative-term mutants at mod.rs:1739 without any divergence hunt: a
+/// mutated derivative still converges, but stops at its own `|delta| < 1e-9`
+/// leaving an error of order 1e-10, while HEAD's quadratic convergence lands
+/// within ~1e-14 of the true root. Tolerance 1e-11 sits between the two.
+#[test]
+fn solve_placidian_cusp_matches_an_independent_bisection_root() {
+    const TOLERANCE_DEG: f64 = 1.0e-11;
+
+    let cases = [
+        (11_usize, 129.435_210_158_986_65),
+        (12, 158.604_832_372_515_46),
+        (2, 201.395_167_627_484_54),
+        (3, 230.564_789_841_013_35),
+    ];
+
+    for (house, expected) in cases {
+        let cusp =
+            solve_placidian_cusp(90.0, 61.0, 23.4392811, house).expect("this geometry converges");
+        let difference = (cusp.degrees() - expected).abs();
+        assert!(
+            difference < TOLERANCE_DEG,
+            "house {house}: {} differs from the bisection root {expected} by {difference:e}",
+            cusp.degrees(),
+        );
+    }
+}
+
+/// FU-9: the zero-derivative guard at mod.rs:1741 fails closed when the Newton
+/// derivative vanishes. `gp = (-(1/f)·sin(q/f) + tan(φ)·tan(ε)·cos(α)) / (180/π)`.
+/// At the house-11 seed (`q = 30°`, so `q/f = 90°` and `sin = 1`) with
+/// `RAMC = 330°` the cosine factor is `cos(360°) = 1`, so `gp` vanishes exactly
+/// when `tan(φ)·tan(ε) = 1/f`. Latitude is a free test input, so solving that
+/// equation for it gives 81.776_683_964_516_9°, where `|gp| ~ 1.2e-16 < 1e-12`.
+///
+/// This distinguishes the `<` -> `==` mutant, which disables the guard for
+/// every genuinely near-zero derivative: HEAD reports "zero derivative", the
+/// mutant falls through to the non-convergence exit and reports "failed to
+/// converge". Both are `NumericalFailure`, so only the diagnostic message
+/// separates them — this file already pins error-message text in five places
+/// (`request.rs`), so pinning it here is the established practice.
+#[test]
+fn solve_placidian_cusp_fails_closed_on_a_vanishing_derivative() {
+    let error = solve_placidian_cusp(330.0, 81.776_683_964_516_9, 23.4392811, 11)
+        .expect_err("a vanishing derivative must fail closed");
+    assert_eq!(error.kind, crate::error::HouseErrorKind::NumericalFailure);
+    assert!(
+        error.message.contains("zero derivative"),
+        "unexpected message: {}",
+        error.message
+    );
+}
+
+/// FU-9: the fail-closed exit at mod.rs:1756 is `!converged || !q.is_finite()`.
+/// At lat 78° the product `|tan(φ)·tan(δ)|` exceeds 1 over much of the range,
+/// so `cos(q/f) = -tan(φ)·tan(δ)` has no solution and the iteration oscillates
+/// without converging while `q` stays **finite** (~39.6). That combination —
+/// `converged == false`, `q` finite — is exactly what the `||` -> `&&` mutant
+/// needs to slip through: with `&&` the guard is false and the function returns
+/// a garbage `Ok` instead of failing closed.
+#[test]
+fn solve_placidian_cusp_fails_closed_when_the_iteration_does_not_converge() {
+    let error = solve_placidian_cusp(18.0, 78.0, 23.4392811, 11)
+        .expect_err("a non-converging geometry must fail closed");
+    assert_eq!(error.kind, crate::error::HouseErrorKind::NumericalFailure);
+    assert!(
+        error.message.contains("failed to converge"),
         "unexpected message: {}",
         error.message
     );
