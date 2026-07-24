@@ -2830,3 +2830,134 @@ fn sunshine_offsets_pins_the_semi_arc_trisection() {
         ],
     );
 }
+
+/// Independent recomposition of `sunshine_houses` (published Sunshine/solar-arc
+/// algorithm), threading `st`/`sundec`/`offsets` from the un-mutated (and
+/// independently-pinned) helpers. Separate transcription => a mutant inside
+/// `sunshine_houses` is not mirrored here, so equality kills it. Returns the 12
+/// cusp longitudes in degrees.
+fn recompose_sunshine(
+    instant: Instant,
+    observer: &ObserverLocation,
+    obliquity: Angle,
+    angles: HouseAngles,
+) -> [f64; 12] {
+    let sidereal_time = local_sidereal_time(instant, observer.longitude).degrees();
+    let latitude = observer.latitude.degrees();
+    let obliquity_deg = obliquity.degrees();
+    let sundec = apparent_solar_declination(instant, obliquity).degrees();
+    let mc_under_horizon = latitude.signum() != 0.0
+        && (latitude - apparent_midheaven_declination(sidereal_time, obliquity_deg)).abs() > 90.0;
+
+    let mut cusps = [0.0_f64; 12];
+    let mut ascendant = angles.ascendant;
+    let mut midheaven = angles.midheaven;
+    let acmc = signed_longitude_difference(ascendant.degrees(), midheaven.degrees());
+    if acmc < 0.0 {
+        ascendant = longitude_opposite(ascendant);
+        midheaven = longitude_opposite(midheaven); // KEEP_MC_SOUTH is const false
+    }
+    cusps[0] = ascendant.degrees();
+    cusps[3] = longitude_opposite(midheaven).degrees();
+    cusps[6] = longitude_opposite(ascendant).degrees();
+    cusps[9] = midheaven.degrees();
+
+    let offsets = sunshine_offsets(latitude, sundec);
+    let sin_ecl = obliquity_deg.to_radians().sin();
+    let cos_ecl = obliquity_deg.to_radians().cos();
+
+    for house in [2usize, 3, 5, 6, 8, 9, 11, 12] {
+        let offset = offsets[house];
+        let xhs = 2.0
+            * (sundec.to_radians().cos() * (offset.to_radians() / 2.0).sin())
+                .asin()
+                .to_degrees();
+        let cosa = (sundec.to_radians().tan() * (xhs.to_radians() / 2.0).tan()).clamp(-1.0, 1.0);
+        let alph = cosa.acos().to_degrees();
+        let (alpha2, b) = if house > 7 {
+            (180.0 - alph, 90.0 - latitude + sundec)
+        } else {
+            (alph, 90.0 - latitude - sundec)
+        };
+        let cosc = xhs.to_radians().cos() * b.to_radians().cos()
+            + xhs.to_radians().sin() * b.to_radians().sin() * alpha2.to_radians().cos();
+        let c = cosc.clamp(-1.0, 1.0).acos().to_degrees();
+        let sinzd = if c.abs() < f64::EPSILON {
+            0.0
+        } else {
+            xhs.to_radians().sin() * alpha2.to_radians().sin() / c.to_radians().sin()
+        };
+        let zd = sinzd.clamp(-1.0, 1.0).asin().to_degrees();
+        let rax = (latitude.to_radians().cos() * zd.to_radians().tan())
+            .atan()
+            .to_degrees();
+        let pole = (sinzd * latitude.to_radians().sin())
+            .clamp(-1.0, 1.0)
+            .asin()
+            .to_degrees();
+        let pole = if house <= 6 { -pole } else { pole };
+        let a = if house <= 6 {
+            sidereal_time + 180.0 + rax
+        } else {
+            sidereal_time + rax
+        };
+        cusps[house - 1] = asc1(a, pole, sin_ecl, cos_ecl).degrees();
+    }
+
+    if mc_under_horizon {
+        for house in [2usize, 3, 5, 6, 8, 9, 11, 12] {
+            cusps[house - 1] =
+                longitude_opposite(Longitude::from_degrees(cusps[house - 1])).degrees();
+        }
+    }
+    cusps
+}
+
+/// Builds the `(Instant, ObserverLocation, Angle, HouseAngles)` argument tuple
+/// for a Sunshine geometry, so Tasks 4-5 share one constructor.
+fn sun_geom(
+    jd: f64,
+    lat: f64,
+    lon: f64,
+    obl: f64,
+    asc: f64,
+    mc: f64,
+) -> (Instant, ObserverLocation, Angle, HouseAngles) {
+    (
+        Instant::new(JulianDay::from_days(jd), TimeScale::Tt),
+        ObserverLocation::new(
+            Latitude::from_degrees(lat),
+            Longitude::from_degrees(lon),
+            None,
+        ),
+        Angle::from_degrees(obl),
+        gc_angles(asc, mc),
+    )
+}
+
+#[test]
+fn sunshine_houses_matches_independent_recomposition() {
+    // Geometry table: row A mid-lat acmc>0 (no axis flip, mc above horizon);
+    // row B mid-lat acmc<0 (exercises the 1552 axis flip + 1554 mc flip);
+    // row C high-lat with mc below horizon (exercises the per-house loop under a
+    // different hemisphere sign). All rows have non-degenerate loop terms, so the
+    // 51 loop-body swaps and the 2 axis-flip guards are all killed.
+    let obl = 23.4392811;
+    let rows = [
+        sun_geom(2_451_600.0, 52.0, 10.0, obl, 100.0, 15.0), // A: acmc = 85 > 0
+        sun_geom(2_455_000.0, 40.0, -75.0, obl, 15.0, 100.0), // B: acmc = -85 < 0
+        sun_geom(2_451_600.0, 66.0, 200.0, obl, 300.0, 210.0), // C: high lat
+    ];
+    for (i, (instant, observer, obliquity, angles)) in rows.iter().enumerate() {
+        let got = sunshine_houses(*instant, observer, *obliquity, *angles);
+        let want = recompose_sunshine(*instant, observer, *obliquity, *angles);
+        for h in 0..12 {
+            assert!(
+                (got[h].degrees() - want[h]).abs() < 1.0e-9,
+                "row {i} cusp[{h}]: crate {} != recompose {}",
+                got[h].degrees(),
+                want[h]
+            );
+        }
+    }
+}
