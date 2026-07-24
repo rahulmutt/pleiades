@@ -2532,3 +2532,86 @@ fn krusinski_houses_match_independent_recomposition_across_geometries() {
         }
     }
 }
+
+// ===== FU-9 Sector PR: pullen_sr / pullen_sd / albategnius / gauquelin =====
+// Independent reference: docs/superpowers/specs/notes/2026-07-22-houses-reference.py
+// (`pullen_sd`, `pullen_sr`), cross-validated against the crate to ~1e-12 during
+// plan authoring. gauquelin_houses already reaches 0 surviving mutants via the
+// validate-houses / validate-angles parity gates, so it needs no new unit test;
+// only solve_gauquelin_sector's guard survivors are addressed here.
+
+fn assert_sector_cusps(got: &[Longitude; 12], want: &[f64; 12], label: &str) {
+    for i in 0..12 {
+        let mut d = (got[i].degrees() - want[i]).rem_euclid(360.0);
+        if d > 180.0 {
+            d -= 360.0;
+        }
+        assert!(
+            d.abs() < 1e-9,
+            "{label} cusp[{i}] = {}, want {}",
+            got[i].degrees(),
+            want[i]
+        );
+    }
+}
+
+#[test]
+fn pullen_sd_and_albategnius_pin_all_cusps_against_independent_reference() {
+    // pullen_sd_houses and albategnius_houses are byte-identical in the crate
+    // (same equal-quadrant split); the same reference pins both. Geometries:
+    //  200/100 acmc=100 -> both `else` quadrant-split branches (d != 0);
+    //  120/100 acmc=20  -> MC-side bisect branch (acmc <= 30);
+    //  260/100 acmc=160 -> ASC-side bisect branch (q1 = 180-acmc <= 30);
+    //  10/100  acmc<0   -> ascendant flip branch (kills `< 0 -> == 0`);
+    //  100/100 acmc=0   -> flip-guard equality (kills `< 0 -> <= 0`).
+    let cases: [(f64, f64, [f64; 12]); 5] = [
+        (
+            200.0,
+            100.0,
+            [
+                200.0, 227.5, 252.5, 280.0, 312.5, 347.5, 20.0, 47.5, 72.5, 100.0, 132.5, 167.5,
+            ],
+        ),
+        (
+            120.0,
+            100.0,
+            [
+                120.0, 167.5, 232.5, 280.0, 290.0, 290.0, 300.0, 347.5, 52.5, 100.0, 110.0, 110.0,
+            ],
+        ),
+        (
+            260.0,
+            100.0,
+            [
+                260.0, 270.0, 270.0, 280.0, 327.5, 32.5, 80.0, 90.0, 90.0, 100.0, 147.5, 212.5,
+            ],
+        ),
+        (
+            10.0,
+            100.0,
+            [
+                190.0, 220.0, 250.0, 280.0, 310.0, 340.0, 10.0, 40.0, 70.0, 100.0, 130.0, 160.0,
+            ],
+        ),
+        (
+            100.0,
+            100.0,
+            [
+                100.0, 152.5, 227.5, 280.0, 280.0, 280.0, 280.0, 332.5, 47.5, 100.0, 100.0, 100.0,
+            ],
+        ),
+    ];
+    for (asc, mc, want) in cases {
+        let angles = gc_angles(asc, mc);
+        assert_sector_cusps(
+            &pullen_sd_houses(angles),
+            &want,
+            &format!("pullen_sd asc={asc}"),
+        );
+        assert_sector_cusps(
+            &albategnius_houses(angles),
+            &want,
+            &format!("albategnius asc={asc}"),
+        );
+    }
+}
