@@ -295,6 +295,29 @@ def sunshine_offsets(lat, sundec):
     }
 
 
+# --- PR 5: topocentric_latitude (WGS-84 geodetic -> geocentric) -------------
+# Constants from the published WGS-84 datum sheet, NOT read from the crate.
+WGS84_A = 6_378_137.0
+WGS84_INV_F = 298.257_223_563
+
+
+def topocentric_latitude(lat_deg, h=0.0):
+    """Prime-vertical form: phi' = atan2((N(1-e2)+h) sin phi, (N+h) cos phi)."""
+    f = 1.0 / WGS84_INV_F
+    e2 = f * (2.0 - f)
+    phi = math.radians(lat_deg)
+    s, c = math.sin(phi), math.cos(phi)
+    n = WGS84_A / math.sqrt(1.0 - e2 * s * s)
+    return math.degrees(math.atan2((n * (1.0 - e2) + h) * s, (n + h) * c))
+
+
+def topocentric_latitude_closed_form(lat_deg):
+    """Second, genuinely different formulation, exact for h = 0:
+    tan(phi') = (1 - f)^2 tan(phi).  Cross-checks the prime-vertical form."""
+    f = 1.0 / WGS84_INV_F
+    return math.degrees(math.atan((1.0 - f) ** 2 * math.tan(math.radians(lat_deg))))
+
+
 if __name__ == "__main__":
     print("# spherical_cotrans([40,25,2], 15):")
     print("  ", tuple(fmt(v) for v in spherical_cotrans(40.0, 25.0, 2.0, 15.0)))
@@ -413,3 +436,10 @@ if __name__ == "__main__":
     print("# sunshine_offsets")
     for lat, sd in ((52.0, -10.0), (-33.0, 15.0)):
         print(f"  lat={lat} sundec={sd}: {sunshine_offsets(lat, sd)}")
+
+    for lat, h in ((40.0, 1000.0), (-33.0, 500.0)):
+        print(f'topocentric_latitude({lat}, {h}) = {topocentric_latitude(lat, h)!r}')
+    for lat in (40.0, 55.0, -33.0, 66.0):
+        a = topocentric_latitude(lat)
+        b = topocentric_latitude_closed_form(lat)
+        print(f'  h=0 lat={lat}: prime-vertical={a!r} closed-form={b!r} diff={abs(a-b):.3e}')

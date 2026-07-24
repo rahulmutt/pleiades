@@ -580,3 +580,45 @@ fn alcabitius_cusps_c2_lat55_match_swiss_ephemeris_corpus_within_1_arcsec() {
         );
     }
 }
+
+/// FU-9: pins the WGS-84 reduction against an independent evaluation of the
+/// published datum constants (`houses-reference.py::topocentric_latitude`).
+///
+/// The elevation MUST be non-zero: with `h = 0` the `(N + h)` term at
+/// mod.rs:1681 is degenerate and its `+ -> -` mutant is invisible.
+#[test]
+fn topocentric_latitude_pins_the_wgs84_reduction_with_elevation() {
+    assert_close_degrees(
+        topocentric_latitude(40.0, Some(1000.0))
+            .expect("finite elevation is accepted")
+            .degrees(),
+        39.810_640_281_732_304,
+    );
+    assert_close_degrees(
+        topocentric_latitude(-33.0, Some(500.0))
+            .expect("finite elevation is accepted")
+            .degrees(),
+        -32.824_466_106_045_98,
+    );
+}
+
+/// FU-9: cross-checks the prime-vertical form against a second, genuinely
+/// different published formulation, `tan(phi') = (1 - f)^2 * tan(phi)`, which
+/// is exact at sea level. Constrains the eccentricity terms at mod.rs:1680
+/// independently of the elevation pins above.
+#[test]
+fn topocentric_latitude_at_sea_level_matches_the_closed_form() {
+    let flattening = 1.0 / 298.257_223_563;
+    let one_minus_f_squared = (1.0 - flattening) * (1.0 - flattening);
+    for latitude in [40.0_f64, 55.0, -33.0, 66.0] {
+        let expected = (one_minus_f_squared * latitude.to_radians().tan())
+            .atan()
+            .to_degrees();
+        assert_close_degrees(
+            topocentric_latitude(latitude, None)
+                .expect("absent elevation is accepted")
+                .degrees(),
+            expected,
+        );
+    }
+}
