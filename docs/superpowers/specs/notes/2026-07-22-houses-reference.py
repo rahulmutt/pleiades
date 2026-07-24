@@ -269,6 +269,32 @@ def apc_sector(n, lat_rad, obl_rad, sid_rad):
     return norm360(math.degrees(math.atan2(y, x)))
 
 
+def solar_declination(jd, obl_deg):
+    """crate `apparent_solar_declination`: the published low-precision Sun
+    (NOAA/USNO Astronomical Almanac "Low precision formulae for the Sun").
+    Re-derived from the published series, NOT copied operator-by-operator from
+    the Rust. d = JD(TT) - J2000; L, g, lambda in degrees; delta in degrees."""
+    d = jd - 2451545.0
+    L = norm360(280.460 + 0.9856474 * d)
+    g = norm360(357.528 + 0.9856003 * d)
+    lam = norm360(L + 1.915 * math.sin(g * D2R) + 0.020 * math.sin(2.0 * g * D2R))
+    return math.degrees(math.asin(math.sin(obl_deg * D2R) * math.sin(lam * D2R)))
+
+
+def sunshine_offsets(lat, sundec):
+    """crate `sunshine_offsets`: house offsets from the nocturnal/diurnal
+    semi-arcs (published Sunshine/solar-arc trisection). Re-derived, not copied.
+    Returns the 8 non-zero offsets keyed by house index (2,3,5,6,8,9,11,12)."""
+    ad = math.degrees(math.asin(max(-1.0, min(1.0,
+        math.tan(sundec * D2R) * math.tan(lat * D2R)))))
+    nsa = 90.0 - ad
+    dsa = 90.0 + ad
+    return {
+        2: -2.0 * nsa / 3.0, 3: -nsa / 3.0, 5: nsa / 3.0, 6: 2.0 * nsa / 3.0,
+        8: -2.0 * dsa / 3.0, 9: -dsa / 3.0, 11: dsa / 3.0, 12: 2.0 * dsa / 3.0,
+    }
+
+
 if __name__ == "__main__":
     print("# spherical_cotrans([40,25,2], 15):")
     print("  ", tuple(fmt(v) for v in spherical_cotrans(40.0, 25.0, 2.0, 15.0)))
@@ -379,3 +405,11 @@ if __name__ == "__main__":
                        ("10/100(flip)", 10.0, 100.0), ("100/100(guard)", 100.0, 100.0)]:
         print(f"  [{name}]", [fmt(v) for v in pullen_sr(a, m)])
     print("# _sr_ratio(90) sanity (must be 1.0):", _sr_ratio(90.0))
+
+    print("# solar_declination")
+    for jd in (2451600.0, 2455000.0):
+        print(f"  jd={jd!r} -> {solar_declination(jd, 23.4392811)!r}")
+
+    print("# sunshine_offsets")
+    for lat, sd in ((52.0, -10.0), (-33.0, 15.0)):
+        print(f"  lat={lat} sundec={sd}: {sunshine_offsets(lat, sd)}")
