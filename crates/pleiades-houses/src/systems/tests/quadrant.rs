@@ -1,6 +1,6 @@
 use super::support::*;
 use crate::systems::*;
-use pleiades_types::{Angle, Latitude};
+use pleiades_types::{Angle, Instant, JulianDay, Latitude, TimeScale};
 
 #[test]
 fn topocentric_latitude_uses_geocentric_correction() {
@@ -667,5 +667,32 @@ fn regiomontanus_cusps_match_swiss_ephemeris_corpus() {
             292.251_819,
             318.090_289,
         ],
+    );
+}
+
+/// FU-9: Koch is undefined inside the polar circle, where the Midheaven's
+/// ascensional difference stops being real, and mod.rs:843 fails closed on
+/// `|lat| >= 90 - obliquity`. The catalog caps Koch at |lat| 66°, *below* the
+/// 66.56° polar circle, so `calculate_houses` rejects (Strict) or substitutes
+/// Porphyry (SwissEphemerisFallback) before this guard is ever reached — the
+/// guard is only observable by calling the private function directly.
+#[test]
+fn koch_houses_fails_closed_inside_the_polar_circle() {
+    let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let observer = ObserverLocation::new(
+        Latitude::from_degrees(70.0),
+        Longitude::from_degrees(0.0),
+        None,
+    );
+    let obliquity = Angle::from_degrees(23.4392811);
+    let angles = derive_angles(instant, &observer, obliquity);
+
+    let error = koch_houses(instant, &observer, obliquity, angles)
+        .expect_err("Koch inside the polar circle must fail closed");
+    assert_eq!(error.kind, HouseErrorKind::NumericalFailure);
+    assert!(
+        error.message.contains("undefined within the polar circle"),
+        "unexpected message: {}",
+        error.message
     );
 }
