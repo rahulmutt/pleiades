@@ -2702,3 +2702,59 @@ fn solve_gauquelin_sector_fails_closed_on_nonconvergence() {
     let ok = solve_gauquelin_sector(280.4570696, 52.0, 23.4366, 8.0 / 9.0, 1.0);
     assert!(ok.is_ok(), "expected convergence Ok, got {ok:?}");
 }
+
+#[test]
+fn sector_equivalent_mutants_are_documented() {
+    // FU-9 Sector residual: 6 surviving mutants, each an EQUIVALENT MUTANT left
+    // visible (no #[mutants::skip]), enumerated with a reachability argument.
+    // Measured by the authoritative scoped run: 233 tested, 6 missed, 227 caught.
+    //
+    // --- pullen_sr_houses (3) ---
+    // (SR-1) 1437:10 `q > 90.0 -> q >= 90.0` (quadrant reduction): differs only at
+    //   q == 90.0, where HEAD keeps q=90 and the mutant sets q=180-90=90 -- same q,
+    //   same output. Reachable (acmc=90 via the asc=10/mc=100 flip) but coincident.
+    // (SR-2) 1458:13 `acmc > 90.0 -> acmc >= 90.0` (placement branch): differs only
+    //   at acmc == 90.0, where q=90 -> c=1 -> r=1 exactly, so xr == xr3 and x == xr4
+    //   and the `if`/`else` placements produce bit-identical cusps.
+    // (SR-3) 1441:34 `q < 1e-30 -> q <= 1e-30` (degenerate-quadrant guard): differs
+    //   only at q == 1e-30 exactly -- a measure-zero boundary q (from
+    //   signed_longitude_difference of f64 degrees) cannot reach.
+    //
+    // At the acmc=90 flip geometry the SR division is the r=1 equal 30-degree split,
+    // so both the reduction and placement branches coincide (kills SR-1/SR-2 intent):
+    let acmc90 = pullen_sr_houses(gc_angles(10.0, 100.0));
+    let equal = [
+        190.0, 220.0, 250.0, 280.0, 310.0, 340.0, 10.0, 40.0, 70.0, 100.0, 130.0, 160.0,
+    ];
+    assert_sector_cusps(&acmc90, &equal, "SR acmc=90 is the r=1 equal split");
+    // The q<1e-30 guard is reached only at acmc=0 (asc==mc); signature x=xr=xr3=0
+    // gives cusp[1]==asc and cusp[2]==desc (SR-3 boundary is this degenerate point):
+    let guard = pullen_sr_houses(gc_angles(100.0, 100.0));
+    assert!(
+        (guard[1].degrees() - 100.0).abs() < 1e-9,
+        "SR guard cusp[1]==asc"
+    );
+    assert!(
+        (guard[2].degrees() - 280.0).abs() < 1e-9,
+        "SR guard cusp[2]==desc"
+    );
+    //
+    // --- solve_gauquelin_sector (3) ---
+    // (GQ-1) 1327:21 `gp.abs() < 1e-12 -> ==` (zero-derivative guard): the divergence
+    //   interval gp.abs() in (0, 1e-12) IS reachable (min |gp| over a physical
+    //   lat/obl/fraction/ramc sweep reaches ~1.9e-13), but both HEAD and the mutant
+    //   return Err(NumericalFailure) there -- HEAD via the zero-derivative guard, the
+    //   mutant via the subsequent non-convergence/non-finite exit -- so no test
+    //   observing the public Result (kind) distinguishes them; only the diagnostic
+    //   message differs, and the campaign does not pin error-message text.
+    // (GQ-2) 1327:21 `gp.abs() < 1e-12 -> <=`: differs only at gp.abs()==1e-12
+    //   exactly -- measure-zero, unreachable.
+    // (GQ-3) 1335:24 `delta.abs() < 1e-9 -> <=` (convergence): differs only at
+    //   delta.abs()==1e-9 exactly -- a Newton iterate shrinking quadratically past
+    //   1e-9 does not land on it; measure-zero, unreachable.
+    //
+    // The reachable non-convergence exit is a real Err (pinned by
+    // solve_gauquelin_sector_fails_closed_on_nonconvergence) and a physical geometry
+    // converges to Ok -- the live path both operators share:
+    assert!(solve_gauquelin_sector(280.4570696, 52.0, 23.4366, 8.0 / 9.0, 1.0).is_ok());
+}
