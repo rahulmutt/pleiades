@@ -2788,3 +2788,45 @@ fn apparent_solar_declination_pins_the_published_sun_series() {
     assert_close_degrees(dec(2_451_600.0), -9.23948196138383);
     assert_close_degrees(dec(2_455_000.0), 23.39101729022372);
 }
+
+#[test]
+fn sunshine_offsets_pins_the_semi_arc_trisection() {
+    // Independent reference (houses-reference.py `sunshine_offsets`). Two
+    // geometries with ad != 0 (so nsa != dsa) make every +/-, 2*, and /3 term
+    // observable, killing all 34 arith survivors. Only the 8 non-zero house
+    // indices carry signal; the other 5 are hard 0.0 and untested here.
+    let check = |lat: f64, sundec: f64, want: [(usize, f64); 8]| {
+        let got = sunshine_offsets(lat, sundec);
+        for (idx, expected) in want {
+            assert_close_degrees(got[idx], expected);
+        }
+    };
+    check(
+        52.0,
+        -10.0,
+        [
+            (2, -68.69556843044369),
+            (3, -34.34778421522184),
+            (5, 34.34778421522184),
+            (6, 68.69556843044369),
+            (8, -51.30443156955631),
+            (9, -25.652215784778154),
+            (11, 25.652215784778154),
+            (12, 51.30443156955631),
+        ],
+    );
+    check(
+        -33.0,
+        15.0,
+        [
+            (2, -66.68063265912221),
+            (3, -33.340316329561105),
+            (5, 33.340316329561105),
+            (6, 66.68063265912221),
+            (8, -53.31936734087779),
+            (9, -26.659683670438895),
+            (11, 26.659683670438895),
+            (12, 53.31936734087779),
+        ],
+    );
+}
