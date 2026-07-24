@@ -2773,3 +2773,18 @@ fn apparent_midheaven_declination_pins_the_product_form() {
         -10.382982940241511,
     );
 }
+
+#[test]
+fn apparent_solar_declination_pins_the_published_sun_series() {
+    // Independent reference (houses-reference.py `solar_declination`), the
+    // published NOAA/USNO low-precision Sun. Two non-degenerate instants
+    // (d=55 and d=3455 days from J2000) make every `*d` series term and both
+    // sin(g)/sin(2g) terms observable, killing all 20 arith survivors.
+    let obl = Angle::from_degrees(23.4392811);
+    let dec = |jd: f64| {
+        apparent_solar_declination(Instant::new(JulianDay::from_days(jd), TimeScale::Tt), obl)
+            .degrees()
+    };
+    assert_close_degrees(dec(2_451_600.0), -9.23948196138383);
+    assert_close_degrees(dec(2_455_000.0), 23.39101729022372);
+}
