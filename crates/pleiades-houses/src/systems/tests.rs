@@ -2686,3 +2686,19 @@ fn pullen_sr_pins_all_cusps_against_independent_reference() {
         );
     }
 }
+
+#[test]
+fn solve_gauquelin_sector_fails_closed_on_nonconvergence() {
+    // Kills 1341 `!converged || !q.is_finite()` -> `&&`: at lat=80, obl=23.4366,
+    // fraction=1/9, sign=+1, ramc=30 the Newton iteration does not converge in 64
+    // steps but q stays finite (~52.4). HEAD: `!converged(true) || ...` -> Err;
+    // the `&&` mutant: `true && !finite(false)` -> false -> Ok(unconverged). So
+    // HEAD MUST return Err here for the `&&` mutant to be observable. (Geometry
+    // found by a lat/obl/fraction/ramc sweep of the crate's Newton during plan
+    // authoring: 22 non-converged-but-finite candidates, this is the first.)
+    let r = solve_gauquelin_sector(30.0, 80.0, 23.4366, 1.0 / 9.0, 1.0);
+    assert!(r.is_err(), "expected non-convergence Err, got {r:?}");
+    // A physical Gauquelin geometry converges to a finite Ok (the live path).
+    let ok = solve_gauquelin_sector(280.4570696, 52.0, 23.4366, 8.0 / 9.0, 1.0);
+    assert!(ok.is_ok(), "expected convergence Ok, got {ok:?}");
+}
