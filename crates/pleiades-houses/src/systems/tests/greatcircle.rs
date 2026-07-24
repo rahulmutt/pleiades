@@ -1,3 +1,6 @@
+//! The great-circle projection systems: Horizon (azimuth/altitude), APC
+//! (`apc_sector`/`apc_houses`), and Krusinski-Pisa-Goelzer.
+
 use super::support::*;
 use crate::systems::*;
 use pleiades_types::{Angle, JulianDay, Latitude, TimeScale};

@@ -1,3 +1,6 @@
+//! `HouseRequest`/`HouseSnapshot` construction, `summary_line` rendering, and
+//! the non-finite/inconsistent-value validation guards on both types.
+
 use super::support::*;
 use crate::systems::*;
 use pleiades_types::{Angle, CustomHouseSystem, Latitude};

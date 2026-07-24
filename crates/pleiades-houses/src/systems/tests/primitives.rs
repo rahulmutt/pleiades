@@ -1,3 +1,9 @@
+//! Shared geometry primitives used by every house-system family:
+//! `chart_points_from_armc`, `spherical_cotrans`, `asc1`/`asc2`,
+//! `asc_mc_from`, `interpolate_longitude`, `signed_longitude_difference`,
+//! `right_ascension_from_ecliptic_longitude`, `longitude_in_arc`, and
+//! `longitude_opposite`.
+
 use crate::systems::*;
 
 #[test]

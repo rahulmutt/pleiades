@@ -318,6 +318,22 @@ def topocentric_latitude_closed_form(lat_deg):
     return math.degrees(math.atan((1.0 - f) ** 2 * math.tan(math.radians(lat_deg))))
 
 
+def topocentric_latitude_parametric(lat_deg, h=0.0):
+    """Third formulation, method-independent for h != 0: uses the parametric
+    (reduced) latitude beta, tan(beta) = (1-f) tan(phi), instead of the
+    prime-vertical radius N. X = a cos(beta) + h cos(phi),
+    Z = b sin(beta) + h sin(phi) (b = a(1-f)), phi' = atan2(Z, X). N never
+    appears, so this cross-checks the crate's `(N(1-e2)+h)`/`(N+h)` form at
+    h != 0 without inheriting its formulation."""
+    f = 1.0 / WGS84_INV_F
+    b = WGS84_A * (1.0 - f)
+    phi = math.radians(lat_deg)
+    beta = math.atan((1.0 - f) * math.tan(phi))
+    x = WGS84_A * math.cos(beta) + h * math.cos(phi)
+    z = b * math.sin(beta) + h * math.sin(phi)
+    return math.degrees(math.atan2(z, x))
+
+
 # --- PR 5: Placidus cusps by BISECTION -------------------------------------
 # Same published residual as the crate, but a genuinely different root-finder:
 #   g(q) = cos(q/f) + tan(phi) * tan(delta(alpha)),  alpha = RAMC + q,
@@ -482,6 +498,10 @@ if __name__ == "__main__":
 
     for lat, h in ((40.0, 1000.0), (-33.0, 500.0)):
         print(f'topocentric_latitude({lat}, {h}) = {topocentric_latitude(lat, h)!r}')
+    for lat, h in ((40.0, 1000.0), (-33.0, 500.0)):
+        a = topocentric_latitude(lat, h)
+        c = topocentric_latitude_parametric(lat, h)
+        print(f'  h!=0 lat={lat} h={h}: prime-vertical={a!r} parametric={c!r} diff={abs(a-c):.3e}')
     for lat in (40.0, 55.0, -33.0, 66.0):
         a = topocentric_latitude(lat)
         b = topocentric_latitude_closed_form(lat)

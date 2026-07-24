@@ -1,3 +1,7 @@
+//! The sector/quadrant-division systems: Gauquelin (36-sector),
+//! `solve_gauquelin_sector`, and the Pullen family (`pullen_sr_houses`,
+//! `pullen_sd_houses`/`albategnius_houses`, which are byte-identical).
+
 use super::support::*;
 use crate::systems::*;
 use pleiades_types::Latitude;
@@ -370,6 +374,11 @@ fn sector_equivalent_mutants_are_documented() {
     //   mutant via the subsequent non-convergence/non-finite exit -- so no test
     //   observing the public Result (kind) distinguishes them; only the diagnostic
     //   message differs, and the campaign does not pin error-message text.
+    //   SUPERSEDED (PR 5): this premise is wrong -- the suite pins error-message
+    //   text in several places, and PR 5 kills the structurally identical
+    //   solve_placidian_cusp 1741 `<` -> `==` mutant by asserting the message. See
+    //   "Correction to the Sector slice" in docs/follow-ups.md. GQ-1 is killable and
+    //   its equivalent classification is withdrawn; the retraction lands in PR 6.
     // (GQ-2) 1327:21 `gp.abs() < 1e-12 -> <=`: differs only at gp.abs()==1e-12
     //   exactly -- measure-zero, unreachable.
     // (GQ-3) 1335:24 `delta.abs() < 1e-9 -> <=` (convergence): differs only at

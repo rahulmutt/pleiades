@@ -1,3 +1,7 @@
+//! `calculate_houses`'s top-level dispatch: per-system availability,
+//! latitude-bound rejection, the `Strict`/`SwissEphemerisFallback` policy
+//! choice, `Custom` system reporting, and house-assignment wraparound.
+
 use super::support::*;
 use crate::systems::*;
 use pleiades_types::{Angle, CustomHouseSystem, Latitude};

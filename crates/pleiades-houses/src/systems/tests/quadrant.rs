@@ -1,3 +1,7 @@
+//! Quadrant/projection house systems and the numeric primitives they solve:
+//! Topocentric (`topocentric_latitude`), Placidus (`solve_placidian_cusp`),
+//! Regiomontanus, Koch, Campanus, Carter, Meridian/Axial, and Morinus.
+
 use super::support::*;
 use crate::systems::*;
 use pleiades_types::{Angle, Instant, JulianDay, Latitude, TimeScale};
@@ -741,8 +745,9 @@ fn solve_placidian_cusp_matches_an_independent_bisection_root() {
 /// every genuinely near-zero derivative: HEAD reports "zero derivative", the
 /// mutant falls through to the non-convergence exit and reports "failed to
 /// converge". Both are `NumericalFailure`, so only the diagnostic message
-/// separates them — this file already pins error-message text in five places
-/// (`request.rs`), so pinning it here is the established practice.
+/// separates them — the suite already pins error-message text in several
+/// places (e.g. `request.rs`), so pinning it here is the established
+/// practice.
 #[test]
 fn solve_placidian_cusp_fails_closed_on_a_vanishing_derivative() {
     let error = solve_placidian_cusp(330.0, 81.776_683_964_516_9, 23.4392811, 11)
@@ -793,17 +798,33 @@ fn solve_placidian_cusp_fails_closed_when_the_iteration_does_not_converge() {
 ///
 /// --- solve_placidian_cusp (2) ---
 /// (PL-1) 1741:21 `gp.abs() < 1e-12 -> <=`: differs only when `gp.abs()` is
-///   exactly `1e-12`. Latitude is a free input, so the free-parameter lens was
-///   applied: near the vanishing-derivative latitude, one ulp of latitude
-///   moves `gp` by ~5e-15, while `1e-12` has an ulp of ~2e-28 — the reachable
-///   `gp` values step straight past the boundary, ~1e14 times coarser than the
-///   target. Measure-zero and unreachable.
-/// (PL-2) 1750:24 `delta.abs() < 1e-9 -> <=`: doubly unreachable. It differs
-///   only at `|delta| == 1e-9` exactly, and even there the output is
-///   bit-identical: `q` has ALREADY been updated by the time the test runs, so
-///   the only difference is one extra Newton step, whose correction is of
-///   order `delta^2 ~ 1e-18` — far below `ulp(q) ~ 3.6e-15` at `q ~ 30`. The
-///   extra iteration cannot change a single bit of `q`.
+///   exactly `1e-12`. `gp` is a function of three free test inputs — latitude,
+///   `st_deg`, and `obliquity_deg` — not latitude alone; the free-parameter
+///   lens applies to all three, not just latitude. Near the
+///   vanishing-derivative latitude, one ulp of latitude moves `gp` by ~5e-15,
+///   and `st_deg`/`obliquity_deg` perturb it comparably, so the jointly
+///   reachable `gp` set is far denser than a one-dimensional grid over
+///   latitude alone. Even so, `1e-12` has an ulp of ~2e-28: landing bit-exactly
+///   on the boundary from any combination of the three free parameters is a
+///   lattice-search coincidence, not something a physical test geometry
+///   sweeps into. Measure-zero and unreachable.
+/// (PL-2) 1750:24 `delta.abs() < 1e-9 -> <=`: unreachable because it differs
+///   only at the exact-equality coincidence `|delta| == 1e-9` — every escape
+///   route needs delta's Newton iterate to land on that boundary bit-for-bit,
+///   which a quadratically-shrinking sequence does not do. (An earlier
+///   revision of this note additionally claimed the mutant is unconditionally
+///   bit-identical even when that coincidence fires, reasoning that `q` has
+///   ALREADY been updated by the time the loop notices, so the only effect is
+///   one extra Newton step whose correction — `~delta^2 ~ 1e-18` — is far
+///   below `ulp(q) ~ 3.6e-15`. That claim has two holes and is dropped: (a) if
+///   `|delta| == 1e-9` lands on the 64th (final) iteration, HEAD exits with
+///   `converged == false` -> `Err`, while the mutant's relaxed `<=` lets that
+///   same iteration report converged -> `Ok` — distinguishable, not
+///   bit-identical; (b) the `delta^2` correction estimate silently assumes a
+///   moderate `|g''/2g'|`, and near this function's own near-vanishing-
+///   derivative guard (`|gp| < 1e-12`) that ratio can reach `~1e12`, putting
+///   the correction at `~1e-6`, far above `ulp(q)`. The conclusion still holds
+///   resting on the exact-equality measure-zero step alone.
 ///
 /// The live paths all three operators share are pinned by the sibling tests:
 #[test]
@@ -829,4 +850,49 @@ fn quadrant_family_equivalent_mutants_are_documented() {
     // and the two reachable failure exits are pinned by the sibling fail-closed
     // tests above.
     assert!(solve_placidian_cusp(90.0, 61.0, 23.4392811, 11).is_ok());
+}
+
+/// FU-9 final-review fix (A): a genuinely method-independent `h != 0`
+/// reference for `topocentric_latitude` (mod.rs:1675-1683).
+///
+/// The existing sea-level cross-check
+/// (`topocentric_latitude_at_sea_level_matches_the_closed_form`) is
+/// independently *formulated*, but it only covers `h = 0`. At `h != 0` the
+/// only prior cross-check was `houses-reference.py::topocentric_latitude`,
+/// which is a line-for-line TRANSCRIPT of the crate's own prime-vertical
+/// formula — same `a`, same `1/f`, same `e2`, same `N`, same
+/// `atan2((N(1-e2)+h)s, (N+h)c)` — so it constrained nothing the crate's own
+/// code didn't already assert.
+///
+/// This form never constructs the prime-vertical radius `N` at all: it uses
+/// the parametric (reduced) latitude `beta` instead, `tan(beta) = (1-f)
+/// tan(phi)`, `X = a cos(beta) + h cos(phi)`, `Z = b sin(beta) + h sin(phi)`
+/// (`b = a(1-f)`), `phi' = atan2(Z, X)`. That is what makes it independent of
+/// the crate's formulation for `h != 0`, not just an independent transcript.
+///
+/// Agreement with `topocentric_latitude` was measured by running
+/// `houses-reference.py` (`topocentric_latitude_parametric`) at 1.421e-14
+/// (40°, 1000 m) and 7.105e-15 (-33°, 500 m), both far inside the 1e-12
+/// tolerance used here.
+#[test]
+fn topocentric_latitude_matches_the_parametric_latitude_formulation() {
+    const WGS84_A: f64 = 6_378_137.0;
+    const WGS84_INV_F: f64 = 298.257_223_563;
+
+    for (latitude, elevation_m) in [(40.0_f64, 1000.0_f64), (-33.0, 500.0)] {
+        let f = 1.0 / WGS84_INV_F;
+        let b = WGS84_A * (1.0 - f);
+        let phi = latitude.to_radians();
+        let beta = ((1.0 - f) * phi.tan()).atan();
+        let x = WGS84_A * beta.cos() + elevation_m * phi.cos();
+        let z = b * beta.sin() + elevation_m * phi.sin();
+        let expected = z.atan2(x).to_degrees();
+
+        assert_close_degrees(
+            topocentric_latitude(latitude, Some(elevation_m))
+                .expect("finite elevation is accepted")
+                .degrees(),
+            expected,
+        );
+    }
 }

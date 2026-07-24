@@ -1,3 +1,8 @@
+//! The non-quadrant, non-projection systems: Equal, EqualAries,
+//! EqualMidheaven, Vehlow, WholeSign, and the Porphyry-midpoint family
+//! (Porphyry itself and Sripati, which trisects Porphyry's quadrant
+//! segments).
+
 use super::support::*;
 use crate::systems::*;
 use pleiades_types::Latitude;

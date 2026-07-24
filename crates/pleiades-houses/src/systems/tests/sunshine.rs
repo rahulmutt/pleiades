@@ -1,3 +1,7 @@
+//! The Sunshine (solar-arc) house system and its supporting numeric
+//! primitives: `sunshine_houses`, `sunshine_offsets`,
+//! `apparent_solar_declination`, and `apparent_midheaven_declination`.
+
 use super::support::*;
 use crate::systems::*;
 use pleiades_types::{Angle, JulianDay, Latitude, TimeScale};

@@ -1,3 +1,8 @@
+//! Shared test fixtures and assertion helpers used across the family test
+//! files: request/observer builders (`observer`, `sample_request`), tolerance
+//! assertions (`assert_close_degrees`, `assert_corpus_cusps`), and angle
+//! builders (`gc_angles`, `test_asc_mc`).
+
 use crate::systems::*;
 use pleiades_types::{Instant, JulianDay, Latitude, TimeScale};
 

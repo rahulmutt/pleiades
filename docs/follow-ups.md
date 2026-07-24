@@ -989,6 +989,22 @@ different closed-form identity (`tan(phi') = (1-f)^2 tan(phi)`, exact at sea
 level); `solve_placidian_cusp`'s Newton iteration was cross-checked against a
 bisection root-finder over the same published residual — a different
 numerical method that cannot inherit a Newton-specific convergence error.
+**Correction (final whole-branch review, 2026-07-24):** the
+"independently-formulated, not merely an independent transcript" claim was
+only true for `topocentric_latitude`'s `h = 0` closed-form pin above. The
+`h != 0` elevation pins
+(`topocentric_latitude_pins_the_wgs84_reduction_with_elevation`) were in fact
+constrained only by `houses-reference.py::topocentric_latitude`, a
+line-for-line transcript of the crate's own prime-vertical formula (same `a`,
+`1/f`, `e2`, `N`, and `atan2((N(1-e2)+h)s, (N+h)c)`); at `h = 0` the `N` factor
+cancels out of the `atan2`, so the closed form never exercises it, and the
+`1680:*` prime-vertical mutants plus `1681:29` were pinned only by the
+transcript. Closed by
+`topocentric_latitude_matches_the_parametric_latitude_formulation`
+(`quadrant.rs`), which cross-checks the same `h != 0` pins against a third,
+genuinely independent formulation — the parametric (reduced) latitude `beta`,
+which never forms `N` — agreeing to 1.421e-14 / 7.105e-15, both far inside the
+1e-12 tolerance.
 
 **Per-mutant margin tables** (never aggregated, per the campaign discipline —
 reproduced verbatim from the task briefs):
@@ -1072,10 +1088,46 @@ prior-slice equivalents + this PR's `3` (`618:5`, `1741:21 <=`, `1750:24
 survived as predicted. No parity gate was touched; the tier stays
 report-only; `mise run ci` is green.
 
+**Record-keeping for this slice:**
+
+- **Deferred to PR 6, as an explicit decision, not an omission:**
+  `assert_corpus_cusps` was added this PR, but the six pre-existing
+  open-coded corpus closures in `quadrant.rs` (the
+  `*_match_swiss_ephemeris_corpus_*` tests — Morinus, Placidus+Topocentric,
+  Koch, Campanus, Alcabitius c1_lat40, Alcabitius c2_lat55 — ~270 lines of
+  near-identical arrange blocks) were **not** migrated onto it. The PR 5 plan
+  deliberately excluded that migration as a maintainability change, not a
+  triage-slice change. PR 6 scope. While there, rename the five of those six
+  tests named `..._within_120_arcsec` that actually assert a `1.0` arcsec
+  tolerance (only `alcabitius_cusps_c2_lat55_match_swiss_ephemeris_corpus_within_1_arcsec`
+  is named correctly today).
+- **A third plan defect** (alongside the two already recorded above): the
+  plan's Task 2 Step 1 expected every `h = 0` closed-form cross-check in
+  `houses-reference.py` to print `diff=0.000e+00`; `lat = -33.0` actually
+  prints `7.105e-15`. Harmless — the Rust pin uses a `1e-12` tolerance — but
+  the plan text was wrong.
+- **Benign spec deviation:** the PR 5 addendum said new tests would land in
+  `quadrant.rs` and `dispatch.rs`; the Sripati anchor landed in `trivial.rs`
+  instead, and the `systems/tests/` split (this PR's opening move) produced
+  `request.rs` and `trivial.rs` beyond the six family files the addendum
+  named. Both are improvements over the addendum's plan, recorded here so
+  they are not silent.
+- **No per-mutant margin table for the corpus-anchored kills.** Unlike
+  `topocentric_latitude` (9 rows) and `solve_placidian_cusp` (2 rows) above,
+  no per-mutant displacement table exists for the 5 `regiomontanus_houses` +
+  1 `midpoint_longitude` mutants — do not fabricate or aggregate one; campaign
+  discipline is per-mutant rows, and none were measured for this group. These
+  six are killed by whole-cusp-array comparison against the Swiss Ephemeris
+  corpus (`assert_corpus_cusps`/`assert_eq!` on all 12 cusps), not by a scalar
+  displacement pin, so the measured HEAD residuals against the 1″ tolerance
+  are recorded instead, as tolerance headroom rather than a mutant margin:
+  Regiomontanus `c1_lat40` 0.0424″, `c2_lat55` 0.0941″, Sripati `c1_lat40`
+  0.0092″.
+
 > **Correction to the Sector slice (PR 3).** That slice documented
 > `solve_gauquelin_sector`'s `1327:21 <` → `==` as an equivalent mutant on the
 > grounds that "the campaign does not pin error-message text". That premise is
-> incorrect: `systems/tests.rs` already pinned error-message text in five
+> incorrect: `systems/tests.rs` already pinned error-message text in several
 > places before this PR. PR 5 kills the structurally identical mutant in
 > `solve_placidian_cusp` (1741 `<` → `==`) by asserting the message, so
 > `solve_gauquelin_sector`'s GQ-1 is **killable the same way** and its
