@@ -1044,9 +1044,13 @@ bisection root to **≤ 2.84e-14**, a ~352× margin on the passing side.
   extra Newton step whose correction (`~delta^2 ~ 1e-18`) is far below
   `ulp(q) ~ 3.6e-15`. The extra iteration cannot change a single bit of `q`.
 
-This brings the **running documented-equivalent tally to `32 + 3 = 35`**
-(the houses sub-campaign total: Foundation 13 + Great-circle 8 + Sector 6 +
-Sunshine 5 + this PR's 3). The `3` is **measured, not predicted**: the plan
+This brings the **running documented-equivalent tally to `41 + 3 = 44`**,
+continuing the campaign-wide series the prior entries maintain
+(`9 → 22 → 30 → 36 → 41`). Within the `pleiades-houses` crate alone the
+sub-total is `32 + 3 = 35` (Foundation 13 + Great-circle 8 + Sector 6 +
+Sunshine 5 + this PR's 3); the PR 5 plan quoted that sub-total as if it were
+the running tally, which would have restarted the campaign-wide series.
+The `3` is **measured, not predicted**: the plan
 forecast `3 missed` including `618:5` from the scoped run itself, but the
 scoped run (`-F 'in (topocentric_latitude|solve_placidian_cusp|
 regiomontanus_houses|koch_houses|validate_topocentric_observer|
