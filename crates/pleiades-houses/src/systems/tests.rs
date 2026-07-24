@@ -2615,3 +2615,74 @@ fn pullen_sd_and_albategnius_pin_all_cusps_against_independent_reference() {
         );
     }
 }
+
+#[test]
+fn pullen_sr_pins_all_cusps_against_independent_reference() {
+    // Independent reference (houses-reference.py `pullen_sr`): ratio r solved as
+    // the positive root of r^4 + 2r^3 - 2c*r - c = 0 (c=(180-q)/q) by bisection+
+    // Newton, a different method than the crate's Ferrari closed form; matched to
+    // ~1e-12 during plan authoring. Geometries:
+    //  200/100 acmc=100 -> q>90 reduction (q=80) AND acmc>90 placement branch;
+    //  140/100 acmc=40  -> no reduction AND acmc<=90 placement branch;
+    //  10/100  acmc<0   -> flip -> acmc=90 (r=1 exactly);
+    //  100/100 acmc=0   -> q<1e-30 guard branch (x=xr=xr3=0, xr4=180).
+    let cases: [(f64, f64, [f64; 12]); 4] = [
+        (
+            200.0,
+            100.0,
+            [
+                200.0,
+                227.399778974511,
+                252.600221025489,
+                280.0,
+                312.391037626774,
+                347.608962373226,
+                20.0,
+                47.399778974511,
+                72.600221025489,
+                100.0,
+                132.391037626774,
+                167.608962373226,
+            ],
+        ),
+        (
+            140.0,
+            100.0,
+            [
+                140.0,
+                178.908843802504,
+                241.091156197496,
+                280.0,
+                295.233904915732,
+                304.766095084268,
+                320.0,
+                358.908843802504,
+                61.091156197496,
+                100.0,
+                115.233904915732,
+                124.766095084268,
+            ],
+        ),
+        (
+            10.0,
+            100.0,
+            [
+                190.0, 220.0, 250.0, 280.0, 310.0, 340.0, 10.0, 40.0, 70.0, 100.0, 130.0, 160.0,
+            ],
+        ),
+        (
+            100.0,
+            100.0,
+            [
+                100.0, 100.0, 280.0, 280.0, 280.0, 280.0, 280.0, 280.0, 100.0, 100.0, 100.0, 100.0,
+            ],
+        ),
+    ];
+    for (asc, mc, want) in cases {
+        assert_sector_cusps(
+            &pullen_sr_houses(gc_angles(asc, mc)),
+            &want,
+            &format!("pullen_sr asc={asc}"),
+        );
+    }
+}
