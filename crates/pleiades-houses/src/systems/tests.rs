@@ -2998,7 +2998,11 @@ fn sunshine_houses_under_horizon_guard_is_exercised_both_ways() {
 fn sunshine_houses_under_horizon_guards_match_recomposition() {
     // Rows chosen (Step 1) to straddle mc_under_horizon and to include a lat==0
     // row, so every 1545/1546/1607/1609 guard mutant changes at least one cusp
-    // vs the correct recomposition. lon sets sidereal time (mc_dec sign).
+    // vs the correct recomposition. lon sets sidereal time (mc_dec sign). Row 1
+    // (TRUE, latitude=80 != 0) alone already kills 1545:46 (`!= 0.0` guard);
+    // the lat==0 row is not needed to pin that mutant specifically -- it adds a
+    // separate, non-degenerate equality check on the `latitude.signum() == 0.0`
+    // branch (guard short-circuits to false regardless of the mc_dec term).
     let obl = 23.4392811;
     let rows = [
         sun_geom(2_451_600.0, 80.0, 295.0, obl, 300.0, 210.0), // mc_under_horizon = true
@@ -3029,6 +3033,103 @@ fn sunshine_houses_axis_flip_zero_boundary_matches_recomposition() {
     let obl = 23.4392811;
     let (instant, observer, obliquity, angles) =
         sun_geom(2_451_600.0, 45.0, 30.0, obl, 120.0, 120.0);
+    let got = sunshine_houses(instant, &observer, obliquity, angles);
+    let want = recompose_sunshine(instant, &observer, obliquity, angles);
+    for h in 0..12 {
+        assert!(
+            (got[h].degrees() - want[h]).abs() < 1.0e-9,
+            "cusp[{h}]: crate {} != recompose {}",
+            got[h].degrees(),
+            want[h]
+        );
+    }
+}
+
+#[test]
+fn sunshine_houses_under_horizon_exact_boundary_is_killed() {
+    // Review fix (Task 5 follow-up): 1546:92 `> 90.0` -> `>= 90.0` was previously
+    // documented equivalent, but `latitude` is a free input, so
+    // `|latitude - mc_dec|` can be driven to EXACTLY 90.0 by construction:
+    // set `latitude = mc_dec + 90.0`, i.e. `latitude - mc_dec == (mc_dec + 90.0)
+    // - mc_dec`. At `lon = 356.5` this f64 subtraction round-trips exactly to
+    // 90.0 (verified by the precondition assert below, not assumed).
+    let obl = 23.4392811;
+    let jd = 2_451_600.0;
+    let lon = 356.5;
+    let st = local_sidereal_time(
+        Instant::new(JulianDay::from_days(jd), TimeScale::Tt),
+        Longitude::from_degrees(lon),
+    )
+    .degrees();
+    let mc_dec = apparent_midheaven_declination(st, obl);
+    let latitude = mc_dec + 90.0;
+    // Precondition: |latitude - mc_dec| must be exactly 90.0, or this test would
+    // vacuously pass without ever exercising the mutant's differing branch.
+    assert_eq!(
+        (latitude - mc_dec).abs(),
+        90.0,
+        "exact-90 boundary precondition failed: mc_dec={mc_dec} latitude={latitude}"
+    );
+
+    // At HEAD, `> 90.0` is false here (mc_under_horizon = false, no flip), and
+    // `recompose_sunshine` uses the identical `> 90.0` guard, so crate ==
+    // recompose. The `>= 90.0` mutant makes mc_under_horizon = true, flipping
+    // the 8 loop-house cusps and diverging from recompose -- killing 1546:92.
+    let (instant, observer, obliquity, angles) = sun_geom(jd, latitude, lon, obl, 300.0, 210.0);
+    let got = sunshine_houses(instant, &observer, obliquity, angles);
+    let want = recompose_sunshine(instant, &observer, obliquity, angles);
+    for h in 0..12 {
+        assert!(
+            (got[h].degrees() - want[h]).abs() < 1.0e-9,
+            "cusp[{h}]: crate {} != recompose {}",
+            got[h].degrees(),
+            want[h]
+        );
+    }
+}
+
+#[test]
+fn sunshine_houses_degenerate_semi_arc_guard_is_killed() {
+    // Review fix (Task 5 follow-up): 1585:32 `c.abs() < f64::EPSILON` -> `== `
+    // was previously documented equivalent, but `latitude = 90.0 + sundec`
+    // drives the house>7 branch's `b = 90 - latitude + sundec` to exactly 0.0,
+    // which collapses `cosc = cos(xhs)*cos(b) + sin(xhs)*sin(b)*cos(alpha2)` to
+    // `cos(xhs)` (since cos(0)=1, sin(0)=0). At jd = 2_451_525.0 this also drives
+    // `xhs` for houses 8/9/11/12 to (near-)zero, so `cosc` rounds to exactly
+    // 1.0 in f64 and `c = acos(1.0) == 0.0` bit-exact.
+    let obl = 23.4392811;
+    let obl_angle = Angle::from_degrees(obl);
+    let jd = 2_451_525.0;
+    let instant = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+    let sundec = apparent_solar_declination(instant, obl_angle).degrees();
+    let latitude = 90.0 + sundec;
+
+    // Precondition: independently re-derive `c` for house 9 (the house>7
+    // branch) via the same trig chain as `sunshine_houses`/`recompose_sunshine`
+    // and confirm it lands on exactly 0.0 -- proving the guard fires at HEAD
+    // and this test isn't a vacuous pass.
+    let b = 90.0 - latitude + sundec;
+    let offsets = sunshine_offsets(latitude, sundec);
+    let offset = offsets[9];
+    let xhs = 2.0
+        * (sundec.to_radians().cos() * (offset.to_radians() / 2.0).sin())
+            .asin()
+            .to_degrees();
+    let cosa = (sundec.to_radians().tan() * (xhs.to_radians() / 2.0).tan()).clamp(-1.0, 1.0);
+    let alph = cosa.acos().to_degrees();
+    let alpha2 = 180.0 - alph;
+    let cosc = xhs.to_radians().cos() * b.to_radians().cos()
+        + xhs.to_radians().sin() * b.to_radians().sin() * alpha2.to_radians().cos();
+    let c = cosc.clamp(-1.0, 1.0).acos().to_degrees();
+    assert_eq!(c, 0.0, "c==0 precondition failed for house 9: c={c}");
+
+    // At HEAD, `c.abs() < f64::EPSILON` fires in both the crate and
+    // `recompose_sunshine` (both use the identical guard), so both take
+    // sinzd=0 and crate == recompose. The `c.abs() == f64::EPSILON` mutant is
+    // false at c==0.0, so the crate falls through to `.../ sin(0deg).to_radians()`
+    // == division by zero == NaN, while recompose stays finite -- the equality
+    // assertion below fails on NaN, killing 1585:32.
+    let (instant, observer, obliquity, angles) = sun_geom(jd, latitude, 40.0, obl, 130.0, 20.0);
     let got = sunshine_houses(instant, &observer, obliquity, angles);
     let want = recompose_sunshine(instant, &observer, obliquity, angles);
     for h in 0..12 {
