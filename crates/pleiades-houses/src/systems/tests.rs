@@ -3152,7 +3152,8 @@ fn sunshine_houses_degenerate_semi_arc_guard_is_killed() {
 /// --- nutation_for (2) ---
 /// (NUT-1) 600:30 `delta_psi_arcsec / 3600.0 -> * 3600.0` and
 /// (NUT-2) 600:30 `delta_psi_arcsec / 3600.0 -> % 3600.0`: both mutate the FIRST
-///   tuple element of `nutation_for(instant) -> (delta_psi_deg, delta_eps_deg)`.
+///   tuple element of `nutation_for(instant) -> Result<(delta_psi_deg,
+///   delta_eps_deg), HouseError>` (the `Ok` payload's `.0`).
 ///   BOTH call sites discard it -- `asc_mc` (mod.rs:268, `let (_dpsi, deps) =
 ///   ...`) and `validated_obliquity` (mod.rs:610, `let (_delta_psi_deg,
 ///   delta_eps_deg) = ...`). Only `delta_eps` feeds obliquity (observed, caught
@@ -3188,9 +3189,9 @@ fn sunshine_houses_degenerate_semi_arc_guard_is_killed() {
 ///   unchanged.)
 #[test]
 fn sunshine_family_equivalent_mutants_are_documented() {
-    // Liveness: assert the OBSERVABLE half is genuinely exercised, so this
-    // census does not silently rot if a future edit starts reading delta_psi.
-    // A None-obliquity Sunshine request drives validated_obliquity ->
+    // Liveness: assert the OBSERVABLE half (delta_eps) is genuinely exercised,
+    // so the equivalence claim rests on a live path rather than dead code. A
+    // None-obliquity Sunshine request drives validated_obliquity ->
     // nutation_for -> delta_eps -> cusps.
     let request = HouseRequest::new(
         Instant::new(JulianDay::from_days(2_451_600.0), TimeScale::Tt),
