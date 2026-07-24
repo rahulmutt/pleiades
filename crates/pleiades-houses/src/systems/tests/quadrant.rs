@@ -773,3 +773,60 @@ fn solve_placidian_cusp_fails_closed_when_the_iteration_does_not_converge() {
         error.message
     );
 }
+
+/// FU-9 quadrant/projection residual: 3 surviving mutants, each an EQUIVALENT
+/// MUTANT left visible (no `#[mutants::skip]`), enumerated with a reachability
+/// argument. Confirmed by the authoritative scoped run recorded in
+/// `docs/follow-ups.md`.
+///
+/// --- validate_topocentric_observer (1) ---
+/// (VT-1) 618:5 `-> Ok(())`. `validated_obliquity` calls `validate_observer`
+///   BEFORE `validate_topocentric_observer` (mod.rs:604-605), and
+///   `validate_observer` maps `NonFiniteElevation` to
+///   `HouseError { kind: InvalidElevation, message: "observer elevation must
+///   be finite when provided" }` for EVERY system. A non-finite elevation is
+///   `topocentric_latitude`'s only error path, and its message is the same
+///   string, so the earlier validator produces a byte-identical error: no
+///   input can reach this function in a state where it would return `Err`.
+///   The function is redundant defensive validation. Deleting it is the real
+///   fix but is a production change, out of scope for a tests-only slice.
+///
+/// --- solve_placidian_cusp (2) ---
+/// (PL-1) 1741:21 `gp.abs() < 1e-12 -> <=`: differs only when `gp.abs()` is
+///   exactly `1e-12`. Latitude is a free input, so the free-parameter lens was
+///   applied: near the vanishing-derivative latitude, one ulp of latitude
+///   moves `gp` by ~5e-15, while `1e-12` has an ulp of ~2e-28 — the reachable
+///   `gp` values step straight past the boundary, ~1e14 times coarser than the
+///   target. Measure-zero and unreachable.
+/// (PL-2) 1750:24 `delta.abs() < 1e-9 -> <=`: doubly unreachable. It differs
+///   only at `|delta| == 1e-9` exactly, and even there the output is
+///   bit-identical: `q` has ALREADY been updated by the time the test runs, so
+///   the only difference is one extra Newton step, whose correction is of
+///   order `delta^2 ~ 1e-18` — far below `ulp(q) ~ 3.6e-15` at `q ~ 30`. The
+///   extra iteration cannot change a single bit of `q`.
+///
+/// The live paths all three operators share are pinned by the sibling tests:
+#[test]
+fn quadrant_family_equivalent_mutants_are_documented() {
+    // VT-1: the earlier validator wins, with the identical kind AND message.
+    let request = HouseRequest::new(
+        Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        ObserverLocation::new(
+            Latitude::from_degrees(40.0),
+            Longitude::from_degrees(0.0),
+            Some(f64::NAN),
+        ),
+        HouseSystem::Topocentric,
+    );
+    let error = calculate_houses(&request).expect_err("a NaN elevation is rejected");
+    assert_eq!(error.kind, crate::error::HouseErrorKind::InvalidElevation);
+    assert_eq!(
+        error.message,
+        "observer elevation must be finite when provided"
+    );
+
+    // PL-1 / PL-2: the guards' live path — a physical geometry converges to Ok,
+    // and the two reachable failure exits are pinned by the sibling fail-closed
+    // tests above.
+    assert!(solve_placidian_cusp(90.0, 61.0, 23.4392811, 11).is_ok());
+}
