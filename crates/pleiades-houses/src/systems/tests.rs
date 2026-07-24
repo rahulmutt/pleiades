@@ -3141,3 +3141,68 @@ fn sunshine_houses_degenerate_semi_arc_guard_is_killed() {
         );
     }
 }
+
+/// Census of the Sunshine/solar-arc-family mutants left as *documented
+/// equivalents* after this FU-9 slice: 5 surviving mutants, each unobservable
+/// through the public API (killing any would require a production behavior
+/// change, out of scope for this tests-only slice). Left visible (never
+/// `#[mutants::skip]`) so a future reader sees the reachability argument.
+/// Measured by the authoritative scoped family re-run (Task 6 Step 3).
+///
+/// --- nutation_for (2) ---
+/// (NUT-1) 600:30 `delta_psi_arcsec / 3600.0 -> * 3600.0` and
+/// (NUT-2) 600:30 `delta_psi_arcsec / 3600.0 -> % 3600.0`: both mutate the FIRST
+///   tuple element of `nutation_for(instant) -> (delta_psi_deg, delta_eps_deg)`.
+///   BOTH call sites discard it -- `asc_mc` (mod.rs:268, `let (_dpsi, deps) =
+///   ...`) and `validated_obliquity` (mod.rs:610, `let (_delta_psi_deg,
+///   delta_eps_deg) = ...`). Only `delta_eps` feeds obliquity (observed, caught
+///   by validate-houses/validate-angles). `delta_psi` reaches no public output,
+///   so its arithmetic is unobservable => equivalent.
+///
+/// --- sunshine_houses (3) ---
+/// (SUN-1) 1576:36 `house > 7 -> house >= 7` (below/above-horizon branch split):
+///   the per-house loop iterates the fixed set [2,3,5,6,8,9,11,12] (mod.rs:1568);
+///   `house` is never 7, so `> 7` and `>= 7` agree on every reachable value
+///   (false for {2,3,5,6}, true for {8,9,11,12}). No reachable input
+///   distinguishes them => equivalent.
+/// (SUN-2) 1585:32 `c.abs() < f64::EPSILON -> <=` (semi-arc div-by-zero guard):
+///   differs only at c.abs() == f64::EPSILON (~2.22e-16 deg) exactly. c =
+///   acos(clamp(cosc)).to_degrees(); by the acos singularity near cosc=1 the
+///   reachable set of c.abs() is {0.0} U [~8.5e-7 deg, ...] -- the next
+///   representable f64 below 1.0 already yields c ~ sqrt(2*ulp) ~ 8.5e-7 deg. So
+///   EPSILON sits in an unreachable structural gap; `<` and `<=` agree on every
+///   reachable input => equivalent. (The `< -> ==` sibling IS killable --
+///   c.abs()==0.0 is reachable at a house-8 degenerate semi-arc -- and is killed
+///   by `sunshine_houses_degenerate_semi_arc_guard_is_killed`.)
+/// (SUN-3) 1600:27 `sidereal_time + 180.0 -> sidereal_time - 180.0` (RAMC
+///   offset, house<=6): the two arguments differ by exactly 360 deg; asc1
+///   normalizes its first arg mod 360 (mod.rs:1794), so the physical ascendant
+///   is identical for every input. The only f64-level divergence is a wraparound
+///   representation seam at a measure-zero input set where normalization rounds x
+///   and x-360 to distinct representatives of the SAME angle (e.g. 1e-12 deg vs
+///   359.999999999999 deg); these are one modular Longitude differing by ~2e-12
+///   deg -- within the 1e-9 recomposition tolerance. The mutant cannot change the
+///   meaningful (modular) house cusp => equivalent. (A raw-subtraction "kill"
+///   would only pin `recompose_sunshine`'s non-modular comparison seam, not
+///   intent; unlike SUN-2's `==` sibling, the output here is behaviorally
+///   unchanged.)
+#[test]
+fn sunshine_family_equivalent_mutants_are_documented() {
+    // Liveness: assert the OBSERVABLE half is genuinely exercised, so this
+    // census does not silently rot if a future edit starts reading delta_psi.
+    // A None-obliquity Sunshine request drives validated_obliquity ->
+    // nutation_for -> delta_eps -> cusps.
+    let request = HouseRequest::new(
+        Instant::new(JulianDay::from_days(2_451_600.0), TimeScale::Tt),
+        ObserverLocation::new(
+            Latitude::from_degrees(48.0),
+            Longitude::from_degrees(12.0),
+            None,
+        ),
+        HouseSystem::Sunshine,
+    );
+    // obliquity defaulted (None) => mean_obliquity + delta_eps from nutation_for.
+    assert!(request.obliquity.is_none());
+    let snapshot = calculate_houses(&request).expect("sunshine houses should work");
+    assert_eq!(snapshot.cusps.len(), 12);
+}

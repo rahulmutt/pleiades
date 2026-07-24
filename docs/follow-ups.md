@@ -883,6 +883,65 @@ quadrant/projection (`solve_placidian_cusp`/`topocentric_latitude`/
 `regiomontanus`/`koch`/campanus/alcabitius/morinus/carter), then catalog +
 thresholds (which adds `-p pleiades-houses` to `[tasks.mutants]`).
 
+**Progress (2026-07-24) — houses Sunshine/solar-arc
+(`pleiades-houses/src/systems/mod.rs`,
+`sunshine_houses`/`sunshine_offsets`/`apparent_solar_declination`/
+`apparent_midheaven_declination`/`nutation_for`):** fourth PR of the
+post-baseline `pleiades-houses` expansion campaign (spec:
+`docs/superpowers/specs/2026-07-22-fu9-houses-mutant-triage-design.md`; plan:
+`docs/superpowers/plans/2026-07-24-fu9-houses-sunshine-mutant-triage.md`).
+Triaged the Sunshine/solar-arc family from `126` surviving mutants
+(`sunshine_houses` 68, `sunshine_offsets` 34, `apparent_solar_declination` 20,
+`apparent_midheaven_declination` 2, `nutation_for` 2 — matching the design's
+whole-crate prediction 68/34/20/2/2 exactly) to **5 documented equivalents**.
+**Tests-only.** The pure numeric helpers were pinned by **independent
+recomputation**: `apparent_solar_declination` (20→0) from the published
+NOAA/USNO low-precision Sun series and `sunshine_offsets` (34→0) from the
+Albategnian semi-arc trisection (both re-derived, not transcribed, in the shared
+`houses-reference.py` as `solar_declination`/`sunshine_offsets`, cross-validated
+to ~1e-9), and `apparent_midheaven_declination` (2→0) by a crafted product-form
+geometry (`sin*tan != sin+tan != sin/tan`). `sunshine_houses` (68→3) was pinned
+by `recompose_sunshine` — an **independent recomposition** threading the
+un-mutated `local_sidereal_time`/`asc1`/`longitude_opposite`/
+`signed_longitude_difference` and the just-pinned
+`apparent_solar_declination`/`sunshine_offsets` — asserted equal to the crate
+over a geometry table that straddles the `acmc < 0` axis flip and the
+`mc_under_horizon` under-horizon flip (both hemispheres, a `lat == 0` row, an
+`acmc == 0` axis boundary, an exact `|lat − mc_dec| == 90.0` under-horizon
+boundary, and a degenerate `c == 0` semi-arc). **Documented residual — 5
+equivalent mutants**, left visible (no `#[mutants::skip]`) and enumerated with
+per-mutant reachability arguments in
+`sunshine_family_equivalent_mutants_are_documented`: `nutation_for` `600:30
+/ -> *` and `/ -> %` (the `delta_psi_arcsec / 3600.0` term is the FIRST tuple
+element, discarded at both call sites — `asc_mc` `mod.rs:268`,
+`validated_obliquity` `mod.rs:610` — so it reaches no public output);
+`sunshine_houses` `1576:36 > -> >=` (`house > 7` vs `>= 7`, but the loop's fixed
+house set `[2,3,5,6,8,9,11,12]` never contains 7, so both agree on every
+reachable value), `1585:32 < -> <=` (the `c.abs() < f64::EPSILON` div-guard
+differs only at `c.abs() == EPSILON`, but the reachable `c.abs()` set is
+`{0.0} ∪ [~8.5e-7°, …]` with `EPSILON ≈ 2.22e-16°` in the unreachable gap), and
+`1600:27 + -> -` (`sidereal_time + 180.0` vs `- 180.0` differ by exactly 360°;
+`asc1` normalizes its first argument mod 360, so the physical cusp is identical
+— the only f64 divergence is a measure-zero wraparound seam, `~1e-12°` vs
+`359.999999999999°`, one modular Longitude differing by `~2e-12°`, well within
+the 1e-9 recomposition tolerance). The `5` is **measured, not predicted**: the
+plan forecast `2` (assuming `sunshine_houses → 0`), but the scoped re-runs
+established 3 additional genuine `sunshine_houses` equivalents — and an
+adversarial review of the residual **refuted two initially-suspected
+equivalents** (`1585:32 < -> ==`, killable because `c.abs() == 0.0` is reachable
+at a house-8 degenerate semi-arc → NaN divergence; and `1546:92 > -> >=`,
+killable because `latitude` is a free input so `|lat − mc_dec| == 90.0` is
+f64-exact via `lat = mc_dec + 90.0`), both of which were then **killed** by
+crafted exact-boundary tests. This brings the **running documented-equivalent
+tally to `36 + 5 = 41`**. The authoritative scoped run
+(`-F 'in (sunshine_houses|sunshine_offsets|apparent_solar_declination|
+apparent_midheaven_declination|nutation_for)$'`, 137 mutants)
+reports `5 missed / 132 caught / 0 unviable`. No parity gate was
+touched; the tier stays report-only; `mise run ci` is green. **Remaining houses
+PRs:** quadrant/projection (`solve_placidian_cusp`/`topocentric_latitude`/
+`regiomontanus`/`koch`/campanus/alcabitius/morinus/carter), then catalog +
+thresholds (which adds `-p pleiades-houses` to `[tasks.mutants]`).
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
