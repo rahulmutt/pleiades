@@ -25,7 +25,7 @@ resolver = "2"
 [workspace.package]
 edition = "2021"
 license = "MIT OR Apache-2.0"
-version = "0.4.0"
+version = "0.4.1"
 rust-version = "1.97.1"
 repository = "https://github.com/rahulmutt/pleiades"
 homepage = "https://github.com/rahulmutt/pleiades"
@@ -43,22 +43,22 @@ serde = { version = "1", default-features = false, features = ["derive", "std"] 
 ureq = { version = "3", default-features = false, features = ["rustls-no-provider", "rustls-webpki-roots"] }
 rustls = { version = "0.23", default-features = false, features = ["std", "tls12"] }
 rustls-graviola = { version = "0.3", default-features = false }
-pleiades-apparent = { path = "crates/pleiades-apparent", version = "0.4.0" }
-pleiades-apsides = { path = "crates/pleiades-apsides", version = "0.4.0" }
-pleiades-ayanamsa = { path = "crates/pleiades-ayanamsa", version = "0.4.0" }
-pleiades-backend = { path = "crates/pleiades-backend", version = "0.4.0" }
-pleiades-compression = { path = "crates/pleiades-compression", version = "0.4.0" }
-pleiades-core = { path = "crates/pleiades-core", version = "0.4.0" }
-pleiades-data = { path = "crates/pleiades-data", version = "0.4.0" }
-pleiades-eclipse = { path = "crates/pleiades-eclipse", version = "0.4.0" }
-pleiades-elp = { path = "crates/pleiades-elp", version = "0.4.0" }
-pleiades-events = { path = "crates/pleiades-events", version = "0.4.0" }
-pleiades-fict = { path = "crates/pleiades-fict", version = "0.4.0" }
-pleiades-houses = { path = "crates/pleiades-houses", version = "0.4.0" }
-pleiades-jpl = { path = "crates/pleiades-jpl", version = "0.4.0" }
-pleiades-time = { path = "crates/pleiades-time", version = "0.4.0" }
-pleiades-types = { path = "crates/pleiades-types", version = "0.4.0" }
-pleiades-vsop87 = { path = "crates/pleiades-vsop87", version = "0.4.0" }
+pleiades-apparent = { path = "crates/pleiades-apparent", version = "0.4.1" }
+pleiades-apsides = { path = "crates/pleiades-apsides", version = "0.4.1" }
+pleiades-ayanamsa = { path = "crates/pleiades-ayanamsa", version = "0.4.1" }
+pleiades-backend = { path = "crates/pleiades-backend", version = "0.4.1" }
+pleiades-compression = { path = "crates/pleiades-compression", version = "0.4.1" }
+pleiades-core = { path = "crates/pleiades-core", version = "0.4.1" }
+pleiades-data = { path = "crates/pleiades-data", version = "0.4.1" }
+pleiades-eclipse = { path = "crates/pleiades-eclipse", version = "0.4.1" }
+pleiades-elp = { path = "crates/pleiades-elp", version = "0.4.1" }
+pleiades-events = { path = "crates/pleiades-events", version = "0.4.1" }
+pleiades-fict = { path = "crates/pleiades-fict", version = "0.4.1" }
+pleiades-houses = { path = "crates/pleiades-houses", version = "0.4.1" }
+pleiades-jpl = { path = "crates/pleiades-jpl", version = "0.4.1" }
+pleiades-time = { path = "crates/pleiades-time", version = "0.4.1" }
+pleiades-types = { path = "crates/pleiades-types", version = "0.4.1" }
+pleiades-vsop87 = { path = "crates/pleiades-vsop87", version = "0.4.1" }
 
 # Optimize test and dev builds. The packaged-artifact fit/regeneration and
 # corpus comparison tests are numerically heavy; at opt-level = 0 they dominate
