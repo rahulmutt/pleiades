@@ -267,6 +267,175 @@ argument; this makes the default set include it.
   above are hypotheses only; the plan measures the real per-file survivor list
   first and classifies from the measurement.
 
+## PR 5 addendum — Quadrant/projection + non-catalog tail (2026-07-24)
+
+Design decisions specific to PR 5, recorded here rather than in a competing
+spec so the campaign keeps **one** design doc. Supersedes, for PR 5 only, the
+"Structure changes" note above (which predates the test file's growth) and the
+`Quadrant/projection` row of the delivery table (which predicted `21`
+survivors; the measurement found `23`).
+
+### Re-measured baseline (2026-07-24, at `a8917919f`)
+
+Whole-file, authoritative command, output written outside the repo:
+
+```bash
+MISE_TRUSTED_CONFIG_PATHS=/tmp mise exec -- cargo mutants \
+  --test-tool nextest --test-workspace=false --baseline run \
+  -p pleiades-houses --file crates/pleiades-houses/src/systems/mod.rs
+```
+
+**1,128 mutants tested in 31 min — 83 missed / 1,038 caught / 7 unviable.**
+The 83 decompose exactly, with no unaccounted remainder:
+
+| Bucket | Count |
+|--------|-------|
+| Prior slices' documented equivalents, reproduced identically (Foundation 13, Great-circle 8, Sector 6, Sunshine 5) | 32 |
+| `catalog_name` — 26 match-arm deletes + 2 return-value replacements — **deferred to PR 6** | 28 |
+| **PR 5 work** | **23** |
+
+That the 32 prior residuals reproduce line-for-line is the measurement's own
+consistency check: the four landed PRs neither regressed nor silently absorbed
+each other's survivors.
+
+### PR 5 scope — the measured 23
+
+Per the scope decision below, PR 5 is **every remaining survivor in
+`systems/mod.rs` except `catalog_name`**, not only the two formula families the
+delivery table names. This makes PR 6 purely the non-numeric tail
+(`catalog/mod.rs`, `catalog_name`, `thresholds.rs` relocation, `[tasks.mutants]`
+expansion) and avoids a seventh slice.
+
+| Function | Survivors | Lines | Root cause |
+|----------|-----------|-------|------------|
+| `topocentric_latitude` | 9 | 1680–1681 | the WGS-84 prime-vertical and eccentricity terms are unconstrained by the single existing test |
+| `solve_placidian_cusp` | 6 | 1739–1756 | Newton **internals**: the `gp` derivative terms, the `gp.abs() < 1e-12` zero-derivative guard, the `delta.abs() < 1e-9` convergence test, the `!converged \|\| !q.is_finite()` fail-closed guard — invisible while the iteration still reaches the same root |
+| `regiomontanus_houses` | 5 | 947–949 | the only Regiomontanus unit test runs at **lat 0**, where `sin(lat) = 0` and `cos(lat) = 1` make three of the four factors degenerate |
+| `koch_houses` | 1 | 843 | the `90.0 - obliquity_deg` polar-circle threshold — nothing asserts Koch *fails* inside the polar circle |
+| `validate_topocentric_observer` | 1 | 618 | `-> Ok(())`; **equivalent-mutant candidate** — see below |
+| `midpoint_longitude` | 1 | 1790 | `-> Default::default()`; the Sripati test asserts cusps `==` `midpoint_longitude(...)` — the same function on both sides, so `0 == 0` still passes (circular) |
+
+**Target: `23 → 0-or-documented-equivalent`**, with the killed-vs-equivalent
+split **confirmed by a scoped re-run, not predicted** (established discipline).
+Two survivors are equivalent-*candidates* at design time —
+`validate_topocentric_observer` 618 and, conditionally, the two
+`solve_placidian_cusp` 1739 derivative terms — each with its own section below;
+every other survivor is expected killable.
+
+### Reference strategy — hybrid (decision)
+
+Unlike PRs 1–4, PR 5's systems are already covered by Swiss-Ephemeris corpus
+rows *and* the crate already carries in-crate SE anchors at 1 arcsec
+(`systems/tests.rs`, the `*_match_swiss_ephemeris_corpus_*` tests for Placidus,
+Topocentric, Koch, Campanus, Alcabitius, Morinus). Their mutants survive only
+because `cargo mutants` runs `--test-workspace=false`, so the `pleiades-validate`
+gate is outside the mutation test set. PR 5 therefore mixes two authorities:
+
+- **Swiss-Ephemeris corpus anchors** (new tests, 1 arcsec, extending the
+  existing in-crate pattern): Regiomontanus at `c1_lat40` and `c2_lat55`, and
+  Sripati at `c1_lat40`. `crates/pleiades-validate/data/houses-corpus/cusps.csv`
+  carries all 23 systems × 6 charts (lat 0/40/55/66, a second epoch, lat −33).
+  The Sripati row is what breaks `midpoint_longitude`'s circularity — SE never
+  calls our function. Values are copied as literals with a provenance comment
+  naming the row; the crate does **not** grow a path dependency on the
+  tooling crate's data directory (that would invert the layering).
+  This also answers the reviewer flag recorded in
+  `[[fu9-houses-reference-independence]]`: for these systems the authority is
+  genuinely foreign, not a mirror of our own formula.
+- **`houses-reference.py` extension** (1e-12 pins, the campaign's established
+  reference): `topocentric_latitude` recomputed from the **published** WGS-84
+  constants (`a = 6_378_137.0`, `1/f = 298.257_223_563`) outside the crate, at
+  several latitude/elevation pairs **including elevation ≠ 0** (the `+ elevation`
+  terms at 1681 are otherwise degenerate); `solve_placidian_cusp` rooted by an
+  **independent bisection** on the published residual
+  `g(q) = cos(q/f) + tan φ · tan δ(α)`, `α = RAMC + q` — a genuinely different
+  root-finder from the crate's Newton iteration, pinning all four solved cusps
+  (11, 12, 2, 3).
+- **Crafted guard tests, at the private seam.** Two of these guards are
+  provably unreachable through `calculate_houses`, so they are exercised by
+  calling the private function directly (`use super::*;`), per the `apparent.rs`
+  private-primitive precedent:
+  - **Koch polar circle (843).** The catalog gives Koch
+    `max_abs_latitude_deg = Some(66.0)` (`catalog/mod.rs:712–720`), while the
+    internal guard fires at `|lat| >= 90 - ε ≈ 66.56°`. Under `Strict` the
+    public path rejects `|lat| > 66.0` first; under `SwissEphemerisFallback` it
+    substitutes Porphyry. Neither reaches `koch_houses`, so the kill is a direct
+    `koch_houses(...)` call at `lat = 70°` asserting `Err(NumericalFailure)` —
+    the mutant moves the threshold to `90 + ε ≈ 113.4°`, unreachable for any
+    `|lat| ≤ 90`, so it returns `Ok` and dies.
+  - **Placidus zero-derivative / non-convergence (1741, 1756).** Driven by
+    calling `solve_placidian_cusp` directly with a crafted
+    `(st, lat, obliquity, house)`.
+
+  A third, `midpoint_longitude`, needs no guard test — the Sripati corpus
+  anchor kills it.
+
+Corpus rows are 6-decimal, so corpus-anchored assertions pin at 1 arcsec while
+reference-anchored ones pin at 1e-12 — recorded per mutant in the plan's margin
+table, never aggregated (`[[fu9-margin-table-per-mutant-rows]]`).
+
+### `validate_topocentric_observer` (618) — equivalent-mutant candidate
+
+`validated_obliquity` calls `validate_observer` **before**
+`validate_topocentric_observer` (`mod.rs:604–605`), and `validate_observer`
+already maps `ObserverLocationValidationError::NonFiniteElevation` to
+`HouseError` for *every* system — the behavior the existing
+`house_request_validate_rejects_non_finite_elevation_even_without_topocentric_houses`
+test pins. A non-finite elevation is `topocentric_latitude`'s **only** error
+path, so no input can reach `validate_topocentric_observer` in a state where it
+would return `Err`: the function is redundant defensive validation and its
+`-> Ok(())` mutant is very likely equivalent.
+
+The plan **attempts the kill first** (enumerating `topocentric_latitude`'s error
+paths to confirm non-finite elevation is the only one) and documents it with a
+written reachability argument only if that fails. Deleting the redundant
+validator is the alternative fix but is a **production change**, out of scope
+for a tests-only slice; if the equivalence is confirmed, the plan records it as
+a candidate cleanup for a later PR rather than doing it here.
+
+### Newton-internals mutants (`solve_placidian_cusp` 1739) — decision
+
+The two derivative-term mutants change the Newton **step**, not the root: a
+mutated derivative that still converges inside the 64-iteration cap yields a
+bit-identical cusp. The plan **hunts a geometry where the mutated derivative
+fails to converge (or lands on a different root)**, which makes them
+observable; only if that search comes up empty are they left visible with a
+written reachability argument. No `#[mutants::skip]`, and **no testability
+refactor** — PR 5 stays tests-only, so the extract-a-seam option is explicitly
+rejected. The `1741` (`gp.abs() < 1e-12`) and `1750` (`delta.abs() < 1e-9`)
+comparison swaps are assessed with the free-parameter lens
+(`[[fu9-equivalence-free-param-and-modular-lenses]]`): `<` → `==` is *not*
+measure-zero (it disables the guard for every genuinely near-zero derivative)
+and is expected killable at the private seam; `<` → `<=` at an exact threshold
+equality is the measure-zero case and may be a documented equivalent.
+
+### Test-layout split (decision, first commit)
+
+`crates/pleiades-houses/src/systems/tests.rs` has reached **3,209 lines / 90
+tests** across four triage PRs, with PR 5 and PR 6 still to add. Per AGENTS.md
+("split it before adding more, not after") and the `pleiades-types` slice
+precedent (a 1,464-line `tests.rs` relocated into a per-module `src/tests/`),
+PR 5 opens with a **pure-move commit**: `systems/tests.rs` →
+`systems/tests/` containing `mod.rs`, `support.rs` (the existing
+`assert_close_degrees` / `test_asc_mc` helpers), and per-family files
+(`primitives`, `greatcircle`, `sector`, `sunshine`, `quadrant`, `dispatch`).
+No test body changes; verified a no-op by identical test count and names before
+and after. PR 5's new tests land in `systems/tests/quadrant.rs` and
+`systems/tests/dispatch.rs` in later commits.
+
+### PR 5 acceptance criteria (in addition to the campaign's)
+
+- Scoped re-run
+  `-F 'in (topocentric_latitude|solve_placidian_cusp|regiomontanus_houses|koch_houses|validate_topocentric_observer|midpoint_longitude)$'`
+  reports `0 missed`, or only documented equivalents with per-mutant
+  reachability arguments.
+- **Tests-only:** no production file is modified. The whole diff is
+  `crates/pleiades-houses/src/systems/tests.rs` → `systems/tests/**` (the move),
+  the new tests, one `#[cfg(test)] mod tests;` declaration line in
+  `systems/mod.rs` if the move requires it, the reference-note extension, and
+  the `docs/follow-ups.md` Progress entry.
+- `mise.toml` untouched (the `-p pleiades-houses` weekly-tier expansion is PR 6).
+
 ## References
 
 - `docs/follow-ups.md` — FU-9 (baseline CLOSED note; running documented-
