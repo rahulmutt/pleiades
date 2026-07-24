@@ -2939,9 +2939,14 @@ fn sun_geom(
 fn sunshine_houses_matches_independent_recomposition() {
     // Geometry table: row A mid-lat acmc>0 (no axis flip, mc above horizon);
     // row B mid-lat acmc<0 (exercises the 1552 axis flip + 1554 mc flip);
-    // row C high-lat with mc below horizon (exercises the per-house loop under a
-    // different hemisphere sign). All rows have non-degenerate loop terms, so the
-    // 51 loop-body swaps and the 2 axis-flip guards are all killed.
+    // row C high-lat (66 deg), exercising the per-house loop under a different
+    // hemisphere sign. Note: mc_under_horizon can NEVER be true here — or at any
+    // latitude — because apparent_midheaven_declination is bounded to
+    // +/-obliquity (~23.44 deg), so |lat - mc_dec| maxes at 66 + 23.44 = 89.44,
+    // under the 90 deg guard threshold. The dedicated under-horizon flip rows
+    // live in `sunshine_houses_under_horizon_guards_match_recomposition` below.
+    // All rows have non-degenerate loop terms, so the 51 loop-body swaps and the
+    // 2 axis-flip guards are all killed.
     let obl = 23.4392811;
     let rows = [
         sun_geom(2_451_600.0, 52.0, 10.0, obl, 100.0, 15.0), // A: acmc = 85 > 0
@@ -2959,5 +2964,79 @@ fn sunshine_houses_matches_independent_recomposition() {
                 want[h]
             );
         }
+    }
+}
+
+#[test]
+fn sunshine_houses_under_horizon_guard_is_exercised_both_ways() {
+    // Precondition: the crafted rows must land on opposite sides of the guard,
+    // else the comparison-swap mutants would survive vacuously.
+    let obl = 23.4392811;
+    let st_true = local_sidereal_time(
+        Instant::new(JulianDay::from_days(2_451_600.0), TimeScale::Tt),
+        Longitude::from_degrees(295.0),
+    )
+    .degrees();
+    let mc_dec_true = apparent_midheaven_declination(st_true, obl);
+    assert!(
+        (80.0_f64 - mc_dec_true).abs() > 90.0,
+        "expected mc_under_horizon TRUE row: |80 - {mc_dec_true}| must exceed 90"
+    );
+    let st_false = local_sidereal_time(
+        Instant::new(JulianDay::from_days(2_451_600.0), TimeScale::Tt),
+        Longitude::from_degrees(20.0),
+    )
+    .degrees();
+    let mc_dec_false = apparent_midheaven_declination(st_false, obl);
+    assert!(
+        (80.0_f64 - mc_dec_false).abs() < 90.0,
+        "expected mc_under_horizon FALSE row: |80 - {mc_dec_false}| must be under 90"
+    );
+}
+
+#[test]
+fn sunshine_houses_under_horizon_guards_match_recomposition() {
+    // Rows chosen (Step 1) to straddle mc_under_horizon and to include a lat==0
+    // row, so every 1545/1546/1607/1609 guard mutant changes at least one cusp
+    // vs the correct recomposition. lon sets sidereal time (mc_dec sign).
+    let obl = 23.4392811;
+    let rows = [
+        sun_geom(2_451_600.0, 80.0, 295.0, obl, 300.0, 210.0), // mc_under_horizon = true
+        sun_geom(2_451_600.0, 80.0, 20.0, obl, 100.0, 15.0),   // mc_under_horizon = false
+        sun_geom(2_451_600.0, 0.0, 20.0, obl, 100.0, 15.0),    // lat == 0 -> false
+    ];
+    for (i, (instant, observer, obliquity, angles)) in rows.iter().enumerate() {
+        let got = sunshine_houses(*instant, observer, *obliquity, *angles);
+        let want = recompose_sunshine(*instant, observer, *obliquity, *angles);
+        for h in 0..12 {
+            assert!(
+                (got[h].degrees() - want[h]).abs() < 1.0e-9,
+                "row {i} cusp[{h}]: crate {} != recompose {}",
+                got[h].degrees(),
+                want[h]
+            );
+        }
+    }
+}
+
+#[test]
+fn sunshine_houses_axis_flip_zero_boundary_matches_recomposition() {
+    // acmc = signed_longitude_difference(asc, mc) is exactly 0.0 when asc == mc.
+    // At HEAD, `acmc < 0.0` is false there (no axis flip), and
+    // `recompose_sunshine` uses the same `< 0.0` guard, so crate == recompose.
+    // The `acmc < 0.0` -> `acmc <= 0.0` mutant flips the axis at this boundary,
+    // diverging from recompose and killing 1552:13.
+    let obl = 23.4392811;
+    let (instant, observer, obliquity, angles) =
+        sun_geom(2_451_600.0, 45.0, 30.0, obl, 120.0, 120.0);
+    let got = sunshine_houses(instant, &observer, obliquity, angles);
+    let want = recompose_sunshine(instant, &observer, obliquity, angles);
+    for h in 0..12 {
+        assert!(
+            (got[h].degrees() - want[h]).abs() < 1.0e-9,
+            "cusp[{h}]: crate {} != recompose {}",
+            got[h].degrees(),
+            want[h]
+        );
     }
 }
