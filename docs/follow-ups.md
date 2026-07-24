@@ -942,6 +942,147 @@ PRs:** quadrant/projection (`solve_placidian_cusp`/`topocentric_latitude`/
 `regiomontanus`/`koch`/campanus/alcabitius/morinus/carter), then catalog +
 thresholds (which adds `-p pleiades-houses` to `[tasks.mutants]`).
 
+**Progress (2026-07-24) — houses Quadrant/projection
+(`pleiades-houses/src/systems/mod.rs`, `topocentric_latitude`/
+`solve_placidian_cusp`/`regiomontanus_houses`/`koch_houses`/
+`validate_topocentric_observer`/`midpoint_longitude`):** fifth PR of the
+post-baseline `pleiades-houses` expansion campaign (spec:
+`docs/superpowers/specs/2026-07-22-fu9-houses-mutant-triage-design.md`; plan:
+`docs/superpowers/plans/2026-07-24-fu9-houses-quadrant-mutant-triage.md`).
+This slice opened by splitting the 3,209-line
+`crates/pleiades-houses/src/systems/tests.rs` into a per-family
+`systems/tests/` directory (`support`/`request`/`dispatch`/`trivial`/
+`quadrant`/`greatcircle`/`sector`/`sunshine`/`primitives`) — a verified no-op
+move (identical `cargo nextest list` inventories before/after), per AGENTS.md's
+"split it before adding more, not after". **Tests-only.**
+
+The re-measured whole-file baseline at `a8917919f` (Sunshine's landed SHA) is
+`1,128 mutants tested / 83 missed / 1,038 caught / 7 unviable`, decomposing
+three ways with no remainder: `28` `catalog_name` survivors (untouched,
+deferred to PR 6), `32` prior-slice documented equivalents (untouched —
+Foundation 13 / Great-circle 8 / Sector 6 / Sunshine 5), and this PR's `23`
+Quadrant/projection targets. Triaged the 23 to **3 documented equivalents**,
+per function:
+
+| Function | Survivors at baseline | Survivors now | Killed by |
+|----------|----------------------|---------------|-----------|
+| `topocentric_latitude` | 9 | **0** | WGS-84 elevation pins + closed-form cross-check |
+| `solve_placidian_cusp` | 6 | **2** (equivalent) | Bisection root pin + both fail-closed guards |
+| `regiomontanus_houses` | 5 | **0** | SE corpus rows c1_lat40, c2_lat55 |
+| `koch_houses` | 1 | **0** | Private-seam polar-circle guard |
+| `validate_topocentric_observer` | 1 | **1** (equivalent, proven unreachable) | — |
+| `midpoint_longitude` | 1 | **0** | SE corpus Sripati row c1_lat40 |
+| **Total** | **23** | **3** | |
+
+A SE-corpus / independent-Python-reference hybrid was used, keyed to survivor
+shape: the two whole-cusp-array pins (`regiomontanus_houses`,
+`midpoint_longitude`) need an external authority, since
+`midpoint_longitude`'s only prior test compared the crate's Sripati output
+against `midpoint_longitude` itself — the same function on both sides, so a
+`-> Default::default()` mutant produces `0 == 0` and still passes; only a
+Swiss-Ephemeris corpus row breaks that circularity. The pure numeric helpers
+(`topocentric_latitude`, `solve_placidian_cusp`) instead need an
+**independently-formulated** reference, not merely an independent transcript:
+`topocentric_latitude` was cross-checked against the published WGS-84 datum
+constants (`WGS84_A`, `WGS84_INV_F`) evaluated by a second, genuinely
+different closed-form identity (`tan(phi') = (1-f)^2 tan(phi)`, exact at sea
+level); `solve_placidian_cusp`'s Newton iteration was cross-checked against a
+bisection root-finder over the same published residual — a different
+numerical method that cannot inherit a Newton-specific convergence error.
+
+**Per-mutant margin tables** (never aggregated, per the campaign discipline —
+reproduced verbatim from the task briefs):
+
+`topocentric_latitude`, displacement at `lat = 40°, h = 1000 m` versus the
+`1e-12` tolerance:
+
+| Mutant | Mutated value | Displacement |
+|--------|---------------|--------------|
+| 1680:39 `/`→`%` | `39.99996875212803` | 1.89e-01 |
+| 1680:39 `/`→`*` | `39.810640364178745` | 8.24e-08 |
+| 1680:46 `-`→`+` | `39.810640364064724` | 8.23e-08 |
+| 1680:46 `-`→`/` | `39.81117502426418` | 5.35e-04 |
+| 1680:64 `*`→`+` | `39.81063327491272` | 7.01e-06 |
+| 1680:64 `*`→`/` | `39.8106402231261` | 5.86e-08 |
+| 1680:74 `*`→`+` | `39.81062823886763` | 1.20e-05 |
+| 1680:74 `*`→`/` | `39.8106402231261` | 5.86e-08 |
+| 1681:29 `+`→`-` | `39.81946447640497` | 8.82e-03 |
+
+True minimum displacement **5.86e-08**, a ~5.9e4× margin over the tolerance.
+
+`solve_placidian_cusp`, displacement at `RAMC = 90°, lat = 61°` versus the
+`1e-11` tolerance:
+
+| Mutant | House 11 | House 12 | House 2 | House 3 |
+|--------|----------|----------|---------|---------|
+| 1739:49 `+`→`-` | 3.41e-10 | 3.83e+01 | 3.83e+01 | 3.41e-10 |
+| 1739:37 `*`→`/` | 5.73e-10 | 1.04e-09 | 1.04e-09 | 5.73e-10 |
+
+True minimum displacement **3.41e-10**, a ~34× margin; `HEAD` agrees with the
+bisection root to **≤ 2.84e-14**, a ~352× margin on the passing side.
+
+**Documented residual — 3 equivalent mutants**, all left visible (no
+`#[mutants::skip]`) and enumerated with per-mutant reachability arguments in
+`quadrant_family_equivalent_mutants_are_documented`:
+
+- **(VT-1)** `validate_topocentric_observer` `618:5` → `Ok(())`:
+  `validated_obliquity` calls `validate_observer` *before*
+  `validate_topocentric_observer`, and `validate_observer` already maps a
+  non-finite elevation to the identical `InvalidElevation` kind and message
+  for every system — no input can reach this function in a state where it
+  would return `Err`, so the whole-function replacement is byte-identical on
+  every path.
+- **(PL-1)** `solve_placidian_cusp` `1741:21` `<` → `<=`: the zero-derivative
+  guard differs only at `gp.abs() == 1e-12` exactly; latitude is a free input,
+  but near the vanishing-derivative latitude one ulp of latitude moves `gp` by
+  ~5e-15 while `1e-12` has an ulp of ~2e-28 — the reachable `gp` values step
+  straight past the boundary, ~1e14× coarser than the target. Measure-zero and
+  unreachable.
+- **(PL-2)** `solve_placidian_cusp` `1750:24` `<` → `<=`: doubly unreachable —
+  differs only at `delta.abs() == 1e-9` exactly, and even there `q` has
+  already been updated by the time the test runs, so the only effect is one
+  extra Newton step whose correction (`~delta^2 ~ 1e-18`) is far below
+  `ulp(q) ~ 3.6e-15`. The extra iteration cannot change a single bit of `q`.
+
+This brings the **running documented-equivalent tally to `32 + 3 = 35`**
+(the houses sub-campaign total: Foundation 13 + Great-circle 8 + Sector 6 +
+Sunshine 5 + this PR's 3). The `3` is **measured, not predicted**: the plan
+forecast `3 missed` including `618:5` from the scoped run itself, but the
+scoped run (`-F 'in (topocentric_latitude|solve_placidian_cusp|
+regiomontanus_houses|koch_houses|validate_topocentric_observer|
+midpoint_longitude)$'`, 145 mutants) reported only **2 missed** — `1741:21
+<=` and `1750:24 <=` — because cargo-mutants matches `-F` against the
+mutant's full description, and whole-function replacement mutants are named
+`replace validate_topocentric_observer -> Result<(), HouseError> with Ok(())`;
+they never end in `in <function>`, so the `in (...)$` anchor structurally
+excludes them. `618:5` appears nowhere among the 145 scoped mutants (verified:
+the run's per-mutant logs cover lines 843–1763 only, and
+`midpoint_longitude`'s `1790:5` is likewise absent). **Guidance for the
+remaining campaign slices: a scoped `-F` run verifies operator mutants only; a
+whole-file run is required to confirm function-replacement survivors.** The
+whole-file confirmation re-run (1,128 mutants tested in 21m) reports `63
+missed / 1,058 caught / 7 unviable / 0 timeout` — 83 → 63 exactly as
+predicted, decomposing with no remainder into `28` `catalog_name` + `32`
+prior-slice equivalents + this PR's `3` (`618:5`, `1741:21 <=`, `1750:24
+<=`), confirming no prior slice regressed and that VT-1/PL-1/PL-2 all
+survived as predicted. No parity gate was touched; the tier stays
+report-only; `mise run ci` is green.
+
+> **Correction to the Sector slice (PR 3).** That slice documented
+> `solve_gauquelin_sector`'s `1327:21 <` → `==` as an equivalent mutant on the
+> grounds that "the campaign does not pin error-message text". That premise is
+> incorrect: `systems/tests.rs` already pinned error-message text in five
+> places before this PR. PR 5 kills the structurally identical mutant in
+> `solve_placidian_cusp` (1741 `<` → `==`) by asserting the message, so
+> `solve_gauquelin_sector`'s GQ-1 is **killable the same way** and its
+> equivalent classification should be withdrawn. Not done here — it is PR 3's
+> territory and would change a merged slice's tally. **Follow-up:** add the
+> message assertion to `solve_gauquelin_sector_fails_closed_on_nonconvergence`
+> and drop GQ-1, taking the Sector residual from 6 to 5.
+
+**Remaining houses PRs:** catalog + thresholds (`catalog_name`, which adds
+`-p pleiades-houses` to `[tasks.mutants]`).
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
