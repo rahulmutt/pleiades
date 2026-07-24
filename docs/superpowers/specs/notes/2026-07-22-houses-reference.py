@@ -139,6 +139,116 @@ def fmt(x):
     return f"{x:.12f}"
 
 
+def signed_diff(a, b):
+    """crate `signed_longitude_difference`: (a-b) normalized to [-180, 180)."""
+    delta = norm360(a - b)
+    return delta - 360.0 if delta >= 180.0 else delta
+
+
+def _complete_opposite(c):
+    """crate `complete_opposite_houses`: cusps 4-9 as ecliptic antipodes."""
+    c[3] = opposite(c[9])
+    c[4] = opposite(c[10])
+    c[5] = opposite(c[11])
+    c[6] = opposite(c[0])
+    c[7] = opposite(c[1])
+    c[8] = opposite(c[2])
+
+
+def pullen_sd(asc_deg, mc_deg):
+    """crate `pullen_sd_houses` == `albategnius_houses` (byte-identical): the
+    published equal-quadrant (Albategnian) split of each ASC/MC quadrant.
+    Elementary published arithmetic; re-derived here, not copied from the Rust."""
+    asc = asc_deg
+    acmc = signed_diff(asc, mc_deg)
+    if acmc < 0.0:
+        asc = opposite(asc)
+        acmc = signed_diff(asc, mc_deg)
+    c = [0.0] * 12
+    c[0] = norm360(asc)
+    c[9] = norm360(mc_deg)
+    q1 = 180.0 - acmc
+    d = (acmc - 90.0) / 4.0
+    if acmc <= 30.0:
+        c[10] = norm360(mc_deg + acmc / 2.0)
+        c[11] = c[10]
+    else:
+        c[10] = norm360(mc_deg + 30.0 + d)
+        c[11] = norm360(mc_deg + 60.0 + 3.0 * d)
+    d = (q1 - 90.0) / 4.0
+    if q1 <= 30.0:
+        c[1] = norm360(asc + q1 / 2.0)
+        c[2] = c[1]
+    else:
+        c[1] = norm360(asc + 30.0 + d)
+        c[2] = norm360(asc + 60.0 + 3.0 * d)
+    _complete_opposite(c)
+    return c
+
+
+def _sr_ratio(q):
+    """Pullen SR ratio r: the positive real root of r^4 + 2 r^3 - 2 c r - c = 0,
+    with c=(180-q)/q, derived from the published SR symmetric-arc property
+    x*r^3*(2 + r) = 180 - q (small quadrant split xr:x:xr summing to q). Solved by
+    bracketed bisection + Newton polish -- a genuinely different method than the
+    crate's Ferrari closed form, so agreement cross-validates both. Sanity:
+    q=90 -> c=1 -> r=1 (equal division)."""
+    c = (180.0 - q) / q
+
+    def f(r):
+        return r ** 4 + 2.0 * r ** 3 - 2.0 * c * r - c
+
+    def fp(r):
+        return 4.0 * r ** 3 + 6.0 * r ** 2 - 2.0 * c
+
+    lo, hi = 1.0, c + 3.0            # f(1)=3(1-c)<=0, f(hi)>0 for c>=1
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if f(mid) <= 0.0:
+            lo = mid
+        else:
+            hi = mid
+    r = 0.5 * (lo + hi)
+    for _ in range(60):              # Newton polish to ~machine precision
+        r -= f(r) / fp(r)
+    return r
+
+
+def pullen_sr(asc_deg, mc_deg):
+    """crate `pullen_sr_houses`: Pullen Sinusoidal Ratio house division."""
+    asc = asc_deg
+    acmc = signed_diff(asc, mc_deg)
+    if acmc < 0.0:
+        asc = opposite(asc)
+        acmc = signed_diff(asc, mc_deg)
+    c = [0.0] * 12
+    c[0] = norm360(asc)
+    c[9] = norm360(mc_deg)
+    q = acmc
+    if q > 90.0:
+        q = 180.0 - q
+    if q < 1.0e-30:
+        x, xr, xr3, xr4 = 0.0, 0.0, 0.0, 180.0
+    else:
+        r = _sr_ratio(q)
+        x = q / (2.0 * r + 1.0)
+        xr = r * x
+        xr3 = xr * r * r
+        xr4 = xr3 * r
+    if acmc > 90.0:
+        c[10] = norm360(mc_deg + xr3)
+        c[11] = norm360(c[10] + xr4)
+        c[1] = norm360(asc + xr)
+        c[2] = norm360(c[1] + x)
+    else:
+        c[10] = norm360(mc_deg + xr)
+        c[11] = norm360(c[10] + x)
+        c[1] = norm360(asc + xr3)
+        c[2] = norm360(c[1] + xr4)
+    _complete_opposite(c)
+    return c
+
+
 def apc_sector(n, lat_rad, obl_rad, sid_rad):
     """crate `apc_sector`: APC in-between-sector longitude (SE 'B'/APC family).
     Independent port from the published APC algorithm; NOT copied from the Rust."""
@@ -258,3 +368,14 @@ if __name__ == "__main__":
         print(f"    apc_sector({_n:2d}) = {fmt(apc_sector(_n, _lat, _obl, _sid))}")
 
     print("# whole_sign first_cusp(asc=95):", fmt(math.floor(95.0 / 30.0) * 30.0))
+
+    print("# pullen_sd / albategnius (byte-identical) -- all 12 cusps:")
+    for name, a, m in [("200/100", 200.0, 100.0), ("120/100", 120.0, 100.0),
+                       ("260/100", 260.0, 100.0), ("10/100(flip)", 10.0, 100.0),
+                       ("100/100(deg)", 100.0, 100.0)]:
+        print(f"  [{name}]", [fmt(v) for v in pullen_sd(a, m)])
+    print("# pullen_sr -- all 12 cusps:")
+    for name, a, m in [("200/100", 200.0, 100.0), ("140/100", 140.0, 100.0),
+                       ("10/100(flip)", 10.0, 100.0), ("100/100(guard)", 100.0, 100.0)]:
+        print(f"  [{name}]", [fmt(v) for v in pullen_sr(a, m)])
+    print("# _sr_ratio(90) sanity (must be 1.0):", _sr_ratio(90.0))

@@ -2532,3 +2532,229 @@ fn krusinski_houses_match_independent_recomposition_across_geometries() {
         }
     }
 }
+
+// ===== FU-9 Sector PR: pullen_sr / pullen_sd / albategnius / gauquelin =====
+// Independent reference: docs/superpowers/specs/notes/2026-07-22-houses-reference.py
+// (`pullen_sd`, `pullen_sr`), cross-validated against the crate to ~1e-12 during
+// plan authoring. gauquelin_houses already reaches 0 surviving mutants via the
+// validate-houses / validate-angles parity gates, so it needs no new unit test;
+// only solve_gauquelin_sector's guard survivors are addressed here.
+
+fn assert_sector_cusps(got: &[Longitude; 12], want: &[f64; 12], label: &str) {
+    for i in 0..12 {
+        let mut d = (got[i].degrees() - want[i]).rem_euclid(360.0);
+        if d > 180.0 {
+            d -= 360.0;
+        }
+        assert!(
+            d.abs() < 1e-9,
+            "{label} cusp[{i}] = {}, want {}",
+            got[i].degrees(),
+            want[i]
+        );
+    }
+}
+
+#[test]
+fn pullen_sd_and_albategnius_pin_all_cusps_against_independent_reference() {
+    // pullen_sd_houses and albategnius_houses are byte-identical in the crate
+    // (same equal-quadrant split); the same reference pins both. Geometries:
+    //  200/100 acmc=100 -> both `else` quadrant-split branches (d != 0);
+    //  120/100 acmc=20  -> MC-side bisect branch (acmc <= 30);
+    //  260/100 acmc=160 -> ASC-side bisect branch (q1 = 180-acmc <= 30);
+    //  10/100  acmc<0   -> ascendant flip branch (kills `< 0 -> == 0`);
+    //  100/100 acmc=0   -> flip-guard equality (kills `< 0 -> <= 0`).
+    let cases: [(f64, f64, [f64; 12]); 5] = [
+        (
+            200.0,
+            100.0,
+            [
+                200.0, 227.5, 252.5, 280.0, 312.5, 347.5, 20.0, 47.5, 72.5, 100.0, 132.5, 167.5,
+            ],
+        ),
+        (
+            120.0,
+            100.0,
+            [
+                120.0, 167.5, 232.5, 280.0, 290.0, 290.0, 300.0, 347.5, 52.5, 100.0, 110.0, 110.0,
+            ],
+        ),
+        (
+            260.0,
+            100.0,
+            [
+                260.0, 270.0, 270.0, 280.0, 327.5, 32.5, 80.0, 90.0, 90.0, 100.0, 147.5, 212.5,
+            ],
+        ),
+        (
+            10.0,
+            100.0,
+            [
+                190.0, 220.0, 250.0, 280.0, 310.0, 340.0, 10.0, 40.0, 70.0, 100.0, 130.0, 160.0,
+            ],
+        ),
+        (
+            100.0,
+            100.0,
+            [
+                100.0, 152.5, 227.5, 280.0, 280.0, 280.0, 280.0, 332.5, 47.5, 100.0, 100.0, 100.0,
+            ],
+        ),
+    ];
+    for (asc, mc, want) in cases {
+        let angles = gc_angles(asc, mc);
+        assert_sector_cusps(
+            &pullen_sd_houses(angles),
+            &want,
+            &format!("pullen_sd asc={asc}"),
+        );
+        assert_sector_cusps(
+            &albategnius_houses(angles),
+            &want,
+            &format!("albategnius asc={asc}"),
+        );
+    }
+}
+
+#[test]
+fn pullen_sr_pins_all_cusps_against_independent_reference() {
+    // Independent reference (houses-reference.py `pullen_sr`): ratio r solved as
+    // the positive root of r^4 + 2r^3 - 2c*r - c = 0 (c=(180-q)/q) by bisection+
+    // Newton, a different method than the crate's Ferrari closed form; matched to
+    // ~1e-12 during plan authoring. Geometries:
+    //  200/100 acmc=100 -> q>90 reduction (q=80) AND acmc>90 placement branch;
+    //  140/100 acmc=40  -> no reduction AND acmc<=90 placement branch;
+    //  10/100  acmc<0   -> flip -> acmc=90 (r=1 exactly);
+    //  100/100 acmc=0   -> q<1e-30 guard branch (x=xr=xr3=0, xr4=180).
+    let cases: [(f64, f64, [f64; 12]); 4] = [
+        (
+            200.0,
+            100.0,
+            [
+                200.0,
+                227.399778974511,
+                252.600221025489,
+                280.0,
+                312.391037626774,
+                347.608962373226,
+                20.0,
+                47.399778974511,
+                72.600221025489,
+                100.0,
+                132.391037626774,
+                167.608962373226,
+            ],
+        ),
+        (
+            140.0,
+            100.0,
+            [
+                140.0,
+                178.908843802504,
+                241.091156197496,
+                280.0,
+                295.233904915732,
+                304.766095084268,
+                320.0,
+                358.908843802504,
+                61.091156197496,
+                100.0,
+                115.233904915732,
+                124.766095084268,
+            ],
+        ),
+        (
+            10.0,
+            100.0,
+            [
+                190.0, 220.0, 250.0, 280.0, 310.0, 340.0, 10.0, 40.0, 70.0, 100.0, 130.0, 160.0,
+            ],
+        ),
+        (
+            100.0,
+            100.0,
+            [
+                100.0, 100.0, 280.0, 280.0, 280.0, 280.0, 280.0, 280.0, 100.0, 100.0, 100.0, 100.0,
+            ],
+        ),
+    ];
+    for (asc, mc, want) in cases {
+        assert_sector_cusps(
+            &pullen_sr_houses(gc_angles(asc, mc)),
+            &want,
+            &format!("pullen_sr asc={asc}"),
+        );
+    }
+}
+
+#[test]
+fn solve_gauquelin_sector_fails_closed_on_nonconvergence() {
+    // Kills 1341 `!converged || !q.is_finite()` -> `&&`: at lat=80, obl=23.4366,
+    // fraction=1/9, sign=+1, ramc=30 the Newton iteration does not converge in 64
+    // steps but q stays finite (~52.4). HEAD: `!converged(true) || ...` -> Err;
+    // the `&&` mutant: `true && !finite(false)` -> false -> Ok(unconverged). So
+    // HEAD MUST return Err here for the `&&` mutant to be observable. (Geometry
+    // found by a lat/obl/fraction/ramc sweep of the crate's Newton during plan
+    // authoring: 22 non-converged-but-finite candidates, this is the first.)
+    let r = solve_gauquelin_sector(30.0, 80.0, 23.4366, 1.0 / 9.0, 1.0);
+    assert!(r.is_err(), "expected non-convergence Err, got {r:?}");
+    // A physical Gauquelin geometry converges to a finite Ok (the live path).
+    let ok = solve_gauquelin_sector(280.4570696, 52.0, 23.4366, 8.0 / 9.0, 1.0);
+    assert!(ok.is_ok(), "expected convergence Ok, got {ok:?}");
+}
+
+#[test]
+fn sector_equivalent_mutants_are_documented() {
+    // FU-9 Sector residual: 6 surviving mutants, each an EQUIVALENT MUTANT left
+    // visible (no #[mutants::skip]), enumerated with a reachability argument.
+    // Measured by the authoritative scoped run: 233 tested, 6 missed, 227 caught.
+    //
+    // --- pullen_sr_houses (3) ---
+    // (SR-1) 1437:10 `q > 90.0 -> q >= 90.0` (quadrant reduction): differs only at
+    //   q == 90.0, where HEAD keeps q=90 and the mutant sets q=180-90=90 -- same q,
+    //   same output. Reachable (acmc=90 via the asc=10/mc=100 flip) but coincident.
+    // (SR-2) 1458:13 `acmc > 90.0 -> acmc >= 90.0` (placement branch): differs only
+    //   at acmc == 90.0, where q=90 -> c=1 -> r=1 exactly, so xr == xr3 and x == xr4
+    //   and the `if`/`else` placements produce bit-identical cusps.
+    // (SR-3) 1441:34 `q < 1e-30 -> q <= 1e-30` (degenerate-quadrant guard): differs
+    //   only at q == 1e-30 exactly -- a measure-zero boundary q (from
+    //   signed_longitude_difference of f64 degrees) cannot reach.
+    //
+    // At the acmc=90 flip geometry the SR division is the r=1 equal 30-degree split,
+    // so both the reduction and placement branches coincide (kills SR-1/SR-2 intent):
+    let acmc90 = pullen_sr_houses(gc_angles(10.0, 100.0));
+    let equal = [
+        190.0, 220.0, 250.0, 280.0, 310.0, 340.0, 10.0, 40.0, 70.0, 100.0, 130.0, 160.0,
+    ];
+    assert_sector_cusps(&acmc90, &equal, "SR acmc=90 is the r=1 equal split");
+    // The q<1e-30 guard is reached only at acmc=0 (asc==mc); signature x=xr=xr3=0
+    // gives cusp[1]==asc and cusp[2]==desc (SR-3 boundary is this degenerate point):
+    let guard = pullen_sr_houses(gc_angles(100.0, 100.0));
+    assert!(
+        (guard[1].degrees() - 100.0).abs() < 1e-9,
+        "SR guard cusp[1]==asc"
+    );
+    assert!(
+        (guard[2].degrees() - 280.0).abs() < 1e-9,
+        "SR guard cusp[2]==desc"
+    );
+    //
+    // --- solve_gauquelin_sector (3) ---
+    // (GQ-1) 1327:21 `gp.abs() < 1e-12 -> ==` (zero-derivative guard): the divergence
+    //   interval gp.abs() in (0, 1e-12) IS reachable (min |gp| over a physical
+    //   lat/obl/fraction/ramc sweep reaches ~1.9e-13), but both HEAD and the mutant
+    //   return Err(NumericalFailure) there -- HEAD via the zero-derivative guard, the
+    //   mutant via the subsequent non-convergence/non-finite exit -- so no test
+    //   observing the public Result (kind) distinguishes them; only the diagnostic
+    //   message differs, and the campaign does not pin error-message text.
+    // (GQ-2) 1327:21 `gp.abs() < 1e-12 -> <=`: differs only at gp.abs()==1e-12
+    //   exactly -- measure-zero, unreachable.
+    // (GQ-3) 1335:24 `delta.abs() < 1e-9 -> <=` (convergence): differs only at
+    //   delta.abs()==1e-9 exactly -- a Newton iterate shrinking quadratically past
+    //   1e-9 does not land on it; measure-zero, unreachable.
+    //
+    // The reachable non-convergence exit is a real Err (pinned by
+    // solve_gauquelin_sector_fails_closed_on_nonconvergence) and a physical geometry
+    // converges to Ok -- the live path both operators share:
+    assert!(solve_gauquelin_sector(280.4570696, 52.0, 23.4366, 8.0 / 9.0, 1.0).is_ok());
+}

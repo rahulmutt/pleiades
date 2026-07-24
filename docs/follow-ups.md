@@ -841,6 +841,48 @@ report-only; `mise run ci` is green. **Remaining houses PRs:** sector
 quadrant/projection, then catalog + thresholds (which adds `-p pleiades-houses`
 to `[tasks.mutants]`).
 
+**Progress (2026-07-24) — houses Sector
+(`pleiades-houses/src/systems/mod.rs`, `pullen_sr_houses`/`pullen_sd_houses`/
+`albategnius_houses`/`solve_gauquelin_sector`/`gauquelin_houses`):** third PR of
+the post-baseline `pleiades-houses` expansion campaign (spec:
+`docs/superpowers/specs/2026-07-22-fu9-houses-mutant-triage-design.md`; plan:
+`docs/superpowers/plans/2026-07-24-fu9-houses-sector-mutant-triage.md`). Triaged
+the Sector family from `161` surviving mutants (`pullen_sr` 73, `pullen_sd` 42,
+`albategnius` 42, `solve_gauquelin_sector` 4, `gauquelin_houses` 0 — matching the
+design's whole-crate prediction 73/42/42/4 exactly, and confirming
+`gauquelin_houses` is already fully caught by the parity gates) to **6 documented
+equivalents**. **Tests-only.** The three pure systems (`pullen_sd`/`albategnius`
+byte-identical, `pullen_sr`) are pure functions of `(asc, mc)` — no
+`local_sidereal_time`, unlike the Great-circle family — so their 157 arith/
+comparison survivors fell to **independent-port** pins of all 12 cusps at a small
+set of discriminating geometries (extending the shared `houses-reference.py` with
+`pullen_sd` + `pullen_sr`, cross-validated to ~1e-12). `pullen_sr`'s ratio `r` was
+re-derived non-circularly as the positive root of `r^4 + 2r^3 - 2c*r - c = 0`
+(`c=(180-q)/q`, from the published SR symmetric-arc property) solved by bisection+
+Newton — a different method than the crate's Ferrari closed form. The 4
+`solve_gauquelin_sector` survivors are all guard/convergence boundaries: the
+`|| -> &&` fail-closed guard was **killed** by a crafted non-convergence-but-finite
+geometry (lat=80, fraction=1/9 — HEAD returns `Err`, the `&&` mutant `Ok`), the
+lighttime solver-boundary precedent. **Documented residual — 6 equivalent mutants**,
+left visible (no `#[mutants::skip]`) and enumerated with per-mutant reachability
+arguments in `sector_equivalent_mutants_are_documented`: `pullen_sr` `1437 > -> >=`
+(q=90 maps to itself under both operators), `1458 > -> >=` (at acmc=90, r=1 exactly
+so the two placement branches are bit-identical), `1441 < -> <=` (q=1e-30
+unreachable); `solve_gauquelin_sector` `1327 < -> ==` (the gp<1e-12 interval is
+reachable — min |gp| ~1.9e-13 — but both HEAD and mutant return
+`Err(NumericalFailure)` there, differing only in message, which the campaign does
+not pin), `1327 < -> <=` (gp==1e-12 measure-zero), `1335 < -> <=` (delta==1e-9
+measure-zero). This brings the **running documented-equivalent tally to
+`30 + 6 = 36`**. The `6` is **measured, not predicted**: the authoritative scoped
+run (`-F 'in (pullen_sr_houses|pullen_sd_houses|albategnius_houses|
+solve_gauquelin_sector|gauquelin_houses)$'`, 233 mutants) reports
+`6 missed / 227 caught / 0 unviable`. No parity gate was touched; the tier stays
+report-only; `mise run ci` is green. **Remaining houses PRs:** sunshine/solar-arc
+(`sunshine_houses`/`sunshine_offsets`/`apparent_solar_declination`/…),
+quadrant/projection (`solve_placidian_cusp`/`topocentric_latitude`/
+`regiomontanus`/`koch`/campanus/alcabitius/morinus/carter), then catalog +
+thresholds (which adds `-p pleiades-houses` to `[tasks.mutants]`).
+
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
