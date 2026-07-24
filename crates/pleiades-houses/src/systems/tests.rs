@@ -2758,3 +2758,18 @@ fn sector_equivalent_mutants_are_documented() {
     // converges to Ok -- the live path both operators share:
     assert!(solve_gauquelin_sector(280.4570696, 52.0, 23.4366, 8.0 / 9.0, 1.0).is_ok());
 }
+
+#[test]
+fn apparent_midheaven_declination_pins_the_product_form() {
+    // Independent reference (houses-reference.py `mid_dec`): atan(sin(st)*tan(eps)).
+    // st=57, eps=23.4392811 chosen so sin*tan != sin+tan != sin/tan, killing the
+    // 1651:43 `* -> +` and `* -> /` survivors. Literals emitted by the reference.
+    assert_close_degrees(
+        apparent_midheaven_declination(57.0, 23.4392811),
+        19.98167206592639,
+    );
+    assert_close_degrees(
+        apparent_midheaven_declination(205.0, 23.4392811),
+        -10.382982940241511,
+    );
+}
