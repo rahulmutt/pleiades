@@ -1,6 +1,22 @@
 //! Formula-family classification for the built-in house systems.
 
 use crate::catalog::*;
+use pleiades_types::{CustomHouseSystem, HouseSystem};
+
+/// Builds a descriptor for a user-defined custom system. The built-in catalog
+/// contains no `Custom` entry, so this is the only way to reach the
+/// `HouseSystem::Custom(_)` arm of `formula_family` and the Custom half of the
+/// collector's skip guard.
+fn custom_descriptor() -> HouseSystemDescriptor {
+    HouseSystemDescriptor::new(
+        HouseSystem::Custom(CustomHouseSystem::new("Probe Houses")),
+        "Probe Houses",
+        &[],
+        "A user-defined system used only by tests.",
+        false,
+        None,
+    )
+}
 
 #[test]
 fn formula_family_groups_the_built_in_house_systems_by_shape() {
@@ -44,4 +60,50 @@ fn built_in_house_systems_have_known_formula_families() {
             entry.canonical_name
         );
     }
+}
+
+/// Kills `delete match arm HouseSystem::Custom(_)` in `formula_family`
+/// (219:13). With the arm deleted, a custom system falls through to
+/// `_ => HouseFormulaFamily::Unknown`, so only an assertion distinguishing
+/// `Custom` from `Unknown` catches it. No test constructed a custom descriptor
+/// before.
+#[test]
+fn custom_systems_report_the_custom_formula_family_not_unknown() {
+    let custom = custom_descriptor();
+
+    assert_eq!(custom.formula_family(), HouseFormulaFamily::Custom);
+    assert_ne!(
+        custom.formula_family(),
+        HouseFormulaFamily::Unknown,
+        "a custom system must not be indistinguishable from a future built-in",
+    );
+    assert_eq!(HouseFormulaFamily::Custom.to_string(), "Custom");
+}
+
+/// Kills `replace || with &&` in `collect_house_formula_families` (645:49).
+///
+/// The guard is `family == Custom || family == Unknown -> continue`. Under
+/// `&&` a Custom entry satisfies only the left operand, so the mutant stops
+/// skipping it and leaks `Custom` into the public family list. The built-in
+/// catalog contains no Custom or Unknown entry, so this is unreachable through
+/// `house_formula_families()` — it must be driven through the private
+/// slice-taking collector.
+#[test]
+fn the_family_collector_skips_custom_entries() {
+    let entries = [custom_descriptor()];
+    assert_eq!(
+        collect_house_formula_families(&entries),
+        Vec::<HouseFormulaFamily>::new(),
+        "a Custom entry must not appear in the collected family list",
+    );
+
+    // A mixed slice: the real entry survives, the Custom one is dropped.
+    let equal = descriptor(&HouseSystem::Equal)
+        .expect("Equal is a built-in")
+        .clone();
+    let mixed = [custom_descriptor(), equal];
+    assert_eq!(
+        collect_house_formula_families(&mixed),
+        vec![HouseFormulaFamily::Equal],
+    );
 }

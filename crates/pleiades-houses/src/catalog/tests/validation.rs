@@ -264,3 +264,69 @@ fn catalog_validators_count_every_label_they_check() {
         .expect("the built-in catalog validates");
     assert_eq!(catalog_labels, 181);
 }
+
+/// Kills the two `|| -> &&` mutants in `HouseSystemDescriptor::validate`.
+///
+/// 118:13 — `canonical_name.trim().is_empty() || has_surrounding_whitespace(..)
+///   || contains_line_break(..)`, which parses as `(a || b) || c`. A padded but
+///   non-empty, single-line name gives `a=false, b=true, c=false`: HEAD rejects
+///   via `(F||T)`, the `&&` mutant computes `(F&&T)||F = false` and accepts.
+///
+/// 160:50 — `alias == &canonical_name || saw_canonical_case_variant`, inside the
+///   alias-collision loop. Reaching it needs TWO case-variant aliases: the first
+///   sets the flag, the second is rejected by the right operand alone. HEAD
+///   returns `DescriptorLabelCollision`; the `&&` mutant needs both operands and
+///   accepts. A single case-variant alias is legal by design, so the existing
+///   drift tests never reached this branch.
+#[test]
+fn descriptor_validation_guards_reject_each_operand_alone() {
+    use pleiades_types::HouseSystem;
+
+    // 118:13 — surrounding whitespace alone must be rejected.
+    let padded = HouseSystemDescriptor::new(
+        HouseSystem::Equal,
+        "  Equal  ",
+        &[],
+        "Padded canonical name.",
+        false,
+        None,
+    );
+    assert_eq!(
+        padded.validate(),
+        Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
+            label: "  Equal  ",
+            field: "canonical name",
+        }),
+        "a padded canonical name must be rejected by the whitespace operand alone",
+    );
+
+    // 160:50 — a SECOND case-variant alias must collide via the flag alone.
+    let two_case_variants = HouseSystemDescriptor::new(
+        HouseSystem::Equal,
+        "Equal",
+        &["EQUAL", "equal"],
+        "Two case variants of the canonical name.",
+        false,
+        None,
+    );
+    assert_eq!(
+        two_case_variants.validate(),
+        Err(HouseCatalogValidationError::DescriptorLabelCollision {
+            label: "equal",
+            canonical_name: "Equal",
+        }),
+        "the second case-variant alias must collide via saw_canonical_case_variant alone",
+    );
+
+    // Exactly one case-variant alias remains legal — the behavior the guard's
+    // left operand protects, and the reason this branch was never reached.
+    let one_case_variant = HouseSystemDescriptor::new(
+        HouseSystem::Equal,
+        "Equal",
+        &["EQUAL"],
+        "One case variant of the canonical name.",
+        false,
+        None,
+    );
+    assert_eq!(one_case_variant.validate(), Ok(()));
+}
