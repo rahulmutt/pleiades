@@ -295,6 +295,88 @@ def sunshine_offsets(lat, sundec):
     }
 
 
+# --- PR 5: topocentric_latitude (WGS-84 geodetic -> geocentric) -------------
+# Constants from the published WGS-84 datum sheet, NOT read from the crate.
+WGS84_A = 6_378_137.0
+WGS84_INV_F = 298.257_223_563
+
+
+def topocentric_latitude(lat_deg, h=0.0):
+    """Prime-vertical form: phi' = atan2((N(1-e2)+h) sin phi, (N+h) cos phi)."""
+    f = 1.0 / WGS84_INV_F
+    e2 = f * (2.0 - f)
+    phi = math.radians(lat_deg)
+    s, c = math.sin(phi), math.cos(phi)
+    n = WGS84_A / math.sqrt(1.0 - e2 * s * s)
+    return math.degrees(math.atan2((n * (1.0 - e2) + h) * s, (n + h) * c))
+
+
+def topocentric_latitude_closed_form(lat_deg):
+    """Second, genuinely different formulation, exact for h = 0:
+    tan(phi') = (1 - f)^2 tan(phi).  Cross-checks the prime-vertical form."""
+    f = 1.0 / WGS84_INV_F
+    return math.degrees(math.atan((1.0 - f) ** 2 * math.tan(math.radians(lat_deg))))
+
+
+def topocentric_latitude_parametric(lat_deg, h=0.0):
+    """Third formulation, method-independent for h != 0: uses the parametric
+    (reduced) latitude beta, tan(beta) = (1-f) tan(phi), instead of the
+    prime-vertical radius N. X = a cos(beta) + h cos(phi),
+    Z = b sin(beta) + h sin(phi) (b = a(1-f)), phi' = atan2(Z, X). N never
+    appears, so this cross-checks the crate's `(N(1-e2)+h)`/`(N+h)` form at
+    h != 0 without inheriting its formulation."""
+    f = 1.0 / WGS84_INV_F
+    b = WGS84_A * (1.0 - f)
+    phi = math.radians(lat_deg)
+    beta = math.atan((1.0 - f) * math.tan(phi))
+    x = WGS84_A * math.cos(beta) + h * math.cos(phi)
+    z = b * math.sin(beta) + h * math.sin(phi)
+    return math.degrees(math.atan2(z, x))
+
+
+# --- PR 5: Placidus cusps by BISECTION -------------------------------------
+# Same published residual as the crate, but a genuinely different root-finder:
+#   g(q) = cos(q/f) + tan(phi) * tan(delta(alpha)),  alpha = RAMC + q,
+#   tan(delta) = sin(alpha) * tan(eps)
+# The crate uses Newton; bisection cannot inherit a Newton-specific error.
+PLACIDUS_SPEC = {11: (1.0 / 3.0, 1.0, False), 12: (2.0 / 3.0, 1.0, False),
+                 2: (2.0 / 3.0, -1.0, True), 3: (1.0 / 3.0, -1.0, True)}
+
+
+def placidus_residual(q, st, tan_lat, tan_obl, fraction):
+    alpha = math.radians(st + q)
+    return math.cos(math.radians(q / fraction)) + tan_lat * math.sin(alpha) * tan_obl
+
+
+def placidus_cusp_bisection(st, lat_deg, obl_deg, house):
+    fraction, sign, is_opposite = PLACIDUS_SPEC[house]
+    tan_lat = math.tan(math.radians(lat_deg))
+    tan_obl = math.tan(math.radians(obl_deg))
+    seed = sign * fraction * 90.0
+    lo = hi = None
+    step, prev_q = 0.001, seed - 60.0
+    prev = placidus_residual(prev_q, st, tan_lat, tan_obl, fraction)
+    for i in range(1, int(120.0 / step) + 1):
+        q = seed - 60.0 + i * step
+        cur = placidus_residual(q, st, tan_lat, tan_obl, fraction)
+        if (prev < 0) != (cur < 0):
+            if lo is None or abs((prev_q + q) / 2 - seed) < abs((lo + hi) / 2 - seed):
+                lo, hi = prev_q, q
+        prev_q, prev = q, cur
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if (placidus_residual(lo, st, tan_lat, tan_obl, fraction)
+                * placidus_residual(mid, st, tan_lat, tan_obl, fraction)) <= 0:
+            hi = mid
+        else:
+            lo = mid
+    q = 0.5 * (lo + hi)
+    ra = math.radians(st + q)
+    lon = math.degrees(math.atan2(math.sin(ra),
+                                  math.cos(ra) * math.cos(math.radians(obl_deg)))) % 360.0
+    return (lon + 180.0) % 360.0 if is_opposite else lon
+
+
 if __name__ == "__main__":
     print("# spherical_cotrans([40,25,2], 15):")
     print("  ", tuple(fmt(v) for v in spherical_cotrans(40.0, 25.0, 2.0, 15.0)))
@@ -413,3 +495,18 @@ if __name__ == "__main__":
     print("# sunshine_offsets")
     for lat, sd in ((52.0, -10.0), (-33.0, 15.0)):
         print(f"  lat={lat} sundec={sd}: {sunshine_offsets(lat, sd)}")
+
+    for lat, h in ((40.0, 1000.0), (-33.0, 500.0)):
+        print(f'topocentric_latitude({lat}, {h}) = {topocentric_latitude(lat, h)!r}')
+    for lat, h in ((40.0, 1000.0), (-33.0, 500.0)):
+        a = topocentric_latitude(lat, h)
+        c = topocentric_latitude_parametric(lat, h)
+        print(f'  h!=0 lat={lat} h={h}: prime-vertical={a!r} parametric={c!r} diff={abs(a-c):.3e}')
+    for lat in (40.0, 55.0, -33.0, 66.0):
+        a = topocentric_latitude(lat)
+        b = topocentric_latitude_closed_form(lat)
+        print(f'  h=0 lat={lat}: prime-vertical={a!r} closed-form={b!r} diff={abs(a-b):.3e}')
+
+    for house in (11, 12, 2, 3):
+        print(f'placidus house {house}: '
+              f'{placidus_cusp_bisection(90.0, 61.0, 23.4392811, house)!r}')
