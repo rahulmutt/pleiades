@@ -271,3 +271,34 @@ fn se_compat_fallback_rejects_gauquelin_beyond_bound() {
         .expect_err("Gauquelin has no Porphyry-style high-latitude fallback");
     assert_eq!(error.kind, crate::error::HouseErrorKind::InvalidLatitude);
 }
+
+/// `catalog_name` carries its own 25-arm name table, byte-for-byte duplicating
+/// `HouseSystemDescriptor::canonical_name`. Nothing asserted they agree, so all
+/// 28 of its mutants survived (26 arm deletes + 2 return-value replacements) —
+/// the function is also dead through the public API, reachable only via the
+/// dispatch `_` arm that exists because `HouseSystem` is `#[non_exhaustive]`.
+///
+/// This test is the cross-table pin AND the no-op proof for the single-source
+/// refactor that replaces the match with a `catalog::descriptor` lookup.
+#[test]
+fn catalog_name_agrees_with_the_descriptor_table() {
+    let entries = crate::catalog::built_in_house_systems();
+    assert_eq!(entries.len(), 25, "catalog size changed; update this pin");
+
+    for entry in entries {
+        assert_eq!(
+            catalog_name(&entry.system),
+            entry.canonical_name,
+            "catalog_name disagrees with the descriptor for {:?}",
+            entry.system,
+        );
+    }
+
+    // `Custom` has no catalog entry, so its name cannot come from the table.
+    let custom = HouseSystem::Custom(CustomHouseSystem::new("Probe Houses"));
+    assert!(
+        crate::catalog::descriptor(&custom).is_none(),
+        "no descriptor may claim a Custom system, or the refactor changes behavior",
+    );
+    assert_eq!(catalog_name(&custom), "Custom");
+}
