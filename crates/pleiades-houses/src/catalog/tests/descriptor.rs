@@ -224,9 +224,12 @@ fn failure_mode_summary_line_renders_canonical_name_then_notes() {
     assert_eq!(
         placidus.failure_mode_summary_line(),
         "Placidus: Quadrant system; can fail or become unstable at extreme latitudes.",
+        "pins the hardcoded rendering; update if Placidus's descriptor notes change",
     );
     assert_eq!(
         placidus.failure_mode_summary_line(),
         format!("{}: {}", placidus.canonical_name, placidus.notes),
+        "pins the template structure (\"{{canonical}}: {{notes}}\") independently of the \
+         hardcoded string above",
     );
 }

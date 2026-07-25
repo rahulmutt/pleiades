@@ -470,6 +470,12 @@ reserved `28` for `catalog_name`. `thresholds.rs` contributes **no** survivors
 (its single mutant is caught); its only PR 6 work is the AGENTS.md test
 relocation.
 
+> **Correction (final whole-branch review):** Task 4's review found the
+> "caught" claim false — the mutant cannot compile, because
+> `HouseFamilyCeiling` derives `Clone, Copy, Debug, PartialEq` but not
+> `Default`. It is **unviable**, not caught. See `docs/follow-ups.md`'s
+> "houses Catalog + thresholds" entry for the corrected decomposition.
+
 Note on the `catalog_name` filter: `-F 'catalog_name'` is deliberately **not**
 anchored as `-F 'in (catalog_name)$'`. Per PR 5's closing guidance, the anchored
 form structurally excludes whole-function replacement mutants, whose description
@@ -646,6 +652,11 @@ not survivor counts*, so no ordering is fabricated from unmeasured data:
 ~13,900 unmeasured mutants across twelve crates. That is the honest headline
 for the closing note: the houses campaign covered **one** crate of thirteen
 remaining, and FU-9's standing posture is what carries the rest.
+
+> **Correction (Task 10's execution):** recomputed from the verified sizing
+> table and measured baselines as **13,910**, not ~13,900. See
+> `docs/follow-ups.md`'s "houses Catalog + thresholds" entry and
+> `docs/superpowers/specs/notes/2026-07-25-mutants-roadmap-baseline.md`.
 
 ### Acceptance criteria (PR 6)
 

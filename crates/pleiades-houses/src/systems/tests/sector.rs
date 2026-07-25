@@ -397,9 +397,13 @@ fn sector_equivalent_mutants_are_documented() {
     );
     //
     // --- solve_gauquelin_sector (2) ---
-    // (GQ-1) 1327:21 `gp.abs() < 1e-12 -> <=`: differs only at gp.abs()==1e-12
+    // GQ-1 (1327:21 `gp.abs() < 1e-12 -> ==`) was withdrawn on 2026-07-25 and
+    // killed by solve_gauquelin_sector_fails_closed_on_a_zero_derivative above;
+    // the label is retired, not reused, so the two survivors below keep their
+    // original numbers.
+    // (GQ-2) 1327:21 `gp.abs() < 1e-12 -> <=`: differs only at gp.abs()==1e-12
     //   exactly -- measure-zero, unreachable.
-    // (GQ-2) 1335:24 `delta.abs() < 1e-9 -> <=` (convergence): differs only at
+    // (GQ-3) 1335:24 `delta.abs() < 1e-9 -> <=` (convergence): differs only at
     //   delta.abs()==1e-9 exactly -- a Newton iterate shrinking quadratically past
     //   1e-9 does not land on it; measure-zero, unreachable.
     //

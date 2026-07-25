@@ -243,9 +243,21 @@ fn catalog_validators_count_every_label_they_check() {
     let summary = house_catalog_validation_summary();
 
     // 25 canonical names + 156 aliases, counted from the committed catalog.
-    assert_eq!(summary.entry_count, 25);
-    assert_eq!(summary.baseline_entry_count, 12);
-    assert_eq!(summary.release_entry_count, 13);
+    assert_eq!(
+        summary.entry_count, 25,
+        "entry_count must equal built_in_house_systems().len(); update this literal (and the \
+         other exact-value pins in this test) when the catalog gains or loses an entry",
+    );
+    assert_eq!(
+        summary.baseline_entry_count, 12,
+        "baseline_entry_count counts CompatibilityClaimTier::Baseline entries; update when the \
+         catalog's tier mix changes",
+    );
+    assert_eq!(
+        summary.release_entry_count, 13,
+        "release_entry_count counts CompatibilityClaimTier::Release entries; update when the \
+         catalog's tier mix changes",
+    );
     assert_eq!(
         summary.label_count, 181,
         "label_count must be 25 canonical + 156 aliases",
@@ -256,13 +268,25 @@ fn catalog_validators_count_every_label_they_check() {
     // discards — assert it at the private entry point.
     let alias_labels = validate_house_system_code_alias_entries(house_system_code_aliases())
         .expect("the built-in alias table validates");
-    assert_eq!(alias_labels, 22);
-    assert_eq!(house_system_code_aliases().len(), 22);
+    assert_eq!(
+        alias_labels, 22,
+        "alias_labels counts every entry validated in house_system_code_aliases(); update when \
+         the alias table gains or loses an entry",
+    );
+    assert_eq!(
+        house_system_code_aliases().len(),
+        22,
+        "house_system_code_aliases().len() must track alias_labels above; update both together",
+    );
 
     // And the catalog validator's own return value, likewise discarded.
     let catalog_labels = validate_house_catalog_entries(built_in_house_systems())
         .expect("the built-in catalog validates");
-    assert_eq!(catalog_labels, 181);
+    assert_eq!(
+        catalog_labels, 181,
+        "catalog_labels must equal summary.label_count (25 canonical + 156 aliases); update all \
+         three together when the catalog changes",
+    );
 }
 
 /// Kills the two `|| -> &&` mutants in `HouseSystemDescriptor::validate`.
@@ -346,15 +370,22 @@ fn descriptor_validation_guards_reject_each_operand_alone() {
 ///   - Entries: the function takes no arguments; it validates exactly
 ///     `house_system_code_aliases()`, a `pub const fn` returning the private
 ///     `const SWISS_EPHEMERIS_HOUSE_SYSTEM_CODE_ALIASES: &[HouseSystemCodeAlias]`.
-///     No caller can substitute entries, because the slice-taking entry point
-///     `validate_house_system_code_alias_entries` is module-private and is not
-///     in `lib.rs`'s re-export list, so no downstream crate can reach it.
-///   - Invalid state: the table is a private `const`; `HouseSystemCodeAlias`
-///     holds only `&'static str` plus a `HouseSystem` (no interior mutability),
-///     and the crate is `#![forbid(unsafe_code)]`, so no code path can mutate it.
+///     No caller can substitute entries: the slice-taking entry point
+///     `validate_house_system_code_alias_entries` is module-private, and
+///     `lib.rs:71` declares `mod catalog;` **privately**, so the whole module is
+///     unreachable downstream regardless of any item's own visibility — robust
+///     to someone later marking these `fn`s `pub`.
+///   - Invalid state: the table is a private `const` — a `const` has no
+///     storage to mutate, so `#![forbid(unsafe_code)]` is not the operative
+///     guarantee here; there is simply nothing to mutate. `HouseSystemCodeAlias`
+///     holds only `&'static str` plus a `HouseSystem` in any case (no interior
+///     mutability).
 ///   - Configuration: `pleiades-houses/Cargo.toml` declares no `[features]` at
 ///     all, the crate has no non-`cfg(test)` `#[cfg]` attribute, and there is no
 ///     `build.rs`/`include!` that could generate a different table.
+///   - Observability: nothing anywhere asserts the `"house-code alias
+///     validation failed: …"` message that HEAD's `Err` branch would produce —
+///     the same load-bearing gap CAT-2 states below for its own message.
 ///   - Conclusion: that table validates (asserted below), so HEAD returns
 ///     `Ok(())` on every reachable input — indistinguishable from the mutant on
 ///     every path.
@@ -366,17 +397,22 @@ fn descriptor_validation_guards_reject_each_operand_alone() {
 ///     `&BUILT_IN_HOUSE_SYSTEMS` — a private *immutable* `static
 ///     [HouseSystemDescriptor; 25]` (a `static`, not a `const`, but not `static
 ///     mut`). `validate_house_catalog_entries` is likewise module-private and
-///     unexported. The one workspace call site that *does* hold a descriptor
-///     slice, `pleiades_validate::compatibility::verify_house_system_aliases`,
-///     deliberately calls this no-argument wrapper and then checks its own
-///     `entries` separately, so its crafted-invalid-descriptor tests assert
-///     errors from validate's own loop; nothing anywhere asserts the
-///     `"house catalog validation failed: …"` / `"house-code alias validation
-///     failed: …"` messages that HEAD's `Err` branch would produce.
+///     unexported (and, as above, `catalog` itself is a private module). The
+///     one workspace call site that *does* hold a descriptor slice,
+///     `pleiades_validate::compatibility::verify_house_system_aliases`
+///     (`compatibility/mod.rs:748,754`), invokes **both** no-argument wrappers
+///     and then checks its own `entries` separately, so its crafted-invalid-
+///     descriptor tests assert errors from validate's own loop; nothing
+///     anywhere asserts the `"house catalog validation failed: …"` /
+///     `"house-code alias validation failed: …"` messages that HEAD's `Err`
+///     branch would produce.
 ///   - Invalid state: `HouseSystemDescriptor` holds `&'static str`, `bool`,
-///     `Option<f64>`, `HouseSystem`, and `CompatibilityClaimTier` — no interior
-///     mutability anywhere — and `#![forbid(unsafe_code)]` rules out mutating an
-///     immutable `static`.
+///     `Option<f64>`, `HouseSystem`, `CompatibilityClaimTier`, and
+///     `aliases: &'static [&'static str]` — no interior mutability anywhere.
+///     The operative guarantee is that `BUILT_IN_HOUSE_SYSTEMS` is not `static
+///     mut` and none of the descriptor's fields carry interior mutability;
+///     `#![forbid(unsafe_code)]` only closes the remaining route, an unsafe
+///     transmute into a mutable alias.
 ///   - Configuration: same as CAT-1; no feature or codegen seam exists.
 ///   - Conclusion: HEAD returns `Ok(())` on every reachable input here too.
 ///
@@ -384,11 +420,11 @@ fn descriptor_validation_guards_reject_each_operand_alone() {
 /// failure branch is unreachable because its only input is a valid built-in
 /// constant. The guards are not dead code — they defend against a future bad
 /// catalog edit, and the private slice-taking entry points that do the real work
-/// are killed by the Task 4/5 tests, which drive them with crafted invalid
-/// slices. Killing these two would require adding a test-only injection seam to
-/// production code (a parameter, or a `#[cfg(test)]` table override) purely to
-/// observe a guard over a compile-time constant; that is out of scope here and
-/// would not increase the behavior under test.
+/// have their mutants killed by the Task 4/5 tests, which drive them with
+/// crafted invalid slices. Killing these two would require adding a test-only
+/// injection seam to production code (a parameter, or a `#[cfg(test)]` table
+/// override) purely to observe a guard over a compile-time constant; that is
+/// out of scope here and would not increase the behavior under test.
 #[test]
 fn catalog_equivalent_mutants_are_documented() {
     // The live path both operators share: the built-in tables validate.

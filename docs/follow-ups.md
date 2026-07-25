@@ -1249,9 +1249,12 @@ attempt** at review, every line closed: a workspace-wide caller census; an
 appear at two `pleiades-validate` format sites and in **zero** test
 assertions); the one workspace call site that *does* hold a descriptor slice,
 `pleiades_validate::compatibility::verify_house_system_aliases`, which invokes
-both wrappers with no arguments and then checks its own `entries` separately,
-so its five crafted-invalid-descriptor tests all assert errors from validate's
-own loop; module and item visibility; table storage class and interior
+both wrappers with no arguments and then checks its own `entries` separately;
+of its five tests exercising this call site, four craft invalid descriptors and
+assert errors from validate's own loop, and one
+(`..._allows_case_insensitive_duplicate_house_aliases_within_entry`) is a
+happy-path `expect(Ok)` — neither shape observes the wrapper's `Err`; module
+and item visibility; table storage class and interior
 mutability across both crates; `Cargo.toml`/`cfg`/`build.rs`; doctests; the
 generic/trait angle; and side-effect observability.
 
@@ -1315,8 +1318,8 @@ assumed: the shards' verdict files hold 1,205 lines carrying 1,205 *distinct*
 mutants — distinct on the **full mutant description** (`file:line:col:
 replacement`), which is the only key that works here, since the coarser
 `file:line` collapses to 454 and even `file:line:col` to 687 (three mutants
-share `678:5`; pairs share `600:30`, `1094:50`, `1108:33`, `1818:17`) — and an
-independent `cargo mutants -p pleiades-houses --list` **on the same checkout**
+share `678:5`, `1094:50`, `1108:33` and `1818:17`; a pair shares `600:30`) — and
+an independent `cargo mutants -p pleiades-houses --list` **on the same checkout**
 reports exactly 1,205. Equal line count, equal distinct count and equal
 enumeration total together exclude both overlap and omission. Three independent
 cross-checks reconcile it:
@@ -1430,9 +1433,11 @@ expected result, and exit code 2 passes the job); `mise run ci` is green.
   `systems/tests/quadrant.rs` were migrated onto `assert_corpus_cusps` (net
   −158 lines, `+103/−261`); all six `[f64; 12]` arrays were verified
   element-by-element byte-identical and the strict `< 1.0` arcsec tolerance was
-  **not** loosened. Five of the six tests mis-named `..._within_120_arcsec`
-  while asserting `1.0` arcsec were renamed to `..._within_1_arcsec`. A
-  seventh, `trivial.rs`'s `equal_house_angles_…`, was *measured* at `1.0`
+  **not** loosened. Five of the six were mis-named `..._within_120_arcsec`
+  while asserting `1.0` arcsec and were renamed to `..._within_1_arcsec`; the
+  sixth, `alcabitius_cusps_c2_lat55_match_swiss_ephemeris_corpus_within_1_arcsec`,
+  already carried the correct suffix. A seventh, `trivial.rs`'s
+  `equal_house_angles_…`, was *measured* at `1.0`
   arcsec and renamed too, but deliberately **not** migrated: it asserts angles,
   not cusps.
 - **No per-mutant margin table for this slice, by construction.** Every

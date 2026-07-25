@@ -33,6 +33,14 @@ Every task's requirements implicitly include this section.
 
 `thresholds.rs` contributes **no** survivors — its single mutant is caught.
 
+> **Correction (final whole-branch review):** Task 4's review found this
+> false — the mutant (`house_family_ceiling -> HouseFamilyCeiling with
+> Default::default()`) cannot compile, because `HouseFamilyCeiling` derives
+> `Clone, Copy, Debug, PartialEq` but not `Default`. It is **unviable**, not
+> caught. See `docs/follow-ups.md`'s "houses Catalog + thresholds" entry for
+> the corrected decomposition (this row splits into `catalog/mod.rs`
+> `100/15/69/16` + `thresholds.rs` `1 tested/0 missed/0 caught/1 unviable`).
+
 The 15 in `catalog/mod.rs`, by line:
 
 | Line:col | Mutant | Task |
@@ -973,6 +981,14 @@ In `sector_equivalent_mutants_are_documented` in the same file, **delete** the w
 - `Measured by the authoritative scoped run: 233 tested, 6 missed, 227 caught` — change to `233 tested, 5 missed, 228 caught` **only after Step 4 confirms that figure**; if the measurement differs, use the measured numbers.
 - Renumber `(GQ-2)` → `(GQ-1)` and `(GQ-3)` → `(GQ-2)`, and update the `--- solve_gauquelin_sector (3) ---` header to `(2)`.
 
+> **SUPERSEDED (final whole-branch review).** This renumbering instruction was
+> executed as written and then reverted by a human ruling: it collided
+> `(GQ-1)` onto two different mutants sharing the anchor `systems/mod.rs:1327:21`
+> — the withdrawn/killed one and a surviving `<=` variant. The delivered code
+> instead **retires** `GQ-1` (withdrawn and killed) and keeps the two survivors
+> under their original labels, `(GQ-2)`/`(GQ-3)`. See `docs/follow-ups.md`'s
+> "houses Catalog + thresholds" entry for the corrected state.
+
 - [ ] **Step 4: Measure the new Sector residual**
 
 ```bash
@@ -1155,6 +1171,13 @@ The `timeout-minutes: 90` comment in `.github/workflows/mutants.yml` says "the f
     timeout-minutes: 90
 ```
 
+> **Correction (Task 9's own execution):** this illustrative text's `~1451`
+> was proven wrong against the actual 2026-07-20 run log, which reports
+> **1,415** mutants tested. The delivered `mutants.yml` comment carries the
+> corrected figure and its provenance; see `docs/follow-ups.md`'s "houses
+> Catalog + thresholds" entry for the measurement and the resulting `~2,620`
+> / `~24-25m` projection.
+
 - [ ] **Step 3: Verify the task parses and enumerates the right packages**
 
 ```bash
@@ -1239,6 +1262,13 @@ them.
 ~13,900 unmeasured mutants across twelve crates.
 ```
 
+> **Correction (Task 10's own execution):** this template figure was
+> recomputed from the verified sizing table and measured baselines as
+> **13,910**, not ~13,900. See `docs/follow-ups.md`'s "houses Catalog +
+> thresholds" entry and
+> `docs/superpowers/specs/notes/2026-07-25-mutants-roadmap-baseline.md` for
+> the corrected total.
+
 Fill the first table in from the Step 1 output — every cell, no blanks. Compute `Score` as `caught / (tested - unviable)`, matching how FU-9's baseline note reports it.
 
 - [ ] **Step 3: Commit**
@@ -1298,7 +1328,7 @@ Replace the `**Remaining houses PRs:** catalog + thresholds …` line with a clo
 
 - The `pleiades-houses` campaign is **complete** — six PRs, every file at 0-or-documented-equivalent, crate sub-total 34 (Foundation 13 + Great-circle 8 + Sector 5 + Sunshine 5 + Quadrant 3) plus PR 6's 2 = **36 in-crate**; campaign-wide running tally **45**.
 - FU-9 stays **open as a standing posture entry** — the same disposition the three-crate baseline took. There is no remaining slice for either the baseline or the houses campaign.
-- The roadmap, linking `docs/superpowers/specs/notes/2026-07-25-mutants-roadmap-baseline.md`: four measured candidate baselines, eight crates sized only, ~13,900 unmeasured mutants across twelve crates. State plainly that the houses campaign covered one crate of thirteen remaining.
+- The roadmap, linking `docs/superpowers/specs/notes/2026-07-25-mutants-roadmap-baseline.md`: four measured candidate baselines, eight crates sized only, ~13,900 unmeasured mutants across twelve crates (recomputed at execution as **13,910** — see the correction noted near this figure's first occurrence above). State plainly that the houses campaign covered one crate of thirteen remaining.
 
 - [ ] **Step 4: Run the full CI gate**
 

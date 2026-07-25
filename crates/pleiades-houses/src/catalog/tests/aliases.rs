@@ -706,15 +706,18 @@ fn alias_validation_errors_render_stable_diagnostics() {
     assert_eq!(
         HouseSystemCodeAliasValidationError::EmptyAliasTable.to_string(),
         "the house-code alias table is empty",
+        "pins EmptyAliasTable's Display text; update if the variant's rendering changes",
     );
     assert_eq!(
         HouseSystemCodeAliasValidationError::LabelNotNormalized { label: " P " }.to_string(),
         "the house-code alias label ` P ` is blank, contains surrounding whitespace, \
          or contains line breaks",
+        "pins LabelNotNormalized's Display text; update if the variant's rendering changes",
     );
     assert_eq!(
         HouseSystemCodeAliasValidationError::DuplicateLabel { label: "P" }.to_string(),
         "the house-code alias table contains duplicate label `P`",
+        "pins DuplicateLabel's Display text; update if the variant's rendering changes",
     );
     assert_eq!(
         HouseSystemCodeAliasValidationError::LabelDoesNotRoundTrip {
@@ -726,5 +729,6 @@ fn alias_validation_errors_render_stable_diagnostics() {
             "the house-code alias label `P` does not round-trip to {}",
             HouseSystem::Koch
         ),
+        "pins LabelDoesNotRoundTrip's Display text; update if the variant's rendering changes",
     );
 }
