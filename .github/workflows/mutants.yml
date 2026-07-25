@@ -31,12 +31,13 @@ jobs:
     # 1,415 mutants (191 missed, 1,160 caught, 64 unviable) in the three
     # baseline crates; the remaining ~6m is fixed checkout/mise-install/
     # cache/upload overhead that does not scale with mutant count.
-    # pleiades-houses is projected to add ~1,205 mutants (not yet measured;
-    # Task 11 performs the authoritative whole-crate count), growing the set
-    # to ~2,620 (~1.85x baseline). Scaling only the testing phase projects
-    # ~18-19m testing + the same ~6m fixed overhead, i.e. ~24-25m job
-    # wall-clock. 90 minutes is retained as headroom for further crate
-    # additions; revisit it if a scheduled run exceeds ~60 min.
+    # pleiades-houses adds a measured 1,205 mutants (whole-crate run recorded
+    # in the FU-9 "houses Catalog + thresholds" entry in docs/follow-ups.md:
+    # 1,205 tested / 36 missed / 1,145 caught / 24 unviable / 0 timeout),
+    # growing the set to 2,620 (~1.85x baseline). Scaling only the testing
+    # phase projects ~18-19m testing + the same ~6m fixed overhead, i.e.
+    # ~24-25m job wall-clock. 90 minutes is retained as headroom for further
+    # crate additions; revisit it if a scheduled run exceeds ~60 min.
     timeout-minutes: 90
     steps:
       - name: Checkout repository

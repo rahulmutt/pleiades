@@ -1136,8 +1136,371 @@ report-only; `mise run ci` is green.
 > message assertion to `solve_gauquelin_sector_fails_closed_on_nonconvergence`
 > and drop GQ-1, taking the Sector residual from 6 to 5.
 
-**Remaining houses PRs:** catalog + thresholds (`catalog_name`, which adds
-`-p pleiades-houses` to `[tasks.mutants]`).
+**Progress (2026-07-25) — houses Catalog + thresholds
+(`pleiades-houses/src/catalog/mod.rs`, `catalog_name` in `systems/mod.rs`,
+`src/thresholds.rs`):** sixth and **final** PR of the post-baseline
+`pleiades-houses` expansion campaign (spec:
+`docs/superpowers/specs/2026-07-22-fu9-houses-mutant-triage-design.md`; plan:
+`docs/superpowers/plans/2026-07-25-fu9-houses-catalog-mutant-triage.md`).
+Triaged `catalog/mod.rs` from `15` surviving mutants to **2 documented
+equivalents** and `catalog_name` from `28` to **0**. **Tests-only** apart from
+one deliberate single-source refactor (below). This slice opened by splitting
+`catalog/tests.rs` into a per-concern `catalog/tests/` directory
+(`descriptor`/`families`/`validation`/`aliases`) and relocating
+`thresholds.rs`'s inline test module to `thresholds/tests.rs`, per AGENTS.md.
+The move is test-identity-preserving, verified by comparing *leaf* test names
+before and after: the plan asked for an empty `cargo nextest list` diff, which
+is impossible, because splitting into submodules necessarily re-parents every
+qualified id (`catalog::tests::X → catalog::tests::<concern>::X`) — the same
+shape as the `systems/tests/` split at `348c00ac6`.
+
+**Measured baseline**, by the authoritative per-file command (`cargo mutants -p
+pleiades-houses --test-tool nextest --test-workspace=false --baseline run
+--file <crate-relative path>`): `catalog/mod.rs` `100 mutants tested, 15
+missed, 69 caught, 16 unviable`; `thresholds.rs` `1 tested, 0 missed, 0
+caught, 1 unviable`; `catalog_name`'s `28` carried in from PR 5's whole-file
+`systems/mod.rs` run. **Correction to the plan's baseline prose:** the plan
+stated that `thresholds.rs` "contributes **no** survivors — its single mutant
+is caught". That is verified **false**. The mutant is `replace
+house_family_ceiling -> HouseFamilyCeiling with Default::default()`, and
+`HouseFamilyCeiling` derives `Clone, Copy, Debug, PartialEq` but **not**
+`Default`, so it cannot compile: it contributes no survivors because it is
+**unviable**, not because it is caught. The distinction is not cosmetic — an
+unviable mutant measures nothing at all about the test suite, whereas a caught
+one is evidence. The plan's combined `101 tested / 15 missed / 69 caught / 17
+unviable` row therefore decomposes as `catalog/mod.rs` `100/15/69/16` plus
+`thresholds.rs` `1/0/0/1`.
+
+**`catalog_name` — two mechanisms, kept in separate commits and separately
+attributed.** (a) A cross-table characterization test killed all `28`
+(measured `28 tested / 0 missed / 28 caught`) — a **test-only** kill, no
+source change. `catalog_name` was dead through the public API: its only
+dispatch site is reached through a `_` arm and `HouseSystem` is
+`#[non_exhaustive]`, so no downstream caller can observe it, and it duplicated
+`HouseSystemDescriptor::canonical_name` for all 25 built-ins with **nothing in
+the workspace asserting the two agree**. The new test asserts exactly that
+agreement across the whole table; the kills are real rather than tautological
+because `catalog_name`'s match table is independent of
+`BUILT_IN_HOUSE_SYSTEMS` (independently re-verified at review). (b) A separate
+single-source **refactor** then made `catalog_name` delegate to the descriptor
+table, taking the mutant *surface* from `28` to `2` (measured `2 tested / 0
+missed / 2 caught`, both whole-function `-> &'static str` replacements at
+`1887:5`). That is a **surface reduction, not a kill** — the kill was (a), one
+commit earlier. Attribution detail, corrected against the plan: of the 28
+pre-refactor mutants, 26 were arm-deletes — 25 built-in arms plus the
+`Custom(_)` arm — and the refactor deleted **25** arms, not 26. The
+`Custom(_) => "Custom"` arm **still exists**; its arm-delete mutant is simply
+no longer generated, for a cargo-mutants *genre* reason (plausibly, stated as
+a plausible cause and not a verified mechanism, that the arm-deletion genre
+stops applying once the fallback is a computed `other => …` binding rather
+than a literal `_` wildcard). The net `28 → 2` (−26) arithmetic is unaffected;
+only the causal attribution of one mutant changes. An unfiltered `cargo
+mutants --list` confirmed the `-F 'catalog_name'` filter excluded nothing
+structurally.
+
+**`catalog/mod.rs` — 15 → 2, bucket by bucket** (all test-only; the file
+itself was never modified):
+
+| Bucket | Survivors | Now | Killed by |
+|--------|-----------|-----|-----------|
+| Renderings and vectors (`678:5` ×3, `245:9` ×2, `428:9`) | 6 | **0** | exact string pins on the eight `latitude_sensitive_house_failure_modes()` notes, on `HouseSystemDescriptor::failure_mode_summary_line()`, and on all four `HouseSystemCodeAliasValidationError` renderings |
+| Counters (`462:24`, `594:24`, `610:28`, all `+=` → `*=`) | 3 | **0** | pinning `house_catalog_validation_summary()` (`entry_count` 25, `baseline_entry_count` 12, `release_entry_count` 13, `label_count` 181) and both private validators' own return values (22 alias entries, 181 labels) |
+| Validation guards and the `Custom` family arm (`118:13`, `160:50`, `219:13`, `645:49`) | 4 | **0** | crafted single-operand fixtures: a padded `"  Equal  "` canonical name; two case-variant aliases `["EQUAL", "equal"]` against a one-variant control that must stay legal; a `HouseSystem::Custom` descriptor asserting the `Custom` formula family rather than `Unknown`; all-Custom and mixed slices for the family collector's or-guard |
+| No-argument public validator wrappers (`475:5`, `637:5`) | 2 | **2** (equivalent) | — |
+| **Total** | **15** | **2** | |
+
+**Documented residual — 2 equivalent mutants**, both left visible (no
+`#[mutants::skip]`) and enumerated with per-mutant reachability arguments in
+`catalog_equivalent_mutants_are_documented`:
+
+- **(CAT-1)** `475:5` `replace validate_house_system_code_aliases -> Result<(),
+  HouseSystemCodeAliasValidationError> with Ok(())`.
+- **(CAT-2)** `637:5` `replace validate_house_catalog -> Result<(),
+  HouseCatalogValidationError> with Ok(())`.
+
+Both are whole-function replacements on a **no-argument** public validator that
+wraps a private slice-taking entry point over one immutable built-in table:
+CAT-1 validates exactly `house_system_code_aliases()` (the private `const
+SWISS_EPHEMERIS_HOUSE_SYSTEM_CODE_ALIASES`), CAT-2 exactly
+`built_in_house_systems()` (the private, immutable `static
+BUILT_IN_HOUSE_SYSTEMS: [HouseSystemDescriptor; 25]` — a **`static`, not a
+`const`**, and stated that way deliberately, since the argument turns on
+immutability and so the storage class matters; the alias table *is* a `const`).
+The argument closes three ways for each: no caller can substitute entries (both
+slice-taking entry points are module-private and unexported, and `lib.rs`
+declares `mod catalog;` privately, so the module is unreachable downstream
+regardless of item visibility); neither table can be reached in an invalid
+state (payload types hold only `&'static str`, `bool`, `Option<f64>`,
+`HouseSystem`, `CompatibilityClaimTier` and `&'static [&'static str]` — no
+interior mutability — and the crate is `#![forbid(unsafe_code)]`); and no build
+configuration swaps them (`Cargo.toml` declares no `[features]` at all, the
+crate carries no non-`cfg(test)` `#[cfg]`, and there is no
+`build.rs`/`include!`). Both tables validate, asserted in the same test, so
+HEAD returns `Ok(())` on every reachable input — byte-identical to the mutant
+on every path. This is PR 5's VT-1 shape. The guards are **not** dead code:
+the private entry points that do the real work have reachable failure branches
+and their mutants **are** killed above by crafted invalid slices; killing the
+two no-argument wrappers would require adding a test-only injection seam to
+production code purely to observe a guard over a compile-time constant.
+
+The reachability argument **survived a nine-line adversarial refutation
+attempt** at review, every line closed: a workspace-wide caller census; an
+`Err`-observability grep (the only two strings HEAD's `Err` branch can produce
+appear at two `pleiades-validate` format sites and in **zero** test
+assertions); the one workspace call site that *does* hold a descriptor slice,
+`pleiades_validate::compatibility::verify_house_system_aliases`, which invokes
+both wrappers with no arguments and then checks its own `entries` separately,
+so its five crafted-invalid-descriptor tests all assert errors from validate's
+own loop; module and item visibility; table storage class and interior
+mutability across both crates; `Cargo.toml`/`cfg`/`build.rs`; doctests; the
+generic/trait angle; and side-effect observability.
+
+**Sector GQ-1 withdrawn**, discharging the follow-up recorded in the
+correction block above. `solve_gauquelin_sector`'s `1327:21 <` → `==` was
+classified equivalent by PR 3 on the premise that "the campaign does not pin
+error-message text", which was false. Killed by
+`solve_gauquelin_sector_fails_closed_on_a_zero_derivative`: at `(ramc_deg 280,
+latitude_deg 68.926_784_442_096_97, obliquity_deg 23.4366, fraction 8/9, sign
+1.0)` the derivative `gp` lands at `|gp| = 3.875e-18`, inside the
+`gp.abs() < 1e-12` interval, so HEAD
+takes the zero-derivative branch and the `==` mutant does not; the test asserts
+both `HouseErrorKind::NumericalFailure` and the exact message `"gauquelin
+sector iteration encountered a zero derivative"`, which is what distinguishes
+them (the geometry was independently re-derived in Python at review and both
+operators simulated). Measured by a scoped `solve_gauquelin_sector` run: `46
+tested / 2 missed / 44 caught`, the 2 missed being only the `<=` variants at
+`1327:21` and `1335:24`. **Provenance note:** the Sector residual is now
+stated as `5`, which is PR 3's measured `6` minus this one confirmed kill —
+arithmetic over a merged slice's measurement, not a re-measurement of PR 3's
+233-mutant scope, which this PR did not re-run. Resulting tally arithmetic:
+Sector `6 → 5`, houses sub-total `35 → 34`, campaign-wide `44 → 43`, then
+**`+2`** for CAT-1/CAT-2 = **45**.
+
+**Whole-crate confirmation.** Run whole-crate — *not* `-F`-scoped — per PR 5's
+closing guidance that a scoped filter structurally excludes whole-function
+replacement mutants, which is exactly the genre of both residuals here.
+
+The command actually run, three times — the whole-crate invocation split into
+three disjoint shards, because the un-sharded run takes ~40 min and the
+environment it was run in caps a single foreground command at **10 minutes**
+(background execution is unavailable there, so waiting it out was not an
+option):
+
+```bash
+# k = 0, 1, 2 — cargo-mutants shards are 0-indexed
+cargo mutants -p pleiades-houses --test-tool nextest --test-workspace=false \
+  --baseline run --shard <k>/3 -j 4
+```
+
+Sharding partitions the mutant list, so it changes no verdict, and each shard
+ran its own unmutated baseline (all three `Success`). The `-j 4` parallelism
+changes only wall clock — and the risk it carries, that concurrent load inflates
+test durations past cargo-mutants' auto-set timeout and converts real verdicts
+into timeouts, is excluded by the measured **`0 timeout`** across all three
+shards. cargo-mutants 27.1.0. Verbatim summary lines:
+
+```
+402 mutants tested in 4m: 8 missed, 371 caught, 23 unviable
+402 mutants tested in 4m: 13 missed, 389 caught
+401 mutants tested in 5m: 15 missed, 385 caught, 1 unviable
+```
+
+Union: **`1,205 mutants tested / 36 missed / 1,145 caught / 24 unviable / 0
+timeout`** — the campaign's closing whole-crate measurement, and the first
+whole-crate run since it opened (the Foundation entry's `1,231 mutants, 569
+missed` was the opening whole-crate baseline; PR 5's `1,128` was
+`systems/mod.rs` alone). The three shards' own
+totals sum to it: `402 + 402 + 401 = 1,205`. Shard coverage is verified, not
+assumed: the shards' verdict files hold 1,205 lines carrying 1,205 *distinct*
+mutants — distinct on the **full mutant description** (`file:line:col:
+replacement`), which is the only key that works here, since the coarser
+`file:line` collapses to 454 and even `file:line:col` to 687 (three mutants
+share `678:5`; pairs share `600:30`, `1094:50`, `1108:33`, `1818:17`) — and an
+independent `cargo mutants -p pleiades-houses --list` **on the same checkout**
+reports exactly 1,205. Equal line count, equal distinct count and equal
+enumeration total together exclude both overlap and omission. Three independent
+cross-checks reconcile it:
+
+- `1,231 − 26 = 1,205`. The `catalog_name` refactor is the only
+  production-*logic* change in the entire campaign — the test-module
+  relocations move `#[cfg(test)]` code, which cargo-mutants does not mutate —
+  and it removed exactly 26 mutants. The identity holding exactly is also what
+  establishes that the Foundation entry's `1,231` and this run are comparable
+  measurements.
+- Per file: `systems/mod.rs` 1,102 + `catalog/mod.rs` 100 + `error.rs` 2 +
+  `thresholds.rs` 1 = 1,205. This split is **tallied from the shard verdict
+  files themselves** (every `missed`/`caught`/`unviable`/`timeout` line, keyed on
+  its file path), not derived from any earlier figure — which is what keeps it
+  independent of the first cross-check. `1,128 − 26 = 1,102` is then a
+  *prediction* from PR 5's whole-file figure that the tally agrees with, not its
+  source. (`error.rs` contributes 2 mutants and 0 survivors; it appears in no
+  bucket because it needs none. No prior entry enumerated it.)
+- Unviable: `systems/mod.rs` 7 (unchanged from PR 5) + `catalog/mod.rs` 16 +
+  `thresholds.rs` 1 = 24 — an independent confirmation of the corrected
+  `thresholds.rs` decomposition above.
+
+Verbatim union of the three shards' `missed.txt`, sorted by file/line/column, so
+the no-remainder claim below is auditable from this entry alone rather than only
+by cross-referencing five earlier ones:
+
+```
+catalog/mod.rs:475:5:  replace validate_house_system_code_aliases -> Result<(), HouseSystemCodeAliasValidationError> with Ok(())
+catalog/mod.rs:637:5:  replace validate_house_catalog -> Result<(), HouseCatalogValidationError> with Ok(())
+systems/mod.rs:201:49: replace - with + in asc_mc_from
+systems/mod.rs:208:38: replace + with - in asc_mc_from
+systems/mod.rs:215:70: replace - with + in asc_mc_from
+systems/mod.rs:600:30: replace / with % in nutation_for
+systems/mod.rs:600:30: replace / with * in nutation_for
+systems/mod.rs:618:5:  replace validate_topocentric_observer -> Result<(), HouseError> with Ok(())
+systems/mod.rs:1082:69: replace + with - in horizon_houses
+systems/mod.rs:1094:36: replace - with + in horizon_houses
+systems/mod.rs:1094:50: replace < with <= in horizon_houses
+systems/mod.rs:1094:50: replace < with == in horizon_houses
+systems/mod.rs:1095:56: replace < with <= in horizon_houses
+systems/mod.rs:1108:33: replace > with < in horizon_houses
+systems/mod.rs:1108:33: replace > with == in horizon_houses
+systems/mod.rs:1108:33: replace > with >= in horizon_houses
+systems/mod.rs:1327:21: replace < with <= in solve_gauquelin_sector
+systems/mod.rs:1335:24: replace < with <= in solve_gauquelin_sector
+systems/mod.rs:1437:10: replace > with >= in pullen_sr_houses
+systems/mod.rs:1441:34: replace < with <= in pullen_sr_houses
+systems/mod.rs:1458:13: replace > with >= in pullen_sr_houses
+systems/mod.rs:1576:36: replace > with >= in sunshine_houses
+systems/mod.rs:1585:32: replace < with <= in sunshine_houses
+systems/mod.rs:1600:27: replace + with - in sunshine_houses
+systems/mod.rs:1741:21: replace < with <= in solve_placidian_cusp
+systems/mod.rs:1750:24: replace < with <= in solve_placidian_cusp
+systems/mod.rs:1799:9:  delete match arm 3 in asc1
+systems/mod.rs:1799:30: replace - with + in asc1
+systems/mod.rs:1807:20: replace < with <= in asc2
+systems/mod.rs:1811:39: replace < with <= in asc2
+systems/mod.rs:1818:17: replace < with <= in asc2
+systems/mod.rs:1818:17: replace < with == in asc2
+systems/mod.rs:1818:17: replace < with > in asc2
+systems/mod.rs:1819:13: delete - in asc2
+systems/mod.rs:1826:18: replace < with <= in asc2
+systems/mod.rs:1833:49: replace + with - in longitude_opposite
+```
+
+(Paths abbreviated from `crates/pleiades-houses/src/…`; otherwise verbatim.)
+These 36 decompose with **no remainder**, every line matching a
+previously-enumerated mutant's file, line, column and operator:
+
+| Bucket | Missed |
+|--------|--------|
+| Foundation — `asc_mc_from` 3, `asc1` 2, `asc2` 7, `longitude_opposite` 1 | 13 |
+| Great-circle — `horizon_houses` pole-singularity clamp | 8 |
+| Sector — `pullen_sr_houses` 3, `solve_gauquelin_sector` 2 | 5 |
+| Sunshine/solar-arc — `nutation_for` 2, `sunshine_houses` 3 | 5 |
+| Quadrant/projection — `618:5`, `1741:21`, `1750:24` | 3 |
+| **This PR** — `catalog/mod.rs` `475:5`, `637:5` | 2 |
+| **This PR** — `catalog_name` | 0 |
+| **Total** | **36** |
+
+No prior slice regressed and no new survivor appeared. Two positive controls in
+the same run: `1327:21 <` → `==` (GQ-1) is now in `caught.txt`, confirming the
+withdrawal, and `catalog_name`'s two residual mutants at `1887:5` are both
+caught. The plan projected `~1,205` from `1,231 − 26`; the measurement is
+**exactly** 1,205, so the *figure* in `.github/workflows/mutants.yml`'s
+calibration comment needed no revision — but its "not yet measured" hedge is
+discharged by this entry, and the comment was updated in this commit to cite
+the measured count and point here instead of at an ephemeral plan task. The
+`~1.85×` growth factor and the `~24-25m` projection it feeds are unchanged, as
+is `timeout-minutes: 90`.
+
+**Weekly-tier expansion.** `-p pleiades-houses` added to `mise.toml`'s
+`[tasks.mutants]`, so the report-only weekly tier now regression-checks the
+crate. The `mutants.yml` `timeout-minutes` rationale, previously a guess, was
+replaced with a measured calibration from the first scheduled run
+(`29733596109`): `16m05s` **job wall-clock**, of which cargo-mutants itself
+self-reported ~10m (9m54s) testing **1,415** mutants (`191 missed, 1,160
+caught, 64 unviable`) across the three baseline crates, the remaining ~6m being
+fixed checkout/install/cache/upload overhead that does not scale with mutant
+count. A pre-existing stale `1451` in `mise.toml`'s `--test-workspace=false`
+rationale comment was corrected to `1415` at the same time. **Projection, not a
+measurement:** `1,415 + 1,205 = 2,620` (~1.85× baseline) → ~18-19m testing +
+the same ~6m fixed → **~24-25m** job wall-clock; `timeout-minutes: 90` retained
+as headroom for further crate additions. No parity gate was touched; the tier
+stays **report-only** (no mutation-score gate — surviving mutants are an
+expected result, and exit code 2 passes the job); `mise run ci` is green.
+
+**Record-keeping for this slice:**
+
+- **PR 5's deferral discharged.** The six open-coded corpus closures in
+  `systems/tests/quadrant.rs` were migrated onto `assert_corpus_cusps` (net
+  −158 lines, `+103/−261`); all six `[f64; 12]` arrays were verified
+  element-by-element byte-identical and the strict `< 1.0` arcsec tolerance was
+  **not** loosened. Five of the six tests mis-named `..._within_120_arcsec`
+  while asserting `1.0` arcsec were renamed to `..._within_1_arcsec`. A
+  seventh, `trivial.rs`'s `equal_house_angles_…`, was *measured* at `1.0`
+  arcsec and renamed too, but deliberately **not** migrated: it asserts angles,
+  not cusps.
+- **No per-mutant margin table for this slice, by construction.** Every
+  `catalog/mod.rs` kill is an exact string, count, or enum-equality pin, not a
+  scalar displacement against a tolerance, so no displacement margin exists to
+  report. Per campaign discipline, none is fabricated or aggregated.
+- **Plan defects found and corrected — six, recorded so none is silent.** Three
+  are wrong figures: `thresholds.rs`'s mutant called caught when it is unviable;
+  "26 arms deleted" when 25 were; and the `mutants.yml` calibration's "~1451
+  mutants" for the first scheduled run, measured at **1,415** (all three
+  corrected above). One is a wrong forecast: the plan expected `catalog_name`'s
+  post-refactor residual to be "roughly 3"; it measured **2**. Two are
+  unsatisfiable acceptance checks: an empty `cargo nextest list` diff across a
+  module split (repaired to a leaf-name comparison, preserving its stated
+  purpose), and confirming a 233-mutant Sector total from a function-scoped run
+  (repaired by disclosing provenance rather than by guessing PR 3's filter).
+  Separately, the plan's roadmap estimate of "~13,900" was recomputed from
+  verified figures as **13,910**.
+- **One doc-comment overclaim corrected during the refactor:** the replacement
+  test's doc initially said the `Unspecified` fallback was pinned. It is
+  unreachable — the 25 built-ins plus `Custom` cover every input — and the doc
+  now says "unreachable, defensive for a future `#[non_exhaustive]` variant".
+
+**`pleiades-houses` campaign COMPLETE.** Six PRs — Foundation, Great-circle,
+Sector, Sunshine/solar-arc, Quadrant/projection, Catalog + thresholds — and
+every file in the crate now reaches `0` surviving mutants or a documented
+equivalent, confirmed by the whole-crate run above. In-crate
+documented-equivalent sub-total **36**: `34` from the first five PRs
+(Foundation 13 + Great-circle 8 + Sector 5 + Sunshine 5 + Quadrant/projection
+3, after GQ-1's withdrawal took Sector `6 → 5`) plus this PR's `2`.
+Campaign-wide running tally **45** (`9` from the closed three-crate baseline
+plus the houses `36`), continuing the series
+`9 → 22 → 30 → 36 → 41 → 44 → 43 → 45` — the dip is GQ-1's withdrawal, a
+documented equivalent reclassified as killable and then killed. That is the
+second such reclassification in this campaign: the Foundation slice's own
+correction took its residual from `19` to `13` the same way, before it was
+merged (its entry preserves the superseded `9 + 19 = 28` figure).
+
+**FU-9 stays open as a standing posture entry** — the same disposition the
+2026-07-18 three-crate baseline took when it closed. There is **no remaining
+slice** for either the measured baseline or the houses campaign. The
+report-only mutants tier remains, so any future expansion to further
+`pleiades-*` crates opens new slices under this follow-up: new work, not part
+of either closed body.
+
+**Next-campaign roadmap** (measured, so the next slice's ordering rests on data
+rather than crate size):
+`docs/superpowers/specs/notes/2026-07-25-mutants-roadmap-baseline.md`. Four
+candidate crates were measured at the close of this campaign —
+`pleiades-apsides` `223 tested / 33 missed` (84.9%), `pleiades-backend` `263 /
+70` (67.4%), `pleiades-ayanamsa` `305 / 85` (69.8%), and `pleiades-fict` `308 /
+148`, whose run exited 3 with 2 mutants timing out, so its 49.5% covers only
+306 of the 308 verdicts and is **not directly comparable** to the other three;
+the note keeps that row but visibly demotes it, and the remedy (a re-run with a
+raised test timeout) is named there rather than done. Eight further crates are
+**sized only** — `cargo mutants --list` counts, no survivor data, so no
+ordering may be inferred from them: `pleiades-compression` 607,
+`pleiades-eclipse` 913, `pleiades-core` 962, `pleiades-vsop87` 1,493,
+`pleiades-elp` 1,521, `pleiades-data` 1,752, `pleiades-events` 1,901,
+`pleiades-jpl` 3,662 — subtotal 12,811, which with the four measured crates'
+1,099 tested mutants gives a twelve-crate total of **13,910**. For scale: this
+campaign covered **one crate**. Thirteen `pleiades-*` logic crates lay outside
+the closed three-crate baseline — the twelve in that note plus
+`pleiades-houses` — so twelve remain. (`pleiades-cli` and `pleiades-validate`
+are outside the tier, which enumerates its crates explicitly. Relatedly but not
+identically: `[tasks.mutants]`'s comment cites those two crates' 300+ second
+individual tests as the rationale for `--test-workspace=false`, since without it
+every mutant would pay their cost.)
 
 ---
 
