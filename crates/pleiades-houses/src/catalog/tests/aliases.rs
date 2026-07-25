@@ -693,3 +693,38 @@ fn house_system_code_alias_validate_rejects_normalization_and_round_trip_drift()
         HouseSystemCodeAliasValidationError::LabelNotNormalized { label: "P\n" }
     ));
 }
+
+/// Pins every `HouseSystemCodeAliasValidationError` rendering exactly.
+///
+/// Kills `<impl Display for HouseSystemCodeAliasValidationError>::fmt ->
+/// Ok(Default::default())` (428:9): that mutant writes nothing, producing an
+/// empty error string. Nothing asserted these renderings before.
+#[test]
+fn alias_validation_errors_render_stable_diagnostics() {
+    use pleiades_types::HouseSystem;
+
+    assert_eq!(
+        HouseSystemCodeAliasValidationError::EmptyAliasTable.to_string(),
+        "the house-code alias table is empty",
+    );
+    assert_eq!(
+        HouseSystemCodeAliasValidationError::LabelNotNormalized { label: " P " }.to_string(),
+        "the house-code alias label ` P ` is blank, contains surrounding whitespace, \
+         or contains line breaks",
+    );
+    assert_eq!(
+        HouseSystemCodeAliasValidationError::DuplicateLabel { label: "P" }.to_string(),
+        "the house-code alias table contains duplicate label `P`",
+    );
+    assert_eq!(
+        HouseSystemCodeAliasValidationError::LabelDoesNotRoundTrip {
+            label: "P",
+            expected_system: HouseSystem::Koch,
+        }
+        .to_string(),
+        format!(
+            "the house-code alias label `P` does not round-trip to {}",
+            HouseSystem::Koch
+        ),
+    );
+}

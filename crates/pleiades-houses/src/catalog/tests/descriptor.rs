@@ -183,3 +183,50 @@ fn latitude_sensitive_systems_carry_a_latitude_bound() {
         }
     }
 }
+
+/// Pins the release-facing latitude-sensitive failure-mode notes exactly.
+///
+/// Kills `latitude_sensitive_house_failure_modes -> vec![]` /
+/// `vec![String::new()]` / `vec!["xyzzy".into()]` (678:5, ×3) and, because the
+/// strings are produced by it, `failure_mode_summary_line -> String::new()` /
+/// `"xyzzy".into()` (245:9, ×2). These are diagnostics a mutant could silently
+/// empty with no other test noticing.
+#[test]
+fn latitude_sensitive_failure_modes_render_the_documented_notes() {
+    let expected = [
+        "Placidus: Quadrant system; can fail or become unstable at extreme latitudes.",
+        "Koch: Quadrant system with documented high-latitude pathologies.",
+        "Horizon/Azimuth: Azimuthal house system that anchors house 1 due East and house 10 at the MC.",
+        "APC: APC (Ram school) houses with non-opposite quadrant pairs and polar adjustments.",
+        "Krusinski-Pisa-Goelzer: Great-circle house system centered on the ascendant and zenith; latitude-sensitive near the poles.",
+        "Topocentric: Topocentric (Polich-Page) house system with geodetic-to-geocentric latitude correction.",
+        "Sunshine: Sunshine house system based on the Sun's diurnal and nocturnal arcs; the 1st house is the Ascendant and the 10th house is the MC.",
+        "Gauquelin sectors: Thirty-six sectors used by the Gauquelin-sector family.",
+    ];
+
+    let actual = latitude_sensitive_house_failure_modes();
+    assert_eq!(
+        actual.len(),
+        8,
+        "expected exactly eight latitude-sensitive systems"
+    );
+    assert_eq!(actual, expected);
+}
+
+/// Pins `failure_mode_summary_line` directly, independent of the vector above,
+/// so the `-> String::new()` / `"xyzzy".into()` mutants (245:9) stay dead even
+/// if the aggregate ever changes shape. The rendering is `"{canonical}: {notes}"`.
+#[test]
+fn failure_mode_summary_line_renders_canonical_name_then_notes() {
+    let placidus =
+        descriptor(&pleiades_types::HouseSystem::Placidus).expect("Placidus is a built-in");
+
+    assert_eq!(
+        placidus.failure_mode_summary_line(),
+        "Placidus: Quadrant system; can fail or become unstable at extreme latitudes.",
+    );
+    assert_eq!(
+        placidus.failure_mode_summary_line(),
+        format!("{}: {}", placidus.canonical_name, placidus.notes),
+    );
+}

@@ -225,3 +225,42 @@ fn house_catalog_validation_rejects_duplicate_labels_and_round_trip_mismatches()
         Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })
     ));
 }
+
+/// Pins the exact label counts the validators accumulate.
+///
+/// Kills the three `+= -> *=` mutants. A counter initialised to `0` is
+/// invariant under `*=`, so only an exact-count assertion distinguishes them:
+///   - 594:24 (canonical labels)  -> mutated total 156 instead of 181
+///   - 610:28 (alias labels)      -> mutated total  25 instead of 181
+///   - 462:24 (alias-table entries) -> mutated total 0 instead of 22
+///
+/// The pre-existing `house_catalog_validation_summary_aggregates_catalog_fields`
+/// could not catch these: it compares `summary.entry_count` against
+/// `built_in_house_systems().len()` — the same source on both sides — and never
+/// asserts `label_count` at all.
+#[test]
+fn catalog_validators_count_every_label_they_check() {
+    let summary = house_catalog_validation_summary();
+
+    // 25 canonical names + 156 aliases, counted from the committed catalog.
+    assert_eq!(summary.entry_count, 25);
+    assert_eq!(summary.baseline_entry_count, 12);
+    assert_eq!(summary.release_entry_count, 13);
+    assert_eq!(
+        summary.label_count, 181,
+        "label_count must be 25 canonical + 156 aliases",
+    );
+    assert!(summary.validation_result.is_ok());
+
+    // The alias-table validator returns its own count, which the public wrapper
+    // discards — assert it at the private entry point.
+    let alias_labels = validate_house_system_code_alias_entries(house_system_code_aliases())
+        .expect("the built-in alias table validates");
+    assert_eq!(alias_labels, 22);
+    assert_eq!(house_system_code_aliases().len(), 22);
+
+    // And the catalog validator's own return value, likewise discarded.
+    let catalog_labels = validate_house_catalog_entries(built_in_house_systems())
+        .expect("the built-in catalog validates");
+    assert_eq!(catalog_labels, 181);
+}
