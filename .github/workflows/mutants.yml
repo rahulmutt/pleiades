@@ -25,15 +25,18 @@ env:
 jobs:
   mutants:
     runs-on: ubuntu-latest
-    # Measured 6m52s warm at -j4 on a 24-core dev box (Task 2) — a warm-cache
-    # lower bound, not a runner-equivalent figure. cargo-mutants'
-    # --jobserver-tasks defaults to NCPUS, so -j4 caps concurrent mutant jobs
-    # but not build parallelism inside them; a 4-vCPU CI runner building
-    # cargo-mutants, the workspace, and the baseline from scratch has far less
-    # compile throughput. The true CI multiplier is unknown, and the headroom
-    # here is smaller than a naive ratio against 6m52s suggests. 90 minutes is
-    # still better-founded than the original 240-minute estimate; the first
-    # scheduled run is the calibration point for revisiting this number.
+    # Calibrated 2026-07-25: the first scheduled run (2026-07-20, run
+    # 29733596109) took 16m05s of job wall-clock on the 4-vCPU runner. Of
+    # that, cargo-mutants itself reported ~10m (9m54s measured) testing
+    # 1,415 mutants (191 missed, 1,160 caught, 64 unviable) in the three
+    # baseline crates; the remaining ~6m is fixed checkout/mise-install/
+    # cache/upload overhead that does not scale with mutant count.
+    # pleiades-houses is projected to add ~1,205 mutants (not yet measured;
+    # Task 11 performs the authoritative whole-crate count), growing the set
+    # to ~2,620 (~1.85x baseline). Scaling only the testing phase projects
+    # ~18-19m testing + the same ~6m fixed overhead, i.e. ~24-25m job
+    # wall-clock. 90 minutes is retained as headroom for further crate
+    # additions; revisit it if a scheduled run exceeds ~60 min.
     timeout-minutes: 90
     steps:
       - name: Checkout repository
