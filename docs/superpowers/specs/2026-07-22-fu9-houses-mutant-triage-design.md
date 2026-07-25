@@ -436,6 +436,264 @@ and after. PR 5's new tests land in `systems/tests/quadrant.rs` and
   the `docs/follow-ups.md` Progress entry.
 - `mise.toml` untouched (the `-p pleiades-houses` weekly-tier expansion is PR 6).
 
+## PR 6 addendum — Catalog + thresholds, the crate-completing slice (2026-07-25)
+
+Design decisions specific to PR 6, recorded here rather than in a competing
+spec so the campaign keeps **one** design doc. This is the campaign's last PR:
+it closes the non-numeric tail, adds `pleiades-houses` to the weekly tier, and
+restates FU-9 for whatever comes after.
+
+### Measured baseline (2026-07-25, at `348c00ac6`)
+
+Two authoritative runs, both re-measured today rather than carried over from
+the 2026-07-22 whole-crate prediction:
+
+```bash
+cargo mutants -p pleiades-houses --test-tool nextest --test-workspace=false \
+  --baseline run \
+  --file crates/pleiades-houses/src/catalog/mod.rs \
+  --file crates/pleiades-houses/src/thresholds.rs
+
+cargo mutants -p pleiades-houses --test-tool nextest --test-workspace=false \
+  --baseline run \
+  --file crates/pleiades-houses/src/systems/mod.rs -F 'catalog_name'
+```
+
+| Surface | Tested | Missed | Caught | Unviable |
+|---------|--------|--------|--------|----------|
+| `catalog/mod.rs` + `thresholds.rs` | 101 (2 min) | **15** | 69 | 17 |
+| `catalog_name` (`systems/mod.rs`) | 28 (41 s) | **28** | 0 | 0 |
+
+Both match the figures the campaign already carried — the 2026-07-22 delivery
+table predicted `15` for `catalog/mod.rs`, and PR 5's whole-file decomposition
+reserved `28` for `catalog_name`. `thresholds.rs` contributes **no** survivors
+(its single mutant is caught); its only PR 6 work is the AGENTS.md test
+relocation.
+
+Note on the `catalog_name` filter: `-F 'catalog_name'` is deliberately **not**
+anchored as `-F 'in (catalog_name)$'`. Per PR 5's closing guidance, the anchored
+form structurally excludes whole-function replacement mutants, whose description
+reads `replace catalog_name -> &'static str with …` and never ends in
+`in <function>`. The unanchored filter captures both the 26 arm deletes and the
+2 return-value replacements, and the `28 tested` total confirms it.
+
+**Triage surface: 43 survivors.**
+
+### `catalog_name` — single-source refactor (28 → ~3)
+
+Two structural facts drive this, both established during design and neither
+recorded anywhere in the crate today:
+
+1. **`catalog_name` is dead through the public API.** Its sole call site is
+   `systems/mod.rs:495`, inside the dispatch match's `_` arm. All 25 concrete
+   `HouseSystem` variants have explicit arms above it; the `_` exists only
+   because `HouseSystem` is `#[non_exhaustive]` and lives in another crate. No
+   input reaches `catalog_name` through `calculate_houses`. That is *why* all
+   28 survived: no integration path constrains them.
+2. **It duplicates the catalog.** Its 25 name strings are byte-for-byte
+   identical to the corresponding `HouseSystemDescriptor::canonical_name`
+   values, and **nothing asserts the two tables agree** — they can drift
+   silently. This is the FU-5 GMST-duplication shape.
+
+The slice therefore closes the seam rather than pinning the duplicate, in three
+ordered commits so the write-up can state unambiguously which mutants were
+*killed by test* and which *ceased to exist*:
+
+**(a) Cross-table characterization test** — assert
+`catalog_name(&s) == descriptor(&s).canonical_name` for all 25 built-ins, plus
+`Custom(_) -> "Custom"`. Against `HEAD` this is a genuine tests-only kill of all
+28, and it doubles as the **no-op proof** for the refactor that follows.
+
+**(b) Behavior-preserving refactor** (own commit, no runtime-result change):
+
+```rust
+fn catalog_name(system: &HouseSystem) -> &'static str {
+    match system {
+        HouseSystem::Custom(_) => "Custom",
+        other => crate::catalog::descriptor(other)
+            .map_or("Unspecified", |d| d.canonical_name),
+    }
+}
+```
+
+Behavior identity rests on two facts the plan **asserts rather than assumes**:
+that the descriptor table covers exactly the 25 concrete variants
+`catalog_name` enumerates, and that the `canonical_name` strings are
+byte-identical. Test (a) is what proves both. `descriptor()` returns `None` for
+`Custom(_)` (no catalog entry carries a `Custom` system), so the explicit
+`Custom` arm is load-bearing and is kept.
+
+**(c) Replace the now-tautological test** — after (b) the cross-table assertion
+compares the descriptor table against itself, so it is replaced by a
+three-behavior residual pin: known system → catalog `canonical_name`,
+`Custom(_)` → `"Custom"`, unknown variant → `"Unspecified"`.
+
+Residual after (b): the `Custom` arm delete, the `map_or` fallback, and the
+whole-function replacement — ~3 mutants, killed by (c). **Measured, not
+predicted.**
+
+The write-up must not conflate the two mechanisms: 26 mutants **cease to exist**
+(the arms are gone), they are not killed by a test.
+
+### `catalog/mod.rs` — the 15
+
+| Bucket | Mutants | Kill strategy |
+|--------|---------|---------------|
+| Rendering return-values — `failure_mode_summary_line -> String::new()` / `"xyzzy".into()` (245:9 ×2), `HouseSystemCodeAliasValidationError::fmt -> Ok(default)` (428:9) | 3 | Exact string assertions, the `pleiades-types` `Display` precedent — release-facing diagnostics that a mutant could silently empty |
+| `latitude_sensitive_house_failure_modes -> vec![]` / `vec![String::new()]` / `vec!["xyzzy".into()]` (678:5 ×3) | 3 | Assert exact contents **and** length, enumerated independently from the descriptor table's `latitude_sensitive` entries |
+| Counter `+=` → `*=` (462:24, 594:24, 610:28) | 3 | Assert exact `entry_count` / `label_count` / alias count against independently counted values (`spec/compatibility-catalog.md`'s 23-code SE set; 25 built-ins) — a counter starting at `0` is invariant under `*=`, so only an exact-count assertion distinguishes them |
+| `formula_family` delete-arm `HouseSystem::Custom(_)` (219:13) | 1 | Construct a `Custom` descriptor and assert `HouseFormulaFamily::Custom`, distinguishing it from the `_ => Unknown` fallthrough it would otherwise reach |
+| Validation guard `\|\|` → `&&` (118:13, 160:50, 645:49) | 3 | Reachability analysis first, then craft entries that flip exactly one operand. `160:50` is an equivalence *candidate*: the clause `!notes.is_empty() && notes.trim() != notes` is arguably implied by the preceding `notes.trim().is_empty()` test |
+| Whole-function `-> Ok(())`: `validate_house_catalog` (637:5), `validate_house_system_code_aliases` (475:5) | 2 | **Equivalent-mutant candidates**, PR 5's VT-1 shape — the built-in catalog is valid by construction, so `HEAD` and mutant both return `Ok(())` on every reachable input. Probe for a testability seam before documenting |
+
+**Target: `43 → 0-or-documented-equivalent`**, with the killed-vs-equivalent
+split **measured, not predicted**. Predicted residual is `0–3` (the two `Ok(())`
+wrappers plus possibly `160:50`), but per the Foundation and Sunshine
+corrections that number is a hypothesis: every equivalence claim gets a
+reachability probe *before* it is written down, with per-mutant rows and a
+stated true minimum — never an aggregated table.
+
+### Structure changes
+
+Supersedes, for PR 6 only, the "Structure changes" section above, which
+predates the test files' growth.
+
+- **`thresholds.rs`** — relocate the inline `#[cfg(test)] mod tests { … }`
+  (lines 103–133) to `thresholds/tests.rs`, keeping `#[cfg(test)] mod tests;`
+  in `thresholds.rs`. The last inline test module in the crate; this is the
+  file's entire contribution to PR 6.
+- **`catalog/tests.rs`** — 1,140 lines, and PR 6 adds to it. Per AGENTS.md's
+  "split it before adding more, not after" and PR 5's opening move, split into
+  `catalog/tests/` (`support` / `descriptor` / `validation` / `aliases` /
+  `families`) as a **verified no-op move** in its own commit: identical
+  `cargo nextest list` inventory before and after, no test body edited.
+- **`systems/tests/quadrant.rs`** — migrate the six open-coded corpus closures
+  (Morinus, Placidus+Topocentric, Koch, Campanus, Alcabitius c1_lat40,
+  Alcabitius c2_lat55 — ~270 lines of near-identical arrange blocks) onto
+  `assert_corpus_cusps`, and rename the five tests named `*_within_120_arcsec`
+  that actually assert a `1.0`-arcsec tolerance. A seventh,
+  `equal_house_angles_match_swiss_ephemeris_corpus_within_120_arcsec` in
+  `trivial.rs`, carries the same misleading name but asserts *angles*, not
+  cusps; check its tolerance and rename it too if it is also 1″, rather than
+  leave one behind. PR 5 deferred this migration here explicitly, as a
+  maintainability change rather than a triage change.
+
+### Sector GQ-1 withdrawal
+
+PR 5 recorded a correction it could not apply in its own territory:
+`solve_gauquelin_sector`'s `1327:21 <` → `==` was documented equivalent on the
+premise that "the campaign does not pin error-message text", which is false —
+`systems/tests.rs` already pinned message text before PR 3, and PR 5 killed the
+structurally identical `solve_placidian_cusp` `1741 <` → `==` exactly that way.
+
+PR 6 adds the message assertion to
+`solve_gauquelin_sector_fails_closed_on_nonconvergence` and withdraws GQ-1.
+Tally effect: Sector residual **6 → 5**, houses sub-total **35 → 34**,
+campaign-wide **44 → 43**, before PR 6's own residual is added.
+
+### Weekly-tier expansion
+
+`[tasks.mutants]` in `mise.toml` gains `-p pleiades-houses`, alongside the
+existing `-p pleiades-types -p pleiades-time -p pleiades-apparent`. This is the
+"make it stick" step: the weekly report-only tier regression-checks the crate
+from then on.
+
+Budget evidence, which the design has not had until now — the workflow comment
+in `.github/workflows/mutants.yml` named the first scheduled run as its
+calibration point, and that run has since happened:
+
+| Measure | Value |
+|---------|-------|
+| 2026-07-20 scheduled `mutants.yml` run | **16 min 5 s** |
+| Workflow timeout | 90 min |
+| Current tier mutant count | ~1,451 |
+| After adding `pleiades-houses` | ~2,680 (~1.85×) |
+| Projected wall-clock | **~30–35 min** |
+
+Comfortable headroom. PR 6 records this in the workflow comment so the next
+maintainer inherits a calibrated number rather than the original guess.
+
+### FU-9 disposition and next-crate roadmap
+
+FU-9 stays **open as a standing posture entry** — the same disposition it took
+when the three-crate baseline closed — carrying a campaign-closing summary:
+final crate-wide tally, the whole-crate confirmation run, and the fact that
+`pleiades-houses` now sits in the weekly tier.
+
+For the roadmap to be **real rather than guessed**, PR 6 measures survivor
+baselines for the four smallest candidate crates:
+
+| Crate | Mutants | Baseline measured by PR 6 |
+|-------|---------|---------------------------|
+| `pleiades-apsides` | 223 | yes |
+| `pleiades-backend` | 263 | yes |
+| `pleiades-ayanamsa` | 305 | yes |
+| `pleiades-fict` | 308 | yes |
+
+1,099 mutants, ≈20 min — bounded, and it makes the ordering defensible.
+
+The remaining eight are recorded as **mutant counts only** (from
+`cargo mutants -p <crate> --list`, 2026-07-25), labelled explicitly as *sizing,
+not survivor counts*, so no ordering is fabricated from unmeasured data:
+
+| Crate | Mutants | Crate | Mutants |
+|-------|---------|-------|---------|
+| `pleiades-compression` | 607 | `pleiades-elp` | 1,521 |
+| `pleiades-eclipse` | 913 | `pleiades-data` | 1,752 |
+| `pleiades-core` | 962 | `pleiades-events` | 1,901 |
+| `pleiades-vsop87` | 1,493 | `pleiades-jpl` | 3,662 |
+
+~13,900 unmeasured mutants across twelve crates. That is the honest headline
+for the closing note: the houses campaign covered **one** crate of thirteen
+remaining, and FU-9's standing posture is what carries the rest.
+
+### Acceptance criteria (PR 6)
+
+- `catalog/mod.rs`, `thresholds.rs`, and `catalog_name` reach
+  **0-or-documented-equivalent**, each equivalent carrying a per-mutant
+  reachability argument and left visible (no `#[mutants::skip]`).
+- **Whole-crate confirmation run** — `cargo mutants -p pleiades-houses
+  --test-tool nextest --test-workspace=false` (~1,205 mutants after the
+  refactor removes 26 arms, down from 1,231; ~21+ min). This is required, not
+  optional: PR 5's closing guidance is that a scoped `-F` run structurally
+  excludes whole-function replacement mutants, and PR 6 has two of those as
+  residual candidates.
+- The confirmation run decomposes with **no unaccounted remainder**. Going in,
+  `systems/mod.rs` carries `63` survivors (PR 5's measured figure: `28`
+  `catalog_name` + `35` prior-slice documented equivalents — the `32` from
+  PRs 1–4 plus PR 5's own `3`) and `catalog/mod.rs` carries `15`, for `78`
+  crate-wide. Coming out: prior-slice documented equivalents `35 → 34` (GQ-1
+  killed), plus PR 6's own measured residual, plus zero elsewhere.
+- The `catalog/tests.rs` split and the `quadrant.rs` corpus migration are
+  **inventory-verified** (`cargo nextest list` identical across the move), not
+  eyeballed.
+- `[tasks.mutants]` includes `-p pleiades-houses`; `mutants.yml` timeout comment
+  updated with the calibrated figure.
+- **No parity gate touched** — `validate-houses` / `validate-angles` corpora,
+  tolerances, and code unchanged. Tier stays report-only.
+- `mise run ci` green (fmt + clippy `-D warnings` + workspace test). Run
+  `cargo fmt` before every commit — array literals in these docs and tests have
+  broken the fmt gate in prior slices.
+- `docs/follow-ups.md` gains the PR 6 Progress note **and** the campaign-closing
+  restatement with the roadmap table above.
+
+### Risks specific to PR 6
+
+- **The refactor must be provably no-op.** Mitigated by ordering the cross-table
+  characterization test first; the refactor commit is gated on it passing
+  unchanged.
+- **Mutant-surface reduction is not a test kill.** Deleting 26 match arms
+  improves the score without improving the suite. Mitigated by landing (a)
+  first, so the tests-only kill is a real, recorded event, and by stating both
+  mechanisms separately in the follow-up note.
+- **Equivalence over-claiming.** Three of this campaign's five landed PRs had an
+  equivalence claim refuted on review. Mitigated by probing each candidate
+  before writing it down, and by treating the two `Ok(())` wrappers as
+  *candidates* until the confirmation run says otherwise.
+- **Roadmap measurement scope creep.** Four crates, 1,099 mutants, ≈20 min is
+  the whole budget; the other eight get counts only. Mitigated by making the
+  sizing-vs-survivor distinction explicit in the recorded table.
+
 ## References
 
 - `docs/follow-ups.md` — FU-9 (baseline CLOSED note; running documented-
