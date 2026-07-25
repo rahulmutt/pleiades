@@ -330,3 +330,79 @@ fn descriptor_validation_guards_reject_each_operand_alone() {
     );
     assert_eq!(one_case_variant.validate(), Ok(()));
 }
+
+/// FU-9 catalog residual: 2 surviving mutants, each an EQUIVALENT MUTANT left
+/// visible (no `#[mutants::skip]`), with a per-mutant reachability argument.
+///
+/// Both are whole-function replacements on a *no-argument* public validator that
+/// wraps a private slice-taking entry point over one immutable built-in table.
+/// The probe that established equivalence checked, for each: who can supply the
+/// entries, whether the table can be reached in an invalid state, and whether
+/// any build configuration swaps it.
+///
+/// --- catalog/mod.rs (2) ---
+/// (CAT-1) 475:5 `replace validate_house_system_code_aliases -> Result<(),
+///   HouseSystemCodeAliasValidationError> with Ok(())`.
+///   - Entries: the function takes no arguments; it validates exactly
+///     `house_system_code_aliases()`, a `pub const fn` returning the private
+///     `const SWISS_EPHEMERIS_HOUSE_SYSTEM_CODE_ALIASES: &[HouseSystemCodeAlias]`.
+///     No caller can substitute entries, because the slice-taking entry point
+///     `validate_house_system_code_alias_entries` is module-private and is not
+///     in `lib.rs`'s re-export list, so no downstream crate can reach it.
+///   - Invalid state: the table is a private `const`; `HouseSystemCodeAlias`
+///     holds only `&'static str` plus a `HouseSystem` (no interior mutability),
+///     and the crate is `#![forbid(unsafe_code)]`, so no code path can mutate it.
+///   - Configuration: `pleiades-houses/Cargo.toml` declares no `[features]` at
+///     all, the crate has no non-`cfg(test)` `#[cfg]` attribute, and there is no
+///     `build.rs`/`include!` that could generate a different table.
+///   - Conclusion: that table validates (asserted below), so HEAD returns
+///     `Ok(())` on every reachable input — indistinguishable from the mutant on
+///     every path.
+///
+/// (CAT-2) 637:5 `replace validate_house_catalog -> Result<(),
+///   HouseCatalogValidationError> with Ok(())`.
+///   - Entries: likewise no arguments; it validates exactly
+///     `built_in_house_systems()`, a `pub const fn` returning
+///     `&BUILT_IN_HOUSE_SYSTEMS` — a private *immutable* `static
+///     [HouseSystemDescriptor; 25]` (a `static`, not a `const`, but not `static
+///     mut`). `validate_house_catalog_entries` is likewise module-private and
+///     unexported. The one workspace call site that *does* hold a descriptor
+///     slice, `pleiades_validate::compatibility::verify_house_system_aliases`,
+///     deliberately calls this no-argument wrapper and then checks its own
+///     `entries` separately, so its crafted-invalid-descriptor tests assert
+///     errors from validate's own loop; nothing anywhere asserts the
+///     `"house catalog validation failed: …"` / `"house-code alias validation
+///     failed: …"` messages that HEAD's `Err` branch would produce.
+///   - Invalid state: `HouseSystemDescriptor` holds `&'static str`, `bool`,
+///     `Option<f64>`, `HouseSystem`, and `CompatibilityClaimTier` — no interior
+///     mutability anywhere — and `#![forbid(unsafe_code)]` rules out mutating an
+///     immutable `static`.
+///   - Configuration: same as CAT-1; no feature or codegen seam exists.
+///   - Conclusion: HEAD returns `Ok(())` on every reachable input here too.
+///
+/// This is PR 5's VT-1 shape: a whole-function replacement on a guard whose
+/// failure branch is unreachable because its only input is a valid built-in
+/// constant. The guards are not dead code — they defend against a future bad
+/// catalog edit, and the private slice-taking entry points that do the real work
+/// are killed by the Task 4/5 tests, which drive them with crafted invalid
+/// slices. Killing these two would require adding a test-only injection seam to
+/// production code (a parameter, or a `#[cfg(test)]` table override) purely to
+/// observe a guard over a compile-time constant; that is out of scope here and
+/// would not increase the behavior under test.
+#[test]
+fn catalog_equivalent_mutants_are_documented() {
+    // The live path both operators share: the built-in tables validate.
+    assert_eq!(validate_house_catalog(), Ok(()));
+    assert_eq!(validate_house_system_code_aliases(), Ok(()));
+
+    // The failure branches ARE reachable at the private entry points, which is
+    // why only the no-argument public wrappers are equivalent.
+    assert_eq!(
+        validate_house_catalog_entries(&[]),
+        Err(HouseCatalogValidationError::EmptyCatalog),
+    );
+    assert_eq!(
+        validate_house_system_code_alias_entries(&[]),
+        Err(HouseSystemCodeAliasValidationError::EmptyAliasTable),
+    );
+}
