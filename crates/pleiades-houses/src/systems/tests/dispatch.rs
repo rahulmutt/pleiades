@@ -272,33 +272,52 @@ fn se_compat_fallback_rejects_gauquelin_beyond_bound() {
     assert_eq!(error.kind, crate::error::HouseErrorKind::InvalidLatitude);
 }
 
-/// `catalog_name` carries its own 25-arm name table, byte-for-byte duplicating
-/// `HouseSystemDescriptor::canonical_name`. Nothing asserted they agree, so all
-/// 28 of its mutants survived (26 arm deletes + 2 return-value replacements) —
-/// the function is also dead through the public API, reachable only via the
-/// dispatch `_` arm that exists because `HouseSystem` is `#[non_exhaustive]`.
+/// Pins the behaviors that survive the single-source refactor and remain
+/// exercised here: a known system resolves through the catalog, and `Custom`
+/// short-circuits before the lookup. The `"Unspecified"` fallback is not
+/// exercised: every `HouseSystem` variant today is either a cataloged
+/// built-in or `Custom`, so the fallback is currently unreachable. It exists
+/// defensively, guarding a future `#[non_exhaustive]` variant with no catalog
+/// entry.
 ///
-/// This test is the cross-table pin AND the no-op proof for the single-source
-/// refactor that replaces the match with a `catalog::descriptor` lookup.
+/// Before the refactor, `catalog_name` carried a 25-arm duplicate of
+/// `HouseSystemDescriptor::canonical_name`; deleting those 25 built-in arms
+/// removed 25 arm-delete mutants from existence — they were not suppressed.
+/// A 26th arm-delete mutant, for the `Custom(_)` arm, also disappeared even
+/// though that arm is still present verbatim; the likely cause is that
+/// cargo-mutants' arm-deletion genre no longer applies once the sibling arm
+/// is a computed `other => …` expression rather than a literal `_` wildcard,
+/// but that causal mechanism is not independently verified — only the
+/// measured effect is (28 mutants before this refactor, 2 after).
 #[test]
-fn catalog_name_agrees_with_the_descriptor_table() {
-    let entries = crate::catalog::built_in_house_systems();
-    assert_eq!(entries.len(), 25, "catalog size changed; update this pin");
+fn catalog_name_resolves_through_the_catalog_with_custom_and_unknown_fallbacks() {
+    // Known systems resolve to the catalog's canonical name. Spot-check the
+    // three whose names are least guessable from the enum variant.
+    assert_eq!(
+        catalog_name(&HouseSystem::Carter),
+        "Carter (poli-equatorial)"
+    );
+    assert_eq!(catalog_name(&HouseSystem::Horizon), "Horizon/Azimuth");
+    assert_eq!(
+        catalog_name(&HouseSystem::KrusinskiPisaGoelzer),
+        "Krusinski-Pisa-Goelzer"
+    );
+    assert_eq!(catalog_name(&HouseSystem::Gauquelin), "Gauquelin sectors");
 
-    for entry in entries {
-        assert_eq!(
-            catalog_name(&entry.system),
-            entry.canonical_name,
-            "catalog_name disagrees with the descriptor for {:?}",
+    // Every built-in resolves to something non-empty and never to the fallback.
+    for entry in crate::catalog::built_in_house_systems() {
+        let name = catalog_name(&entry.system);
+        assert!(!name.is_empty(), "empty name for {:?}", entry.system);
+        assert_ne!(
+            name, "Unspecified",
+            "built-in {:?} fell through to the unknown fallback",
             entry.system,
         );
     }
 
-    // `Custom` has no catalog entry, so its name cannot come from the table.
+    // `Custom` short-circuits: it has no descriptor, so without its own arm it
+    // would take the "Unspecified" fallback.
     let custom = HouseSystem::Custom(CustomHouseSystem::new("Probe Houses"));
-    assert!(
-        crate::catalog::descriptor(&custom).is_none(),
-        "no descriptor may claim a Custom system, or the refactor changes behavior",
-    );
+    assert!(crate::catalog::descriptor(&custom).is_none());
     assert_eq!(catalog_name(&custom), "Custom");
 }
