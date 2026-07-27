@@ -103,7 +103,7 @@ fn equal_aries_houses_start_at_zero_aries() {
 /// Tolerance: 1 arcsec; actual residuals are ~0.04 arcsec after switching to
 /// GAST + true obliquity (equation of equinoxes applied).
 #[test]
-fn equal_house_angles_match_swiss_ephemeris_corpus_within_120_arcsec() {
+fn equal_house_angles_match_swiss_ephemeris_corpus_within_1_arcsec() {
     let observer = ObserverLocation::new(
         Latitude::from_degrees(40.0),
         Longitude::from_degrees(0.0),

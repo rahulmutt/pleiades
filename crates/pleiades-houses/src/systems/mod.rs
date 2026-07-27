@@ -1876,35 +1876,17 @@ fn spherical_cotrans(coord: &mut [f64; 3], angle_deg: f64) {
     coord[2] = radius;
 }
 
+/// Returns the catalog's canonical name for a house system.
+///
+/// Single-sourced from `catalog::descriptor` rather than carrying a duplicate
+/// name table: the two drifted independently before, with nothing asserting
+/// they agreed. `Custom` has no catalog entry, so it keeps an explicit arm;
+/// a future `#[non_exhaustive]` variant with no descriptor falls back to
+/// `"Unspecified"`.
 fn catalog_name(system: &HouseSystem) -> &'static str {
     match system {
-        HouseSystem::Placidus => "Placidus",
-        HouseSystem::Koch => "Koch",
-        HouseSystem::Porphyry => "Porphyry",
-        HouseSystem::Regiomontanus => "Regiomontanus",
-        HouseSystem::Campanus => "Campanus",
-        HouseSystem::Carter => "Carter (poli-equatorial)",
-        HouseSystem::Horizon => "Horizon/Azimuth",
-        HouseSystem::Apc => "APC",
-        HouseSystem::KrusinskiPisaGoelzer => "Krusinski-Pisa-Goelzer",
-        HouseSystem::Equal => "Equal",
-        HouseSystem::EqualMidheaven => "Equal (MC)",
-        HouseSystem::EqualAries => "Equal (1=Aries)",
-        HouseSystem::Vehlow => "Vehlow Equal",
-        HouseSystem::Sripati => "Sripati",
-        HouseSystem::WholeSign => "Whole Sign",
-        HouseSystem::Alcabitius => "Alcabitius",
-        HouseSystem::Albategnius => "Albategnius",
-        HouseSystem::PullenSd => "Pullen SD",
-        HouseSystem::PullenSr => "Pullen SR",
-        HouseSystem::Meridian => "Meridian",
-        HouseSystem::Axial => "Axial",
-        HouseSystem::Topocentric => "Topocentric",
-        HouseSystem::Morinus => "Morinus",
-        HouseSystem::Sunshine => "Sunshine",
-        HouseSystem::Gauquelin => "Gauquelin sectors",
         HouseSystem::Custom(_) => "Custom",
-        _ => "Unspecified",
+        other => crate::catalog::descriptor(other).map_or("Unspecified", |d| d.canonical_name),
     }
 }
 

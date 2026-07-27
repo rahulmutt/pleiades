@@ -271,3 +271,53 @@ fn se_compat_fallback_rejects_gauquelin_beyond_bound() {
         .expect_err("Gauquelin has no Porphyry-style high-latitude fallback");
     assert_eq!(error.kind, crate::error::HouseErrorKind::InvalidLatitude);
 }
+
+/// Pins the behaviors that survive the single-source refactor and remain
+/// exercised here: a known system resolves through the catalog, and `Custom`
+/// short-circuits before the lookup. The `"Unspecified"` fallback is not
+/// exercised: every `HouseSystem` variant today is either a cataloged
+/// built-in or `Custom`, so the fallback is currently unreachable. It exists
+/// defensively, guarding a future `#[non_exhaustive]` variant with no catalog
+/// entry.
+///
+/// Before the refactor, `catalog_name` carried a 25-arm duplicate of
+/// `HouseSystemDescriptor::canonical_name`; deleting those 25 built-in arms
+/// removed 25 arm-delete mutants from existence — they were not suppressed.
+/// A 26th arm-delete mutant, for the `Custom(_)` arm, also disappeared even
+/// though that arm is still present verbatim; the likely cause is that
+/// cargo-mutants' arm-deletion genre no longer applies once the sibling arm
+/// is a computed `other => …` expression rather than a literal `_` wildcard,
+/// but that causal mechanism is not independently verified — only the
+/// measured effect is (28 mutants before this refactor, 2 after).
+#[test]
+fn catalog_name_resolves_through_the_catalog_with_custom_and_unknown_fallbacks() {
+    // Known systems resolve to the catalog's canonical name. Spot-check the
+    // three whose names are least guessable from the enum variant.
+    assert_eq!(
+        catalog_name(&HouseSystem::Carter),
+        "Carter (poli-equatorial)"
+    );
+    assert_eq!(catalog_name(&HouseSystem::Horizon), "Horizon/Azimuth");
+    assert_eq!(
+        catalog_name(&HouseSystem::KrusinskiPisaGoelzer),
+        "Krusinski-Pisa-Goelzer"
+    );
+    assert_eq!(catalog_name(&HouseSystem::Gauquelin), "Gauquelin sectors");
+
+    // Every built-in resolves to something non-empty and never to the fallback.
+    for entry in crate::catalog::built_in_house_systems() {
+        let name = catalog_name(&entry.system);
+        assert!(!name.is_empty(), "empty name for {:?}", entry.system);
+        assert_ne!(
+            name, "Unspecified",
+            "built-in {:?} fell through to the unknown fallback",
+            entry.system,
+        );
+    }
+
+    // `Custom` short-circuits: it has no descriptor, so without its own arm it
+    // would take the "Unspecified" fallback.
+    let custom = HouseSystem::Custom(CustomHouseSystem::new("Probe Houses"));
+    assert!(crate::catalog::descriptor(&custom).is_none());
+    assert_eq!(catalog_name(&custom), "Custom");
+}

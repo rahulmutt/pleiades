@@ -1,134 +1,7 @@
-use super::*;
+//! Alias resolution: canonical labels, software-specific aliases, and
+//! Swiss-Ephemeris short-code aliases.
 
-#[test]
-fn baseline_catalog_includes_required_milestone_entries() {
-    let names: Vec<_> = baseline_house_systems()
-        .iter()
-        .map(|entry| entry.canonical_name)
-        .collect();
-
-    for expected in [
-        "Placidus",
-        "Koch",
-        "Porphyry",
-        "Regiomontanus",
-        "Campanus",
-        "Equal",
-        "Whole Sign",
-        "Alcabitius",
-        "Meridian",
-        "Axial",
-        "Topocentric",
-        "Morinus",
-    ] {
-        assert!(names.contains(&expected), "missing {expected}");
-    }
-}
-
-#[test]
-fn descriptor_summary_line_includes_aliases_formula_family_latitude_and_notes() {
-    let descriptor = HouseSystemDescriptor::new(
-        pleiades_types::HouseSystem::Equal,
-        "Equal",
-        &["Alias One", "Alias Two"],
-        "Summary note",
-        true,
-        None,
-    );
-
-    let expected =
-        "Equal (aliases: Alias One, Alias Two) [formula: Equal] [latitude-sensitive] — Summary note";
-    assert_eq!(descriptor.summary_line(), expected);
-    assert_eq!(
-        descriptor.validated_summary_line(),
-        Ok(expected.to_string())
-    );
-    assert_eq!(descriptor.to_string(), expected);
-}
-
-#[test]
-fn validated_summary_line_rejects_descriptor_drift() {
-    let descriptor = HouseSystemDescriptor::new(
-        pleiades_types::HouseSystem::Equal,
-        "Equal",
-        &["Alias One"],
-        " Summary note",
-        true,
-        None,
-    );
-
-    assert_eq!(
-        descriptor.validated_summary_line(),
-        Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })
-    );
-
-    let alias = HouseSystemCodeAlias {
-        label: " T",
-        system: pleiades_types::HouseSystem::Topocentric,
-    };
-
-    assert_eq!(
-        alias.validated_summary_line(),
-        Err(HouseSystemCodeAliasValidationError::LabelNotNormalized { label: " T" })
-    );
-}
-
-#[test]
-fn formula_family_groups_the_built_in_house_systems_by_shape() {
-    let equal =
-        descriptor(&pleiades_types::HouseSystem::Equal).expect("equal should be catalogued");
-    let whole_sign = descriptor(&pleiades_types::HouseSystem::WholeSign)
-        .expect("whole sign should be catalogued");
-    let quadrant =
-        descriptor(&pleiades_types::HouseSystem::Placidus).expect("placidus should be catalogued");
-    let equatorial =
-        descriptor(&pleiades_types::HouseSystem::Meridian).expect("meridian should be catalogued");
-    let great_circle =
-        descriptor(&pleiades_types::HouseSystem::Horizon).expect("horizon should be catalogued");
-    let solar_arc =
-        descriptor(&pleiades_types::HouseSystem::Sunshine).expect("sunshine should be catalogued");
-    let sector = descriptor(&pleiades_types::HouseSystem::Gauquelin)
-        .expect("gauquelin should be catalogued");
-
-    assert_eq!(equal.formula_family(), HouseFormulaFamily::Equal);
-    assert_eq!(whole_sign.formula_family(), HouseFormulaFamily::WholeSign);
-    assert_eq!(quadrant.formula_family(), HouseFormulaFamily::Quadrant);
-    assert_eq!(
-        equatorial.formula_family(),
-        HouseFormulaFamily::EquatorialProjection
-    );
-    assert_eq!(
-        great_circle.formula_family(),
-        HouseFormulaFamily::GreatCircle
-    );
-    assert_eq!(solar_arc.formula_family(), HouseFormulaFamily::SolarArc);
-    assert_eq!(sector.formula_family(), HouseFormulaFamily::Sector);
-}
-
-#[test]
-fn built_in_house_systems_have_known_formula_families() {
-    for entry in built_in_house_systems() {
-        assert_ne!(
-            entry.formula_family(),
-            HouseFormulaFamily::Unknown,
-            "{} should map to a known formula family",
-            entry.canonical_name
-        );
-    }
-}
-
-#[test]
-fn validation_errors_use_stable_house_system_display_names() {
-    let error = HouseCatalogValidationError::LabelDoesNotRoundTrip {
-        label: "Equal (MC) table of houses",
-        expected_system: pleiades_types::HouseSystem::EqualMidheaven,
-    };
-
-    assert_eq!(
-        error.to_string(),
-        "the house catalog label `Equal (MC) table of houses` does not round-trip to Equal (MC)"
-    );
-}
+use crate::catalog::*;
 
 #[test]
 fn aliases_resolve_to_builtin_systems() {
@@ -707,78 +580,6 @@ fn aliases_resolve_to_builtin_systems() {
 }
 
 #[test]
-fn release_additions_are_merged_into_the_built_in_catalog() {
-    let names: Vec<_> = built_in_house_systems()
-        .iter()
-        .map(|entry| entry.canonical_name)
-        .collect();
-
-    for expected in [
-        "Equal (MC)",
-        "Equal (1=Aries)",
-        "Vehlow Equal",
-        "Sripati",
-        "Carter (poli-equatorial)",
-        "Horizon/Azimuth",
-        "APC",
-        "Krusinski-Pisa-Goelzer",
-        "Albategnius",
-        "Pullen SD",
-        "Pullen SR",
-        "Sunshine",
-        "Gauquelin sectors",
-    ] {
-        assert!(names.contains(&expected), "missing {expected}");
-    }
-}
-
-#[test]
-fn release_descriptor_aliases_do_not_repeat_canonical_labels() {
-    assert!(built_in_house_systems()
-        .iter()
-        .all(|entry| { !entry.aliases.contains(&entry.canonical_name) }));
-}
-
-#[test]
-fn house_catalog_round_trips_all_built_ins_and_aliases() {
-    use std::collections::HashSet;
-
-    let built_in = built_in_house_systems();
-    let mut unique_names = HashSet::new();
-
-    assert_eq!(
-        built_in.len(),
-        baseline_house_systems().len() + release_house_systems().len()
-    );
-
-    for entry in baseline_house_systems()
-        .iter()
-        .chain(release_house_systems().iter())
-    {
-        assert!(
-            unique_names.insert(entry.canonical_name),
-            "duplicate canonical house-system name {}",
-            entry.canonical_name
-        );
-        assert_eq!(
-            descriptor(&entry.system).map(|d| d.canonical_name),
-            Some(entry.canonical_name)
-        );
-        assert_eq!(
-            resolve_house_system(entry.canonical_name),
-            Some(entry.system.clone())
-        );
-        for alias in entry.aliases {
-            assert_eq!(resolve_house_system(alias), Some(entry.system.clone()));
-        }
-    }
-
-    for entry in built_in {
-        assert!(unique_names.contains(entry.canonical_name));
-    }
-}
-
-#[test]
 fn additional_release_house_aliases_resolve_to_builtin_systems() {
     assert_eq!(
         resolve_house_system("Polich Page"),
@@ -800,177 +601,6 @@ fn additional_release_house_aliases_resolve_to_builtin_systems() {
         resolve_house_system("Whole-sign"),
         Some(pleiades_types::HouseSystem::WholeSign)
     );
-}
-
-#[test]
-fn house_catalog_validation_summary_aggregates_catalog_fields() {
-    let summary = house_catalog_validation_summary();
-
-    assert_eq!(summary.entry_count, built_in_house_systems().len());
-    assert_eq!(summary.baseline_entry_count, baseline_house_systems().len());
-    assert_eq!(summary.release_entry_count, release_house_systems().len());
-    assert_eq!(
-        house_formula_families(),
-        vec![
-            HouseFormulaFamily::Equal,
-            HouseFormulaFamily::WholeSign,
-            HouseFormulaFamily::Quadrant,
-            HouseFormulaFamily::EquatorialProjection,
-            HouseFormulaFamily::GreatCircle,
-            HouseFormulaFamily::SolarArc,
-            HouseFormulaFamily::Sector,
-        ]
-    );
-    assert!(summary.validation_result.is_ok());
-}
-
-#[test]
-fn house_catalog_validation_rejects_duplicate_labels_and_round_trip_mismatches() {
-    let duplicate_alias_entries = [HouseSystemDescriptor::new(
-        pleiades_types::HouseSystem::Equal,
-        "Equal",
-        &["Wang", "wang"],
-        "notes",
-        false,
-        None,
-    )];
-
-    assert!(matches!(
-        validate_house_catalog_entries(&duplicate_alias_entries),
-        Err(HouseCatalogValidationError::DescriptorLabelCollision {
-            label: "wang",
-            canonical_name: "Equal"
-        })
-    ));
-
-    let mismatched_entry = [HouseSystemDescriptor::new(
-        pleiades_types::HouseSystem::Equal,
-        "Not Equal",
-        &[],
-        "notes",
-        false,
-        None,
-    )];
-
-    assert!(matches!(
-        validate_house_catalog_entries(&mismatched_entry),
-        Err(HouseCatalogValidationError::LabelDoesNotRoundTrip {
-            label: "Not Equal",
-            expected_system: pleiades_types::HouseSystem::Equal,
-        })
-    ));
-
-    let blank_name_descriptor = HouseSystemDescriptor::new(
-        pleiades_types::HouseSystem::Equal,
-        "   ",
-        &[],
-        "notes",
-        false,
-        None,
-    );
-    assert!(matches!(
-        blank_name_descriptor.validate(),
-        Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
-            label: "   ",
-            field: "canonical name"
-        })
-    ));
-
-    let padded_alias_descriptor = HouseSystemDescriptor::new(
-        pleiades_types::HouseSystem::Equal,
-        "Equal",
-        &[" Alias "],
-        "notes",
-        false,
-        None,
-    );
-    assert!(matches!(
-        padded_alias_descriptor.validate(),
-        Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
-            label: " Alias ",
-            field: "alias"
-        })
-    ));
-
-    let blank_notes_descriptor = HouseSystemDescriptor::new(
-        pleiades_types::HouseSystem::Equal,
-        "Equal",
-        &[],
-        "   ",
-        false,
-        None,
-    );
-    assert!(matches!(
-        blank_notes_descriptor.validate(),
-        Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })
-    ));
-
-    let line_break_name_descriptor = HouseSystemDescriptor::new(
-        pleiades_types::HouseSystem::Equal,
-        "Equ\nal",
-        &[],
-        "notes",
-        false,
-        None,
-    );
-    assert!(matches!(
-        line_break_name_descriptor.validate(),
-        Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
-            label: "Equ\nal",
-            field: "canonical name"
-        })
-    ));
-
-    let line_break_alias_descriptor = HouseSystemDescriptor::new(
-        pleiades_types::HouseSystem::Equal,
-        "Equal",
-        &["Al\nial"],
-        "notes",
-        false,
-        None,
-    );
-    assert!(matches!(
-        line_break_alias_descriptor.validate(),
-        Err(HouseCatalogValidationError::DescriptorLabelNotNormalized {
-            label: "Al\nial",
-            field: "alias"
-        })
-    ));
-
-    let line_break_notes_descriptor = HouseSystemDescriptor::new(
-        pleiades_types::HouseSystem::Equal,
-        "Equal",
-        &[],
-        "notes\nline two",
-        false,
-        None,
-    );
-    assert!(matches!(
-        line_break_notes_descriptor.validate(),
-        Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })
-    ));
-
-    let duplicate_alias_descriptor = HouseSystemDescriptor::new(
-        pleiades_types::HouseSystem::Equal,
-        "Equal",
-        &["Wang", "wang"],
-        "notes",
-        false,
-        None,
-    );
-    assert!(matches!(
-        duplicate_alias_descriptor.validate(),
-        Err(HouseCatalogValidationError::DescriptorLabelCollision {
-            label: "wang",
-            canonical_name: "Equal"
-        })
-    ));
-
-    let blank_notes_entry = [blank_notes_descriptor];
-    assert!(matches!(
-        validate_house_catalog_entries(&blank_notes_entry),
-        Err(HouseCatalogValidationError::DescriptorNotesNotNormalized { label: "Equal" })
-    ));
 }
 
 #[test]
@@ -1064,77 +694,41 @@ fn house_system_code_alias_validate_rejects_normalization_and_round_trip_drift()
     ));
 }
 
+/// Pins every `HouseSystemCodeAliasValidationError` rendering exactly.
+///
+/// Kills `<impl Display for HouseSystemCodeAliasValidationError>::fmt ->
+/// Ok(Default::default())` (428:9): that mutant writes nothing, producing an
+/// empty error string. Nothing asserted these renderings before.
 #[test]
-fn release_grade_numeric_house_set_is_exactly_the_twenty_four_corpus_systems() {
-    use pleiades_types::{CompatibilityClaimTier, HouseSystem};
+fn alias_validation_errors_render_stable_diagnostics() {
+    use pleiades_types::HouseSystem;
 
-    let release_grade: Vec<HouseSystem> = crate::built_in_house_systems()
-        .iter()
-        .filter(|d| d.claim_tier == CompatibilityClaimTier::ReleaseGradeNumeric)
-        .map(|d| d.system.clone())
-        .collect();
-
-    let expected = [
-        // Twelve baseline corpus systems.
-        HouseSystem::Placidus,
-        HouseSystem::Koch,
-        HouseSystem::Porphyry,
-        HouseSystem::Regiomontanus,
-        HouseSystem::Campanus,
-        HouseSystem::Equal,
-        HouseSystem::WholeSign,
-        HouseSystem::Alcabitius,
-        HouseSystem::Meridian,
-        HouseSystem::Axial,
-        HouseSystem::Topocentric,
-        HouseSystem::Morinus,
-        // Ten standard systems promoted in Phase 6.
-        HouseSystem::EqualMidheaven,
-        HouseSystem::EqualAries,
-        HouseSystem::Vehlow,
-        HouseSystem::Sripati,
-        HouseSystem::Carter,
-        HouseSystem::Apc,
-        HouseSystem::KrusinskiPisaGoelzer,
-        HouseSystem::Sunshine,
-        HouseSystem::PullenSd,
-        HouseSystem::PullenSr,
-        // Gauquelin promoted in Phase 6 Task 5a: its 36 sectors now match SE
-        // via the Placidus semi-arc division (corpus-backed by the sectors slice).
-        HouseSystem::Gauquelin,
-        // Horizon promoted in Phase 6 Task 5b: the SE 'H' azimuth convention was
-        // corrected (+180° post-rotation, single 90° quarter-turn, strict-sign
-        // latitude branch); now matches SE within the GreatCircle ceiling.
-        HouseSystem::Horizon,
-    ];
-
-    assert_eq!(release_grade.len(), expected.len());
-    for sys in expected {
-        assert!(release_grade.contains(&sys), "missing {sys:?}");
-    }
-}
-
-#[test]
-fn latitude_sensitive_systems_carry_a_latitude_bound() {
-    for descriptor in built_in_house_systems() {
-        if descriptor.latitude_sensitive {
-            assert!(
-                descriptor.max_abs_latitude_deg.is_some(),
-                "latitude-sensitive system {:?} must declare max_abs_latitude_deg",
-                descriptor.system
-            );
-            let bound = descriptor.max_abs_latitude_deg.unwrap();
-            assert!(
-                (60.0..=89.0).contains(&bound),
-                "{:?} bound {bound} out of expected polar range",
-                descriptor.system
-            );
-        } else {
-            assert!(
-                descriptor.max_abs_latitude_deg.is_none(),
-                "non-latitude-sensitive system {:?} must not declare a bound",
-                descriptor.system
-            );
+    assert_eq!(
+        HouseSystemCodeAliasValidationError::EmptyAliasTable.to_string(),
+        "the house-code alias table is empty",
+        "pins EmptyAliasTable's Display text; update if the variant's rendering changes",
+    );
+    assert_eq!(
+        HouseSystemCodeAliasValidationError::LabelNotNormalized { label: " P " }.to_string(),
+        "the house-code alias label ` P ` is blank, contains surrounding whitespace, \
+         or contains line breaks",
+        "pins LabelNotNormalized's Display text; update if the variant's rendering changes",
+    );
+    assert_eq!(
+        HouseSystemCodeAliasValidationError::DuplicateLabel { label: "P" }.to_string(),
+        "the house-code alias table contains duplicate label `P`",
+        "pins DuplicateLabel's Display text; update if the variant's rendering changes",
+    );
+    assert_eq!(
+        HouseSystemCodeAliasValidationError::LabelDoesNotRoundTrip {
+            label: "P",
+            expected_system: HouseSystem::Koch,
         }
-    }
+        .to_string(),
+        format!(
+            "the house-code alias label `P` does not round-trip to {}",
+            HouseSystem::Koch
+        ),
+        "pins LabelDoesNotRoundTrip's Display text; update if the variant's rendering changes",
+    );
 }

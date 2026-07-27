@@ -330,11 +330,41 @@ fn solve_gauquelin_sector_fails_closed_on_nonconvergence() {
     assert!(ok.is_ok(), "expected convergence Ok, got {ok:?}");
 }
 
+/// Kills `solve_gauquelin_sector` 1327:21 `gp.abs() < 1e-12 -> ==`, withdrawing
+/// the GQ-1 equivalent classification recorded by PR 3.
+///
+/// PR 3 argued the two operators were indistinguishable because both exit with
+/// `Err(NumericalFailure)` and "the campaign does not pin error-message text".
+/// That premise was wrong — the suite pins message text in several places, and
+/// PR 5 killed the structurally identical `solve_placidian_cusp` 1741 `<` ->
+/// `==` mutant exactly this way. The two exits carry DIFFERENT messages:
+/// HEAD trips the zero-derivative guard; the `==` mutant falls through, divides
+/// by a ~4e-18 derivative, and exits via the non-convergence branch.
+///
+/// Geometry: `gp` on the first iteration is linear in `tan(lat)` because
+/// `sign = +1` fixes `arg = 90°`, so
+///   `gp·(180/π) = -(1/fraction) + tan(lat)·tan(obl)·cos(ramc + fraction·90)`.
+/// With `fraction = 8/9` and `ramc = 280°`, `alpha = 360° ≡ 0°` so `cos = 1`,
+/// and the root is `lat = atan((9/8)/tan(23.4366°))`. Measured `|gp| = 3.875e-18`.
+#[test]
+fn solve_gauquelin_sector_fails_closed_on_a_zero_derivative() {
+    let err = solve_gauquelin_sector(280.0, 68.926_784_442_096_97, 23.4366, 8.0 / 9.0, 1.0)
+        .expect_err("the zero-derivative guard must fire at this geometry");
+
+    assert_eq!(
+        err.message, "gauquelin sector iteration encountered a zero derivative",
+        "HEAD must exit via the zero-derivative guard, not the non-convergence branch",
+    );
+    assert_eq!(err.kind, HouseErrorKind::NumericalFailure);
+}
+
 #[test]
 fn sector_equivalent_mutants_are_documented() {
-    // FU-9 Sector residual: 6 surviving mutants, each an EQUIVALENT MUTANT left
+    // FU-9 Sector residual: 5 surviving mutants, each an EQUIVALENT MUTANT left
     // visible (no #[mutants::skip]), enumerated with a reachability argument.
-    // Measured by the authoritative scoped run: 233 tested, 6 missed, 227 caught.
+    // 233 tested per PR 3's Sector-family scoped run; 5 missed / 228 caught after
+    // this PR's confirmed GQ-1 kill (46-mutant solve_gauquelin_sector-scoped rerun,
+    // 2 missed: the <= variants at 1327 and 1335; no other in-function survivor moved).
     //
     // --- pullen_sr_houses (3) ---
     // (SR-1) 1437:10 `q > 90.0 -> q >= 90.0` (quadrant reduction): differs only at
@@ -366,19 +396,11 @@ fn sector_equivalent_mutants_are_documented() {
         "SR guard cusp[2]==desc"
     );
     //
-    // --- solve_gauquelin_sector (3) ---
-    // (GQ-1) 1327:21 `gp.abs() < 1e-12 -> ==` (zero-derivative guard): the divergence
-    //   interval gp.abs() in (0, 1e-12) IS reachable (min |gp| over a physical
-    //   lat/obl/fraction/ramc sweep reaches ~1.9e-13), but both HEAD and the mutant
-    //   return Err(NumericalFailure) there -- HEAD via the zero-derivative guard, the
-    //   mutant via the subsequent non-convergence/non-finite exit -- so no test
-    //   observing the public Result (kind) distinguishes them; only the diagnostic
-    //   message differs, and the campaign does not pin error-message text.
-    //   SUPERSEDED (PR 5): this premise is wrong -- the suite pins error-message
-    //   text in several places, and PR 5 kills the structurally identical
-    //   solve_placidian_cusp 1741 `<` -> `==` mutant by asserting the message. See
-    //   "Correction to the Sector slice" in docs/follow-ups.md. GQ-1 is killable and
-    //   its equivalent classification is withdrawn; the retraction lands in PR 6.
+    // --- solve_gauquelin_sector (2) ---
+    // GQ-1 (1327:21 `gp.abs() < 1e-12 -> ==`) was withdrawn on 2026-07-25 and
+    // killed by solve_gauquelin_sector_fails_closed_on_a_zero_derivative above;
+    // the label is retired, not reused, so the two survivors below keep their
+    // original numbers.
     // (GQ-2) 1327:21 `gp.abs() < 1e-12 -> <=`: differs only at gp.abs()==1e-12
     //   exactly -- measure-zero, unreachable.
     // (GQ-3) 1335:24 `delta.abs() < 1e-9 -> <=` (convergence): differs only at
