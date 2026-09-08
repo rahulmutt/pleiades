@@ -432,6 +432,11 @@ fn node_threshold_scales_multiplicatively_with_angular_momentum() {
 /// is bit-identical to MIN_ECCENTRICITY is accepted, not rejected as
 /// degenerate.
 ///
+/// This test pins only the ON-boundary side; on its own it would also pass if
+/// the floor check were deleted entirely. The below-boundary side is held by
+/// the sibling `near_circular_orbit_is_degenerate`, and the two together give
+/// the exclusivity.
+///
 /// Unlike `points_from_elements`, `e` is derived here, through a cancellation
 /// that makes the reachable grid ~1e6x coarser than the target's precision.
 /// This state was found by sweeping r_mag over consecutive doubles so the
@@ -448,4 +453,24 @@ fn apsides_eccentricity_floor_is_exclusive() {
         aps.eccentricity, MIN_ECCENTRICITY,
         "crafted state must sit ON the boundary"
     );
+}
+
+/// Documents the provenance of MU_EARTH_MOON_AU3_PER_DAY2 by recomputing it
+/// from the published constants it cites, outside the code.
+///
+/// No mutant is attached to this constant (cargo-mutants does not mutate
+/// consts); this test exists so the tuned value cannot drift from its
+/// documented derivation unnoticed. The 2e-5 tolerance is the *measured*
+/// 1.43e-5 gap between the pure derivation and the shipped value, which the
+/// rustdoc attributes to tuning against the validate-lilith gate. It is not a
+/// tolerance chosen to make the assertion pass.
+#[test]
+fn mu_matches_its_published_derivation() {
+    const GM_EARTH_KM3_S2: f64 = 398_600.441_8;
+    const GM_MOON_KM3_S2: f64 = 4_902.800;
+    const AU_KM: f64 = 149_597_870.7;
+    const DAY_S: f64 = 86_400.0;
+    let derived = (GM_EARTH_KM3_S2 + GM_MOON_KM3_S2) * DAY_S * DAY_S / (AU_KM * AU_KM * AU_KM);
+    let rel = (MU_EARTH_MOON_AU3_PER_DAY2 / derived - 1.0).abs();
+    assert!(rel < 2e-5, "mu drifted from its derivation: rel {rel:e}");
 }

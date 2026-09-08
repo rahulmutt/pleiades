@@ -78,6 +78,11 @@ fn to_ecliptic(p: [f64; 3]) -> Result<ApsisPoint, ApsidesError> {
     }
     let longitude_deg = p[1].atan2(p[0]).to_degrees().rem_euclid(360.0);
     let latitude_deg = (p[2] / r).asin().to_degrees();
+    // Documented equivalent mutant (FU-9): `||` -> `&&` here is
+    // indistinguishable. Line 76 has already established that `r` is finite and
+    // non-zero, so `p` is componentwise finite, `atan2` is total, and
+    // `p[2] / r` lies in [-1, 1] making `asin` total. No input makes exactly
+    // one of the two non-finite.
     if !longitude_deg.is_finite() || !latitude_deg.is_finite() {
         return Err(ApsidesError::NonFinite);
     }
@@ -101,6 +106,14 @@ pub fn apsides(
     let r = pos_au;
     let v = vel_au_per_day;
     let r_mag = norm(r);
+    // Documented equivalent mutant (FU-9): `&&` binds tighter than `||`, so
+    // mutating THIS operator yields `a || (b && c) || d`. Its only
+    // distinguishing region is {r_mag == 0.0, mu finite, mu > 0}, where
+    // mu / r_mag = +inf forces c1 = -inf and poisons `e` to inf or NaN in every
+    // sub-case (all-zero pos -> NaN; all-subnormal pos whose squared norm
+    // underflows -> inf; mixed -> NaN). All fail `!e.is_finite()` below, so
+    // both branches return Err(NonFinite). This arm is redundant with that
+    // downstream check.
     if !r_mag.is_finite() || r_mag == 0.0 || !mu.is_finite() || mu <= 0.0 {
         return Err(ApsidesError::NonFinite);
     }
@@ -223,6 +236,11 @@ pub fn elements_from_state(
     let n_hat = [n[0] / n_mag, n[1] / n_mag, 0.0];
     let cos_omega = dot(n_hat, peri_vec).clamp(-1.0, 1.0);
     let mut omega = cos_omega.acos();
+    // `<` -> `<=` is a documented equivalent mutant (FU-9): the two differ only
+    // at peri_vec[2] == 0.0 exactly, i.e. perihelion in the reference plane,
+    // which with a non-degenerate inclination means omega in {0, PI}. There
+    // acos returns exactly 0 or PI, and 2*PI - 0 = 2*PI and 2*PI - PI = PI both
+    // give the same longitude after the rem_euclid(360) below.
     if peri_vec[2] < 0.0 {
         omega = 2.0 * core::f64::consts::PI - omega;
     }
@@ -284,6 +302,17 @@ pub fn points_from_elements(
         ascending: to_ecliptic(in_plane(0.0, r_asc))?,
         descending: to_ecliptic(in_plane(core::f64::consts::PI, r_dsc))?,
         perihelion: to_ecliptic(in_plane(omega, a * (1.0 - e)))?,
+        // `+` -> `-` is a documented equivalent mutant (FU-9): omega + PI and
+        // omega - PI differ by exactly 2*PI, so cos/sin agree to within
+        // rounding. Measured displacement at (node 40, incl 10, a 2, e 0.2):
+        // <= 2.84e-14 deg in longitude and <= 2.44e-15 deg in latitude, i.e.
+        // below 1e-10 arcsec. Any assertion tight enough to kill it would be
+        // pinning the code's own output. A 746,496-case sweep of (node, incl,
+        // omega, r) confirms the bound holds generally: max |dlon| 2.27e-13 deg
+        // and max |dlat| 1.14e-13 deg. Its one exception is |lat| == 90 exactly
+        // (incl 90 with omega = +/-90), where longitude is mathematically
+        // undefined and BOTH branches are atan2 of pure rounding noise, so it
+        // is not a distinguishing observation either.
         aphelion: to_ecliptic(in_plane(omega + core::f64::consts::PI, apo_dist))?,
         eccentricity: e,
         semi_major_au: a,

@@ -1507,6 +1507,178 @@ identically: `[tasks.mutants]`'s comment cites those two crates' 300+ second
 individual tests as the rationale for `--test-workspace=false`, since without it
 every mutant would pay their cost.)
 
+
+**Progress (2026-09-08) — `pleiades-apsides`, a NEW post-baseline expansion
+slice:** triaged from `33` → `4` documented equivalents, whole crate.
+
+This is **not** part of the closed 2026-07-18 three-crate baseline, nor of the
+closed `pleiades-houses` campaign. Both of those are finished. This is the first
+slice of the expansion those closures explicitly anticipated ("any future
+expansion to further `pleiades-*` crates opens new slices under this follow-up:
+new work, not part of either closed body"), taking the first crate off the
+`2026-07-25` roadmap queue.
+
+**Measured, not estimated.** Baseline re-measured on this branch at
+`7aefa946c`: `223 mutants tested in 2m: 33 missed, 186 caught, 4 unviable`
+(exit 2). Final, after six kill tasks:
+
+```
+223 mutants tested in 3m: 4 missed, 215 caught, 4 unviable
+```
+
+Exit 2 both times — the report-only tier's expected outcome. Command:
+`cargo mutants -p pleiades-apsides --test-tool nextest --test-workspace=false
+--baseline run`. `29` mutants killed by `10` new tests and `1` new independent
+reference helper (`state_from_elements`, a published perifocal-basis forward
+construction deliberately *not* the crate's own inverse formulation, so a sign
+or operator error in `apsides` cannot be masked by a shared expression). Crate
+suite `19 → 20` tests, all passing.
+
+**Per-task kills, each verified by its own whole-crate run:** forward-reference
+geometry `10` (`33 → 23`), southern-perihelion branch `5` (`→ 18`),
+`points_from_elements` guards `7` (`→ 11`), overflow-lens guards + negative μ
+`3` (`→ 8`), `elements_from_state` node guards `3` (`→ 5`), derived-eccentricity
+floor `1` (`→ 4`).
+
+**The four documented equivalents**, each carrying a written reachability
+argument as a comment at its site in `crates/pleiades-apsides/src/lib.rs`. **No
+`#[mutants::skip]` was added** — the arguments are the record, and the mutants
+stay visible in every future run:
+
+- `81:35` `||` → `&&` in `to_ecliptic`'s **output** guard. **Totality.** Line 76
+  has already established `r` finite and non-zero, so `p` is componentwise
+  finite, `atan2` is total, and `p[2] / r` lies in `[-1, 1]` making `asin`
+  total. No input makes exactly one of the two non-finite, which is the only
+  region where `||` and `&&` differ.
+- `104:43` `||` → `&&` in `apsides`' input guard. **Rust precedence plus a
+  poisoned downstream value.** `&&` binds tighter than `||`, so mutating *this*
+  operator yields `a || (b && c) || d`, not `((a || b) && c) || d`. Its only
+  distinguishing region is `{r_mag == 0.0, mu finite, mu > 0}`, where
+  `mu / r_mag = +inf` forces `c1 = -inf` and poisons `e` to `inf` or `NaN` in
+  every sub-case (all-zero position → `NaN`; all-subnormal position whose
+  squared norm underflows → `inf`; mixed → `NaN`). All fail the `!e.is_finite()`
+  check below, so both branches return `Err(NonFinite)`. The arm is redundant
+  with that downstream check.
+- `226:20` `<` → `<=` in `elements_from_state`'s southern-perihelion branch.
+  **Modular.** The two differ only at `peri_vec[2] == 0.0` exactly — perihelion
+  in the reference plane, which at non-degenerate inclination means
+  `omega ∈ {0, π}`. There `acos` returns exactly `0` or `π`, and `2π - 0 = 2π`
+  and `2π - π = π` give the same longitude after the `rem_euclid(360)` below.
+  (Its sibling `226:20` `<` → `==` is *not* equivalent and was killed in the
+  southern-perihelion task — the two mutants at the same site have opposite
+  dispositions.)
+- `287:46` `+` → `-` in the aphelion argument of latitude. **Periodicity.**
+  `omega + π` and `omega - π` differ by exactly `2π`, so `cos`/`sin` agree to
+  within rounding. A 746,496-case sweep of `(node, incl, omega, r)` bounds the
+  displacement at max `|Δlon|` `2.27e-13` deg and max `|Δlat|` `1.14e-13` deg.
+  Its one exception is `|lat| == 90` exactly (`incl 90` with `omega = ±90`),
+  where longitude is mathematically undefined and *both* branches compute
+  `atan2` of pure rounding noise — not a distinguishing observation either. Any
+  assertion tight enough to kill this mutant would be pinning the code's own
+  output.
+
+Campaign-wide running tally **45 → 49** (`9` from the closed three-crate
+baseline, `36` from the closed houses campaign, `4` from this slice), extending
+the series `9 → 22 → 30 → 36 → 41 → 44 → 43 → 45 → 49`. In-crate
+documented-equivalent sub-total for `pleiades-apsides`: **4**.
+
+**Three design-phase predictions that measurement overturned.** Recorded so
+none is silent — in each case the plan was rewritten from the measurement, not
+the other way round:
+
+1. **`122:10` (`<` → `<=` on the eccentricity floor) was predicted an
+   unreachable boundary; it is killable, and was killed.** Unlike
+   `points_from_elements`, `e` is *derived* here through a cancellation that
+   makes the reachable grid ~1e6× coarser than the target's precision, and the
+   design's searches failed. The reason they failed is instructive: they swept
+   `r_mag` over **powers of two**, which makes the final `c1 * r_mag` product
+   *exact* and so never lands on the boundary. Sweeping over consecutive
+   doubles gives that product an independent rounding, and a state whose
+   osculating eccentricity is bit-identical to `MIN_ECCENTRICITY` falls out.
+2. **`104:43` was predicted killable; it is an equivalent.** The prediction
+   assumed the mutant was `((a || b) && c) || d`. Rust's precedence makes it
+   `a || (b && c) || d`, which has a far smaller distinguishing region — and
+   that region is entirely absorbed by the downstream `!e.is_finite()` check,
+   as argued above.
+3. **`204:27` was predicted killable "by any radial state"; plain radial motion
+   does not reach it.** A plain radial state has `e == 1.0` *exactly*, which
+   makes `r_peri = a(1 - e) = 0` and fails inside `apsides()` before the
+   `h_mag` guard is ever reached. The kill needs a *crafted* velocity leaving
+   `e` one ulp below `1.0`, and the test now asserts that precondition
+   (`apsides()` succeeds, `r_peri != 0`) rather than assuming it.
+
+**Per-mutant margin summary.** Full table in the slice report. Per campaign
+discipline the rows are **never aggregated**, and no margin is fabricated for a
+kill that has none: `15` of the `29` kills carry a genuine scalar displacement
+against an assertion tolerance, and the remaining `14` are **exact
+error-variant or exact-equality pins** with no displacement to report, disclosed
+as such rather than given an invented number. Each measured row states the
+mutant's *strongest-firing* assertion (its kill signal) and residual. Across
+those `15`, the **true minimum** kill margin is `3.65e10 ×` its assertion
+tolerance — `227:21` `*` → `/`, which lands `peri_lon_deg` at `286.476°` where
+`250°` is correct, a `36.48°` residual against a `1e-9` deg tolerance. The
+largest is `8.08e15 ×` (`115:24` `*` → `/`, bifocal-sum residual `8.08e3` AU
+against `1e-12`). The five southern-perihelion mutants land `36.5°`–`72.5°`
+from the true `250°`; the ten forward-reference mutants run `4.11e10 ×` to
+`8.08e15 ×`. No kill in this slice is marginal, and none relies on a
+last-few-ulps distinction.
+
+**One test's honest-naming gap closed.** `apsides_eccentricity_floor_is_exclusive`
+pins only the *on*-boundary side; on its own it would also pass if the floor
+check were deleted entirely. Its doc comment now cross-references the sibling
+`near_circular_orbit_is_degenerate`, which holds the below-boundary side — the
+two together give the exclusivity. Neither test was restructured.
+
+**Two plan defects found and corrected, so neither is silent.** One wrong
+figure: the southern-perihelion rationale reported the `*` → `+` mutant landing
+at `144.6°`, which is the raw `omega` *before* the `+40°` node offset; the
+correct final `peri_lon_deg` is **`184.6°`** (measured). One wrong mechanism:
+the overflow-lens rationale said `104:27`'s mutant "proceeds and returns `Ok`".
+Traced and measured, it proceeds past the guard and reaches
+`inv_a = 2.0/inf - 1e-120`, which is `<= 0`, so it returns `Err(UnboundOrbit)`.
+It is still a kill — `UnboundOrbit != NonFinite` — but by a different exit than
+described. Neither correction changes a conclusion: all five southern-perihelion
+landings remain far outside the `1e-9` tolerance either way.
+
+**Reference-lever narrowing, recorded rather than left silent.** The design
+named three independent reference levers and four conic invariants. Lever 1
+(forward construction, elements → state) carries the whole numeric class. Of
+the conic invariants only the **bifocal sum** (`r_apo + r_peri = 2a`) is
+asserted; vis-viva, the conic radius law and `h ⊥ r, v` are **deliberately not
+added** — with the forward construction already pinning every apsis coordinate
+they kill no additional mutant, and adding assertions that constrain nothing new
+would be noise. They remain available if a future change reopens survivors here.
+Lever 3 (published-constant recomputation) is used as
+`mu_matches_its_published_derivation`, which recomputes
+`MU_EARTH_MOON_AU3_PER_DAY2` from the GM⊕/GM☾/AU/day constants its rustdoc
+cites. **That test kills no mutant and does not claim to** — cargo-mutants does
+not mutate `const` items, so nothing is attached to it. Its `2e-5` tolerance is
+the *measured* `1.43e-5` gap between the pure derivation
+(`8.997011530622141e-10`) and the shipped, gate-tuned `8.99714e-10`, not a
+tolerance picked to make the assertion pass.
+
+**Weekly tier expanded.** `-p pleiades-apsides` joins `[tasks.mutants]` in
+`mise.toml` alongside `pleiades-types`, `pleiades-time`, `pleiades-apparent`
+and `pleiades-houses`. The set grows `2,620 → 2,843` mutants (~1.09× the
+previous projection) on a measured 223-mutant crate. The `.github/workflows/
+mutants.yml` calibration comment records the cost as roughly **+2 minutes** on
+the measured ~24-25m job wall-clock, and marks it explicitly as a **projection,
+not a measurement** — no scheduled run has yet executed the five-crate set, and
+the next one supersedes the estimate. `timeout-minutes: 90` is retained
+unchanged.
+
+**Posture unchanged.** The mutants tier stays **report-only**: surviving mutants
+(exit 2) pass the job and **no mutation-score gate was introduced**. No parity
+gate was touched — the `validate-lilith` corpus, its tolerances and its gate
+code are untouched, and `crates/pleiades-apsides/src/lib.rs` changed by
+**comments only** (verified by diff; not one executable line differs).
+
+**Queue after this slice: three crates.** `pleiades-backend` `263 / 70`,
+`pleiades-ayanamsa` `305 / 85`, and `pleiades-fict` `308 / 148` (provisional —
+its run exited 3 with 2 timeouts). The roadmap note
+`docs/superpowers/specs/notes/2026-07-25-mutants-roadmap-baseline.md` now marks
+`pleiades-apsides` triaged and closed, so its `33` is no longer restated as an
+open survivor count.
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide

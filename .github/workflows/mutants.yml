@@ -38,6 +38,15 @@ jobs:
     # phase projects ~18-19m testing + the same ~6m fixed overhead, i.e.
     # ~24-25m job wall-clock. 90 minutes is retained as headroom for further
     # crate additions; revisit it if a scheduled run exceeds ~60 min.
+    #
+    # 2026-09-08: pleiades-apsides joins the tier, adding a measured 223
+    # mutants (whole-crate run: 223 tested / 4 missed / 215 caught / 4
+    # unviable / 0 timeout) and growing the set to 2,843 (~1.09x the previous
+    # projection). This is a PROJECTION, NOT A MEASUREMENT: no scheduled run
+    # has yet executed the five-crate set. Scaling only the testing phase off
+    # the ~24-25m figure above projects roughly +2 minutes of job wall-clock.
+    # The next scheduled run supersedes this estimate. timeout-minutes stays
+    # at 90, unchanged.
     timeout-minutes: 90
     steps:
       - name: Checkout repository

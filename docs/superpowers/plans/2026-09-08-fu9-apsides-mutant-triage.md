@@ -294,7 +294,7 @@ are unexercised. With `ω = 210°`, `sin ω < 0` puts the perihelion south, and
 `cos_omega = cos(210°) = -0.866` gives `acos = 150°`; the correct branch turns
 that into `360 - 150 = 210°`, so `peri_lon_deg = 40 + 210 = 250°`. Each mutant
 lands elsewhere: `==` gives `190°`, `-`→`+` gives `190°`, `-`→`/` gives
-`177.5°`, `*`→`+` gives `144.6°`, `*`→`/` gives `286.5°`.
+`177.5°`, `*`→`+` gives `184.6°`, `*`→`/` gives `286.5°`.
 
 **Files:**
 - Modify: `crates/pleiades-apsides/src/tests.rs`
@@ -475,7 +475,9 @@ that are individually finite can still overflow a squared-norm sum to `+inf`.
 the mutant proceeds and produces a *finite* result — `atan2(1e200, 1e200) = 45°`
 and `asin(1e200 / inf) = asin(0) = 0` both pass the line-81 check — so it
 returns `Ok` where the original returns `Err`. The same input shape drives
-`apsides`' `104:27`.
+`apsides`' `104:27`, though by a different exit: there the mutant proceeds past
+the guard and reaches `inv_a = 2.0/inf - 1e-120`, which is `<= 0`, so it returns
+`Err(UnboundOrbit)` — still a kill, because `UnboundOrbit != NonFinite`.
 
 `104:62` is the `mu <= 0.0` arm, reached by a **negative μ**: the original
 returns `Err(NonFinite)`, the mutant returns `Ok` with eccentricity `2.0`.
