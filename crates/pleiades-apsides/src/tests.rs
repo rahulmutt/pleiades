@@ -259,3 +259,20 @@ fn apsides_match_forward_construction_at_non_degenerate_geometry() {
         "bifocal sum"
     );
 }
+
+/// Exercises the southern-perihelion branch (peri_vec[2] < 0), where
+/// `omega = 2*PI - omega` runs. No other test reaches it. Elements are
+/// recovered from a state built by the independent forward construction.
+#[test]
+fn elements_recover_southern_perihelion_argument() {
+    let (a, e, incl, node, argp, mu) = (2.0, 0.2, 10.0, 40.0, 210.0, 2.959e-4);
+    let (pos, vel) = state_from_elements(a, e, incl, node, argp, 50.0, mu);
+    let el = elements_from_state(pos, vel, mu).unwrap();
+    assert!((el.node_deg - node).abs() < 1e-9, "node {}", el.node_deg);
+    assert!((el.incl_deg - incl).abs() < 1e-9, "incl {}", el.incl_deg);
+    assert!(
+        (el.peri_lon_deg - (node + argp)).abs() < 1e-9,
+        "peri_lon {}",
+        el.peri_lon_deg
+    );
+}
