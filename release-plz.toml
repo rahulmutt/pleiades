@@ -16,63 +16,110 @@ dependencies_update = false
 [[package]]
 name = "pleiades-types"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-apparent"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-apsides"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-time"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-backend"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-compression"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-houses"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-ayanamsa"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-vsop87"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-elp"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-jpl"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-data"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-eclipse"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-core"
 version_group = "pleiades"
+changelog_include = [
+  "pleiades-types",
+  "pleiades-apparent",
+  "pleiades-apsides",
+  "pleiades-time",
+  "pleiades-backend",
+  "pleiades-compression",
+  "pleiades-houses",
+  "pleiades-ayanamsa",
+  "pleiades-vsop87",
+  "pleiades-elp",
+  "pleiades-jpl",
+  "pleiades-data",
+  "pleiades-eclipse",
+  "pleiades-events",
+  "pleiades-fict",
+]
 
 [[package]]
 name = "pleiades-events"
 version_group = "pleiades"
+changelog_update = false
 
 [[package]]
 name = "pleiades-fict"
 version_group = "pleiades"
+changelog_update = false
+
+# Changelog ownership. Every crate above funnels into the single root
+# CHANGELOG.md via `[workspace] changelog_path`. When more than one package
+# writes that shared file, each one rewrites the section the previous package
+# produced, so the last package processed wins — and any package with no
+# commits of its own writes an EMPTY section, discarding the real entries. That
+# is why v0.5.0 was first generated with a `## [0.5.0]` header and no body
+# despite the release containing a breaking change and three fixes.
+#
+# Fix: exactly one package owns the shared changelog. `pleiades-core` (the
+# public facade) aggregates every other crate's commits through
+# `changelog_include`, and the other 15 set `changelog_update = false` so they
+# never touch the file. Verified with `release-plz update` at 0.3.162: the
+# owner does NOT need commits of its own for aggregation to work, so this does
+# not depend on which crates a given release happens to touch.
