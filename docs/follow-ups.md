@@ -1507,6 +1507,369 @@ identically: `[tasks.mutants]`'s comment cites those two crates' 300+ second
 individual tests as the rationale for `--test-workspace=false`, since without it
 every mutant would pay their cost.)
 
+
+**Progress (2026-09-08) — `pleiades-apsides`, a NEW post-baseline expansion
+slice:** triaged from `33` → **`1`** documented equivalent, whole crate.
+
+This is **not** part of the closed 2026-07-18 three-crate baseline, nor of the
+closed `pleiades-houses` campaign. Both of those are finished. This is the first
+slice of the expansion those closures explicitly anticipated ("any future
+expansion to further `pleiades-*` crates opens new slices under this follow-up:
+new work, not part of either closed body"), taking the first crate off the
+`2026-07-25` roadmap queue.
+
+**Measured, not estimated.** Baseline re-measured on this branch at
+`7aefa946c`: `223 mutants tested in 2m: 33 missed, 186 caught, 4 unviable`
+(exit 2). Final, after six kill tasks plus **three** review-driven kills, each
+reclaiming a mutant this slice had already written off as an equivalent:
+
+```
+223 mutants tested in 3m: 1 missed, 218 caught, 4 unviable
+```
+
+Exit 2 both times — the report-only tier's expected outcome. Command:
+`cargo mutants -p pleiades-apsides --test-tool nextest --test-workspace=false
+--baseline run`. `32` mutants killed by `13` new tests and `1` new independent
+reference helper (`state_from_elements`, a published perifocal-basis forward
+construction deliberately *not* the crate's own inverse formulation, so a sign
+or operator error in `apsides` cannot be masked by a shared expression). Crate
+suite `19 → 23` tests, all passing.
+
+**Per-task kills, each verified by its own whole-crate run:** forward-reference
+geometry `10` (`33 → 23`), southern-perihelion branch `5` (`→ 18`),
+`points_from_elements` guards `7` (`→ 11`), overflow-lens guards + negative μ
+`3` (`→ 8`), `elements_from_state` node guards `3` (`→ 5`), derived-eccentricity
+floor `1` (`→ 4`), then review-driven underflow lens `1` (`→ 3`) and
+review-driven near-pole aphelion pin `1` (`→ 2`), and review-driven
+perihelion-at-the-node identity `1` (`→ 1`).
+
+**Mutant IDs in this entry are the CURRENT ones**, as printed by a run against
+the merged branch — not the triage-time line numbers. The difference matters
+because this slice adds no `#[mutants::skip]`: the whole point is that a
+maintainer can take a survivor out of a weekly report and find its written
+argument, which fails if the identifiers disagree. The one surviving equivalent
+is **`120:43`**. Sites at or below the original line 104 are shifted `+16` by
+the equivalence comment block that remains in `lib.rs`; sites above it
+(`76:23`, `81:35`) are unchanged. Triage-time IDs, should the intermediate
+reports need reconciling, are the current ones minus that shift.
+
+**The one remaining documented equivalent**, carrying a written reachability
+argument as a comment at its site in `crates/pleiades-apsides/src/lib.rs`. **No
+`#[mutants::skip]` was added** — the arguments are the record, and the mutants
+stay visible in every future run:
+
+- `120:43` `||` → `&&` in `apsides`' input guard. **Rust precedence plus a
+  poisoned downstream value.** `&&` binds tighter than `||`, so mutating *this*
+  operator yields `a || (b && c) || d`, not `((a || b) && c) || d`. That has
+  **two** distinguishing regions, and both land on `Err(NonFinite)` anyway.
+  **A:** `{r_mag == 0.0, mu finite, mu > 0}`, where `mu / r_mag = +inf` forces
+  `c1 = -inf` and poisons `e` to `inf` or `NaN` in every sub-case (all-zero
+  position → `NaN`; all-subnormal position whose squared norm underflows →
+  `inf`; mixed → `NaN`). **B:** `{r_mag finite and non-zero, mu ∈ {NaN, +inf}}`
+  — `mu <= 0.0` is false for both, so the mutant proceeds; `mu = NaN` gives
+  `c1 = NaN` directly and `mu = +inf` gives `c1 = (v2 - inf)/inf = NaN`, both
+  measured to yield `e = NaN`. Every case in A and B fails the
+  `!e.is_finite()` check below, so the arm is redundant with that downstream
+  check. (Region B was **missed in the first draft of this argument**, which
+  claimed A was the *only* distinguishing region. The conclusion survived the
+  correction; the enumeration did not.)
+Campaign-wide running tally **45 → 46** (`9` from the closed three-crate
+baseline, `36` from the closed houses campaign, `1` from this slice), extending
+the series `9 → 22 → 30 → 36 → 41 → 44 → 43 → 45 → 46`. In-crate
+documented-equivalent sub-total for `pleiades-apsides`: **1**. (Successive
+drafts of this entry claimed `4` (tally `49`), `3` (`48`) and `2` (`47`);
+review proved **three of the four** killable — see predictions 4, 5 and 6. The
+one that survived, `120:43`, is also the one with the strongest verification
+behind it: analytic on both distinguishing regions plus 448 crafted cases with
+zero divergences. That contrast is the honest summary of this slice — an
+equivalence claim is worth exactly as much as the search that failed to break
+it.)
+
+**Six predictions that measurement overturned.** Recorded so none is silent —
+in each case the claim was rewritten from the measurement, not the other way
+round. The first three were design-phase predictions overturned during
+implementation; the **fourth, fifth and sixth were overturned by review**,
+after this slice had already written the equivalence argument down and
+committed it:
+
+1. **`138:10` (`<` → `<=` on the eccentricity floor) was predicted an
+   unreachable boundary; it is killable, and was killed.** Unlike
+   `points_from_elements`, `e` is *derived* here through a cancellation that
+   makes the reachable grid ~1e6× coarser than the target's precision, and the
+   design's searches failed. The reason they failed is instructive: they swept
+   `r_mag` over **powers of two**, which makes the final `c1 * r_mag` product
+   *exact* and so never lands on the boundary. Sweeping over consecutive
+   doubles gives that product an independent rounding, and a state whose
+   osculating eccentricity is bit-identical to `MIN_ECCENTRICITY` falls out.
+2. **`120:43` was predicted killable; it is an equivalent.** The prediction
+   assumed the mutant was `((a || b) && c) || d`. Rust's precedence makes it
+   `a || (b && c) || d`, which has a far smaller distinguishing region — and
+   that region is entirely absorbed by the downstream `!e.is_finite()` check,
+   as argued above.
+3. **`220:27` was predicted killable "by any radial state"; plain radial motion
+   does not reach it.** A plain radial state has `e == 1.0` *exactly*, which
+   makes `r_peri = a(1 - e) = 0` and fails inside `apsides()` before the
+   `h_mag` guard is ever reached. The kill needs a *crafted* velocity leaving
+   `e` one ulp below `1.0`, and the test now asserts that precondition
+   (`apsides()` succeeds, `r_peri != 0`) rather than assuming it.
+4. **`81:35` (`||` → `&&` on `to_ecliptic`'s *output* guard) was documented as
+   an equivalent; review proved it killable, and it is now killed.** The
+   argument claimed `p[2] / r` always lies in `[-1, 1]`, making `asin` total.
+   That fails in the **subnormal** regime: once `fl(z*z)` underflows,
+   `sqrt(fl(z²)) < |z|`, so the ratio exceeds `1`. At
+   `z = f64::from_bits(0x1e60000000000001)` (`2.222758749485078e-162`, whose
+   square underflows to the smallest subnormal `5e-324`), `p[2] / r =
+   1.0000000000000002` and `asin` returns `NaN`, while `atan2(0.0, 0.0)` stays
+   a finite `0.0`. Exactly one of the two angles is non-finite — precisely the
+   region where `||` and `&&` differ — so the original returns
+   `Err(NonFinite)` and the mutant returns `Ok` carrying a `NaN` latitude.
+   Killed by `to_ecliptic_rejects_underflowing_norm`.
+
+   **The process lesson, stated plainly so the next slice inherits it.** This
+   repo already carries a memory note on guard equivalence: *test the
+   finite-overflow-to-`inf` direction before calling a non-finite-guard mutant
+   equivalent.* This slice did exactly that — `to_ecliptic_rejects_overflowing_norm`
+   is in the suite — and then declared a *sibling* guard equivalent without
+   testing the **mirror** direction. Underflow is the other half of the same
+   lens. **For any future non-finite guard, test both directions: components
+   large enough that the squared norm overflows to `+inf`, and components small
+   enough that the squared norm underflows to a subnormal.** The two new tests
+   now sit adjacent in `tests.rs` so the pair reads as one idea. A
+   documented-equivalent claim is a permanent, load-bearing assertion about
+   unreachability; it earns strictly more adversarial search than a kill does,
+   because a wrong kill fails loudly and a wrong equivalence sits silent.
+5. **`303:46` (`+` → `-` on the aphelion argument of latitude) was documented
+   as an equivalent through three successive rewrites; review proved it
+   killable, and it is now killed.** In exact reals `ω+π` and `ω−π` are the
+   same point, so it can only be separated where the two arguments round
+   differently *and* the result is ill-conditioned — near the pole, where
+   `atan2`'s arguments both collapse toward zero. At `node 0, incl 89.999997,
+   peri_lon 90.00003` the correct code lands `2.59e-13` deg from an independent
+   60-digit reference while `ω−π` lands `7.47e-9` deg away: the suite's
+   **ordinary `1e-9` deg tolerance** separates them with `~3,800×` headroom on
+   one side and `7.5×` on the other. Killed by
+   `aphelion_argument_of_latitude_is_omega_plus_pi`.
+
+   **Both reclamations in this slice have the same root cause, and that is the
+   transferable lesson.** Each equivalence argument was validated against a
+   reference *derived from the code* rather than independent of it — for
+   `81:35`, reasoning about `asin`'s domain from the code's own guarantees
+   instead of searching the input space; for `303:46`, measuring the branch
+   separation against the exact-in-real value of the mutated expression, which
+   subtracts out exactly the error term that breaks the symmetry. **A
+   documented equivalent is only as good as the independence of the reference
+   that failed to kill it.** Before writing one down, state explicitly what
+   reference the non-separation was measured against and whether a test could
+   actually use it; if it could not, the argument has not been tested.
+
+   The reference question bit this slice a third time during review itself. A
+   proposed kill geometry (`node 0, incl 90.00001, peri_lon 90.0001`) reported
+   the correct code `5.03e-11` from truth and the mutant `1.47e-9`. Recomputing
+   at 60 digits **against the exact `f64` element values the function actually
+   receives** — rather than the decimal literals as written — gives `1.56e-9`
+   and `3.08e-9`: *both* outside `1e-9`, so that geometry yields no kill. At
+   this conditioning the `3e-15` deg gap between `90.00001_f64` and the decimal
+   `90.00001` swings the reference by `1.6e-9` deg, which is larger than the
+   entire effect. The geometry finally used was found by searching against the
+   `f64`-faithful reference, and there the distinction is decisive in the other
+   direction: under the decimal reference the *mutant* would look closer to
+   truth (`5.97e-9`) than the correct code (`1.34e-8`).
+6. **`242:20` (`<` → `<=` on the southern-perihelion branch) was documented as
+   an equivalent through four rewrites; review proved it killable, and it is
+   now killed.** The final argument rested on a step that is false: that
+   `cos_omega == 1.0` exactly makes both branches agree, because `acos` returns
+   `0` and `0` vs `2π` are the same after `rem_euclid(360)`. They are not.
+   `(2π).to_degrees()` is exactly `360.0`, and
+   `(node_deg + 360.0).rem_euclid(360.0) != node_deg` whenever `node_deg`
+   carries bits below `ulp(node_deg + 360)` — true for most `node_deg < 256`.
+   So `ε` has no floor at `2^-26`, and the `ω = 0` case is live rather than
+   excluded. Killed by `perihelion_at_the_node_gives_peri_lon_equal_to_node`,
+   which asserts the exact identity `ϖ = Ω` at a state simultaneously at a node
+   (`r_z == 0`) and at an apsis (`r·v == 0`) — an invariant between two outputs,
+   the same shape as Task 2's bifocal sum. The mutant returns
+   `255.49849089543818` against `255.49849089543824`.
+
+   **The robustness question was settled before shipping, not after.** The kill
+   needs `cos_omega` to be exactly `1.0`, which reaches through libm
+   `sin`/`cos`/`atan2`/`asin`. The state was chosen so the RAW dot is
+   `1.0000000000000002` — one ulp **above** `1.0` — so `clamp(-1.0, 1.0)`
+   forces the exact value and no libm difference can perturb it. That is
+   structural, not lucky: `n_hat` and `peri_vec` are independently computed
+   unit vectors along the same direction, differing in angle by `O(ulp)`, so
+   their exact cosine deficit is `O(ulp²) ≈ 5e-33` — sixteen orders below
+   `half-ulp(1.0)`. Across a 90,621-state search of node-and-apsis geometries
+   the raw dot never fell below `1.0` (84,158 exactly `1.0`, 6,463 one ulp
+   above, **none** below). A state landing on `1.0` by rounding alone would
+   have been fragile and was rejected in favour of one the clamp protects.
+
+**Per-mutant margin tables** (never aggregated, per the campaign discipline —
+inlined below in full, one row per mutant, so the rows outlive any working
+notes). No margin is fabricated for a kill that has none: `16` of the `32`
+kills carry a genuine scalar displacement against an assertion tolerance, and
+the remaining `16` are **exact error-variant or exact-equality pins** with no
+displacement to report, disclosed as such rather than given an invented number.
+
+Across the 16 displacement rows the **true minimum** kill margin is **`7.5 ×`**
+its assertion tolerance — the near-pole aphelion pin (`303:46`), whose mutant
+lands `7.47e-9` deg against a `1e-9` deg tolerance. That is stated as the
+minimum, not smoothed into an aggregate. The largest is `8.08e15 ×` (`131:24`
+`*` → `/`). Second smallest is `3.65e10 ×` (`243:21` `*` → `/`).
+
+**One kill in this slice IS marginal, by design, and that is worth saying
+plainly.** The near-pole aphelion pin is a last-few-ulps distinction: it
+separates two expressions identical in exact arithmetic, so its `7.5 ×` margin
+is the nature of what it pins, not a defect. It is defensible because the
+*correct* code sits `2.59e-13` deg from the independent reference — `~3,800 ×`
+inside the same tolerance — so the assertion has large headroom on the passing
+side even though the failing side clears it by only `7.5 ×`. The other fifteen
+displacement rows carry margins of `10^9` or more and depend on no ulp-scale
+behaviour. The perihelion-at-the-node identity carries **no margin at all, by
+construction**: it is an exact equality (`ϖ == Ω`, bit-for-bit) with no
+tolerance to have a margin against; the mutant misses by `5.68e-14` deg, which
+any exact comparison catches, and its robustness comes from `clamp` forcing
+`cos_omega` to exactly `1.0` — see prediction 6.
+
+**Rows with a genuine scalar displacement — 16.**
+
+`apsides`, eccentricity vector and apsis positions, against the independent
+forward construction at `a = 2, e = 0.2, i = 10°, Ω = 40°, ω = 30°, ν = 50°,
+μ = 2.959e-4` (test `apsides_match_forward_construction_at_non_degenerate_geometry`).
+Each row gives the mutant's strongest-firing assertion:
+
+| Mutant | Firing assertion | Residual | Tolerance | Margin |
+|--------|------------------|----------|-----------|--------|
+| 128:17 `/`→`%` | apogee longitude | 50.2258 deg | 1e-10 deg | 5.02e11× |
+| 128:17 `/`→`*` | apogee longitude | 50.2273 deg | 1e-10 deg | 5.02e11× |
+| 130:19 `-`→`+` | apogee longitude | 69.5107 deg | 1e-10 deg | 6.95e11× |
+| 131:19 `-`→`+` | perigee longitude | 24.9897 deg | 1e-10 deg | 2.50e11× |
+| 131:24 `*`→`/` | bifocal sum `r_apo+r_peri−2a` | 8.0848e3 AU | 1e-12 AU | 8.08e15× |
+| 132:19 `-`→`+` | apogee latitude | 4.6242 deg | 1e-10 deg | 4.62e10× |
+| 155:39 delete `-` | apogee longitude | 139.2433 deg | 1e-10 deg | 1.39e12× |
+| 155:49 `*`→`/` | bifocal sum | 1.4577 AU | 1e-12 AU | 1.46e12× |
+| 155:58 delete `-` | apogee latitude | 9.9619 deg | 1e-10 deg | 9.96e10× |
+| 155:68 `*`→`/` | apogee latitude | 4.1141 deg | 1e-10 deg | 4.11e10× |
+
+True minimum in this group **4.11e10×**.
+
+`elements_from_state`, southern-perihelion branch, at `a = 2, e = 0.2, i = 10°,
+Ω = 40°, ω = 210°, ν = 50°, μ = 2.959e-4` (test
+`elements_recover_southern_perihelion_argument`). Correct `peri_lon_deg` is
+`250°`, the unmutated residual is `0.0` exactly, tolerance `1e-9` deg:
+
+| Mutant | Mutated `peri_lon_deg` | Displacement | Margin |
+|--------|------------------------|--------------|--------|
+| 242:20 `<`→`==` | `190.000000` | 60.0000 deg | 6.00e10× |
+| 243:21 `*`→`+` | `184.591559` | 65.4084 deg | 6.54e10× |
+| 243:21 `*`→`/` | `286.475626` | 36.4756 deg | 3.65e10× |
+| 243:45 `-`→`+` | `190.000000` | 60.0000 deg | 6.00e10× |
+| 243:45 `-`→`/` | `177.509871` | 72.4901 deg | 7.25e10× |
+
+True minimum in this group **3.65e10×**.
+
+`points_from_elements`, near-pole aphelion argument, at `node 0,
+incl 89.999997, peri_lon 90.00003, e 0.2, a 2.0`, against a 60-digit
+independent reference (test `aphelion_argument_of_latitude_is_omega_plus_pi`),
+tolerance `1e-9` deg:
+
+| Mutant | Firing assertion | Residual | Correct code | Margin |
+|--------|------------------|----------|--------------|--------|
+| 303:46 `+`→`-` | aphelion longitude | 7.46528e-9 deg | 2.58783e-13 deg (~3,800× inside) | **7.5×** |
+
+**Slice-wide true minimum: `7.5×`, this row.**
+
+**Rows with NO displacement — 16 exact error-variant or `Ok`/`Err` pins.** The
+assertion is a discrete `assert_eq!` on an error variant, or an
+`is_ok()`/`unwrap()` that flips outright. "Displacement" is not a defined
+quantity for these and none is invented:
+
+| Mutant | Killing test | Kill mechanism | Margin |
+|--------|--------------|----------------|--------|
+| 264:9 `&&`→`\|\|` | `points_from_elements_rejects_non_finite_semi_major` | mutant returns `UnboundOrbit`, original `NonFinite` | exact variant pin — none |
+| 265:9 `&&`→`\|\|` | same | same | exact variant pin — none |
+| 266:9 `&&`→`\|\|` | same | same | exact variant pin — none |
+| 267:9 `&&`→`\|\|` | same | same | exact variant pin — none |
+| 271:10 `<`→`<=` | `points_from_elements_eccentricity_floor_is_exclusive` | at `e == MIN_ECCENTRICITY` mutant gives `DegenerateOrbit`, original `Ok` | exact `Ok`/`Err` pin — none |
+| 271:10 `<`→`==` | same | at `e = 1e-7` mutant gives `Ok`, original `DegenerateOrbit` | exact `Ok`/`Err` pin — none |
+| 274:17 `\|\|`→`&&` | `points_from_elements_rejects_unbound_conics` | neither `e=1.5,a=2` nor `e=0.5,a=-2` trips the mutated conjunction | exact variant pin — none |
+| 76:23 `\|\|`→`&&` | `to_ecliptic_rejects_overflowing_norm` | overflow lens: `r = inf` but both angles finite, mutant returns `Ok` | exact `Ok`/`Err` pin — none |
+| 81:35 `\|\|`→`&&` | `to_ecliptic_rejects_underflowing_norm` | underflow lens: `fl(z*z)` subnormal ⇒ `asin` `NaN` while `atan2` stays finite; mutant returns `Ok` with `NaN` latitude | exact `Ok`/`Err` pin — none |
+| 120:27 `\|\|`→`&&` | `apsides_rejects_overflowing_position_norm` | mutant proceeds to `inv_a = 2.0/inf − 1e-120 ≤ 0` and returns `UnboundOrbit` | exact variant pin — none |
+| 120:62 `\|\|`→`&&` | `apsides_rejects_non_positive_mu` | at `μ = −1` mutant returns `Ok` (`e = 2.0`), original `NonFinite` | exact `Ok`/`Err` pin — none |
+| 220:27 `\|\|`→`&&` | `radial_motion_has_no_orbital_plane` | `h_mag == 0` yet finite; mutant returns `Ok` carrying `NaN` elements | exact `Ok`/`Err` pin — none |
+| 226:14 `<`→`<=` | `node_threshold_is_exclusive_at_the_exact_boundary` | state sits bit-exactly on `n_mag == 1e-12·h_mag`; mutant returns `DegenerateNode` | exact `Ok`/`Err` pin — none |
+| 226:22 `*`→`/` | `node_threshold_scales_multiplicatively_with_angular_momentum` | `1e-12·h_mag < n_mag < 1e-12/h_mag`; mutant returns `DegenerateNode` | exact `Ok`/`Err` pin — none |
+| 138:10 `<`→`<=` | `apsides_eccentricity_floor_is_exclusive` | derived `e` bit-identical to `MIN_ECCENTRICITY`; mutant returns `DegenerateOrbit` | exact `Ok`/`Err` pin — none |
+| 242:20 `<`→`<=` | `perihelion_at_the_node_gives_peri_lon_equal_to_node` | exact identity `ϖ == Ω`; mutant returns `255.49849089543818` where `255.49849089543824` is correct | exact equality pin, no tolerance — none |
+
+`242:20` appears in both tables under two different mutations: `<`→`==` carries
+a `60°` displacement, `<`→`<=` is an exact-identity pin. Two mutants at one
+site, two unrelated kill mechanisms.
+
+**The one surviving mutant — a documented equivalent, not a kill.**
+
+| Mutant | Argument | Margin |
+|--------|----------|--------|
+| 120:43 `\|\|`→`&&` | Rust precedence makes the mutant `a \|\| (b && c) \|\| d`. Both distinguishing regions — **A** `{r_mag == 0, μ finite, μ > 0}` and **B** `{r_mag finite non-zero, μ ∈ {NaN, +inf}}` — drive `e` to `NaN` and return `Err(NonFinite)`, matching the original. Verified analytically and over 448 crafted region-A/region-B cases with zero divergences. | not applicable — no distinguishing input exists |
+
+`16 + 16 = 32` kills, plus `1` documented equivalent, accounting for all `33`
+baseline survivors.
+
+**One test's honest-naming gap closed.** `apsides_eccentricity_floor_is_exclusive`
+pins only the *on*-boundary side; on its own it would also pass if the floor
+check were deleted entirely. Its doc comment now cross-references the sibling
+`near_circular_orbit_is_degenerate`, which holds the below-boundary side — the
+two together give the exclusivity. Neither test was restructured.
+
+**Two plan defects found and corrected, so neither is silent.** One wrong
+figure: the southern-perihelion rationale reported the `*` → `+` mutant landing
+at `144.6°`, which is the raw `omega` *before* the `+40°` node offset; the
+correct final `peri_lon_deg` is **`184.6°`** (measured). One wrong mechanism:
+the overflow-lens rationale said `120:27`'s mutant "proceeds and returns `Ok`".
+Traced and measured, it proceeds past the guard and reaches
+`inv_a = 2.0/inf - 1e-120`, which is `<= 0`, so it returns `Err(UnboundOrbit)`.
+It is still a kill — `UnboundOrbit != NonFinite` — but by a different exit than
+described. Neither correction changes a conclusion: all five southern-perihelion
+landings remain far outside the `1e-9` tolerance either way.
+
+**Reference-lever narrowing, recorded rather than left silent.** The design
+named three independent reference levers and four conic invariants. Lever 1
+(forward construction, elements → state) carries the whole numeric class. Of
+the conic invariants only the **bifocal sum** (`r_apo + r_peri = 2a`) is
+asserted; vis-viva, the conic radius law and `h ⊥ r, v` are **deliberately not
+added** — with the forward construction already pinning every apsis coordinate
+they kill no additional mutant, and adding assertions that constrain nothing new
+would be noise. They remain available if a future change reopens survivors here.
+Lever 3 (published-constant recomputation) is used as
+`mu_matches_its_published_derivation`, which recomputes
+`MU_EARTH_MOON_AU3_PER_DAY2` from the GM⊕/GM☾/AU/day constants its rustdoc
+cites. **That test kills no mutant and does not claim to** — cargo-mutants does
+not mutate `const` items, so nothing is attached to it. Its `2e-5` tolerance is
+the *measured* `1.43e-5` gap between the pure derivation
+(`8.997011530622141e-10`) and the shipped, gate-tuned `8.99714e-10`, not a
+tolerance picked to make the assertion pass.
+
+**Weekly tier expanded.** `-p pleiades-apsides` joins `[tasks.mutants]` in
+`mise.toml` alongside `pleiades-types`, `pleiades-time`, `pleiades-apparent`
+and `pleiades-houses`. The set grows `2,620 → 2,843` mutants (~1.09× the
+previous projection) on a measured 223-mutant crate. The `.github/workflows/
+mutants.yml` calibration comment records the cost as roughly **+2 minutes** on
+the measured ~24-25m job wall-clock, and marks it explicitly as a **projection,
+not a measurement** — no scheduled run has yet executed the five-crate set, and
+the next one supersedes the estimate. `timeout-minutes: 90` is retained
+unchanged.
+
+**Posture unchanged.** The mutants tier stays **report-only**: surviving mutants
+(exit 2) pass the job and **no mutation-score gate was introduced**. No parity
+gate was touched — the `validate-lilith` corpus, its tolerances and its gate
+code are untouched, and `crates/pleiades-apsides/src/lib.rs` changed by
+**comments only** (verified by diff; not one executable line differs).
+
+**Queue after this slice: three crates.** `pleiades-backend` `263 / 70`,
+`pleiades-ayanamsa` `305 / 85`, and `pleiades-fict` `308 / 148` (provisional —
+its run exited 3 with 2 timeouts). The roadmap note
+`docs/superpowers/specs/notes/2026-07-25-mutants-roadmap-baseline.md` now marks
+`pleiades-apsides` triaged and closed, so its `33` is no longer restated as an
+open survivor count.
 ---
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
