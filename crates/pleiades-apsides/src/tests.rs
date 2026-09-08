@@ -161,3 +161,101 @@ fn zero_inclination_state_is_degenerate_node() {
     let err = elements_from_state(pos, vel, mu).unwrap_err();
     assert_eq!(err, ApsidesError::DegenerateNode);
 }
+
+/// Independent forward reference: Keplerian elements -> state vector, via the
+/// published perifocal basis and the R3(-node)R1(-incl)R3(-argp) rotation.
+/// Deliberately NOT the crate's inverse formulation, so a sign or operator
+/// error in `apsides` cannot be masked by a shared expression.
+fn state_from_elements(
+    a: f64,
+    e: f64,
+    i_deg: f64,
+    node_deg: f64,
+    argp_deg: f64,
+    nu_deg: f64,
+    mu: f64,
+) -> ([f64; 3], [f64; 3]) {
+    let (i, o, w, nu) = (
+        i_deg.to_radians(),
+        node_deg.to_radians(),
+        argp_deg.to_radians(),
+        nu_deg.to_radians(),
+    );
+    let p = a * (1.0 - e * e);
+    let r = p / (1.0 + e * nu.cos());
+    let rp = [r * nu.cos(), r * nu.sin(), 0.0];
+    let k = (mu / p).sqrt();
+    let vp = [-k * nu.sin(), k * (e + nu.cos()), 0.0];
+    let (co, so, ci, si, cw, sw) = (o.cos(), o.sin(), i.cos(), i.sin(), w.cos(), w.sin());
+    let m = [
+        [co * cw - so * sw * ci, -co * sw - so * cw * ci, so * si],
+        [so * cw + co * sw * ci, -so * sw + co * cw * ci, -co * si],
+        [sw * si, cw * si, ci],
+    ];
+    let rot = |q: [f64; 3]| -> [f64; 3] {
+        [
+            m[0][0] * q[0] + m[0][1] * q[1] + m[0][2] * q[2],
+            m[1][0] * q[0] + m[1][1] * q[1] + m[1][2] * q[2],
+            m[2][0] * q[0] + m[2][1] * q[1] + m[2][2] * q[2],
+        ]
+    };
+    (rot(rp), rot(vp))
+}
+
+/// Pins both apsides at a geometry that is neither apsidal (r.v != 0, so the
+/// c2 term is live) nor axis-aligned (all three e_hat components non-zero),
+/// against the independent forward construction. Also checks the bifocal sum
+/// r_apo + r_peri = 2a -- a defining property of the ellipse that the crate
+/// never evaluates.
+#[test]
+fn apsides_match_forward_construction_at_non_degenerate_geometry() {
+    let (a, e, incl, node, argp, mu) = (2.0, 0.2, 10.0, 40.0, 30.0, 2.959e-4);
+    let (pos, vel) = state_from_elements(a, e, incl, node, argp, 50.0, mu);
+
+    // Precondition: this state must break BOTH halves of the blind spot.
+    let rv = pos[0] * vel[0] + pos[1] * vel[1] + pos[2] * vel[2];
+    assert!(rv.abs() > 1e-6, "state must be non-apsidal, r.v = {rv}");
+
+    let aps = apsides(pos, vel, mu).unwrap();
+    assert!(
+        (aps.eccentricity - e).abs() < 1e-12,
+        "ecc {}",
+        aps.eccentricity
+    );
+    assert!(
+        (aps.semi_major_au - a).abs() < 1e-12,
+        "a {}",
+        aps.semi_major_au
+    );
+
+    // Independent expected apsis directions: forward-rotate the in-plane points
+    // at true anomaly 0 (perihelion) and 180 (aphelion).
+    let (pp, _) = state_from_elements(a, e, incl, node, argp, 0.0, mu);
+    let (pa, _) = state_from_elements(a, e, incl, node, argp, 180.0, mu);
+    for (got, want) in [(aps.perigee, pp), (aps.apogee, pa)] {
+        let r = (want[0] * want[0] + want[1] * want[1] + want[2] * want[2]).sqrt();
+        let lon = want[1].atan2(want[0]).to_degrees().rem_euclid(360.0);
+        let lat = (want[2] / r).asin().to_degrees();
+        assert!(
+            (got.longitude_deg - lon).abs() < 1e-10,
+            "lon {}",
+            got.longitude_deg
+        );
+        assert!(
+            (got.latitude_deg - lat).abs() < 1e-10,
+            "lat {}",
+            got.latitude_deg
+        );
+        assert!(
+            (got.distance_au - r).abs() < 1e-12,
+            "dist {}",
+            got.distance_au
+        );
+    }
+
+    // Conic invariant the crate never computes.
+    assert!(
+        (aps.apogee.distance_au + aps.perigee.distance_au - 2.0 * a).abs() < 1e-12,
+        "bifocal sum"
+    );
+}
