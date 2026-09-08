@@ -427,3 +427,25 @@ fn node_threshold_scales_multiplicatively_with_angular_momentum() {
     let el = elements_from_state(pos, vel, mu).unwrap();
     assert!(el.incl_deg < 1e-8, "incl {}", el.incl_deg);
 }
+
+/// The eccentricity floor is exclusive: a state whose osculating eccentricity
+/// is bit-identical to MIN_ECCENTRICITY is accepted, not rejected as
+/// degenerate.
+///
+/// Unlike `points_from_elements`, `e` is derived here, through a cancellation
+/// that makes the reachable grid ~1e6x coarser than the target's precision.
+/// This state was found by sweeping r_mag over consecutive doubles so the
+/// final c1*r_mag product gets an independent rounding; sweeping powers of two
+/// makes that product exact and never hits the boundary.
+#[test]
+fn apsides_eccentricity_floor_is_exclusive() {
+    let rx = f64::from_bits(0x400000000005a740); // 2.0000000001645333
+    let vy = f64::from_bits(0x3fe6a09f244b3b60); // 0.707107134710764
+    let aps = apsides([rx, 0.0, 0.0], [0.0, vy, 0.0], 1.0).unwrap();
+
+    // Precondition: the crafted state must sit exactly ON the boundary.
+    assert_eq!(
+        aps.eccentricity, MIN_ECCENTRICITY,
+        "crafted state must sit ON the boundary"
+    );
+}
