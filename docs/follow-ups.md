@@ -1572,11 +1572,39 @@ stay visible in every future run:
   `vel [0.5, -1.0, 1.0]`, `mu 1`). It is nonetheless un-killable because the
   pair *straddles the truth symmetrically* — `acos` gives `+ε` where the truth
   is `0`, so the original lands at `node + ε` and the mutant at `node − ε`.
-  Over a 1,272-case search of states reaching `peri_vec[2] == 0.0` exactly, the
-  asymmetry `||orig − truth| − |mut − truth||` stayed `≤ 5.69e-14` deg. Any
-  *symmetric* tolerance against an independent reference admits both or rejects
-  both; only a **signed** assertion could separate them, and that pins the sign
-  of rounding noise. (Its sibling `226:20` `<` → `==` is *not* equivalent and
+
+  The bound on that is **derived, not sampled** — a scale separation with
+  `ε = O(√u)` against a true `ω = O(u/e)`, `u = 2^-53`. **(i)** `ε` has a hard
+  floor: if `cos_omega == 1.0` exactly then `acos` is `0` and both branches give
+  the same `peri_lon` after `rem_euclid(360)`, so a difference *requires*
+  `cos_omega ≤ 1 − ulp`, whence `ε ≥ acos(nextafter(1,0)) =` exactly `2^-26 =
+  1.4901161e-8` rad `= 8.5377e-7` deg. **(ii)** The true `ω` is pinned: the
+  exact `e_vec_z` is `e·sin i·sin ω`, computed as `c1·r_z − c2·v_z`, whose terms
+  *and* rounding error both scale as `sin i · O(1) · u` — so `fl(e_vec_z) == 0`
+  forces `|e·sin ω| ≲ k·u` with **`sin i` cancelling**, an
+  inclination-independent bound. `MIN_ECCENTRICITY` floors `e`, giving
+  `|ω_true| ≲ 2.2e-10` rad (`~1.3e-8` deg) at the floor and `~6.4e-14` deg at
+  `e = 0.2`. *That* is what closes the `ω = 90°` loophole — the eccentricity
+  floor, not luck. **(iii)** Hence both branches sit at least
+  `ε − |ω_true| ≥ 8.41e-7` deg from truth: **`~850×` outside** the suite's
+  ordinary `1e-9` deg tolerance, so an ordinary-tolerance assertion rejects
+  *both* branches and cannot separate them. A separating tolerance would have to
+  be `~850×` looser *and* threaded into a `~3%`-wide window around the code's own
+  `ε` — hand-tuned to the geometry from this code's rounding.
+
+  **This is the precise contrast with the `287:46` kill.** There the *correct*
+  code lands `2.59e-13` deg from an independent reference, comfortably inside
+  `1e-9`, so an ordinary tolerance separates it from a `7.47e-9` deg mutant.
+  Here `acos` is ill-conditioned as its argument approaches `1`, so the correct
+  branch is itself `~8.5e-7` deg out — there is nothing accurate to thread a
+  tolerance against. Ill-conditioning is what makes one of these killable and
+  the other not.
+
+  An empirical 1,272-case search bounded the asymmetry
+  `||orig − truth| − |mut − truth||` at `5.69e-14` deg, but that figure is **one
+  structural family** (`r·v == 0`, `r_z == 0`), where the true `ω` is exactly
+  `0`. It is *not* the general worst case, and is retained only as a
+  cross-check of (ii). (Its sibling `226:20` `<` → `==` is *not* equivalent and
   was killed in the southern-perihelion task — two mutants at one site with
   opposite dispositions.)
 
@@ -1687,14 +1715,24 @@ sixteenth displacement row is the near-pole aphelion pin, whose margin is
 `7.47e-9` deg against a `1e-9` deg tolerance — `7.5x` over, with the correct
 code `~3,800x` inside. Each measured row states the
 mutant's *strongest-firing* assertion (its kill signal) and residual. Across
-those `15`, the **true minimum** kill margin is `3.65e10 ×` its assertion
-tolerance — `227:21` `*` → `/`, which lands `peri_lon_deg` at `286.476°` where
-`250°` is correct, a `36.48°` residual against a `1e-9` deg tolerance. The
-largest is `8.08e15 ×` (`115:24` `*` → `/`, bifocal-sum residual `8.08e3` AU
-against `1e-12`). The five southern-perihelion mutants land `36.5°`–`72.5°`
-from the true `250°`; the ten forward-reference mutants run `4.11e10 ×` to
-`8.08e15 ×`. No kill in this slice is marginal, and none relies on a
-last-few-ulps distinction.
+those **`16`**, the **true minimum** kill margin is **`7.5 ×`** its assertion
+tolerance — the near-pole aphelion pin (`287:46`), whose mutant lands
+`7.47e-9` deg against a `1e-9` deg tolerance. The largest is `8.08e15 ×`
+(`115:24` `*` → `/`, bifocal-sum residual `8.08e3` AU against `1e-12`). Second
+smallest, and the minimum among the original fifteen, is `3.65e10 ×`
+(`227:21` `*` → `/`, landing `peri_lon_deg` at `286.476°` where `250°` is
+correct). The five southern-perihelion mutants land `36.5°`–`72.5°` from the
+true `250°`; the ten forward-reference mutants run `4.11e10 ×` to `8.08e15 ×`.
+
+**One kill in this slice IS marginal, by design, and that is worth saying
+plainly rather than smoothing over.** The near-pole aphelion pin is a
+last-few-ulps distinction: it separates two expressions that are identical in
+exact arithmetic, so its `7.5 ×` margin is not a defect of the test but the
+nature of what it pins. It is defensible because the *correct* code sits
+`2.59e-13` deg from the independent reference — `~3,800 ×` inside the same
+tolerance — so the assertion has large headroom on the passing side even though
+the failing side clears it by only `7.5 ×`. The other fifteen displacement rows
+carry margins of `10^9` or more and depend on no ulp-scale behaviour.
 
 **One test's honest-naming gap closed.** `apsides_eccentricity_floor_is_exclusive`
 pins only the *on*-boundary side; on its own it would also pass if the floor
