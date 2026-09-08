@@ -335,3 +335,32 @@ fn points_from_elements_rejects_unbound_conics() {
         ApsidesError::UnboundOrbit
     );
 }
+
+/// Overflow lens: each component is finite, but the squared norm overflows to
+/// +inf. The guard must reject this. Under the mutant the function proceeds
+/// and returns Ok, because p[i]/inf = 0 makes both output angles finite.
+#[test]
+fn to_ecliptic_rejects_overflowing_norm() {
+    assert_eq!(
+        to_ecliptic([1e200, 1e200, 1e200]).unwrap_err(),
+        ApsidesError::NonFinite
+    );
+}
+
+/// The same overflow lens at the `apsides` input boundary.
+#[test]
+fn apsides_rejects_overflowing_position_norm() {
+    assert_eq!(
+        apsides([1e200, 1e200, 1e200], [1e-60, 0.0, 0.0], 1.0).unwrap_err(),
+        ApsidesError::NonFinite
+    );
+}
+
+/// A non-positive gravitational parameter is not a physical system.
+#[test]
+fn apsides_rejects_non_positive_mu() {
+    assert_eq!(
+        apsides([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], -1.0).unwrap_err(),
+        ApsidesError::NonFinite
+    );
+}
