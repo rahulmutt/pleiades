@@ -276,3 +276,62 @@ fn elements_recover_southern_perihelion_argument() {
         el.peri_lon_deg
     );
 }
+
+/// A non-finite semi-major axis must be rejected as NonFinite by the input
+/// guard, not fall through to the later `a <= 0.0` unbound check. Setting
+/// a = -inf with every other field finite distinguishes all four of the
+/// guard's `&&` operators at once: each mutant reaches `a <= 0.0` and returns
+/// UnboundOrbit instead.
+#[test]
+fn points_from_elements_rejects_non_finite_semi_major() {
+    let el = KeplerianElements {
+        node_deg: 40.0,
+        peri_lon_deg: 70.0,
+        incl_deg: 10.0,
+        eccentricity: 0.5,
+        semi_major_au: f64::NEG_INFINITY,
+    };
+    assert_eq!(
+        points_from_elements(&el, false).unwrap_err(),
+        ApsidesError::NonFinite
+    );
+}
+
+/// The eccentricity floor is exclusive: e exactly at MIN_ECCENTRICITY is
+/// accepted, e below it is DegenerateOrbit. Here `e` is a caller-supplied
+/// field, so the boundary is directly addressable.
+#[test]
+fn points_from_elements_eccentricity_floor_is_exclusive() {
+    let mk = |e: f64| KeplerianElements {
+        node_deg: 40.0,
+        peri_lon_deg: 70.0,
+        incl_deg: 10.0,
+        eccentricity: e,
+        semi_major_au: 2.0,
+    };
+    assert!(points_from_elements(&mk(MIN_ECCENTRICITY), false).is_ok());
+    assert_eq!(
+        points_from_elements(&mk(1e-7), false).unwrap_err(),
+        ApsidesError::DegenerateOrbit
+    );
+}
+
+/// Both halves of `e >= 1.0 || a <= 0.0` independently mean "not an ellipse".
+#[test]
+fn points_from_elements_rejects_unbound_conics() {
+    let mk = |e: f64, a: f64| KeplerianElements {
+        node_deg: 40.0,
+        peri_lon_deg: 70.0,
+        incl_deg: 10.0,
+        eccentricity: e,
+        semi_major_au: a,
+    };
+    assert_eq!(
+        points_from_elements(&mk(1.5, 2.0), false).unwrap_err(),
+        ApsidesError::UnboundOrbit
+    );
+    assert_eq!(
+        points_from_elements(&mk(0.5, -2.0), false).unwrap_err(),
+        ApsidesError::UnboundOrbit
+    );
+}
