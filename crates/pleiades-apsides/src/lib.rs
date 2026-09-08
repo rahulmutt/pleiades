@@ -239,54 +239,6 @@ pub fn elements_from_state(
     let n_hat = [n[0] / n_mag, n[1] / n_mag, 0.0];
     let cos_omega = dot(n_hat, peri_vec).clamp(-1.0, 1.0);
     let mut omega = cos_omega.acos();
-    // `<` -> `<=` is a documented equivalent mutant (FU-9). The two differ only
-    // at peri_vec[2] == 0.0 exactly -- perihelion in the reference plane, so
-    // the true omega is 0 or PI. They are NOT numerically identical there:
-    // acos does not return exactly 0 or PI, because cos_omega arrives one ulp
-    // off 1.0 through the longitude/latitude round-trip above. Measured at
-    // pos [0.5, 0.25, 0.0], vel [0.5, -1.0, 1.0], mu 1: cos_omega
-    // 0.99999999999999989, acos 1.49e-8 rad, and the two branches land
-    // 1.71e-6 deg apart in peri_lon_deg.
-    //
-    // It is un-killable for a reason that is a SCALE SEPARATION, derived
-    // rather than sampled: the branch spread `eps` is O(sqrt(u)) while the
-    // true omega it straddles is O(u/e). With u = 2^-53:
-    //
-    // 1. eps has a hard floor. If cos_omega == 1.0 exactly then acos is 0 and
-    //    both branches give the same peri_lon after rem_euclid(360) (0 vs
-    //    2*PI), so a difference REQUIRES cos_omega <= 1 - ulp. Then
-    //    eps >= acos(nextafter(1.0, 0.0)) = exactly 2^-26 = 1.4901161e-8 rad
-    //    = 8.5377e-7 deg. (This is the 1.49e-8 measured above; it is a floor,
-    //    not a sample.)
-    // 2. The true omega is pinned near 0 or PI. The exact e_vec_z is
-    //    e * sin(i) * sin(omega); it is computed as c1*r_z - c2*v_z, whose two
-    //    terms and whose rounding error both scale as sin(i)*O(1)*u. So
-    //    fl(e_vec_z) == 0 forces |e * sin(omega)| <~ k*u with sin(i)
-    //    CANCELLING -- the bound is inclination-independent. MIN_ECCENTRICITY
-    //    puts a floor under e, so |omega_true| <~ k*u/1e-6 <= ~2.2e-10 rad
-    //    (~1.3e-8 deg) at the eccentricity floor, and far smaller elsewhere:
-    //    ~6.4e-14 deg at e = 0.2. This is what closes the omega = 90deg
-    //    loophole -- the eccentricity floor does it, not luck.
-    // 3. Hence eps exceeds |omega_true| by ~67x at the eccentricity floor
-    //    (~134x on the tighter k = 1 estimate) and by orders more at ordinary
-    //    e, so BOTH branches sit at least eps - |omega_true| >= 8.41e-7 deg
-    //    from the truth -- about 850x OUTSIDE this suite's ordinary 1e-9 deg
-    //    tolerance. An ordinary-tolerance assertion rejects both branches, so
-    //    it cannot separate them; a separating tolerance would have to be set
-    //    ~850x looser AND threaded into a window ~3% wide around the code's
-    //    own eps, i.e. hand-tuned to this geometry from this code's rounding.
-    //
-    // That is exactly the contrast with the killed `+` -> `-` mutant on the
-    // aphelion argument: there the CORRECT code lands 2.6e-13 deg from an
-    // independent reference, well inside 1e-9, so an ordinary tolerance
-    // separates it from a 7.5e-9 deg mutant. Here acos is ill-conditioned as
-    // its argument approaches 1, so the correct branch is itself ~8.5e-7 deg
-    // out and there is nothing accurate to thread a tolerance against.
-    //
-    // An empirical 1,272-case search bounded the asymmetry
-    // ||orig - truth| - |mut - truth|| at 5.69e-14 deg, but that figure is ONE
-    // structural family (r.v == 0, r_z == 0), where the true omega is exactly
-    // 0. It is not the general worst case; the bound in step 2 is.
     if peri_vec[2] < 0.0 {
         omega = 2.0 * core::f64::consts::PI - omega;
     }

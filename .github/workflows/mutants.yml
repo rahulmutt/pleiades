@@ -40,8 +40,10 @@ jobs:
     # crate additions; revisit it if a scheduled run exceeds ~60 min.
     #
     # 2026-09-08: pleiades-apsides joins the tier, adding a measured 223
-    # mutants (whole-crate run: 223 tested / 4 missed / 215 caught / 4
-    # unviable / 0 timeout) and growing the set to 2,843 (~1.09x the previous
+    # mutants (whole-crate run at the close of the slice, after review
+    # reclaimed three initially-documented equivalents: 223 tested / 1 missed /
+    # 218 caught / 4 unviable / 0 timeout) and growing the set to 2,843 (~1.09x
+    # the previous
     # projection). This is a PROJECTION, NOT A MEASUREMENT: no scheduled run
     # has yet executed the five-crate set. Scaling only the testing phase off
     # the ~24-25m figure above projects roughly +2 minutes of job wall-clock.

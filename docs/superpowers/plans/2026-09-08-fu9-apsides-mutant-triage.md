@@ -8,9 +8,10 @@ authorities.
 
 > **Correction (2026-09-08, post-review) — read this before the plan body.**
 > The Goal above and the Verification Summary's `Task 8` row below both say the
-> residual is `4`; the measured outcome is **`2`**
-> (`223 mutants tested in 3m: 2 missed, 217 caught, 4 unviable`). Review proved
-> **two** of the four claimed equivalents killable, and both are now killed.
+> residual is `4`; the measured outcome is **`1`**
+> (`223 mutants tested in 3m: 1 missed, 218 caught, 4 unviable`). Review proved
+> **three** of the four claimed equivalents killable, and all three are now
+> killed; only `104:43` (`120:43` in current runs) survives.
 > **`81:35`** (`||` → `&&` on `to_ecliptic`'s output guard): its argument
 > assumed `p[2] / r` always lies in `[-1, 1]`, which fails once `fl(z*z)`
 > underflows to a subnormal, because then `sqrt(fl(z²)) < |z|` and the ratio
@@ -22,11 +23,18 @@ authorities.
 > `node 0, incl 89.999997, peri_lon 90.00003` the correct code lands
 > `2.59e-13` deg from an independent 60-digit reference and the mutant
 > `7.47e-9` — separable by the suite's ordinary `1e-9` deg tolerance. Killed by
-> `aphelion_argument_of_latitude_is_omega_plus_pi`. The plan's task text is
+> `aphelion_argument_of_latitude_is_omega_plus_pi`. **`226:20`** (`<` → `<=` on
+> the southern-perihelion branch): its argument assumed `cos_omega == 1.0` makes
+> both branches agree because `0` and `2π` are the same after
+> `rem_euclid(360)`, but `(node + 360.0).rem_euclid(360.0) != node` whenever
+> `node` carries bits below `ulp(node + 360)`. Killed by
+> `perihelion_at_the_node_gives_peri_lon_equal_to_node`, which asserts the
+> exact identity `ϖ = Ω` at a state simultaneously at a node and at an apsis.
+> The plan's task text is
 > left as written — it is a design record — but no number in it may be read as
 > the measured result. **This supersedes every such mention throughout:**
 > wherever the plan says "four equivalents", "4 documented equivalents", or a
-> campaign tally of "45 → 49", read **two** and **45 → 47**. Those sites are
+> campaign tally of "45 → 49", read **one** and **45 → 46**. Those sites are
 > deliberately not edited individually — the plan records what was designed, and this note records what was measured. See the
 > FU-9 "apsides" entry in `docs/follow-ups.md`.
 
@@ -991,4 +999,4 @@ authoritative command measured `223 mutants tested in 2m: 4 missed, 215 caught,
 4 unviable`.
 
 > **This row is superseded — see the Correction note at the top of this
-> plan.** Measured outcome is `2`, not `4`.
+> plan.** Measured outcome is `1`, not `4`.

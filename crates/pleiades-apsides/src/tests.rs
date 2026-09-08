@@ -414,6 +414,69 @@ fn radial_motion_has_no_orbital_plane() {
     );
 }
 
+/// The longitude of perihelion equals the longitude of the ascending node,
+/// exactly, when perihelion sits AT the node.
+///
+/// This pins the sign convention of the southern-perihelion branch. The state
+/// is simultaneously at a node (`r_z == 0`) and at an apsis (`r.v == 0`), which
+/// forces the true argument of perihelion to exactly `0` or `PI`; here it is
+/// `0`, so the identity `peri_lon_deg == node_deg` holds in exact arithmetic.
+/// That is an invariant relating two of the function's own outputs -- the same
+/// shape as the bifocal sum asserted above -- not a value copied from the
+/// implementation, so nothing here is asserted against the code's own output.
+///
+/// Under the `<` -> `<=` mutant, `peri_vec[2] == 0.0` takes the southern
+/// branch, `omega` becomes `2*PI` -> exactly `360.0` deg, and the
+/// `(node_deg + 360.0).rem_euclid(360.0)` round-trip drops the bits of
+/// `node_deg` below `ulp(node_deg + 360)`. Measured: the mutant returns
+/// `255.49849089543818` against `255.49849089543824`, off by `5.68e-14` deg.
+/// A round `node_deg` such as `40.0` would survive that round-trip unchanged,
+/// so the state is chosen for a node longitude that does not.
+///
+/// ROBUSTNESS, which is the reason for this particular state. The kill needs
+/// `cos_omega` to be exactly `1.0` so that `acos` returns exactly `0.0`.
+/// `cos_omega` is `dot(n_hat, peri_vec).clamp(-1.0, 1.0)`, and for this state
+/// the RAW dot is `1.0000000000000002` -- one ulp ABOVE `1.0` -- so `clamp`
+/// forces the exact value and no libm difference in the `sin`/`cos`/`atan2`/
+/// `asin` chain can perturb it. That is not luck: `n_hat` and `peri_vec` are
+/// two independently computed unit vectors along the same direction, differing
+/// in angle by `O(ulp)`, so their exact cosine deficit is `O(ulp^2) ~ 5e-33`,
+/// some sixteen orders of magnitude below `half-ulp(1.0)`. The dot therefore
+/// cannot land below `1.0` except through summation rounding, and across a
+/// 90,621-state search of node-and-apsis geometries it never did (84,158 at
+/// exactly `1.0`, 6,463 one ulp above, none below).
+#[test]
+fn perihelion_at_the_node_gives_peri_lon_equal_to_node() {
+    let pos = [0.0760963341348273, 0.2942107235657512, 0.0];
+    let vel = [
+        -0.1471053617828756,
+        0.03804816706741365,
+        -0.8127731822715102,
+    ];
+    let mu = 1.0;
+
+    // Preconditions: the geometry, not the arithmetic, is what forces the
+    // identity. Both must hold bit-exactly or the test proves nothing.
+    assert_eq!(pos[2], 0.0, "state must sit AT a node");
+    assert_eq!(dot(pos, vel), 0.0, "state must sit AT an apsis");
+
+    let el = elements_from_state(pos, vel, mu).unwrap();
+
+    // And the orbit must be non-degenerate in both guarded quantities, or the
+    // identity would hold for an uninteresting reason.
+    assert!(
+        el.incl_deg > 5.0 && el.incl_deg < 175.0,
+        "incl {}",
+        el.incl_deg
+    );
+    assert!(el.eccentricity > 1e-3, "ecc {}", el.eccentricity);
+
+    assert_eq!(
+        el.peri_lon_deg, el.node_deg,
+        "perihelion at the node must give peri_lon == node exactly"
+    );
+}
+
 /// The node-degeneracy floor is exclusive: a state sitting exactly on
 /// n_mag == 1e-12 * h_mag is accepted.
 #[test]
