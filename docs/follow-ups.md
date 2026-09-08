@@ -1578,19 +1578,36 @@ stay visible in every future run:
   of rounding noise. (Its sibling `226:20` `<` → `==` is *not* equivalent and
   was killed in the southern-perihelion task — two mutants at one site with
   opposite dispositions.)
-- `287:46` `+` → `-` in the aphelion argument of latitude. **Periodicity.**
-  `omega + π` and `omega − π` differ by exactly `2π`, so `cos`/`sin` agree to
-  within rounding. Over a 1-degree sweep grid of `(node 0-359, incl 0-180,
-  omega 0-359)` at `r ∈ {0.3, 2.4, 17}` the max **observed** displacement is
-  `8.53e-13` deg in longitude and `3.13e-13` deg in latitude away from the
-  poles. These are sweep maxima, **not proven bounds** — the finer grid found
-  `3.7×` the figures a coarser one had given, so they are scale, not
-  guarantee. The one qualitative exception is `|lat| == 90` exactly (`incl 90`
-  with `omega = ±90`), where the sweep reaches `116.56505117707803` deg:
-  longitude is mathematically undefined there and *both* branches compute
-  `atan2` of pure rounding noise, so it is not a distinguishing observation
-  either. Any assertion tight enough to kill this mutant would be pinning the
-  code's own output.
+- `287:46` `+` → `-` in the aphelion argument of latitude. **Symmetric
+  straddle again — not, as first claimed, a small bounded displacement.** In
+  exact reals `cos(ω+π) = cos(ω−π) = −cos ω`, so both branches denote the same
+  point and differ only in how the arguments round. But **the displacement is
+  unbounded, not sweep-bounded**: it grows continuously as `|latitude| → 90`,
+  where `atan2`'s two arguments both collapse toward zero. Measured at
+  `node 0, omega 90, r 2.4` — `incl 89°` → `8.53e-13` deg, `incl 89.99°` →
+  `8.04e-11`, `incl 89.9999°` → `8.04e-9` (**~8× this suite's own `1e-9` deg
+  tolerance**), `incl 89.999999°` → `8.04e-7`. Latitude is `-89.9999` at the
+  third point, so longitude is perfectly well defined and the
+  "undefined at the pole" escape does not apply. A 1-degree sweep grid cannot
+  see any of this, which is why two successive sweeps in this slice reported
+  figures `3.7×` apart and both were wrong as bounds.
+
+  It is un-killable for the same reason as `226:20`: the pair **straddles the
+  truth symmetrically**, all the way in. Against the exact-in-real reference
+  (substituting `−cos ω`, `−sin ω` for the mutated argument's trig), at
+  `incl 89.9999°` the original sits at `−4.020250798930647e-9` deg and the
+  mutant at `+4.020307642349508e-9` deg — opposite sides, equal magnitudes —
+  and the asymmetry `||orig − truth| − |mut − truth||` stays at `5.68e-14` deg
+  *however large the displacement grows*. Over a sweep of near-pole states the
+  most a symmetric tolerance could ever exploit,
+  `max(|mut − truth| − |orig − truth|)`, is `1.14e-13` deg, itself rounding
+  noise. Only a **signed** assertion could separate them, and that pins the
+  sign of rounding noise. (Measured against the *ideal* `ω = π/2` geometry
+  instead, the mutant is the one **closer** to truth — `2.01e-9` deg versus the
+  original's `6.03e-9` — so a tolerance admitting the original admits the
+  mutant a fortiori.) At `|lat| == 90` exactly the separation reaches
+  `116.56505117707803` deg, but longitude is mathematically undefined there and
+  *both* branches are `atan2` of pure rounding noise.
 
 Campaign-wide running tally **45 → 48** (`9` from the closed three-crate
 baseline, `36` from the closed houses campaign, `3` from this slice), extending

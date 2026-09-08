@@ -977,5 +977,9 @@ authoritative command measured `223 mutants tested in 2m: 4 missed, 215 caught,
 > non-finite, which is the region where `||` and `&&` differ.
 > `to_ecliptic_rejects_underflowing_norm` kills it. The plan's task text is
 > left as written — it is a design record — but the table's final row must not
-> be read as the measured result. See the FU-9 "apsides" entry in
-> `docs/follow-ups.md`.
+> be read as the measured result. **This supersedes every mention in the task
+> text above as well:** wherever the plan says "four equivalents", "4 documented
+> equivalents", or a campaign tally of "45 → 49", read **three** and
+> **45 → 48**. Those sites are deliberately not edited individually — the plan
+> records what was designed, and this note records what was measured. See the
+> FU-9 "apsides" entry in `docs/follow-ups.md`.

@@ -317,21 +317,44 @@ pub fn points_from_elements(
         ascending: to_ecliptic(in_plane(0.0, r_asc))?,
         descending: to_ecliptic(in_plane(core::f64::consts::PI, r_dsc))?,
         perihelion: to_ecliptic(in_plane(omega, a * (1.0 - e)))?,
-        // `+` -> `-` is a documented equivalent mutant (FU-9): omega + PI and
-        // omega - PI differ by exactly 2*PI, so cos/sin agree to within
-        // rounding. Measured displacement at (node 40, incl 10, a 2, e 0.2):
-        // <= 2.84e-14 deg in longitude and <= 2.44e-15 deg in latitude, i.e.
-        // below 1e-10 arcsec. Any assertion tight enough to kill it would be
-        // pinning the code's own output. Over a 1-degree sweep grid of
-        // (node 0-359, incl 0-180, omega 0-359) at r in {0.3, 2.4, 17} the max
-        // OBSERVED displacement is 8.53e-13 deg in longitude and 3.13e-13 deg
-        // in latitude away from the poles. These are sweep maxima, not proven
-        // bounds -- a finer grid found 3.7x the previous figures, so treat them
-        // as scale, not as a guarantee. The one qualitative exception is
-        // |lat| == 90 exactly (incl 90 with omega = +/-90), where the sweep
-        // reaches 116.56505117707803 deg: there longitude is mathematically
-        // undefined and BOTH branches are atan2 of pure rounding noise, so it
-        // is not a distinguishing observation either.
+        // `+` -> `-` is a documented equivalent mutant (FU-9). In exact reals
+        // cos(omega + PI) = cos(omega - PI) = -cos(omega), and likewise for
+        // sin, so both branches denote the same point; they differ only in how
+        // the two arguments round.
+        //
+        // The displacement is NOT bounded by a coarse sweep grid. It grows
+        // continuously as |latitude| -> 90, where atan2's two arguments both
+        // collapse toward zero. Measured at node 0, omega 90, r 2.4:
+        //     incl 89        ->  8.53e-13 deg of longitude
+        //     incl 89.99     ->  8.04e-11 deg
+        //     incl 89.9999   ->  8.04e-9  deg  (~8x this suite's 1e-9 deg tol)
+        //     incl 89.999999 ->  8.04e-7  deg
+        // Latitude is -89.9999 on the third row, so longitude is perfectly
+        // well defined there. "Undefined at the pole" does not excuse it, and
+        // a 1-degree sweep grid cannot see any of this.
+        //
+        // What makes it un-killable is the same property as the `<` -> `<=`
+        // mutant in elements_from_state above: the pair STRADDLES THE TRUTH
+        // SYMMETRICALLY, all the way in. Against the exact-in-real reference
+        // (substituting -cos(omega), -sin(omega) for the mutated argument's
+        // trig), at incl 89.9999 the original sits at -4.020250798930647e-9
+        // deg and the mutant at +4.020307642349508e-9 deg: opposite sides,
+        // equal magnitudes. That asymmetry, ||orig - truth| - |mut - truth||,
+        // stays at 5.68e-14 deg however large the displacement grows. Over a
+        // sweep of near-pole states the most a symmetric tolerance could ever
+        // exploit -- max(|mut - truth| - |orig - truth|) -- is 1.14e-13 deg,
+        // itself rounding noise. So no symmetric tolerance against an
+        // independent reference separates them anywhere along the approach;
+        // only a SIGNED assertion could, and that pins the sign of rounding
+        // noise. (Measured against the ideal omega = PI/2 geometry instead,
+        // the mutant is the one CLOSER to the truth -- 2.01e-9 deg versus the
+        // original's 6.03e-9 -- so a tolerance admitting the original admits
+        // the mutant a fortiori.)
+        //
+        // At |lat| == 90 exactly (incl 90 with omega = +/-90) the separation
+        // reaches 116.56505117707803 deg, but there longitude is
+        // mathematically undefined and BOTH branches are atan2 of pure
+        // rounding noise, so that is not a distinguishing observation either.
         aphelion: to_ecliptic(in_plane(omega + core::f64::consts::PI, apo_dist))?,
         eccentricity: e,
         semi_major_au: a,
