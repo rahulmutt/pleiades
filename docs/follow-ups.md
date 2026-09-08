@@ -1704,8 +1704,8 @@ committed it:
 
 **Per-mutant margin summary.** Full table in the slice report. Per campaign
 discipline the rows are **never aggregated**, and no margin is fabricated for a
-kill that has none: `16` of the `31` kills carry a genuine scalar displacement
-against an assertion tolerance, and the remaining `15` are **exact
+kill that has none: `16` of the `32` kills carry a genuine scalar displacement
+against an assertion tolerance, and the remaining `16` are **exact
 error-variant or exact-equality pins** with no displacement to report, disclosed
 as such rather than given an invented number (the review-driven underflow-lens
 kill is the fifteenth pin: `Ok`-carrying-`NaN` versus `Err(NonFinite)`). The
@@ -1732,6 +1732,12 @@ nature of what it pins. It is defensible because the *correct* code sits
 tolerance — so the assertion has large headroom on the passing side even though
 the failing side clears it by only `7.5 ×`. The other fifteen displacement rows
 carry margins of `10^9` or more and depend on no ulp-scale behaviour.
+
+The sixteenth pin — the perihelion-at-the-node identity — carries **no margin
+at all, by construction**: it is an exact equality (`ϖ == Ω`, bit-for-bit) with
+no tolerance to have a margin against. The mutant misses it by `5.68e-14` deg,
+which any exact comparison catches. Its robustness comes not from a margin but
+from `clamp` forcing `cos_omega` to exactly `1.0` — see prediction 6.
 
 **One test's honest-naming gap closed.** `apsides_eccentricity_floor_is_exclusive`
 pins only the *on*-boundary side; on its own it would also pass if the floor
