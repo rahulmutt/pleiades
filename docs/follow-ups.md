@@ -1592,22 +1592,45 @@ stay visible in every future run:
   see any of this, which is why two successive sweeps in this slice reported
   figures `3.7×` apart and both were wrong as bounds.
 
-  It is un-killable for the same reason as `226:20`: the pair **straddles the
-  truth symmetrically**, all the way in. Against the exact-in-real reference
-  (substituting `−cos ω`, `−sin ω` for the mutated argument's trig), at
-  `incl 89.9999°` the original sits at `−4.020250798930647e-9` deg and the
-  mutant at `+4.020307642349508e-9` deg — opposite sides, equal magnitudes —
-  and the asymmetry `||orig − truth| − |mut − truth||` stays at `5.68e-14` deg
-  *however large the displacement grows*. Over a sweep of near-pole states the
-  most a symmetric tolerance could ever exploit,
-  `max(|mut − truth| − |orig − truth|)`, is `1.14e-13` deg, itself rounding
-  noise. Only a **signed** assertion could separate them, and that pins the
-  sign of rounding noise. (Measured against the *ideal* `ω = π/2` geometry
-  instead, the mutant is the one **closer** to truth — `2.01e-9` deg versus the
-  original's `6.03e-9` — so a tolerance admitting the original admits the
-  mutant a fortiori.) At `|lat| == 90` exactly the separation reaches
-  `116.56505117707803` deg, but longitude is mathematically undefined there and
-  *both* branches are `atan2` of pure rounding noise.
+  **Two references are involved and they are not interchangeable**; each figure
+  below names its own. **(1)** The exact-in-real value of the mutated
+  expression — substituting `−cos ω`, `−sin ω` for the mutated argument's trig.
+  It isolates the mutation's own rounding but is *derived from the code*, so no
+  test can assert against it. **(2)** A genuinely independent reference: the
+  exact-real longitude the elements denote, computed at 60 digits.
+
+  Against **(1)** the branches straddle symmetrically: at `incl 89.9999°` the
+  original sits at `−4.020250798930647e-9` deg and the mutant at
+  `+4.020307642349508e-9` deg, and the asymmetry
+  `||orig − truth| − |mut − truth||` holds at `5.684342e-14` deg across four
+  orders of magnitude of displacement — **exactly one ulp of a ~270 deg
+  output**, the smallest difference the result can represent at all.
+
+  Against **(2)** that symmetry does **not** carry over, and the mutant is
+  separable in principle: at `node 250, incl 89.9999, omega 89.9999` the
+  original is `1.6345e-9` deg from truth and the mutant `2.0102e-9`, so a
+  tolerance inside that window passes the original and fails the mutant. Which
+  branch is nearer turns on the sign of `ω`'s representation error, not on the
+  mutation — over a 252-case near-pole sweep the *original* was the farther one
+  in **159** cases, the mutant in **37**, with **56** exact ties.
+
+  It is left un-killed on a **narrow** ground, not a sweeping one: such a test
+  needs *both* a hand-picked near-pole geometry *and* a tolerance threaded
+  between two errors (`1.63e-9` and `2.01e-9` deg) that are themselves already
+  larger than the suite's `1e-9` deg tolerance — so the **unmutated** code
+  fails an ordinary assertion at that geometry. That pins the code's own
+  rounding at a chosen point rather than asserting a physical fact, which this
+  campaign's "never assert against the code's own output" rule forbids. At
+  `|lat| == 90` exactly the separation reaches `116.56505117707803` deg, but
+  longitude is mathematically undefined there and *both* branches are `atan2`
+  of pure rounding noise.
+
+  **Three successive corrections landed on this one argument** (periodicity →
+  bounded sweep → symmetric straddle → the narrow ground above), each time with
+  the conclusion holding and the stated reason reaching too far. Recorded as a
+  pattern, not just three fixes: on a *documented equivalent*, the temptation is
+  to state the strongest reason that seems to fit, and the discipline is to
+  state the narrowest reason that actually holds.
 
 Campaign-wide running tally **45 → 48** (`9` from the closed three-crate
 baseline, `36` from the closed houses campaign, `3` from this slice), extending

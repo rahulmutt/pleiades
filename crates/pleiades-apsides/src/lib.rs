@@ -333,23 +333,41 @@ pub fn points_from_elements(
         // well defined there. "Undefined at the pole" does not excuse it, and
         // a 1-degree sweep grid cannot see any of this.
         //
-        // What makes it un-killable is the same property as the `<` -> `<=`
-        // mutant in elements_from_state above: the pair STRADDLES THE TRUTH
-        // SYMMETRICALLY, all the way in. Against the exact-in-real reference
-        // (substituting -cos(omega), -sin(omega) for the mutated argument's
-        // trig), at incl 89.9999 the original sits at -4.020250798930647e-9
-        // deg and the mutant at +4.020307642349508e-9 deg: opposite sides,
-        // equal magnitudes. That asymmetry, ||orig - truth| - |mut - truth||,
-        // stays at 5.68e-14 deg however large the displacement grows. Over a
-        // sweep of near-pole states the most a symmetric tolerance could ever
-        // exploit -- max(|mut - truth| - |orig - truth|) -- is 1.14e-13 deg,
-        // itself rounding noise. So no symmetric tolerance against an
-        // independent reference separates them anywhere along the approach;
-        // only a SIGNED assertion could, and that pins the sign of rounding
-        // noise. (Measured against the ideal omega = PI/2 geometry instead,
-        // the mutant is the one CLOSER to the truth -- 2.01e-9 deg versus the
-        // original's 6.03e-9 -- so a tolerance admitting the original admits
-        // the mutant a fortiori.)
+        // Two references appear below and they are NOT interchangeable; every
+        // figure names the one it was measured against.
+        //   (1) The exact-in-real value of the mutated expression itself --
+        //       substituting -cos(omega), -sin(omega) for the mutated
+        //       argument's trig. It isolates the mutation's own rounding, but
+        //       it is derived from this code, so no test can assert against it.
+        //   (2) A genuinely independent reference: the exact-real longitude
+        //       these elements denote, computed at 60 digits. This is what a
+        //       test could actually use.
+        //
+        // Against (1) the branches straddle symmetrically: at incl 89.9999 the
+        // original sits at -4.020250798930647e-9 deg and the mutant at
+        // +4.020307642349508e-9 deg, and the asymmetry
+        // ||orig - truth| - |mut - truth|| holds at 5.684342e-14 deg across
+        // four orders of magnitude of displacement -- which is exactly one ulp
+        // of a ~270 deg output, i.e. the smallest difference the result can
+        // represent at all.
+        //
+        // Against (2) that symmetry does NOT carry over, and the mutant is
+        // separable in principle. At node 250, incl 89.9999, omega 89.9999 the
+        // original is 1.6345e-9 deg from the truth and the mutant 2.0102e-9,
+        // so a tolerance inside that window passes the original and fails the
+        // mutant. Which branch is nearer turns on the sign of omega's
+        // representation error, not on the mutation: over a 252-case near-pole
+        // sweep the original was the farther one in 159 cases, the mutant in
+        // 37, with 56 exact ties.
+        //
+        // It is nonetheless left un-killed, on a narrow ground. Such a test
+        // would need BOTH a hand-picked near-pole geometry AND a tolerance
+        // threaded between two errors -- 1.63e-9 and 2.01e-9 deg -- that are
+        // themselves already larger than the suite's 1e-9 deg tolerance, so
+        // the UNMUTATED code fails an ordinary assertion at that geometry.
+        // Such a test pins this code's rounding at a chosen point instead of
+        // asserting a physical fact, which is what this campaign's "never
+        // assert against the code's own output" rule forbids.
         //
         // At |lat| == 90 exactly (incl 90 with omega = +/-90) the separation
         // reaches 116.56505117707803 deg, but there longitude is
