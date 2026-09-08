@@ -174,18 +174,30 @@ from the measurement.
 |-----------|---------|----------|
 | 10 | 112×2, 114, 115×2, 116, 139×4 | One non-degenerate inclined geometry (above) |
 | 4 | 227×4 | A `ω = 210°` case — no current test reaches the `peri_vec[2] < 0` branch at all, so all four operator swaps in `2.0 * π − omega` are unexercised rather than indistinguishable |
-| 8 | 104×3, 248–251, 258 | Input-parameter guards whose operands are **independently settable** — a NaN in one field with the rest finite distinguishes `\|\|` from `&&`. `points_from_elements` takes an explicit `KeplerianElements` struct, so each of its five finite checks and both halves of `e >= 1.0 \|\| a <= 0.0` are directly addressable. Killable, not equivalents. |
-| 3 | 76, 204, 210 (`*`→`/`) | Guards distinguishable via the **overflow lens** — `r == 0.0` (finite) versus a `1e200` component overflowing a squared-norm sum to `+inf`. Per `[[fu9-guard-equivalence-overflow-lens]]`, the finite-overflow-to-`inf` input is tested **before** any equivalence claim. |
-| 4 | 210 (`<`→`<=`), 226 (`<`→`==`), 255×2 | Free-parameter / reachable-branch boundaries. Line 255's `e` is a **caller-supplied field**, so an exactly-`MIN_ECCENTRICITY` input is trivially settable and both its mutants are killable. |
-| **~3** | 81, 226 (`<`→`<=`), 287 | **Expected documented equivalents** — arguments below |
-| **1** | 122 | **Undecided by design** — bounded representability search, below |
+| 7 | 248–251, 255×2, 258 | Free-parameter guards on `points_from_elements`, which takes an explicit `KeplerianElements` struct. A single input — `a = -inf` with every other field finite — kills all four `&&` mutants at once (`Err(NonFinite)` → `Err(UnboundOrbit)`). `e = MIN_ECCENTRICITY` and `e = 1e-7` kill 255; `(e=1.5, a=2.0)` and `(e=0.5, a=-2.0)` kill 258. |
+| 2 | 76, 104:27 | **Overflow lens** — components finite but the squared norm overflows to `+inf`. `to_ecliptic([1e200; 3])` then yields a *finite* lon/lat (`p[i]/inf = 0`), so the mutant returns `Ok` where the original errors. Per `[[fu9-guard-equivalence-overflow-lens]]`. |
+| 1 | 104:62 | The `mu <= 0.0` arm — a **negative μ** with finite non-zero position: `Err(NonFinite)` → `Ok`. |
+| 1 | 204 | Radial motion (`h = 0` exactly). Requires care: a plain radial state has `e == 1.0` exactly, so `r_peri = a(1−e) = 0` and `to_ecliptic` fails *inside* `apsides()` before line 204 is reached. A crafted `vx` leaves `e` one ulp below 1, keeping `r_peri ≠ 0`. |
+| 2 | 210×2 | `<`→`<=` by a state sitting **exactly** on `n_mag == 1e-12·h_mag`; `*`→`/` by a tiny-but-supra-threshold inclination (`i = 1e-10°`), which separates `1e-12·h_mag` from `1e-12/h_mag`. |
+| 2 | 122, 226 (`<`→`==`) | Reachable boundaries — see the crafted eccentricity state below and the `ω = 210°` southern branch above. |
+| **4** | 81, 104:43, 226 (`<`→`<=`), 287 | **Documented equivalents** — arguments below |
 
-### Expected documented equivalents
+### Documented equivalents (measured: 4)
 
 Each is left **visible with a written reachability argument**, never
 `#[mutants::skip]`-suppressed — the established posture, since a function-level
 skip would blanket-suppress that function's numeric mutants.
 
+- **104:43** — the second `||` in
+  `!r_mag.is_finite() || r_mag == 0.0 || !mu.is_finite() || mu <= 0.0`. Rust
+  binds `&&` tighter than `||`, so the mutant is `a || (b && c) || d`, not
+  `((a || b) && c) || d`; its only distinguishing region is
+  `{r_mag == 0.0 exactly, μ finite, μ > 0}`. There `μ/r_mag = +inf` forces
+  `c1 = -inf`, and every sub-case poisons `e`: all-zero `pos` gives
+  `-inf · 0 = NaN`; an all-subnormal `pos` whose squared norm underflows to
+  `0.0` gives `∓inf` components and `e = inf`; mixed cases give `NaN`. All
+  three fail `!e.is_finite()`, so **both** branches return `Err(NonFinite)`.
+  The `r_mag == 0.0` arm is redundant with the downstream finiteness check.
 - **81** — `!longitude_deg.is_finite() || !latitude_deg.is_finite()`. Line 76
   has already established that `r` is finite and non-zero, so `p` is
   componentwise finite; `atan2` is total on finite inputs and `p[2]/r` lies in
@@ -209,30 +221,37 @@ skip would blanket-suppress that function's numeric mutants.
   reaches that; an assertion tight enough to kill it would be pinning the
   code's own output, which is the failure mode this tier exists to avoid.
 
-### The one undecided survivor
+### The crafted eccentricity boundary (122) — resolved, killable
 
-**122 — `e < MIN_ECCENTRICITY` → `<=`** is deliberately left open by this
-design rather than predicted either way, because the two candidate answers rest
-on the same lens pointing in opposite directions:
+**122 — `e < MIN_ECCENTRICITY` → `<=`** was open at design time and is now
+**settled: killable.** The concern was that `e` here is *derived*, not a free
+parameter — `norm(c1·r − c2·v)` with `c1 = (v² − μ/r)/μ`. Near `e ≈ 1e-6` that
+is a catastrophic cancellation, so the reachable `e` values sit on a grid of
+roughly `2.2e-10` relative spacing, about `1e6` times coarser than the
+`~2.1e-22` absolute precision needed to land on `MIN_ECCENTRICITY` exactly.
+Two searches confirmed the difficulty is real (~160k and then ~11.1M
+`(r, v, μ)` neighbour trials, no hit) — but both swept `r_mag` over **powers of
+two**, which makes the final `fl(c1 · rx)` product exact and therefore coarse.
 
-- Line **255** is the *identical* comparison against the *same* constant, and
-  it is plainly killable, because there `e` is a free input parameter.
-- Line **122**'s `e` is *derived* — `norm(e_vec)` where
-  `e_vec = c1·r − c2·v` and `c1 = (v² − μ/r)/μ`. Near `e ≈ 1e-6` that is a
-  catastrophic cancellation: `v²` and `μ/r` agree to ~6 decimal digits, so the
-  difference retains only ~32 of 53 bits and the reachable `e` values near
-  `1e-6` sit on a grid of roughly `2.2e-10` relative spacing — about `1e6`
-  times coarser than the `~2.1e-22` absolute precision needed to land on
-  `MIN_ECCENTRICITY` exactly. A first bounded search over ~160k
-  `(v, μ)` neighbour pairs at `r = [1,0,0]` found no exact hit.
+Sweeping `r_mag` over **consecutive doubles** gives that multiply an
+independent rounding, and the step in the exact product per `r_mag` ulp
+(`≈ 2.2e-22`) is comparable to `ulp(1e-6)` — so hits exist at roughly `1e-6`
+density. One was found and **verified against the crate**:
 
-The plan therefore runs a **wider bounded search** across `r_mag`/`μ` exponent
-choices before concluding. If a state is found, the mutant is killed with an
-in-test precondition assert proving the crafted input hits the boundary exactly
-(the `[[fu9-jd-grid-representability]]` discipline). If the search fails, it is
-documented as an equivalent **with the grid argument written out** — including
-the search bounds actually run, so the claim is falsifiable rather than
-asserted.
+```
+pos = [f64::from_bits(0x400000000005a740), 0.0, 0.0]   // 2.0000000001645333
+vel = [0.0, f64::from_bits(0x3fe6a09f244b3b60), 0.0]   // 0.70710713471076400
+mu  = 1.0
+=> apsides(...) = Ok, eccentricity bit-identical to MIN_ECCENTRICITY
+```
+
+The original returns `Ok` (since `1e-6 < 1e-6` is false); the `<=` mutant
+returns `Err(DegenerateOrbit)`. The test carries an in-test precondition
+`assert_eq!(aps.eccentricity, MIN_ECCENTRICITY)` proving the crafted input
+lands on the boundary exactly, per `[[fu9-jd-grid-representability]]`.
+
+**Recorded so it is not re-derived:** the power-of-two `r_mag` family is a
+dead end. Do not re-run it.
 
 ## Structure change
 
