@@ -1702,42 +1702,117 @@ committed it:
    above, **none** below). A state landing on `1.0` by rounding alone would
    have been fragile and was rejected in favour of one the clamp protects.
 
-**Per-mutant margin summary.** Full table in the slice report. Per campaign
-discipline the rows are **never aggregated**, and no margin is fabricated for a
-kill that has none: `16` of the `32` kills carry a genuine scalar displacement
-against an assertion tolerance, and the remaining `16` are **exact
-error-variant or exact-equality pins** with no displacement to report, disclosed
-as such rather than given an invented number (the review-driven underflow-lens
-kill is the fifteenth pin: `Ok`-carrying-`NaN` versus `Err(NonFinite)`). The
-sixteenth displacement row is the near-pole aphelion pin, whose margin is
-`7.47e-9` deg against a `1e-9` deg tolerance — `7.5x` over, with the correct
-code `~3,800x` inside. Each measured row states the
-mutant's *strongest-firing* assertion (its kill signal) and residual. Across
-those **`16`**, the **true minimum** kill margin is **`7.5 ×`** its assertion
-tolerance — the near-pole aphelion pin (`303:46`),
-whose mutant lands
-`7.47e-9` deg against a `1e-9` deg tolerance. The largest is `8.08e15 ×`
-(`131:24` `*` → `/`, bifocal-sum residual `8.08e3` AU against `1e-12`). Second
-smallest, and the minimum among the original fifteen, is `3.65e10 ×`
-(`243:21` `*` → `/`, landing `peri_lon_deg` at `286.476°` where `250°` is
-correct). The five southern-perihelion mutants land `36.5°`–`72.5°` from the
-true `250°`; the ten forward-reference mutants run `4.11e10 ×` to `8.08e15 ×`.
+**Per-mutant margin tables** (never aggregated, per the campaign discipline —
+inlined below in full, one row per mutant, so the rows outlive any working
+notes). No margin is fabricated for a kill that has none: `16` of the `32`
+kills carry a genuine scalar displacement against an assertion tolerance, and
+the remaining `16` are **exact error-variant or exact-equality pins** with no
+displacement to report, disclosed as such rather than given an invented number.
+
+Across the 16 displacement rows the **true minimum** kill margin is **`7.5 ×`**
+its assertion tolerance — the near-pole aphelion pin (`303:46`), whose mutant
+lands `7.47e-9` deg against a `1e-9` deg tolerance. That is stated as the
+minimum, not smoothed into an aggregate. The largest is `8.08e15 ×` (`131:24`
+`*` → `/`). Second smallest is `3.65e10 ×` (`243:21` `*` → `/`).
 
 **One kill in this slice IS marginal, by design, and that is worth saying
-plainly rather than smoothing over.** The near-pole aphelion pin is a
-last-few-ulps distinction: it separates two expressions that are identical in
-exact arithmetic, so its `7.5 ×` margin is not a defect of the test but the
-nature of what it pins. It is defensible because the *correct* code sits
-`2.59e-13` deg from the independent reference — `~3,800 ×` inside the same
-tolerance — so the assertion has large headroom on the passing side even though
-the failing side clears it by only `7.5 ×`. The other fifteen displacement rows
-carry margins of `10^9` or more and depend on no ulp-scale behaviour.
+plainly.** The near-pole aphelion pin is a last-few-ulps distinction: it
+separates two expressions identical in exact arithmetic, so its `7.5 ×` margin
+is the nature of what it pins, not a defect. It is defensible because the
+*correct* code sits `2.59e-13` deg from the independent reference — `~3,800 ×`
+inside the same tolerance — so the assertion has large headroom on the passing
+side even though the failing side clears it by only `7.5 ×`. The other fifteen
+displacement rows carry margins of `10^9` or more and depend on no ulp-scale
+behaviour. The perihelion-at-the-node identity carries **no margin at all, by
+construction**: it is an exact equality (`ϖ == Ω`, bit-for-bit) with no
+tolerance to have a margin against; the mutant misses by `5.68e-14` deg, which
+any exact comparison catches, and its robustness comes from `clamp` forcing
+`cos_omega` to exactly `1.0` — see prediction 6.
 
-The sixteenth pin — the perihelion-at-the-node identity — carries **no margin
-at all, by construction**: it is an exact equality (`ϖ == Ω`, bit-for-bit) with
-no tolerance to have a margin against. The mutant misses it by `5.68e-14` deg,
-which any exact comparison catches. Its robustness comes not from a margin but
-from `clamp` forcing `cos_omega` to exactly `1.0` — see prediction 6.
+**Rows with a genuine scalar displacement — 16.**
+
+`apsides`, eccentricity vector and apsis positions, against the independent
+forward construction at `a = 2, e = 0.2, i = 10°, Ω = 40°, ω = 30°, ν = 50°,
+μ = 2.959e-4` (test `apsides_match_forward_construction_at_non_degenerate_geometry`).
+Each row gives the mutant's strongest-firing assertion:
+
+| Mutant | Firing assertion | Residual | Tolerance | Margin |
+|--------|------------------|----------|-----------|--------|
+| 128:17 `/`→`%` | apogee longitude | 50.2258 deg | 1e-10 deg | 5.02e11× |
+| 128:17 `/`→`*` | apogee longitude | 50.2273 deg | 1e-10 deg | 5.02e11× |
+| 130:19 `-`→`+` | apogee longitude | 69.5107 deg | 1e-10 deg | 6.95e11× |
+| 131:19 `-`→`+` | perigee longitude | 24.9897 deg | 1e-10 deg | 2.50e11× |
+| 131:24 `*`→`/` | bifocal sum `r_apo+r_peri−2a` | 8.0848e3 AU | 1e-12 AU | 8.08e15× |
+| 132:19 `-`→`+` | apogee latitude | 4.6242 deg | 1e-10 deg | 4.62e10× |
+| 155:39 delete `-` | apogee longitude | 139.2433 deg | 1e-10 deg | 1.39e12× |
+| 155:49 `*`→`/` | bifocal sum | 1.4577 AU | 1e-12 AU | 1.46e12× |
+| 155:58 delete `-` | apogee latitude | 9.9619 deg | 1e-10 deg | 9.96e10× |
+| 155:68 `*`→`/` | apogee latitude | 4.1141 deg | 1e-10 deg | 4.11e10× |
+
+True minimum in this group **4.11e10×**.
+
+`elements_from_state`, southern-perihelion branch, at `a = 2, e = 0.2, i = 10°,
+Ω = 40°, ω = 210°, ν = 50°, μ = 2.959e-4` (test
+`elements_recover_southern_perihelion_argument`). Correct `peri_lon_deg` is
+`250°`, the unmutated residual is `0.0` exactly, tolerance `1e-9` deg:
+
+| Mutant | Mutated `peri_lon_deg` | Displacement | Margin |
+|--------|------------------------|--------------|--------|
+| 242:20 `<`→`==` | `190.000000` | 60.0000 deg | 6.00e10× |
+| 243:21 `*`→`+` | `184.591559` | 65.4084 deg | 6.54e10× |
+| 243:21 `*`→`/` | `286.475626` | 36.4756 deg | 3.65e10× |
+| 243:45 `-`→`+` | `190.000000` | 60.0000 deg | 6.00e10× |
+| 243:45 `-`→`/` | `177.509871` | 72.4901 deg | 7.25e10× |
+
+True minimum in this group **3.65e10×**.
+
+`points_from_elements`, near-pole aphelion argument, at `node 0,
+incl 89.999997, peri_lon 90.00003, e 0.2, a 2.0`, against a 60-digit
+independent reference (test `aphelion_argument_of_latitude_is_omega_plus_pi`),
+tolerance `1e-9` deg:
+
+| Mutant | Firing assertion | Residual | Correct code | Margin |
+|--------|------------------|----------|--------------|--------|
+| 303:46 `+`→`-` | aphelion longitude | 7.46528e-9 deg | 2.58783e-13 deg (~3,800× inside) | **7.5×** |
+
+**Slice-wide true minimum: `7.5×`, this row.**
+
+**Rows with NO displacement — 16 exact error-variant or `Ok`/`Err` pins.** The
+assertion is a discrete `assert_eq!` on an error variant, or an
+`is_ok()`/`unwrap()` that flips outright. "Displacement" is not a defined
+quantity for these and none is invented:
+
+| Mutant | Killing test | Kill mechanism | Margin |
+|--------|--------------|----------------|--------|
+| 264:9 `&&`→`\|\|` | `points_from_elements_rejects_non_finite_semi_major` | mutant returns `UnboundOrbit`, original `NonFinite` | exact variant pin — none |
+| 265:9 `&&`→`\|\|` | same | same | exact variant pin — none |
+| 266:9 `&&`→`\|\|` | same | same | exact variant pin — none |
+| 267:9 `&&`→`\|\|` | same | same | exact variant pin — none |
+| 271:10 `<`→`<=` | `points_from_elements_eccentricity_floor_is_exclusive` | at `e == MIN_ECCENTRICITY` mutant gives `DegenerateOrbit`, original `Ok` | exact `Ok`/`Err` pin — none |
+| 271:10 `<`→`==` | same | at `e = 1e-7` mutant gives `Ok`, original `DegenerateOrbit` | exact `Ok`/`Err` pin — none |
+| 274:17 `\|\|`→`&&` | `points_from_elements_rejects_unbound_conics` | neither `e=1.5,a=2` nor `e=0.5,a=-2` trips the mutated conjunction | exact variant pin — none |
+| 76:23 `\|\|`→`&&` | `to_ecliptic_rejects_overflowing_norm` | overflow lens: `r = inf` but both angles finite, mutant returns `Ok` | exact `Ok`/`Err` pin — none |
+| 81:35 `\|\|`→`&&` | `to_ecliptic_rejects_underflowing_norm` | underflow lens: `fl(z*z)` subnormal ⇒ `asin` `NaN` while `atan2` stays finite; mutant returns `Ok` with `NaN` latitude | exact `Ok`/`Err` pin — none |
+| 120:27 `\|\|`→`&&` | `apsides_rejects_overflowing_position_norm` | mutant proceeds to `inv_a = 2.0/inf − 1e-120 ≤ 0` and returns `UnboundOrbit` | exact variant pin — none |
+| 120:62 `\|\|`→`&&` | `apsides_rejects_non_positive_mu` | at `μ = −1` mutant returns `Ok` (`e = 2.0`), original `NonFinite` | exact `Ok`/`Err` pin — none |
+| 220:27 `\|\|`→`&&` | `radial_motion_has_no_orbital_plane` | `h_mag == 0` yet finite; mutant returns `Ok` carrying `NaN` elements | exact `Ok`/`Err` pin — none |
+| 226:14 `<`→`<=` | `node_threshold_is_exclusive_at_the_exact_boundary` | state sits bit-exactly on `n_mag == 1e-12·h_mag`; mutant returns `DegenerateNode` | exact `Ok`/`Err` pin — none |
+| 226:22 `*`→`/` | `node_threshold_scales_multiplicatively_with_angular_momentum` | `1e-12·h_mag < n_mag < 1e-12/h_mag`; mutant returns `DegenerateNode` | exact `Ok`/`Err` pin — none |
+| 138:10 `<`→`<=` | `apsides_eccentricity_floor_is_exclusive` | derived `e` bit-identical to `MIN_ECCENTRICITY`; mutant returns `DegenerateOrbit` | exact `Ok`/`Err` pin — none |
+| 242:20 `<`→`<=` | `perihelion_at_the_node_gives_peri_lon_equal_to_node` | exact identity `ϖ == Ω`; mutant returns `255.49849089543818` where `255.49849089543824` is correct | exact equality pin, no tolerance — none |
+
+`242:20` appears in both tables under two different mutations: `<`→`==` carries
+a `60°` displacement, `<`→`<=` is an exact-identity pin. Two mutants at one
+site, two unrelated kill mechanisms.
+
+**The one surviving mutant — a documented equivalent, not a kill.**
+
+| Mutant | Argument | Margin |
+|--------|----------|--------|
+| 120:43 `\|\|`→`&&` | Rust precedence makes the mutant `a \|\| (b && c) \|\| d`. Both distinguishing regions — **A** `{r_mag == 0, μ finite, μ > 0}` and **B** `{r_mag finite non-zero, μ ∈ {NaN, +inf}}` — drive `e` to `NaN` and return `Err(NonFinite)`, matching the original. Verified analytically and over 448 crafted region-A/region-B cases with zero divergences. | not applicable — no distinguishing input exists |
+
+`16 + 16 = 32` kills, plus `1` documented equivalent, accounting for all `33`
+baseline survivors.
 
 **One test's honest-naming gap closed.** `apsides_eccentricity_floor_is_exclusive`
 pins only the *on*-boundary side; on its own it would also pass if the floor
