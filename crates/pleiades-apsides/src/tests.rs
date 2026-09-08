@@ -454,6 +454,68 @@ fn node_threshold_scales_multiplicatively_with_angular_momentum() {
     assert!(el.incl_deg < 1e-8, "incl {}", el.incl_deg);
 }
 
+/// Pins the aphelion's argument of latitude at `omega + PI`, not `omega - PI`.
+///
+/// In exact reals the two are the same point (they differ by exactly `2*PI`),
+/// so this can only be separated where the two arguments round differently and
+/// the result is ill-conditioned -- i.e. near the pole, where `atan2`'s two
+/// arguments both collapse toward zero. The geometry below is deliberately
+/// chosen for that: `incl 89.999997` puts the aphelion at latitude
+/// `-89.99997`, where longitude is still perfectly well defined but the
+/// conditioning amplifies a last-ulp difference in the argument into a
+/// measurable displacement in longitude.
+///
+/// EXPECTED is NOT taken from this crate. It is the exact-real aphelion
+/// longitude for these elements, computed outside the repository with mpmath
+/// at 60 decimal digits via three independent formulations -- the full
+/// R3(-node)R1(-incl) rotation, the closed form `atan2(sin u * cos i, cos u)`
+/// valid at `node == 0`, and the rotation with the radius factor carried
+/// symbolically -- which agree to 40 digits at
+/// `354.289406849064871917063497559`. The literal below is the nearest `f64`,
+/// 2.5e-14 deg (under half an ulp) from that value.
+///
+/// The reference is evaluated at the exact `f64` values of the element fields,
+/// NOT at the decimal literals as written. That distinction is load-bearing
+/// here, not pedantry: at this conditioning, the 3e-15 deg gap between
+/// `89.999997_f64` and the decimal `89.999997` swings the reference by
+/// 1.34e-8 deg -- larger than everything being measured, and enough to make
+/// the WRONG answer look closer than the right one. The function is handed
+/// `f64`s and can only be correct about those.
+///
+/// Tolerance 1e-9 deg is this suite's ordinary angular tolerance, not a value
+/// tuned to make the assertion work. Measured margins: the correct code lands
+/// 2.59e-13 deg from the reference (~3,800x inside the tolerance, about 4.5
+/// ulps of a 354 deg output), while `omega - PI` lands 7.47e-9 deg away, 7.5x
+/// outside it.
+#[test]
+fn aphelion_argument_of_latitude_is_omega_plus_pi() {
+    // mpmath, dps=60: 354.289406849064871917063497559
+    const EXPECTED_LON_DEG: f64 = 354.28940684906485;
+
+    let el = KeplerianElements {
+        node_deg: 0.0,
+        peri_lon_deg: 90.00003,
+        incl_deg: 89.999997,
+        eccentricity: 0.2,
+        semi_major_au: 2.0,
+    };
+    let aphelion = points_from_elements(&el, false).unwrap().aphelion;
+
+    // Precondition: this must be the near-pole regime the test targets, or the
+    // two branches are indistinguishable and the assertion proves nothing.
+    assert!(
+        aphelion.latitude_deg < -89.9999,
+        "geometry must be near-pole, lat {}",
+        aphelion.latitude_deg
+    );
+
+    assert!(
+        (aphelion.longitude_deg - EXPECTED_LON_DEG).abs() < 1e-9,
+        "aphelion lon {} vs independent reference {EXPECTED_LON_DEG}",
+        aphelion.longitude_deg
+    );
+}
+
 /// The eccentricity floor is exclusive: a state whose osculating eccentricity
 /// is bit-identical to MIN_ECCENTRICITY is accepted, not rejected as
 /// degenerate.

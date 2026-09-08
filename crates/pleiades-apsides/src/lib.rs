@@ -317,62 +317,6 @@ pub fn points_from_elements(
         ascending: to_ecliptic(in_plane(0.0, r_asc))?,
         descending: to_ecliptic(in_plane(core::f64::consts::PI, r_dsc))?,
         perihelion: to_ecliptic(in_plane(omega, a * (1.0 - e)))?,
-        // `+` -> `-` is a documented equivalent mutant (FU-9). In exact reals
-        // cos(omega + PI) = cos(omega - PI) = -cos(omega), and likewise for
-        // sin, so both branches denote the same point; they differ only in how
-        // the two arguments round.
-        //
-        // The displacement is NOT bounded by a coarse sweep grid. It grows
-        // continuously as |latitude| -> 90, where atan2's two arguments both
-        // collapse toward zero. Measured at node 0, omega 90, r 2.4:
-        //     incl 89        ->  8.53e-13 deg of longitude
-        //     incl 89.99     ->  8.04e-11 deg
-        //     incl 89.9999   ->  8.04e-9  deg  (~8x this suite's 1e-9 deg tol)
-        //     incl 89.999999 ->  8.04e-7  deg
-        // Latitude is -89.9999 on the third row, so longitude is perfectly
-        // well defined there. "Undefined at the pole" does not excuse it, and
-        // a 1-degree sweep grid cannot see any of this.
-        //
-        // Two references appear below and they are NOT interchangeable; every
-        // figure names the one it was measured against.
-        //   (1) The exact-in-real value of the mutated expression itself --
-        //       substituting -cos(omega), -sin(omega) for the mutated
-        //       argument's trig. It isolates the mutation's own rounding, but
-        //       it is derived from this code, so no test can assert against it.
-        //   (2) A genuinely independent reference: the exact-real longitude
-        //       these elements denote, computed at 60 digits. This is what a
-        //       test could actually use.
-        //
-        // Against (1) the branches straddle symmetrically: at incl 89.9999 the
-        // original sits at -4.020250798930647e-9 deg and the mutant at
-        // +4.020307642349508e-9 deg, and the asymmetry
-        // ||orig - truth| - |mut - truth|| holds at 5.684342e-14 deg across
-        // four orders of magnitude of displacement -- which is exactly one ulp
-        // of a ~270 deg output, i.e. the smallest difference the result can
-        // represent at all.
-        //
-        // Against (2) that symmetry does NOT carry over, and the mutant is
-        // separable in principle. At node 250, incl 89.9999, omega 89.9999 the
-        // original is 1.6345e-9 deg from the truth and the mutant 2.0102e-9,
-        // so a tolerance inside that window passes the original and fails the
-        // mutant. Which branch is nearer turns on the sign of omega's
-        // representation error, not on the mutation: over a 252-case near-pole
-        // sweep the original was the farther one in 159 cases, the mutant in
-        // 37, with 56 exact ties.
-        //
-        // It is nonetheless left un-killed, on a narrow ground. Such a test
-        // would need BOTH a hand-picked near-pole geometry AND a tolerance
-        // threaded between two errors -- 1.63e-9 and 2.01e-9 deg -- that are
-        // themselves already larger than the suite's 1e-9 deg tolerance, so
-        // the UNMUTATED code fails an ordinary assertion at that geometry.
-        // Such a test pins this code's rounding at a chosen point instead of
-        // asserting a physical fact, which is what this campaign's "never
-        // assert against the code's own output" rule forbids.
-        //
-        // At |lat| == 90 exactly (incl 90 with omega = +/-90) the separation
-        // reaches 116.56505117707803 deg, but there longitude is
-        // mathematically undefined and BOTH branches are atan2 of pure
-        // rounding noise, so that is not a distinguishing observation either.
         aphelion: to_ecliptic(in_plane(omega + core::f64::consts::PI, apo_dist))?,
         eccentricity: e,
         semi_major_au: a,

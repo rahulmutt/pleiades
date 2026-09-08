@@ -13,7 +13,7 @@ cargo mutants -p <crate> --test-tool nextest --test-workspace=false --baseline r
 
 | Crate | Mutants | Missed | Caught | Unviable | Score |
 |-------|---------|--------|--------|----------|-------|
-| ~~`pleiades-apsides`~~ (triaged 2026-09-08) | 223 | ~~33~~ → 3 | ~~186~~ → 216 | 4 | ~~84.9%~~ → 98.6% |
+| ~~`pleiades-apsides`~~ (triaged 2026-09-08) | 223 | ~~33~~ → 2 | ~~186~~ → 217 | 4 | ~~84.9%~~ → 99.1% |
 | `pleiades-backend` | 263 | 70 | 145 | 48 | 67.4% |
 | `pleiades-ayanamsa` | 305 | 85 | 196 | 24 | 69.8% |
 | `pleiades-fict`¹ | 308 | 148 | 147 | 11 | 49.5%¹ |
@@ -100,7 +100,7 @@ Report-only; this note gates nothing. No parity gate
 production code was touched producing these numbers.
 
 **Queue status (updated 2026-09-08).** `pleiades-apsides` is **triaged and
-closed** by the 2026-09-08 expansion slice — 33 missed → 3, each of the three
+closed** by the 2026-09-08 expansion slice — 33 missed → 2, each of the two
 residual survivors carrying a written reachability argument at its site in
 `crates/pleiades-apsides/src/lib.rs` (no `#[mutants::skip]`). Its row above is
 struck through and its post-triage figures shown; the pre-triage figures are
@@ -108,7 +108,7 @@ retained only as the measurement this note originally recorded, not as an open
 survivor count. The **Total** row is deliberately left at its as-measured
 2026-07-25 values (1099 / 336) — it is the historical baseline aggregate, not a
 live count; the live open-survivor total is 336 - 33 = **303** across the three
-crates below. See the FU-9 "apsides" entry in `docs/follow-ups.md`.
+crates below. (`99.1%` = 217 caught / 219 viable.) See the FU-9 "apsides" entry in `docs/follow-ups.md`.
 
 The **remaining queue is three crates**: `pleiades-backend` (70 missed),
 `pleiades-ayanamsa` (85), and `pleiades-fict` (148, provisional — see the

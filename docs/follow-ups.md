@@ -1509,7 +1509,7 @@ every mutant would pay their cost.)
 
 
 **Progress (2026-09-08) — `pleiades-apsides`, a NEW post-baseline expansion
-slice:** triaged from `33` → `3` documented equivalents, whole crate.
+slice:** triaged from `33` → `2` documented equivalents, whole crate.
 
 This is **not** part of the closed 2026-07-18 three-crate baseline, nor of the
 closed `pleiades-houses` campaign. Both of those are finished. This is the first
@@ -1520,28 +1520,29 @@ new work, not part of either closed body"), taking the first crate off the
 
 **Measured, not estimated.** Baseline re-measured on this branch at
 `7aefa946c`: `223 mutants tested in 2m: 33 missed, 186 caught, 4 unviable`
-(exit 2). Final, after six kill tasks plus the review-driven underflow-lens
-kill:
+(exit 2). Final, after six kill tasks plus **two** review-driven kills, each
+reclaiming a mutant this slice had already written off as an equivalent:
 
 ```
-223 mutants tested in 3m: 3 missed, 216 caught, 4 unviable
+223 mutants tested in 3m: 2 missed, 217 caught, 4 unviable
 ```
 
 Exit 2 both times — the report-only tier's expected outcome. Command:
 `cargo mutants -p pleiades-apsides --test-tool nextest --test-workspace=false
---baseline run`. `30` mutants killed by `11` new tests and `1` new independent
+--baseline run`. `31` mutants killed by `12` new tests and `1` new independent
 reference helper (`state_from_elements`, a published perifocal-basis forward
 construction deliberately *not* the crate's own inverse formulation, so a sign
 or operator error in `apsides` cannot be masked by a shared expression). Crate
-suite `19 → 21` tests, all passing.
+suite `19 → 22` tests, all passing.
 
 **Per-task kills, each verified by its own whole-crate run:** forward-reference
 geometry `10` (`33 → 23`), southern-perihelion branch `5` (`→ 18`),
 `points_from_elements` guards `7` (`→ 11`), overflow-lens guards + negative μ
 `3` (`→ 8`), `elements_from_state` node guards `3` (`→ 5`), derived-eccentricity
-floor `1` (`→ 4`), then review-driven underflow lens `1` (`→ 3`).
+floor `1` (`→ 4`), then review-driven underflow lens `1` (`→ 3`) and
+review-driven near-pole aphelion pin `1` (`→ 2`).
 
-**The three documented equivalents**, each carrying a written reachability
+**The two documented equivalents**, each carrying a written reachability
 argument as a comment at its site in `crates/pleiades-apsides/src/lib.rs`. **No
 `#[mutants::skip]` was added** — the arguments are the record, and the mutants
 stay visible in every future run:
@@ -1578,72 +1579,19 @@ stay visible in every future run:
   of rounding noise. (Its sibling `226:20` `<` → `==` is *not* equivalent and
   was killed in the southern-perihelion task — two mutants at one site with
   opposite dispositions.)
-- `287:46` `+` → `-` in the aphelion argument of latitude. **Symmetric
-  straddle again — not, as first claimed, a small bounded displacement.** In
-  exact reals `cos(ω+π) = cos(ω−π) = −cos ω`, so both branches denote the same
-  point and differ only in how the arguments round. But **the displacement is
-  unbounded, not sweep-bounded**: it grows continuously as `|latitude| → 90`,
-  where `atan2`'s two arguments both collapse toward zero. Measured at
-  `node 0, omega 90, r 2.4` — `incl 89°` → `8.53e-13` deg, `incl 89.99°` →
-  `8.04e-11`, `incl 89.9999°` → `8.04e-9` (**~8× this suite's own `1e-9` deg
-  tolerance**), `incl 89.999999°` → `8.04e-7`. Latitude is `-89.9999` at the
-  third point, so longitude is perfectly well defined and the
-  "undefined at the pole" escape does not apply. A 1-degree sweep grid cannot
-  see any of this, which is why two successive sweeps in this slice reported
-  figures `3.7×` apart and both were wrong as bounds.
 
-  **Two references are involved and they are not interchangeable**; each figure
-  below names its own. **(1)** The exact-in-real value of the mutated
-  expression — substituting `−cos ω`, `−sin ω` for the mutated argument's trig.
-  It isolates the mutation's own rounding but is *derived from the code*, so no
-  test can assert against it. **(2)** A genuinely independent reference: the
-  exact-real longitude the elements denote, computed at 60 digits.
+Campaign-wide running tally **45 → 47** (`9` from the closed three-crate
+baseline, `36` from the closed houses campaign, `2` from this slice), extending
+the series `9 → 22 → 30 → 36 → 41 → 44 → 43 → 45 → 47`. In-crate
+documented-equivalent sub-total for `pleiades-apsides`: **2**. (Earlier drafts
+of this entry claimed `4` (tally `49`) and then `3` (tally `48`); review proved
+two of those four killable — see predictions 4 and 5 below.)
 
-  Against **(1)** the branches straddle symmetrically: at `incl 89.9999°` the
-  original sits at `−4.020250798930647e-9` deg and the mutant at
-  `+4.020307642349508e-9` deg, and the asymmetry
-  `||orig − truth| − |mut − truth||` holds at `5.684342e-14` deg across four
-  orders of magnitude of displacement — **exactly one ulp of a ~270 deg
-  output**, the smallest difference the result can represent at all.
-
-  Against **(2)** that symmetry does **not** carry over, and the mutant is
-  separable in principle: at `node 250, incl 89.9999, omega 89.9999` the
-  original is `1.6345e-9` deg from truth and the mutant `2.0102e-9`, so a
-  tolerance inside that window passes the original and fails the mutant. Which
-  branch is nearer turns on the sign of `ω`'s representation error, not on the
-  mutation — over a 252-case near-pole sweep the *original* was the farther one
-  in **159** cases, the mutant in **37**, with **56** exact ties.
-
-  It is left un-killed on a **narrow** ground, not a sweeping one: such a test
-  needs *both* a hand-picked near-pole geometry *and* a tolerance threaded
-  between two errors (`1.63e-9` and `2.01e-9` deg) that are themselves already
-  larger than the suite's `1e-9` deg tolerance — so the **unmutated** code
-  fails an ordinary assertion at that geometry. That pins the code's own
-  rounding at a chosen point rather than asserting a physical fact, which this
-  campaign's "never assert against the code's own output" rule forbids. At
-  `|lat| == 90` exactly the separation reaches `116.56505117707803` deg, but
-  longitude is mathematically undefined there and *both* branches are `atan2`
-  of pure rounding noise.
-
-  **Three successive corrections landed on this one argument** (periodicity →
-  bounded sweep → symmetric straddle → the narrow ground above), each time with
-  the conclusion holding and the stated reason reaching too far. Recorded as a
-  pattern, not just three fixes: on a *documented equivalent*, the temptation is
-  to state the strongest reason that seems to fit, and the discipline is to
-  state the narrowest reason that actually holds.
-
-Campaign-wide running tally **45 → 48** (`9` from the closed three-crate
-baseline, `36` from the closed houses campaign, `3` from this slice), extending
-the series `9 → 22 → 30 → 36 → 41 → 44 → 43 → 45 → 48`. In-crate
-documented-equivalent sub-total for `pleiades-apsides`: **3**. (An earlier
-draft of this entry claimed `4` and a tally of `49`; review proved the fourth
-killable — see prediction 4 below.)
-
-**Four predictions that measurement overturned.** Recorded so none is silent —
+**Five predictions that measurement overturned.** Recorded so none is silent —
 in each case the claim was rewritten from the measurement, not the other way
 round. The first three were design-phase predictions overturned during
-implementation; the fourth was overturned by **review**, after this slice had
-already written the equivalence argument down:
+implementation; the **fourth and fifth were overturned by review**, after this
+slice had already written the equivalence argument down and committed it:
 
 1. **`122:10` (`<` → `<=` on the eccentricity floor) was predicted an
    unreachable boundary; it is killable, and was killed.** Unlike
@@ -1691,14 +1639,53 @@ already written the equivalence argument down:
    documented-equivalent claim is a permanent, load-bearing assertion about
    unreachability; it earns strictly more adversarial search than a kill does,
    because a wrong kill fails loudly and a wrong equivalence sits silent.
+5. **`287:46` (`+` → `-` on the aphelion argument of latitude) was documented
+   as an equivalent through three successive rewrites; review proved it
+   killable, and it is now killed.** In exact reals `ω+π` and `ω−π` are the
+   same point, so it can only be separated where the two arguments round
+   differently *and* the result is ill-conditioned — near the pole, where
+   `atan2`'s arguments both collapse toward zero. At `node 0, incl 89.999997,
+   peri_lon 90.00003` the correct code lands `2.59e-13` deg from an independent
+   60-digit reference while `ω−π` lands `7.47e-9` deg away: the suite's
+   **ordinary `1e-9` deg tolerance** separates them with `~3,800×` headroom on
+   one side and `7.5×` on the other. Killed by
+   `aphelion_argument_of_latitude_is_omega_plus_pi`.
+
+   **Both reclamations in this slice have the same root cause, and that is the
+   transferable lesson.** Each equivalence argument was validated against a
+   reference *derived from the code* rather than independent of it — for
+   `81:35`, reasoning about `asin`'s domain from the code's own guarantees
+   instead of searching the input space; for `287:46`, measuring the branch
+   separation against the exact-in-real value of the mutated expression, which
+   subtracts out exactly the error term that breaks the symmetry. **A
+   documented equivalent is only as good as the independence of the reference
+   that failed to kill it.** Before writing one down, state explicitly what
+   reference the non-separation was measured against and whether a test could
+   actually use it; if it could not, the argument has not been tested.
+
+   The reference question bit this slice a third time during review itself. A
+   proposed kill geometry (`node 0, incl 90.00001, peri_lon 90.0001`) reported
+   the correct code `5.03e-11` from truth and the mutant `1.47e-9`. Recomputing
+   at 60 digits **against the exact `f64` element values the function actually
+   receives** — rather than the decimal literals as written — gives `1.56e-9`
+   and `3.08e-9`: *both* outside `1e-9`, so that geometry yields no kill. At
+   this conditioning the `3e-15` deg gap between `90.00001_f64` and the decimal
+   `90.00001` swings the reference by `1.6e-9` deg, which is larger than the
+   entire effect. The geometry finally used was found by searching against the
+   `f64`-faithful reference, and there the distinction is decisive in the other
+   direction: under the decimal reference the *mutant* would look closer to
+   truth (`5.97e-9`) than the correct code (`1.34e-8`).
 
 **Per-mutant margin summary.** Full table in the slice report. Per campaign
 discipline the rows are **never aggregated**, and no margin is fabricated for a
-kill that has none: `15` of the `30` kills carry a genuine scalar displacement
+kill that has none: `16` of the `31` kills carry a genuine scalar displacement
 against an assertion tolerance, and the remaining `15` are **exact
 error-variant or exact-equality pins** with no displacement to report, disclosed
 as such rather than given an invented number (the review-driven underflow-lens
-kill is the fifteenth pin: `Ok`-carrying-`NaN` versus `Err(NonFinite)`). Each measured row states the
+kill is the fifteenth pin: `Ok`-carrying-`NaN` versus `Err(NonFinite)`). The
+sixteenth displacement row is the near-pole aphelion pin, whose margin is
+`7.47e-9` deg against a `1e-9` deg tolerance — `7.5x` over, with the correct
+code `~3,800x` inside. Each measured row states the
 mutant's *strongest-firing* assertion (its kill signal) and residual. Across
 those `15`, the **true minimum** kill margin is `3.65e10 ×` its assertion
 tolerance — `227:21` `*` → `/`, which lands `peri_lon_deg` at `286.476°` where

@@ -8,20 +8,26 @@ authorities.
 
 > **Correction (2026-09-08, post-review) — read this before the plan body.**
 > The Goal above and the Verification Summary's `Task 8` row below both say the
-> residual is `4`; the measured outcome is **`3`**
-> (`223 mutants tested in 3m: 3 missed, 216 caught, 4 unviable`). Review found
-> that one of the four claimed equivalents — `81:35`, `||` → `&&` on
-> `to_ecliptic`'s output guard — is killable after all. Its argument assumed
-> `p[2] / r` always lies in `[-1, 1]`; that fails once `fl(z*z)` underflows to
-> a subnormal, because then `sqrt(fl(z²)) < |z|` and the ratio exceeds `1`, so
-> `asin` returns `NaN` while `atan2` stays finite. Exactly one output angle is
-> non-finite, which is the region where `||` and `&&` differ.
-> `to_ecliptic_rejects_underflowing_norm` kills it. The plan's task text is
+> residual is `4`; the measured outcome is **`2`**
+> (`223 mutants tested in 3m: 2 missed, 217 caught, 4 unviable`). Review proved
+> **two** of the four claimed equivalents killable, and both are now killed.
+> **`81:35`** (`||` → `&&` on `to_ecliptic`'s output guard): its argument
+> assumed `p[2] / r` always lies in `[-1, 1]`, which fails once `fl(z*z)`
+> underflows to a subnormal, because then `sqrt(fl(z²)) < |z|` and the ratio
+> exceeds `1`, so `asin` returns `NaN` while `atan2` stays finite — exactly one
+> output angle non-finite, the region where `||` and `&&` differ. Killed by
+> `to_ecliptic_rejects_underflowing_norm`. **`287:46`** (`+` → `-` on the
+> aphelion argument of latitude): near the pole the two arguments round
+> differently and the result is ill-conditioned, so at
+> `node 0, incl 89.999997, peri_lon 90.00003` the correct code lands
+> `2.59e-13` deg from an independent 60-digit reference and the mutant
+> `7.47e-9` — separable by the suite's ordinary `1e-9` deg tolerance. Killed by
+> `aphelion_argument_of_latitude_is_omega_plus_pi`. The plan's task text is
 > left as written — it is a design record — but no number in it may be read as
 > the measured result. **This supersedes every such mention throughout:**
 > wherever the plan says "four equivalents", "4 documented equivalents", or a
-> campaign tally of "45 → 49", read **three** and **45 → 48**. Those sites are deliberately not edited individually — the plan
-> records what was designed, and this note records what was measured. See the
+> campaign tally of "45 → 49", read **two** and **45 → 47**. Those sites are
+> deliberately not edited individually — the plan records what was designed, and this note records what was measured. See the
 > FU-9 "apsides" entry in `docs/follow-ups.md`.
 
 **Architecture:** One crate, one source file (`crates/pleiades-apsides/src/lib.rs`,
@@ -985,4 +991,4 @@ authoritative command measured `223 mutants tested in 2m: 4 missed, 215 caught,
 4 unviable`.
 
 > **This row is superseded — see the Correction note at the top of this
-> plan.** Measured outcome is `3`, not `4`.
+> plan.** Measured outcome is `2`, not `4`.
