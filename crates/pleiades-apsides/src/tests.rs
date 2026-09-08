@@ -364,3 +364,66 @@ fn apsides_rejects_non_positive_mu() {
         ApsidesError::NonFinite
     );
 }
+
+/// Radial motion has zero angular momentum, so no orbital plane and no node.
+///
+/// The velocity is crafted, not arbitrary: a plain radial state has e == 1.0
+/// exactly, which makes r_peri = a(1-e) = 0 and fails inside apsides() before
+/// the h_mag guard is reached. This vx leaves e one ulp below 1.
+#[test]
+fn radial_motion_has_no_orbital_plane() {
+    let pos = [2.0, 0.0, 0.0];
+    let vel = [f64::from_bits(0x3f50624dd2f1aa15), 0.0, 0.0];
+    let mu = 2.959e-4;
+
+    // Preconditions: the state is radial AND apsides() succeeds, or line 204
+    // is unreachable and this test proves nothing.
+    assert_eq!(cross(pos, vel), [0.0, 0.0, 0.0], "state must be radial");
+    let aps = apsides(pos, vel, mu).expect("crafted state must form an ellipse");
+    assert_ne!(aps.perigee.distance_au, 0.0, "r_peri must be non-zero");
+
+    assert_eq!(
+        elements_from_state(pos, vel, mu).unwrap_err(),
+        ApsidesError::NonFinite
+    );
+}
+
+/// The node-degeneracy floor is exclusive: a state sitting exactly on
+/// n_mag == 1e-12 * h_mag is accepted.
+#[test]
+fn node_threshold_is_exclusive_at_the_exact_boundary() {
+    let pos = [1.0, 0.0, 0.0];
+    let vel = [0.0, 1.0, -1e-12];
+    let mu = 0.8;
+
+    // Precondition: the crafted state must sit exactly ON the threshold.
+    let h = cross(pos, vel);
+    let h_mag = norm(h);
+    let n_mag = norm([-h[1], h[0], 0.0]);
+    assert_eq!(
+        n_mag,
+        1e-12 * h_mag,
+        "crafted state must sit ON the boundary"
+    );
+
+    assert!(elements_from_state(pos, vel, mu).is_ok());
+}
+
+/// The node floor scales with |h| multiplicatively, not inversely. At this
+/// inclination n_mag sits above 1e-12*h_mag but below 1e-12/h_mag, so the two
+/// formulations disagree.
+#[test]
+fn node_threshold_scales_multiplicatively_with_angular_momentum() {
+    let (a, e, node, argp, mu) = (2.0, 0.2, 40.0, 30.0, 2.959e-4);
+    let (pos, vel) = state_from_elements(a, e, 1e-10, node, argp, 50.0, mu);
+
+    // Precondition: n_mag must lie strictly between the two formulations.
+    let h = cross(pos, vel);
+    let h_mag = norm(h);
+    let n_mag = norm([-h[1], h[0], 0.0]);
+    assert!(n_mag > 1e-12 * h_mag, "must be above the correct floor");
+    assert!(n_mag < 1e-12 / h_mag, "must be below the mutated floor");
+
+    let el = elements_from_state(pos, vel, mu).unwrap();
+    assert!(el.incl_deg < 1e-8, "incl {}", el.incl_deg);
+}
