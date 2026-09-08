@@ -965,3 +965,17 @@ Every figure in this table was verified end-to-end before the plan was written:
 the full test suite was applied to a scratch copy of the crate and the
 authoritative command measured `223 mutants tested in 2m: 4 missed, 215 caught,
 4 unviable`.
+
+> **Correction (2026-09-08, post-review).** The `Task 8` row above says the
+> residual is `4`; the measured outcome is **`3`**
+> (`223 mutants tested in 3m: 3 missed, 216 caught, 4 unviable`). Review found
+> that one of the four claimed equivalents — `81:35`, `||` → `&&` on
+> `to_ecliptic`'s output guard — is killable after all. Its argument assumed
+> `p[2] / r` always lies in `[-1, 1]`; that fails once `fl(z*z)` underflows to
+> a subnormal, because then `sqrt(fl(z²)) < |z|` and the ratio exceeds `1`, so
+> `asin` returns `NaN` while `atan2` stays finite. Exactly one output angle is
+> non-finite, which is the region where `||` and `&&` differ.
+> `to_ecliptic_rejects_underflowing_norm` kills it. The plan's task text is
+> left as written — it is a design record — but the table's final row must not
+> be read as the measured result. See the FU-9 "apsides" entry in
+> `docs/follow-ups.md`.

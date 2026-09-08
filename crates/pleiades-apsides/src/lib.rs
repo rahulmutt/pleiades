@@ -78,11 +78,6 @@ fn to_ecliptic(p: [f64; 3]) -> Result<ApsisPoint, ApsidesError> {
     }
     let longitude_deg = p[1].atan2(p[0]).to_degrees().rem_euclid(360.0);
     let latitude_deg = (p[2] / r).asin().to_degrees();
-    // Documented equivalent mutant (FU-9): `||` -> `&&` here is
-    // indistinguishable. Line 76 has already established that `r` is finite and
-    // non-zero, so `p` is componentwise finite, `atan2` is total, and
-    // `p[2] / r` lies in [-1, 1] making `asin` total. No input makes exactly
-    // one of the two non-finite.
     if !longitude_deg.is_finite() || !latitude_deg.is_finite() {
         return Err(ApsidesError::NonFinite);
     }
@@ -107,13 +102,21 @@ pub fn apsides(
     let v = vel_au_per_day;
     let r_mag = norm(r);
     // Documented equivalent mutant (FU-9): `&&` binds tighter than `||`, so
-    // mutating THIS operator yields `a || (b && c) || d`. Its only
-    // distinguishing region is {r_mag == 0.0, mu finite, mu > 0}, where
-    // mu / r_mag = +inf forces c1 = -inf and poisons `e` to inf or NaN in every
-    // sub-case (all-zero pos -> NaN; all-subnormal pos whose squared norm
-    // underflows -> inf; mixed -> NaN). All fail `!e.is_finite()` below, so
-    // both branches return Err(NonFinite). This arm is redundant with that
-    // downstream check.
+    // mutating THIS operator yields `a || (b && c) || d`. That has TWO
+    // distinguishing regions, not one, and both land on Err(NonFinite) anyway:
+    //
+    // A: {r_mag == 0.0, mu finite, mu > 0}. Here mu / r_mag = +inf forces
+    //    c1 = -inf and poisons `e` to inf or NaN in every sub-case (all-zero
+    //    pos -> NaN; all-subnormal pos whose squared norm underflows -> inf;
+    //    mixed -> NaN).
+    // B: {r_mag finite and non-zero, mu in {NaN, +inf}}. `mu <= 0.0` is false
+    //    for both, so the mutant proceeds. mu = NaN gives c1 = NaN directly;
+    //    mu = +inf gives c1 = (v2 - inf) / inf = -inf / inf = NaN. Measured:
+    //    `e` is NaN for both.
+    //
+    // Every case in A and B fails the `!e.is_finite()` check below, so the
+    // mutant returns Err(NonFinite) exactly where the original does. This arm
+    // is redundant with that downstream check.
     if !r_mag.is_finite() || r_mag == 0.0 || !mu.is_finite() || mu <= 0.0 {
         return Err(ApsidesError::NonFinite);
     }
@@ -236,11 +239,23 @@ pub fn elements_from_state(
     let n_hat = [n[0] / n_mag, n[1] / n_mag, 0.0];
     let cos_omega = dot(n_hat, peri_vec).clamp(-1.0, 1.0);
     let mut omega = cos_omega.acos();
-    // `<` -> `<=` is a documented equivalent mutant (FU-9): the two differ only
-    // at peri_vec[2] == 0.0 exactly, i.e. perihelion in the reference plane,
-    // which with a non-degenerate inclination means omega in {0, PI}. There
-    // acos returns exactly 0 or PI, and 2*PI - 0 = 2*PI and 2*PI - PI = PI both
-    // give the same longitude after the rem_euclid(360) below.
+    // `<` -> `<=` is a documented equivalent mutant (FU-9). The two differ only
+    // at peri_vec[2] == 0.0 exactly -- perihelion in the reference plane, so
+    // the true omega is 0 or PI. They are NOT numerically identical there:
+    // acos does not return exactly 0 or PI, because cos_omega arrives one ulp
+    // off 1.0 through the longitude/latitude round-trip above. Measured at
+    // pos [0.5, 0.25, 0.0], vel [0.5, -1.0, 1.0], mu 1: cos_omega
+    // 0.99999999999999989, acos 1.49e-8 rad, and the two branches land
+    // 1.71e-6 deg apart in peri_lon_deg.
+    //
+    // It is un-killable for a different reason: the pair straddles the truth
+    // symmetrically. acos returns +eps where the true omega is 0, so the
+    // original lands at node + eps and the mutant at node - eps. Over a
+    // 1,272-case search of states reaching peri_vec[2] == 0.0 exactly, the
+    // asymmetry ||orig - truth| - |mut - truth|| stayed <= 5.69e-14 deg. Any
+    // symmetric tolerance against an independent reference therefore admits
+    // both or rejects both; only a SIGNED assertion could separate them, and
+    // that would be pinning the sign of rounding noise.
     if peri_vec[2] < 0.0 {
         omega = 2.0 * core::f64::consts::PI - omega;
     }
@@ -307,10 +322,14 @@ pub fn points_from_elements(
         // rounding. Measured displacement at (node 40, incl 10, a 2, e 0.2):
         // <= 2.84e-14 deg in longitude and <= 2.44e-15 deg in latitude, i.e.
         // below 1e-10 arcsec. Any assertion tight enough to kill it would be
-        // pinning the code's own output. A 746,496-case sweep of (node, incl,
-        // omega, r) confirms the bound holds generally: max |dlon| 2.27e-13 deg
-        // and max |dlat| 1.14e-13 deg. Its one exception is |lat| == 90 exactly
-        // (incl 90 with omega = +/-90), where longitude is mathematically
+        // pinning the code's own output. Over a 1-degree sweep grid of
+        // (node 0-359, incl 0-180, omega 0-359) at r in {0.3, 2.4, 17} the max
+        // OBSERVED displacement is 8.53e-13 deg in longitude and 3.13e-13 deg
+        // in latitude away from the poles. These are sweep maxima, not proven
+        // bounds -- a finer grid found 3.7x the previous figures, so treat them
+        // as scale, not as a guarantee. The one qualitative exception is
+        // |lat| == 90 exactly (incl 90 with omega = +/-90), where the sweep
+        // reaches 116.56505117707803 deg: there longitude is mathematically
         // undefined and BOTH branches are atan2 of pure rounding noise, so it
         // is not a distinguishing observation either.
         aphelion: to_ecliptic(in_plane(omega + core::f64::consts::PI, apo_dist))?,

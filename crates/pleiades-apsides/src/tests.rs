@@ -347,6 +347,32 @@ fn to_ecliptic_rejects_overflowing_norm() {
     );
 }
 
+/// Underflow lens -- the mirror of the overflow case above, and the direction
+/// this campaign had not been testing. Each component is finite and the norm
+/// does NOT overflow; instead `fl(z*z)` UNDERFLOWS to a subnormal, losing bits
+/// off the bottom. `sqrt` of that truncated square is then strictly less than
+/// |z|, so `p[2] / r` comes out at 1.0000000000000002 -- just above 1 -- and
+/// `asin` returns NaN. Meanwhile `atan2(0.0, 0.0)` is 0.0, perfectly finite.
+///
+/// So exactly ONE of the two output angles is non-finite. That is precisely
+/// the region where `||` and `&&` differ, which is why this input kills the
+/// output guard's `||` -> `&&` mutant: the original returns Err(NonFinite),
+/// the mutant returns Ok carrying a NaN latitude. The line-76 input guard does
+/// not catch it either -- r is finite and non-zero.
+///
+/// The bit pattern is written raw, not as a decimal: the kill depends on the
+/// exact ulp at which fl(z*z) lands on the smallest subnormal, which a decimal
+/// literal would not reliably round to.
+#[test]
+fn to_ecliptic_rejects_underflowing_norm() {
+    // z = 2.222758749485078e-162; z*z underflows to 5e-324 (subnormal).
+    let z = f64::from_bits(0x1e60000000000001);
+    assert_eq!(
+        to_ecliptic([0.0, 0.0, z]).unwrap_err(),
+        ApsidesError::NonFinite
+    );
+}
+
 /// The same overflow lens at the `apsides` input boundary.
 #[test]
 fn apsides_rejects_overflowing_position_norm() {
