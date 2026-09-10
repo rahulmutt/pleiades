@@ -32,7 +32,7 @@ rust = { version = "1.98.1", components = "rustfmt,clippy" }
 # Prebuilt-binary backends (aqua = checksum-verified) so `mise install` downloads
 # instead of compiling from source — keeps blocking CI inside its wall-clock budget.
 "aqua:orhun/git-cliff" = "2.14.1"
-"aqua:release-plz/release-plz" = "0.3.162"
+"aqua:release-plz/release-plz" = "0.3.164"
 "aqua:EmbarkStudios/cargo-deny" = "0.20.2"
 gitleaks = "8.30.1"
 # cargo-nextest is published to crates.io as the `cargo-nextest` crate, so the
