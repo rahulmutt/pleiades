@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-09-10
+
+### Breaking Changes
+
+- Document the 1.98.1 MSRV in the published façade crate ([#52](https://github.com/rahulmutt/pleiades/pull/52)) ([0ab97f1](https://github.com/rahulmutt/pleiades/commit/0ab97f1e8e8aac7fb6da2419c62e067afdac0a80))
+
+### Fixed
+
+- Bound DAF record chain and check offset arithmetic ([3808e96](https://github.com/rahulmutt/pleiades/commit/3808e964003dc7be6253f7e493bbe8fdeb2ec229))
+- Pre-merge hardening — accurate coverage claim, pinned nightly in CI, guard test, name collision ([306a51a](https://github.com/rahulmutt/pleiades/commit/306a51a5442c44e1ae4c555140bd020fec934394))
+- Bound declared segment count before allocating ([c55165b](https://github.com/rahulmutt/pleiades/commit/c55165b2947391350ec6f1b14a60706a44e28e2b))
+
 ## [0.5.0] - 2026-09-08
 
 ### Breaking Changes
