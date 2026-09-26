@@ -991,14 +991,27 @@ fn published_true_node_example_matches_reference() {
     let ecliptic = result.ecliptic.expect("ecliptic result should exist");
     let motion = result.motion.expect("motion should be populated");
 
-    assert!((ecliptic.longitude.degrees() - 0.876_3).abs() < 1e-4);
-    assert_eq!(ecliptic.latitude.degrees(), 0.0);
+    // J2000 ecliptic boundary values (the backend emits J2000, not of-date).
+    // The published of-date values are lon=0.876_3, lat=0.0; precessed back to
+    // J2000 they shift by ~+1.21° in longitude and pick up a ~0.0014° latitude.
+    // `lunar_point_channels_round_trip_to_the_published_of_date_values` pins the
+    // of-date value itself.
+    assert!((ecliptic.longitude.degrees() - 2.085_852_606).abs() < 1e-6);
+    assert!((ecliptic.latitude.degrees() - 0.001_378_820).abs() < 1e-6);
     assert_eq!(ecliptic.distance_au, None);
     assert!(motion
         .longitude_deg_per_day
         .expect("longitude speed should exist")
         .is_finite());
-    assert_eq!(motion.latitude_deg_per_day, Some(0.0));
+    // In the J2000 frame the node slides along the tilted ecliptic of date, so
+    // its latitude drifts at ~1e-5°/day here rather than staying exactly zero.
+    assert!(
+        motion
+            .latitude_deg_per_day
+            .expect("latitude speed should exist")
+            .abs()
+            < 1e-4
+    );
     assert_eq!(motion.distance_au_per_day, None);
     assert_eq!(result.quality, QualityAnnotation::Approximate);
 }
@@ -1347,15 +1360,24 @@ fn j2000_mean_and_true_nodes_are_available() {
         .position(&mean_request_at(CelestialBody::MeanNode, instant))
         .expect("mean node query should work");
     let mean_ecliptic = mean.ecliptic.expect("mean node ecliptic should exist");
+    // At J2000 the of-date and J2000 frames coincide, so the point sits on the
+    // ecliptic to rounding; the ±0.5-day motion samples straddle J2000, which
+    // is why the latitude speed is only near zero.
     assert!((mean_ecliptic.longitude.degrees() - 125.044_547_9).abs() < 1e-9);
-    assert_eq!(mean_ecliptic.latitude.degrees(), 0.0);
+    assert!(mean_ecliptic.latitude.degrees().abs() < 1e-9);
     assert!(mean.equatorial.is_some());
     let mean_motion = mean.motion.expect("mean node motion should be populated");
     assert!(mean_motion
         .longitude_deg_per_day
         .expect("mean node longitude speed should exist")
         .is_finite());
-    assert_eq!(mean_motion.latitude_deg_per_day, Some(0.0));
+    assert!(
+        mean_motion
+            .latitude_deg_per_day
+            .expect("mean node latitude speed should exist")
+            .abs()
+            < 1e-6
+    );
     assert_eq!(mean_motion.distance_au_per_day, None);
 
     let true_node = backend
@@ -1363,7 +1385,7 @@ fn j2000_mean_and_true_nodes_are_available() {
         .expect("true node query should work");
     let true_ecliptic = true_node.ecliptic.expect("true node ecliptic should exist");
     assert!((true_ecliptic.longitude.degrees() - 123.926_171_368_400_46).abs() < 1e-9);
-    assert_eq!(true_ecliptic.latitude.degrees(), 0.0);
+    assert!(true_ecliptic.latitude.degrees().abs() < 1e-9);
     assert!(true_node.equatorial.is_some());
     let true_motion = true_node
         .motion
@@ -1372,7 +1394,13 @@ fn j2000_mean_and_true_nodes_are_available() {
         .longitude_deg_per_day
         .expect("true node longitude speed should exist")
         .is_finite());
-    assert_eq!(true_motion.latitude_deg_per_day, Some(0.0));
+    assert!(
+        true_motion
+            .latitude_deg_per_day
+            .expect("true node latitude speed should exist")
+            .abs()
+            < 1e-6
+    );
     assert_eq!(true_motion.distance_au_per_day, None);
 }
 
@@ -1387,8 +1415,10 @@ fn j2000_mean_apogee_and_perigee_are_available() {
     let perigee_ecliptic = perigee
         .ecliptic
         .expect("mean perigee ecliptic should exist");
+    // See `j2000_mean_and_true_nodes_are_available` for why latitude and its
+    // speed are near-zero rather than exactly zero at J2000.
     assert!((perigee_ecliptic.longitude.degrees() - 83.353_246_5).abs() < 1e-9);
-    assert_eq!(perigee_ecliptic.latitude.degrees(), 0.0);
+    assert!(perigee_ecliptic.latitude.degrees().abs() < 1e-9);
     assert_eq!(perigee_ecliptic.distance_au, None);
     assert!(perigee.equatorial.is_some());
     let perigee_motion = perigee
@@ -1398,7 +1428,13 @@ fn j2000_mean_apogee_and_perigee_are_available() {
         .longitude_deg_per_day
         .expect("mean perigee longitude speed should exist")
         .is_finite());
-    assert_eq!(perigee_motion.latitude_deg_per_day, Some(0.0));
+    assert!(
+        perigee_motion
+            .latitude_deg_per_day
+            .expect("mean perigee latitude speed should exist")
+            .abs()
+            < 1e-6
+    );
     assert_eq!(perigee_motion.distance_au_per_day, None);
 
     let apogee = backend
@@ -1406,7 +1442,7 @@ fn j2000_mean_apogee_and_perigee_are_available() {
         .expect("mean apogee query should work");
     let apogee_ecliptic = apogee.ecliptic.expect("mean apogee ecliptic should exist");
     assert!((apogee_ecliptic.longitude.degrees() - 263.353_246_5).abs() < 1e-9);
-    assert_eq!(apogee_ecliptic.latitude.degrees(), 0.0);
+    assert!(apogee_ecliptic.latitude.degrees().abs() < 1e-9);
     assert_eq!(apogee_ecliptic.distance_au, None);
     assert!(apogee.equatorial.is_some());
     let apogee_motion = apogee
@@ -1416,7 +1452,13 @@ fn j2000_mean_apogee_and_perigee_are_available() {
         .longitude_deg_per_day
         .expect("mean apogee longitude speed should exist")
         .is_finite());
-    assert_eq!(apogee_motion.latitude_deg_per_day, Some(0.0));
+    assert!(
+        apogee_motion
+            .latitude_deg_per_day
+            .expect("mean apogee latitude speed should exist")
+            .abs()
+            < 1e-6
+    );
     assert_eq!(apogee_motion.distance_au_per_day, None);
 }
 
@@ -1576,19 +1618,10 @@ fn batch_query_preserves_equatorial_frame_and_values() {
         assert!(equatorial.right_ascension.degrees().is_finite());
         assert!(equatorial.declination.degrees().is_finite());
 
-        if sample.body == CelestialBody::Moon {
-            // Moon ecliptic is J2000 boundary; equatorial is derived from of-date ecliptic.
-            // The two frames differ, so ecliptic.to_equatorial(mean_obliquity()) != equatorial.
-            let j2000_derived = ecliptic.to_equatorial(sample.epoch.mean_obliquity());
-            assert_ne!(
-                equatorial, j2000_derived,
-                "Moon equatorial must NOT be derived from J2000 ecliptic (would mix frames)"
-            );
-        } else {
-            // Non-Moon bodies: ecliptic is of-date and equatorial is consistent.
-            let expected = ecliptic.to_equatorial(sample.epoch.mean_obliquity());
-            assert_eq!(equatorial, expected);
-        }
+        // Every channel is J2000 at the boundary, while the equatorial is the
+        // of-date position rotated by the mean obliquity of date, so precessing
+        // the emitted ecliptic forward to date must reproduce the equatorial.
+        assert_equatorial_matches_of_date(&ecliptic, &equatorial, sample.epoch);
     }
 }
 
@@ -1626,19 +1659,10 @@ fn batch_query_preserves_mixed_frame_requests_and_values() {
         assert!(equatorial.right_ascension.degrees().is_finite());
         assert!(equatorial.declination.degrees().is_finite());
 
-        if sample.body == CelestialBody::Moon {
-            // Moon ecliptic is J2000 boundary; equatorial is derived from of-date ecliptic.
-            // The two frames differ, so ecliptic.to_equatorial(mean_obliquity()) != equatorial.
-            let j2000_derived = ecliptic.to_equatorial(sample.epoch.mean_obliquity());
-            assert_ne!(
-                equatorial, j2000_derived,
-                "Moon equatorial must NOT be derived from J2000 ecliptic (would mix frames)"
-            );
-        } else {
-            // Non-Moon bodies: ecliptic is of-date and equatorial is consistent.
-            let expected = ecliptic.to_equatorial(sample.epoch.mean_obliquity());
-            assert_eq!(equatorial, expected);
-        }
+        // Every channel is J2000 at the boundary, while the equatorial is the
+        // of-date position rotated by the mean obliquity of date, so precessing
+        // the emitted ecliptic forward to date must reproduce the equatorial.
+        assert_equatorial_matches_of_date(&ecliptic, &equatorial, sample.epoch);
     }
 }
 
@@ -2659,6 +2683,38 @@ fn mean_request_at(body: CelestialBody, instant: Instant) -> EphemerisRequest {
     request
 }
 
+/// Asserts that `equatorial` is the mean-obliquity transform of the OF-DATE
+/// position whose J2000 expression is `ecliptic` (the convention every ELP
+/// channel follows: J2000 ecliptic at the boundary, of-date equatorial).
+fn assert_equatorial_matches_of_date(
+    ecliptic: &pleiades_types::EclipticCoordinates,
+    equatorial: &pleiades_types::EquatorialCoordinates,
+    instant: Instant,
+) {
+    let of_date = pleiades_apparent::precess_ecliptic_j2000_to_date(
+        ecliptic.longitude.degrees(),
+        ecliptic.latitude.degrees(),
+        instant.julian_day.days(),
+    )
+    .expect("forward precession should succeed");
+    let expected = pleiades_types::EclipticCoordinates::new(
+        Longitude::from_degrees(of_date.longitude_deg),
+        pleiades_types::Latitude::from_degrees(of_date.latitude_deg),
+        ecliptic.distance_au,
+    )
+    .to_equatorial(instant.mean_obliquity());
+    let ra_residual = signed_longitude_delta_degrees(
+        expected.right_ascension.degrees(),
+        equatorial.right_ascension.degrees(),
+    )
+    .abs();
+    let dec_residual = (expected.declination.degrees() - equatorial.declination.degrees()).abs();
+    assert!(
+        ra_residual < 1e-5 && dec_residual < 1e-5,
+        "equatorial is not the of-date transform: RA residual {ra_residual}°, Dec residual {dec_residual}°"
+    );
+}
+
 #[test]
 fn moon_boundary_longitude_is_j2000_not_of_date() {
     use pleiades_backend::{EphemerisBackend, EphemerisRequest};
@@ -2699,4 +2755,117 @@ fn elp_moon_round_trips_to_of_date_through_the_pipeline() {
         "lat residual arcsec: {}",
         (redate.latitude_deg - od_lat.degrees()).abs() * 3600.0
     );
+}
+
+/// Published mean-equinox-OF-DATE reference longitudes for the lunar point
+/// channels (Meeus Ch. 47/50 worked examples, all referred to the equinox of
+/// date). They are far enough from J2000 that the J2000/of-date frame
+/// difference (≈1.4°/century of precession) is unmistakable.
+///
+/// Each row is `(body, jd_tt, published of-date longitude, tolerance)`; the
+/// tolerance reflects how the published value was rounded (the mean-node
+/// examples are quoted at the crossing itself, so the polynomial is ~2e-4° off).
+fn published_of_date_lunar_points() -> [(CelestialBody, f64, f64, f64); 4] {
+    [
+        // 1913-05-27: mean node crosses 0° Aries; true node 0.8763°.
+        (CelestialBody::MeanNode, 2_419_914.5, 0.0, 1e-3),
+        (CelestialBody::TrueNode, 2_419_914.5, 0.876_3, 1e-4),
+        // 1959-12-07: mean node crosses 180° (quoted to the day; the
+        // polynomial is 0.05° past the crossing at 0h, hence the 1e-1 that the
+        // evidence slice also uses for mean-node rows).
+        (CelestialBody::MeanNode, 2_436_909.5, 180.0, 1e-1),
+        // 2021-03-05: mean perigee.
+        (CelestialBody::MeanPerigee, 2_459_278.5, 224.891_94, 1e-4),
+    ]
+}
+
+#[test]
+fn lunar_point_channels_are_j2000_not_of_date() {
+    // Regression for issue #57: the node/apogee/perigee channels were emitted
+    // straight from the of-date Meeus polynomials while the backend declared a
+    // J2000 boundary. Away from J2000 the two frames differ by ≥0.2°.
+    let backend = ElpBackend::new();
+    for (body, jd, of_date_lon, _) in published_of_date_lunar_points() {
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(jd), TimeScale::Tt);
+        let result = backend
+            .position(&mean_request_at(body.clone(), instant))
+            .expect("lunar point query should work");
+        let lon = result
+            .ecliptic
+            .expect("ecliptic should exist")
+            .longitude
+            .degrees();
+        let delta = signed_longitude_delta_degrees(of_date_lon, lon).abs();
+        assert!(
+            delta > 0.2,
+            "{body:?} at JD {jd} emitted the of-date longitude {lon} (published of-date {of_date_lon})"
+        );
+    }
+}
+
+#[test]
+fn lunar_point_channels_round_trip_to_the_published_of_date_values() {
+    // The emitted J2000 point, precessed forward by the same pipeline consumers
+    // use, must land back on the published of-date value with zero latitude.
+    let backend = ElpBackend::new();
+    for (body, jd, of_date_lon, tolerance) in published_of_date_lunar_points() {
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(jd), TimeScale::Tt);
+        let ecliptic = backend
+            .position(&mean_request_at(body.clone(), instant))
+            .expect("lunar point query should work")
+            .ecliptic
+            .expect("ecliptic should exist");
+        let redate = pleiades_apparent::precess_ecliptic_j2000_to_date(
+            ecliptic.longitude.degrees(),
+            ecliptic.latitude.degrees(),
+            jd,
+        )
+        .expect("forward precession should succeed");
+        let lon_residual = signed_longitude_delta_degrees(of_date_lon, redate.longitude_deg).abs();
+        assert!(
+            lon_residual < tolerance,
+            "{body:?} at JD {jd}: of-date longitude residual {lon_residual}°"
+        );
+        let lat_residual_arcsec = redate.latitude_deg.abs() * 3600.0;
+        assert!(
+            lat_residual_arcsec < 1e-3,
+            "{body:?} at JD {jd}: of-date latitude residual {lat_residual_arcsec}″"
+        );
+    }
+}
+
+#[test]
+fn lunar_point_equatorial_is_derived_from_the_of_date_point() {
+    // Same convention as the Moon: the equatorial channel is the of-date point
+    // (lon, 0) rotated by the mean obliquity of date, so it must NOT equal the
+    // J2000 ecliptic rotated by that obliquity (that would mix frames).
+    let backend = ElpBackend::new();
+    for (body, jd, of_date_lon, tolerance) in published_of_date_lunar_points() {
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(jd), TimeScale::Tt);
+        let result = backend
+            .position(&mean_request_at(body.clone(), instant))
+            .expect("lunar point query should work");
+        let ecliptic = result.ecliptic.expect("ecliptic should exist");
+        let equatorial = result.equatorial.expect("equatorial should exist");
+        let from_j2000 = ecliptic.to_equatorial(instant.mean_obliquity());
+        assert_ne!(
+            equatorial, from_j2000,
+            "{body:?} equatorial must not be derived from the J2000 ecliptic"
+        );
+        let from_of_date = pleiades_types::EclipticCoordinates::new(
+            Longitude::from_degrees(of_date_lon),
+            pleiades_types::Latitude::from_degrees(0.0),
+            None,
+        )
+        .to_equatorial(instant.mean_obliquity());
+        let ra_residual = signed_longitude_delta_degrees(
+            from_of_date.right_ascension.degrees(),
+            equatorial.right_ascension.degrees(),
+        )
+        .abs();
+        assert!(
+            ra_residual < tolerance,
+            "{body:?} at JD {jd}: RA residual {ra_residual}° from the of-date point"
+        );
+    }
 }

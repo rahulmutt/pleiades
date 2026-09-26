@@ -53,10 +53,12 @@ pub(crate) fn read_mean_ecliptic<B: EphemerisBackend>(
     ))
 }
 
-/// Mean/J2000 geocentric ecliptic longitude only — for bodies whose backends
-/// legitimately omit distance (the mean lunar points: `MeanNode`,
-/// `MeanPerigee`). Latitude is read and discarded; distance is not required.
-pub(crate) fn read_mean_longitude<B: EphemerisBackend>(
+/// Mean-equinox-OF-DATE geocentric ecliptic longitude of a point channel — for
+/// bodies whose backends legitimately omit distance (the mean lunar points:
+/// `MeanNode`, `MeanPerigee`). The backend boundary is J2000, so the point
+/// (longitude and its small J2000 latitude) is precessed forward to the mean
+/// equinox of date; distance is not required.
+pub(crate) fn read_mean_longitude_of_date<B: EphemerisBackend>(
     backend: &B,
     body: CelestialBody,
     body_label: &'static str,
@@ -69,7 +71,13 @@ pub(crate) fn read_mean_longitude<B: EphemerisBackend>(
         body_label,
         julian_day,
     })?;
-    Ok(ecliptic.longitude.degrees())
+    let of_date = precess_ecliptic_j2000_to_date(
+        ecliptic.longitude.degrees(),
+        ecliptic.latitude.degrees(),
+        julian_day,
+    )
+    .map_err(|e| EventError::Backend(format!("{body_label} precession failed: {e}")))?;
+    Ok(of_date.longitude_deg)
 }
 
 /// Geocentric apparent-of-date ecliptic (longitude_deg, latitude_deg, distance_au)

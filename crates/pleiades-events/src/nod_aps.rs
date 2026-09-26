@@ -185,7 +185,7 @@ mod tests {
 }
 
 use crate::crossings::EventEngine;
-use crate::ephemeris::{read_mean_ecliptic, read_mean_longitude, spherical_to_cartesian};
+use crate::ephemeris::{read_mean_ecliptic, read_mean_longitude_of_date, spherical_to_cartesian};
 use crate::mean_elements::{
     elem_index, mean_elements_of_date, mu_au3_day2, EARTH_MOON_MASS_RATIO, MOON_MEAN_ECC,
     MOON_MEAN_INCL_DEG, MOON_MEAN_SEMA_AU,
@@ -391,19 +391,23 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ) -> Result<[RawPoint; 4], EventError> {
         let second_focus = convention == ApsisConvention::SecondFocus;
         let elements = if *body == CelestialBody::Moon {
-            // The ELP backend's MeanNode/MeanPerigee longitudes are Meeus-style
-            // mean-lunar-element polynomials (e.g. Ω0 = 125.04452° at J2000);
-            // those are OF-DATE quantities by construction, despite the module
-            // boundary's nominal J2000 labeling — do NOT re-precess them here.
-            // Verified by spot check against the committed corpus: at
-            // jd 2415100.5 the raw backend read is ~17″ off SE's mean-node
-            // longitude (arcsecond-class, as expected for a cross-theory
-            // comparison); precessing it as if it were J2000 moves it ~5034″
-            // off, matching the diagnosed +1-century MEAN_MOON longitude
-            // residual (~5024″ — one full century of precession, 1.396°/cy).
-            let node = read_mean_longitude(&self.backend, CelestialBody::MeanNode, "MeanNode", jd)?;
-            let peri =
-                read_mean_longitude(&self.backend, CelestialBody::MeanPerigee, "MeanPerigee", jd)?;
+            // The ELP backend's MeanNode/MeanPerigee channels are Meeus-style
+            // mean-lunar-element polynomials (mean equinox of date by
+            // construction) emitted in the J2000 boundary frame, like every
+            // other first-party channel. Precess them forward once so the
+            // elements are of date, as SE's mean lunar elements are.
+            let node = read_mean_longitude_of_date(
+                &self.backend,
+                CelestialBody::MeanNode,
+                "MeanNode",
+                jd,
+            )?;
+            let peri = read_mean_longitude_of_date(
+                &self.backend,
+                CelestialBody::MeanPerigee,
+                "MeanPerigee",
+                jd,
+            )?;
             KeplerianElements {
                 node_deg: node,
                 peri_lon_deg: peri,

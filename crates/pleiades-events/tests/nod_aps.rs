@@ -95,6 +95,31 @@ fn moon_osculating_node_is_near_the_true_node() {
     assert!((pleiades_events_test_wrap(r.ascending.longitude_deg, 125.0)).abs() < 3.0);
 }
 
+#[test]
+fn moon_mean_node_matches_swiss_ephemeris_a_century_from_j2000() {
+    // Swiss Ephemeris 2.10.03 swe_nod_aps(Moon, mean, MOSEPH) at JD 2415100.5 TT
+    // (row 12 of the committed nod-aps corpus): ascending node 254.924769366°,
+    // true equinox of date. One century from J2000 a frame slip between the
+    // ELP node channel and this engine (J2000 read as of-date, or the reverse)
+    // shows up as a ~1.4° error, far above the gate's sub-arcsecond MEAN_MOON
+    // ceiling.
+    let engine = engine();
+    let r = engine
+        .nod_aps(
+            CelestialBody::Moon,
+            tdb(2_415_100.5),
+            NodApsMethod::Mean,
+            ApsisConvention::Aphelion,
+        )
+        .unwrap();
+    let residual_arcsec =
+        pleiades_events_test_wrap(r.ascending.longitude_deg, 254.924_769_366).abs() * 3600.0;
+    assert!(
+        residual_arcsec < 5.0,
+        "mean Moon ascending node residual vs SE: {residual_arcsec}″"
+    );
+}
+
 fn pleiades_events_test_wrap(a: f64, b: f64) -> f64 {
     let mut d = (a - b).rem_euclid(360.0);
     if d > 180.0 {
