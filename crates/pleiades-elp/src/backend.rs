@@ -26,8 +26,10 @@ pub struct ElpBackend;
 /// Lunar bodies (Moon, Mean Node, True Node, Mean Apogee, Mean Perigee) are claimed as Constrained
 /// with Moderate accuracy and AlgorithmicModel evidence. True Apogee and True Perigee are explicitly
 /// listed as Unsupported by this backend. Note: the osculating true apogee/perigee (True Lilith)
-/// are served release-grade by `PackagedDataBackend` ahead of this backend in the composite routing
-/// chain, so the ELP-local `Unsupported` claim is no longer a global gap.
+/// and the osculating true node are served release-grade by `PackagedDataBackend` ahead of this
+/// backend in the composite routing chain, so the ELP-local `Unsupported` apsis claims are not a
+/// global gap, and this backend's `TrueNode` (Meeus's periodic-term-corrected mean node, ±0.14°
+/// from Swiss Ephemeris' osculating node — issue #58) is reached only by direct ELP consumers.
 pub fn elp_body_claims() -> Vec<BodyClaim> {
     let mut claims: Vec<BodyClaim> = lunar_theory_supported_bodies()
         .iter()
@@ -146,6 +148,13 @@ impl ElpBackend {
         series::normalize_degrees(Self::mean_perigee_longitude(days) + 180.0)
     }
 
+    /// Meeus Ch. 47 "true" node: the mean node plus five periodic terms in D,
+    /// M, M′ and F. This is an analytic approximation of the osculating node,
+    /// **not** the osculating node itself; against Swiss Ephemeris
+    /// `SE_TRUE_NODE` (same frame) it wanders by −0.137°…+0.141° across 2026
+    /// (issue #58). The routed chart chain serves the osculating node from
+    /// `PackagedDataBackend` instead; this channel remains for direct ELP
+    /// consumers as a documented approximation.
     fn true_node_longitude(days: f64) -> f64 {
         let t = days / 36_525.0;
         let mean_node = Self::mean_node_longitude(days).to_radians();

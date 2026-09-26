@@ -7,4 +7,4 @@ and perigee as ecliptic longitude/latitude with geocentric distance (plus the
 osculating ellipse's eccentricity and semi-major axis). Used by `pleiades-data`
 to derive release-grade `TrueApogee` and `TruePerigee` positions from the
 packaged Moon state; that end-to-end path is gated against Swiss Ephemeris
-`SE_OSCU_APOG` by `validate-lilith` (max longitude residual ~306″).
+`SE_OSCU_APOG` by `validate-lilith` (max longitude residual ~306″). The same Kepler helpers serve the osculating true node (`TrueNode`) through `PackagedDataBackend`, gated by `validate-true-node`.

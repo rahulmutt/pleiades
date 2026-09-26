@@ -7,7 +7,7 @@ entry: what, where, evidence, impact, suggested fix, and origin.
 
 ## FU-2: True (osculating) lunar apsides sub-project
 
-**Status:** resolved (2026-06-30) · Implemented by `feat/true-lilith-osculating-apsides` branch (Tasks 1–8). `TrueApogee` and `TruePerigee` are now served release-grade by `PackagedDataBackend` via the `crates/pleiades-apsides` crate (osculating Kepler apse from Moon pos+vel+mu). Gated against Swiss Ephemeris `SE_OSCU_APOG` Moshier corpus (3177 samples, 1900–2100) by `validate-lilith`; gate parity as of 2026-06-30: max longitude residual ~306″ (~5.1′), latitude ~53″, distance ~1.6e-4 relative, vs ceilings 460″/80″/2.34e-4. Of-date frame = true ecliptic of date via precession + nutation-in-longitude only (no light-time, no aberration — geometric direction). · **Next queued:** equatorial/declination output for `TrueApogee`/`TruePerigee` (chart-layer apparent equatorial shipped 2026-06-30 on `feat/equatorial-declination-output` for release-grade bodies; apsides equatorial follows when their release-grade status expands). · **Build-env note:** the reference tool `tools/se-lilith-reference` (used to generate the committed SE_OSCU_APOG corpus CSV) requires `libclang-dev` + `LIBCLANG_PATH` to build Rust bindings to the vendored Swiss Ephemeris. This is NOT required to run the `validate-lilith` gate or build the workspace — the gate reads the committed corpus CSV via `include_str!` and never rebuilds the tool. · **Severity:** feature gap (now closed) · **Opened:** 2026-06-30
+**Status:** resolved (2026-06-30) · Implemented by `feat/true-lilith-osculating-apsides` branch (Tasks 1–8). `TrueApogee` and `TruePerigee` are now served release-grade by `PackagedDataBackend` via the `crates/pleiades-apsides` crate (osculating Kepler apse from Moon pos+vel+mu). Gated against Swiss Ephemeris `SE_OSCU_APOG` Moshier corpus (3177 samples, 1900–2100) by `validate-lilith`; gate parity as of 2026-06-30: max longitude residual ~306″ (~5.1′), latitude ~53″, distance ~1.6e-4 relative, vs ceilings 460″/80″/2.34e-4. Of-date frame = true ecliptic of date via precession + nutation-in-longitude only (no light-time, no aberration — geometric direction). · **Next queued:** equatorial/declination output for `TrueApogee`/`TruePerigee` (chart-layer apparent equatorial shipped 2026-06-30 on `feat/equatorial-declination-output` for release-grade bodies; apsides equatorial follows when their release-grade status expands). · **Build-env note:** the reference tool `tools/se-lilith-reference` (used to generate the committed SE_OSCU_APOG corpus CSV) requires `libclang` + `LIBCLANG_PATH` to build Rust bindings to the vendored Swiss Ephemeris — provided by `devenv.nix` (`devenv shell -- cargo run ...`), the sanctioned way to get native libraries per `AGENTS.md`. This is NOT required to run the `validate-lilith` gate or build the workspace — the gate reads the committed corpus CSV via `include_str!` and never rebuilds the tool. · **Severity:** feature gap (now closed) · **Opened:** 2026-06-30
 
 ---
 
@@ -1947,3 +1947,25 @@ left out of that change:
 **Severity:** medium for item 2 (visible sub-arcminute residual on current
 dates), low for item 1 (documented, gated against the matching reference) ·
 **Opened:** 2026-09-26
+
+## FU-12: Osculating true lunar node for `TrueNode` (issue #58)
+
+**Status:** resolved (2026-09-26) · Implemented on `feat/true-node-osculating`
+(spec `docs/superpowers/specs/2026-09-26-true-node-osculating-design.md`).
+`TrueNode` is now served release-grade by `PackagedDataBackend` as the
+osculating ascending node of the geocentric lunar orbit (formed in the mean
+ecliptic of date from the packaged Moon state, emitted in J2000; chart layer
+applies precession + Δψ only, like the true apsides). Gated against the Swiss
+Ephemeris 2.10.03 Moshier `SE_TRUE_NODE` corpus (3177 rows, 1900–2100, same
+23-day grid as the Lilith corpus) by `validate-true-node`; gate parity as of
+2026-09-26: max longitude residual 52.851″, latitude 6.3e-11″ (floating-point
+noise; latitude is 0 by construction), distance 1.58e-4 relative, vs ceilings
+80″/1″/2.38e-4. A blocking-tier regression test pins the channel to the 8 Moon
+`SE_NODBIT_OSCU` rows of the nod-aps corpus at ≤40″.
+· **Residual, documented not gated:** `ElpBackend`'s own `TrueNode` stays
+Meeus's periodic-term-corrected mean node (±0.14° vs the osculating node) for
+direct ELP consumers; its evidence rows cannot detect the gap because the 1913
+sample is Meeus's own worked value. · **Build-env note:** the reference tool
+`tools/se-true-node-reference` builds inside `devenv shell` (clang/libclang
+from `devenv.nix`); the gate reads the committed CSV and never rebuilds the
+tool. · **Severity:** accuracy (now closed) · **Opened:** 2026-09-26
