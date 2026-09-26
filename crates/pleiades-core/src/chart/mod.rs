@@ -402,10 +402,11 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                             body,
                             pleiades_types::CelestialBody::TrueApogee
                                 | pleiades_types::CelestialBody::TruePerigee
+                                | pleiades_types::CelestialBody::TrueNode
                         ) {
-                            // Osculating apsis: a geometric direction. Apply precession +
-                            // nutation only (no light-time re-query, no annual aberration).
-                            // observer = None keeps it geocentric.
+                            // Osculating apsis or node: a geometric direction. Apply
+                            // precession + nutation only (no light-time re-query, no
+                            // annual aberration). observer = None keeps it geocentric.
                             self.query_mean_ecliptic(
                                 &body,
                                 request.instant,

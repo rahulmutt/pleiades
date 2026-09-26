@@ -3467,6 +3467,94 @@ fn chart_serves_apparent_true_apsides_precession_nutation_only() {
 }
 
 #[test]
+fn chart_serves_apparent_true_node_precession_nutation_only() {
+    use pleiades_backend::{Apparentness, EphemerisBackend, EphemerisRequest};
+    use pleiades_data::PackagedDataBackend;
+    use pleiades_types::CelestialBody;
+
+    let instant = Instant::new(
+        pleiades_types::JulianDay::from_days(2_461_041.5),
+        TimeScale::Tt,
+    );
+    let request = ChartRequest::new(instant)
+        .with_bodies(vec![CelestialBody::TrueNode])
+        .with_apparentness(Apparentness::Apparent);
+
+    let backend = PackagedDataBackend::new();
+    let snapshot = ChartEngine::new(backend.clone())
+        .chart(&request)
+        .expect("apparent true-node chart should succeed");
+    let node = snapshot
+        .placement_for(&CelestialBody::TrueNode)
+        .expect("TrueNode placement must be present");
+
+    assert_eq!(
+        node.position.apparent,
+        pleiades_types::Apparentness::Apparent,
+        "TrueNode should be Apparent"
+    );
+    let prov = node
+        .apparent
+        .as_ref()
+        .expect("TrueNode must carry apparent provenance");
+    assert!(
+        !prov.corrections.light_time,
+        "no light-time (geometric direction)"
+    );
+    assert!(
+        !prov.corrections.annual_aberration,
+        "no annual aberration (geometric direction)"
+    );
+    assert_eq!(prov.aberration_longitude_arcsec, 0.0);
+
+    // The chart value is exactly the backend's mean-J2000 node through
+    // apparent_apsis_position (precession + Δψ): nothing else may creep in.
+    let mean = backend
+        .position(&EphemerisRequest::new(CelestialBody::TrueNode, instant))
+        .unwrap()
+        .ecliptic
+        .unwrap();
+    let expected = pleiades_apparent::apparent_apsis_position(instant, mean).unwrap();
+    let chart_lon = node.position.ecliptic.unwrap().longitude.degrees();
+    assert!(
+        (chart_lon - expected.ecliptic.longitude.degrees()).abs() < 1e-9,
+        "chart {chart_lon} vs apsis-path {}",
+        expected.ecliptic.longitude.degrees()
+    );
+    // Of-date node lies in the ecliptic (|β| is only the tiny Δψ-induced term).
+    assert!(node.position.ecliptic.unwrap().latitude.degrees().abs() < 0.01);
+}
+
+#[test]
+fn mean_chart_places_true_node_from_packaged_backend() {
+    use pleiades_backend::Apparentness;
+    use pleiades_data::PackagedDataBackend;
+    use pleiades_types::CelestialBody;
+
+    let request = ChartRequest::new(Instant::new(
+        pleiades_types::JulianDay::from_days(2_461_041.5),
+        TimeScale::Tt,
+    ))
+    .with_bodies(vec![CelestialBody::TrueNode])
+    .with_apparentness(Apparentness::Mean);
+
+    let snapshot = ChartEngine::new(PackagedDataBackend::new())
+        .chart(&request)
+        .expect("mean true-node chart should succeed");
+    let node = snapshot
+        .placement_for(&CelestialBody::TrueNode)
+        .expect("TrueNode placement must be present");
+    assert_eq!(node.position.apparent, pleiades_types::Apparentness::Mean);
+    assert!(node
+        .position
+        .ecliptic
+        .unwrap()
+        .longitude
+        .degrees()
+        .is_finite());
+}
+
+#[test]
 fn apparent_chart_populates_equatorial_of_date() {
     use pleiades_apparent::{apparent_equatorial_of_date, true_obliquity_degrees};
     use pleiades_data::PackagedDataBackend;
