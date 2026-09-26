@@ -161,7 +161,9 @@ fn recompose_sunshine(
 }
 
 /// Builds the `(Instant, ObserverLocation, Angle, HouseAngles)` argument tuple
-/// for a Sunshine geometry, so Tasks 4-5 share one constructor.
+/// for a Sunshine geometry, so Tasks 4-5 share one constructor. The instant is
+/// tagged `Ut1` because these tests call `sunshine_houses` directly with the
+/// same instant for both its solar and sidereal views.
 fn sun_geom(
     jd: f64,
     lat: f64,
@@ -171,7 +173,7 @@ fn sun_geom(
     mc: f64,
 ) -> (Instant, ObserverLocation, Angle, HouseAngles) {
     (
-        Instant::new(JulianDay::from_days(jd), TimeScale::Tt),
+        Instant::new(JulianDay::from_days(jd), TimeScale::Ut1),
         ObserverLocation::new(
             Latitude::from_degrees(lat),
             Longitude::from_degrees(lon),
@@ -201,7 +203,7 @@ fn sunshine_houses_matches_independent_recomposition() {
         sun_geom(2_451_600.0, 66.0, 200.0, obl, 300.0, 210.0), // C: high lat
     ];
     for (i, (instant, observer, obliquity, angles)) in rows.iter().enumerate() {
-        let got = sunshine_houses(*instant, observer, *obliquity, *angles);
+        let got = sunshine_houses(*instant, *instant, observer, *obliquity, *angles);
         let want = recompose_sunshine(*instant, observer, *obliquity, *angles);
         for h in 0..12 {
             assert!(
@@ -220,7 +222,7 @@ fn sunshine_houses_under_horizon_guard_is_exercised_both_ways() {
     // else the comparison-swap mutants would survive vacuously.
     let obl = 23.4392811;
     let st_true = local_sidereal_time(
-        Instant::new(JulianDay::from_days(2_451_600.0), TimeScale::Tt),
+        Instant::new(JulianDay::from_days(2_451_600.0), TimeScale::Ut1),
         Longitude::from_degrees(295.0),
     )
     .degrees();
@@ -230,7 +232,7 @@ fn sunshine_houses_under_horizon_guard_is_exercised_both_ways() {
         "expected mc_under_horizon TRUE row: |80 - {mc_dec_true}| must exceed 90"
     );
     let st_false = local_sidereal_time(
-        Instant::new(JulianDay::from_days(2_451_600.0), TimeScale::Tt),
+        Instant::new(JulianDay::from_days(2_451_600.0), TimeScale::Ut1),
         Longitude::from_degrees(20.0),
     )
     .degrees();
@@ -257,7 +259,7 @@ fn sunshine_houses_under_horizon_guards_match_recomposition() {
         sun_geom(2_451_600.0, 0.0, 20.0, obl, 100.0, 15.0),    // lat == 0 -> false
     ];
     for (i, (instant, observer, obliquity, angles)) in rows.iter().enumerate() {
-        let got = sunshine_houses(*instant, observer, *obliquity, *angles);
+        let got = sunshine_houses(*instant, *instant, observer, *obliquity, *angles);
         let want = recompose_sunshine(*instant, observer, *obliquity, *angles);
         for h in 0..12 {
             assert!(
@@ -280,7 +282,7 @@ fn sunshine_houses_axis_flip_zero_boundary_matches_recomposition() {
     let obl = 23.4392811;
     let (instant, observer, obliquity, angles) =
         sun_geom(2_451_600.0, 45.0, 30.0, obl, 120.0, 120.0);
-    let got = sunshine_houses(instant, &observer, obliquity, angles);
+    let got = sunshine_houses(instant, instant, &observer, obliquity, angles);
     let want = recompose_sunshine(instant, &observer, obliquity, angles);
     for h in 0..12 {
         assert!(
@@ -304,7 +306,7 @@ fn sunshine_houses_under_horizon_exact_boundary_is_killed() {
     let jd = 2_451_600.0;
     let lon = 356.5;
     let st = local_sidereal_time(
-        Instant::new(JulianDay::from_days(jd), TimeScale::Tt),
+        Instant::new(JulianDay::from_days(jd), TimeScale::Ut1),
         Longitude::from_degrees(lon),
     )
     .degrees();
@@ -323,7 +325,7 @@ fn sunshine_houses_under_horizon_exact_boundary_is_killed() {
     // recompose. The `>= 90.0` mutant makes mc_under_horizon = true, flipping
     // the 8 loop-house cusps and diverging from recompose -- killing 1546:92.
     let (instant, observer, obliquity, angles) = sun_geom(jd, latitude, lon, obl, 300.0, 210.0);
-    let got = sunshine_houses(instant, &observer, obliquity, angles);
+    let got = sunshine_houses(instant, instant, &observer, obliquity, angles);
     let want = recompose_sunshine(instant, &observer, obliquity, angles);
     for h in 0..12 {
         assert!(
@@ -377,7 +379,7 @@ fn sunshine_houses_degenerate_semi_arc_guard_is_killed() {
     // == division by zero == NaN, while recompose stays finite -- the equality
     // assertion below fails on NaN, killing 1585:32.
     let (instant, observer, obliquity, angles) = sun_geom(jd, latitude, 40.0, obl, 130.0, 20.0);
-    let got = sunshine_houses(instant, &observer, obliquity, angles);
+    let got = sunshine_houses(instant, instant, &observer, obliquity, angles);
     let want = recompose_sunshine(instant, &observer, obliquity, angles);
     for h in 0..12 {
         assert!(

@@ -18,6 +18,9 @@ pub enum HouseErrorKind {
     InvalidObliquity,
     /// The calculation failed for a numerical reason.
     NumericalFailure,
+    /// The request instant could not be re-expressed on the UT1 scale that
+    /// sidereal time requires (ΔT table unavailable, or an unsupported scale).
+    TimeScaleConversion,
 }
 
 impl fmt::Display for HouseErrorKind {
@@ -29,6 +32,7 @@ impl fmt::Display for HouseErrorKind {
             Self::InvalidElevation => "InvalidElevation",
             Self::InvalidObliquity => "InvalidObliquity",
             Self::NumericalFailure => "NumericalFailure",
+            Self::TimeScaleConversion => "TimeScaleConversion",
         };
         f.write_str(label)
     }

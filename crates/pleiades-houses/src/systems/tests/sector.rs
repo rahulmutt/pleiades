@@ -134,7 +134,7 @@ fn gauquelin_sectors_match_swiss_ephemeris_reference() {
         let request = HouseRequest::new(
             Instant::new(
                 pleiades_types::JulianDay::from_days(fx.jd),
-                pleiades_types::TimeScale::Tt,
+                pleiades_types::TimeScale::Ut1,
             ),
             ObserverLocation::new(
                 Latitude::from_degrees(fx.lat),

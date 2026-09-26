@@ -112,7 +112,7 @@ fn equal_house_angles_match_swiss_ephemeris_corpus_within_1_arcsec() {
     let request = HouseRequest::new(
         Instant::new(
             pleiades_types::JulianDay::from_days(2_451_545.0),
-            pleiades_types::TimeScale::Tt,
+            pleiades_types::TimeScale::Ut1,
         ),
         observer,
         HouseSystem::Equal,

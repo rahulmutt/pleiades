@@ -126,7 +126,13 @@ gated by `validate-angles` (armc/gast ~0.16″; geometry points <0.05″ vs SE,
   as-supplied (UT1-based, honoring the existing house-layer time policy — a Global
   Constraint), whereas the topocentric path converts TT→UT1 first; a caller passing a
   TT instant sees a ΔT≈69 s ≈ 0.29° offset. Documented in the module header and
-  `docs/time-observer-policy.md`. → **Resolved 2026-07-01 (`4c79c6c2`, `bd0da1bc`):**
+  `docs/time-observer-policy.md`. **Correction (2026-09-26, #56):** that offset
+  *was* a defect at the house layer — the documented chart path (`from_civil` →
+  TT) fed the TT day to sidereal time, so every angle and cusp was ΔT late.
+  `pleiades-houses` now converts through `pleiades_apparent::ut1_instant`; the
+  `sidereal_time` primitive itself still consumes the JD as supplied. Remaining
+  consumers that do not convert are tracked as FU-11.
+  → **Resolved 2026-07-01 (`4c79c6c2`, `bd0da1bc`):**
   the GMST polynomial is now single-sourced into `pleiades-time::gmst_degrees_raw`
   (unnormalized), with `pleiades-apparent`'s `greenwich_mean_sidereal_time_degrees`
   delegating to it instead of carrying its own byte-identical copy; a cross-crate
@@ -1905,3 +1911,39 @@ inconsistency.
 
 **Severity:** low — maintenance (known removal date, no current breakage) ·
 **Opened:** 2026-07-18
+
+## FU-11: Sidereal-time consumers outside the house layer, and the ΔT extrapolation gap
+
+**Status:** open · Opened 2026-09-26 while fixing #56 (houses evaluated
+sidereal time at the TT day).
+
+**What:** #56 fixed `pleiades-houses` by routing every Earth-rotation quantity
+through `pleiades_apparent::ut1_instant`. Two related items were deliberately
+left out of that change:
+
+1. **`pleiades-events` rise/set/transit and horizontal coordinates** label
+   their working instants `TimeScale::Tdb` and call `sidereal_time` on the raw
+   JD, so the returned event instants are UT1-scale under a `Tdb` label (the
+   `validate-rise-trans` gate compares against `se_jd_ut` for exactly this
+   reason, and the compatibility summary carries an honesty caveat). The
+   occultation and local-eclipse paths already subtract ΔT but then tag the
+   converted day `Tdb`, so a scale-aware `sidereal_time` would double-convert
+   them. Making the events crate honour the instant tag means: converting via
+   `ut1_instant` (or tagging the converted instants `Ut1`), switching the
+   rise-trans gate to `se_jd_tdb`, and rewording the SP-2b caveat in
+   `pleiades-core::compatibility`. That is a semantic change to returned event
+   instants and belongs in its own reviewed change.
+
+2. **ΔT model beyond 2020.** `crates/pleiades-time/data/delta-t-observed.csv`
+   ends at 2020 (69.4 s) and `deltat::extrapolate` (Espenak–Meeus 2005–2050
+   form) gives ≈75 s for 2026 against an observed ≈69 s. For post-1972 dates
+   the leap-second table already pins TT − UTC exactly (32.184 s + TAI − UTC),
+   so ΔT = TT − UTC − DUT1 is known to within |DUT1| < 0.9 s wherever the leap
+   table applies — a far tighter bound than the polynomial. Until that is
+   used, house angles for 2021+ carry a ≈6 s ≈ 0.025° residual against Swiss
+   Ephemeris (documented in `docs/time-observer-policy.md`; the #56 regression
+   test asserts a 0.05° ceiling on the 2026 Chennai fixture for this reason).
+
+**Severity:** medium for item 2 (visible sub-arcminute residual on current
+dates), low for item 1 (documented, gated against the matching reference) ·
+**Opened:** 2026-09-26

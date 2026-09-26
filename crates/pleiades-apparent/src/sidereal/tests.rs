@@ -163,3 +163,69 @@ fn gast_matches_meeus_example_12b() {
         st.gast_deg
     );
 }
+
+// --- ut1_instant: the sanctioned TT/TDB -> UT1 adapter for sidereal time ---
+
+/// 2026-03-21 05:00 UTC + ΔT, the Chennai fixture from issue #56.
+const CHENNAI_2026_JD_TT: f64 = 2_461_120.709_130;
+
+#[test]
+fn ut1_instant_subtracts_delta_t_from_a_tt_instant() {
+    let tt = Instant::new(JulianDay::from_days(CHENNAI_2026_JD_TT), TimeScale::Tt);
+    let ut1 = ut1_instant(tt).expect("delta-T table available");
+    let (delta_t_seconds, _) = pleiades_time::deltat::delta_t(CHENNAI_2026_JD_TT).unwrap();
+    let expected_jd = CHENNAI_2026_JD_TT - delta_t_seconds / 86_400.0;
+    assert_eq!(ut1.scale, TimeScale::Ut1);
+    assert!(
+        (ut1.julian_day.days() - expected_jd).abs() < 1e-12,
+        "got {} want {expected_jd}",
+        ut1.julian_day.days()
+    );
+    // Sanity: the shift is on the order of a minute, not zero and not a day.
+    let shift_seconds = (CHENNAI_2026_JD_TT - ut1.julian_day.days()) * 86_400.0;
+    assert!(
+        (60.0..80.0).contains(&shift_seconds),
+        "shift {shift_seconds}s"
+    );
+}
+
+#[test]
+fn ut1_instant_treats_tdb_like_tt() {
+    let tt = Instant::new(JulianDay::from_days(CHENNAI_2026_JD_TT), TimeScale::Tt);
+    let tdb = Instant::new(JulianDay::from_days(CHENNAI_2026_JD_TT), TimeScale::Tdb);
+    assert_eq!(ut1_instant(tt).unwrap(), ut1_instant(tdb).unwrap());
+}
+
+#[test]
+fn ut1_instant_passes_a_ut1_instant_through_unchanged() {
+    let ut1 = Instant::new(JulianDay::from_days(CHENNAI_2026_JD_TT), TimeScale::Ut1);
+    assert_eq!(ut1_instant(ut1).unwrap(), ut1);
+}
+
+#[test]
+fn ut1_instant_retags_utc_as_ut1_without_shifting_the_day() {
+    let utc = Instant::new(JulianDay::from_days(CHENNAI_2026_JD_TT), TimeScale::Utc);
+    let out = ut1_instant(utc).unwrap();
+    assert_eq!(out.scale, TimeScale::Ut1);
+    assert_eq!(out.julian_day.days(), CHENNAI_2026_JD_TT);
+}
+
+#[test]
+fn sidereal_time_after_ut1_instant_lags_the_raw_tt_evaluation_by_delta_t() {
+    // Evaluating at UT1 instead of TT must move GMST back by
+    // ΔT × 360.9856°/day (the linear Meeus 12.4 rate).
+    let tt = Instant::new(JulianDay::from_days(CHENNAI_2026_JD_TT), TimeScale::Tt);
+    let lon = Longitude::from_degrees(80.2707);
+    let raw = sidereal_time(tt, lon).gmst_deg;
+    let converted = sidereal_time(ut1_instant(tt).unwrap(), lon).gmst_deg;
+    let (delta_t_seconds, _) = pleiades_time::deltat::delta_t(CHENNAI_2026_JD_TT).unwrap();
+    let expected_lag = delta_t_seconds * 360.985_647_366_29 / 86_400.0;
+    let lag = (raw - converted).rem_euclid(360.0);
+    // 1e-6° tolerance: subtracting ΔT from a ~2.46e6-day JD rounds at
+    // half-ulp(JD) ≈ 2.3e-10 d, which the 361°/day rate amplifies to ~1e-7°.
+    // A missing conversion (lag 0) or a double one (2×) is still caught.
+    assert!(
+        (lag - expected_lag).abs() < 1e-6,
+        "lag {lag} want {expected_lag}"
+    );
+}

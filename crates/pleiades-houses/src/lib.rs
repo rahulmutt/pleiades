@@ -33,6 +33,20 @@
 //! assert_eq!(houses.cusps.len(), 12);
 //! ```
 //!
+//! # Time scale
+//!
+//! The request instant's [`TimeScale`](pleiades_types::TimeScale) tag is
+//! honoured. Obliquity and nutation are evaluated at the instant as tagged
+//! (dynamical time), while sidereal time — and with it ARMC, the ascendant,
+//! and every cusp — is an Earth-rotation quantity evaluated at UT1: a `Tt` or
+//! `Tdb` instant is shifted by ΔT through `pleiades_apparent::ut1_instant`, a
+//! `Ut1` instant is used as-is, and a `Utc` instant is treated as UT1 (they
+//! differ by under 0.9 s). Pass the same TT instant you pass to the ephemeris
+//! backends; do not pre-subtract ΔT. Accuracy is bounded by the packaged ΔT
+//! model (observed through 2020, extrapolated beyond), and a ΔT-table failure
+//! surfaces as a `TimeScaleConversion` house error rather than a silent
+//! fallback. See `docs/time-observer-policy.md`.
+//!
 //! House-system selection: pick a system (here Placidus), compute cusps from an
 //! [`Instant`](pleiades_types::Instant) plus
 //! [`ObserverLocation`](pleiades_types::ObserverLocation), and read the exposed

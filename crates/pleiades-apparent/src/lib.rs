@@ -88,7 +88,7 @@ pub mod sidereal;
 
 pub use sidereal::{
     equation_of_equinoxes, equation_of_equinoxes_degrees, greenwich_mean_sidereal_time_degrees,
-    sidereal_time, SiderealTime,
+    sidereal_time, ut1_instant, SiderealTime,
 };
 
 pub mod aberration;

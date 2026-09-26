@@ -14,7 +14,7 @@ use core::fmt;
 use pleiades_apparent::nutation::nutation as apparent_nutation;
 use pleiades_types::{
     Angle, HouseSystem, Instant, Latitude, Longitude, ObserverLocation,
-    ObserverLocationValidationError,
+    ObserverLocationValidationError, TimeScale,
 };
 
 use crate::error::{HouseError, HouseErrorKind};
@@ -271,7 +271,7 @@ pub fn chart_points(
             obl
         }
     };
-    let armc = local_sidereal_time(instant, observer.longitude).degrees();
+    let armc = local_sidereal_time(sidereal_instant(instant)?, observer.longitude).degrees();
     asc_mc_from(armc, observer.latitude.degrees(), obliquity.degrees())
 }
 
@@ -373,6 +373,10 @@ fn expected_cusp_count(system: &HouseSystem) -> usize {
 /// Computes the house cusps and derived angles for a request.
 pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseError> {
     let obliquity = validated_obliquity(request)?;
+    // Obliquity and nutation above are dynamical-time quantities and use the
+    // request instant as tagged; everything below that touches Earth rotation
+    // (ARMC, ascendant, every cusp) takes the UT1 re-expression instead.
+    let sidereal_instant = sidereal_instant(request.instant)?;
 
     // High-latitude policy: reject or substitute depending on the request setting.
     if let Some(descriptor) = crate::catalog::descriptor(&request.system) {
@@ -404,9 +408,9 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
                                 ),
                             ));
                         }
-                        let angles = derive_angles(request.instant, &request.observer, obliquity);
+                        let angles = derive_angles(sidereal_instant, &request.observer, obliquity);
                         let asc_mc = asc_mc_from(
-                            local_sidereal_time(request.instant, request.observer.longitude)
+                            local_sidereal_time(sidereal_instant, request.observer.longitude)
                                 .degrees(),
                             request.observer.latitude.degrees(),
                             obliquity.degrees(),
@@ -428,7 +432,7 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
         }
     }
 
-    let angles = derive_angles(request.instant, &request.observer, obliquity);
+    let angles = derive_angles(sidereal_instant, &request.observer, obliquity);
     let cusps = match &request.system {
         HouseSystem::Equal => equal_houses(angles.ascendant).into(),
         HouseSystem::EqualMidheaven => equal_midheaven_houses(angles.midheaven).into(),
@@ -438,48 +442,53 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
         HouseSystem::WholeSign => whole_sign_houses(angles.ascendant).into(),
         HouseSystem::Porphyry => porphyry_houses(angles).into(),
         HouseSystem::Placidus => {
-            placidus_houses(request.instant, &request.observer, obliquity, angles)?.into()
+            placidus_houses(sidereal_instant, &request.observer, obliquity, angles)?.into()
         }
         HouseSystem::Koch => {
-            koch_houses(request.instant, &request.observer, obliquity, angles)?.into()
+            koch_houses(sidereal_instant, &request.observer, obliquity, angles)?.into()
         }
         HouseSystem::Regiomontanus => {
-            regiomontanus_houses(request.instant, &request.observer, obliquity, angles).into()
+            regiomontanus_houses(sidereal_instant, &request.observer, obliquity, angles).into()
         }
         HouseSystem::Campanus => {
-            campanus_houses(request.instant, &request.observer, obliquity, angles).into()
+            campanus_houses(sidereal_instant, &request.observer, obliquity, angles).into()
         }
         HouseSystem::Carter => carter_houses(angles, obliquity).into(),
         HouseSystem::Horizon => {
-            horizon_houses(request.instant, &request.observer, obliquity, angles).into()
+            horizon_houses(sidereal_instant, &request.observer, obliquity, angles).into()
         }
         HouseSystem::Apc => {
-            apc_houses(request.instant, &request.observer, obliquity, angles).into()
+            apc_houses(sidereal_instant, &request.observer, obliquity, angles).into()
         }
         HouseSystem::KrusinskiPisaGoelzer => {
-            krusinski_pisa_goelzer_houses(request.instant, &request.observer, obliquity, angles)
+            krusinski_pisa_goelzer_houses(sidereal_instant, &request.observer, obliquity, angles)
                 .into()
         }
         HouseSystem::Alcabitius => {
-            alcabitius_houses(request.instant, &request.observer, obliquity, angles).into()
+            alcabitius_houses(sidereal_instant, &request.observer, obliquity, angles).into()
         }
         HouseSystem::Albategnius => albategnius_houses(angles).into(),
         HouseSystem::PullenSd => pullen_sd_houses(angles).into(),
         HouseSystem::PullenSr => pullen_sr_houses(angles).into(),
-        HouseSystem::Sunshine => {
-            sunshine_houses(request.instant, &request.observer, obliquity, angles).into()
-        }
+        HouseSystem::Sunshine => sunshine_houses(
+            request.instant,
+            sidereal_instant,
+            &request.observer,
+            obliquity,
+            angles,
+        )
+        .into(),
         HouseSystem::Gauquelin => {
-            gauquelin_houses(request.instant, &request.observer, obliquity, angles)?.into()
+            gauquelin_houses(sidereal_instant, &request.observer, obliquity, angles)?.into()
         }
         HouseSystem::Meridian | HouseSystem::Axial => {
-            equatorial_projection_houses(request.instant, &request.observer, obliquity).into()
+            equatorial_projection_houses(sidereal_instant, &request.observer, obliquity).into()
         }
         HouseSystem::Morinus => {
-            morinus_houses(request.instant, &request.observer, obliquity).into()
+            morinus_houses(sidereal_instant, &request.observer, obliquity).into()
         }
         HouseSystem::Topocentric => {
-            topocentric_houses(request.instant, &request.observer, obliquity, angles)?.into()
+            topocentric_houses(sidereal_instant, &request.observer, obliquity, angles)?.into()
         }
         HouseSystem::Custom(custom) => {
             return Err(HouseError::new(
@@ -499,7 +508,7 @@ pub fn calculate_houses(request: &HouseRequest) -> Result<HouseSnapshot, HouseEr
     };
 
     let asc_mc = asc_mc_from(
-        local_sidereal_time(request.instant, request.observer.longitude).degrees(),
+        local_sidereal_time(sidereal_instant, request.observer.longitude).degrees(),
         request.observer.latitude.degrees(),
         obliquity.degrees(),
     )?;
@@ -728,7 +737,28 @@ fn ascendant_for(sidereal_time_deg: f64, latitude_deg: f64, obliquity_rad: f64) 
     )
 }
 
+/// Re-expresses a request instant on the UT1 scale for every Earth-rotation
+/// quantity (ARMC, ascendant, cusps). TT/TDB instants are shifted by ΔT;
+/// UT1/UTC instants keep their day. Obliquity and nutation must keep using the
+/// original (dynamical) instant — see `calculate_houses`.
+fn sidereal_instant(instant: Instant) -> Result<Instant, HouseError> {
+    pleiades_apparent::sidereal::ut1_instant(instant).map_err(|e| {
+        HouseError::new(
+            HouseErrorKind::TimeScaleConversion,
+            format!("cannot express {instant} on the UT1 scale for sidereal time: {e}"),
+        )
+    })
+}
+
+/// Local apparent sidereal time for a **UT1-tagged** instant; callers obtain
+/// one from [`sidereal_instant`]. The scale is checked in debug builds so a
+/// new call site cannot quietly reintroduce the TT-as-UT1 offset (#56).
 fn local_sidereal_time(instant: Instant, longitude: Longitude) -> Angle {
+    debug_assert_eq!(
+        instant.scale,
+        TimeScale::Ut1,
+        "sidereal time must be taken from a UT1 instant"
+    );
     Angle::from_degrees(
         pleiades_apparent::sidereal::sidereal_time(instant, longitude).local_apparent_deg,
     )
@@ -1530,18 +1560,22 @@ fn topocentric_houses(
     Ok(cusps)
 }
 
+/// Sunshine houses need two views of the same moment: the Sun's declination is
+/// a dynamical-time quantity (`solar_instant`, TT/TDB as requested), while
+/// sidereal time is Earth rotation (`sidereal_instant`, UT1).
 fn sunshine_houses(
-    instant: Instant,
+    solar_instant: Instant,
+    sidereal_instant: Instant,
     observer: &ObserverLocation,
     obliquity: Angle,
     angles: HouseAngles,
 ) -> [Longitude; 12] {
     const SUNSHINE_KEEP_MC_SOUTH: bool = false;
 
-    let sidereal_time = local_sidereal_time(instant, observer.longitude).degrees();
+    let sidereal_time = local_sidereal_time(sidereal_instant, observer.longitude).degrees();
     let latitude = observer.latitude.degrees();
     let obliquity_deg = obliquity.degrees();
-    let sundec = apparent_solar_declination(instant, obliquity).degrees();
+    let sundec = apparent_solar_declination(solar_instant, obliquity).degrees();
     let mc_under_horizon = latitude.signum() != 0.0
         && (latitude - apparent_midheaven_declination(sidereal_time, obliquity_deg)).abs() > 90.0;
 

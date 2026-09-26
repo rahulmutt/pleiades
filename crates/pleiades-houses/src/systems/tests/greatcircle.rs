@@ -66,7 +66,7 @@ fn horizon_houses_match_swiss_ephemeris_reference() {
     let mut worst = 0.0f64;
     for (lat, lon, jd, want) in fixtures {
         let req = HouseRequest::new(
-            Instant::new(JulianDay::from_days(jd), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(jd), TimeScale::Ut1),
             ObserverLocation::new(
                 Latitude::from_degrees(lat),
                 Longitude::from_degrees(lon),
@@ -157,8 +157,10 @@ fn apc_sector_pins_all_twelve_against_independent_reference() {
     }
 }
 
+/// The per-system functions take the UT1 sidereal instant (see
+/// `sidereal_instant` in `systems`), so direct calls tag it `Ut1`.
 fn gc_instant() -> Instant {
-    Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt)
+    Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1)
 }
 
 #[test]

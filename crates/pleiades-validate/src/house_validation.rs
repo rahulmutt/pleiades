@@ -1271,12 +1271,12 @@ fn recompute_pleiades(
         Longitude::from_degrees(row.lon_deg),
         Some(row.elev_m),
     );
-    // The corpus JD is recorded as UT (from the SE harness).
-    // The pleiades engine accepts JD via TimeScale::Tt for the obliquity
-    // calculation; for house cusps, which are analytic (no nutation table),
-    // TT ≈ UT at this precision. This matches how all prior phase-5 tests
-    // set up their instants (J2000 TT = JD 2451545.0).
-    let instant = Instant::new(JulianDay::from_days(row.jd_ut), TimeScale::Tt);
+    // The corpus JD is Swiss Ephemeris's `jd_ut`, so it is tagged `Ut1` and
+    // the house layer takes sidereal time from that day as-is. Tagging it `Tt`
+    // (as this gate did before #56) would make the engine subtract ΔT first
+    // and shift every cusp by ~0.27°; the obliquity's own sensitivity to the
+    // UT/TT distinction (~1e-8°) is far below the gate ceiling.
+    let instant = Instant::new(JulianDay::from_days(row.jd_ut), TimeScale::Ut1);
     let request = HouseRequest::new(instant, observer, system.clone());
     calculate_houses(&request).map_err(|e| HouseCorpusError::CalculationFailed {
         row: row_num,

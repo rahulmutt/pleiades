@@ -270,6 +270,7 @@ name = "pleiades-houses"
 version = "0.5.0"
 dependencies = [
  "pleiades-apparent",
+ "pleiades-time",
  "pleiades-types",
 ]
 
