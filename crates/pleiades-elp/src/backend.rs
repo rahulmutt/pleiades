@@ -55,24 +55,67 @@ impl ElpBackend {
         instant.julian_day.days() - crate::J2000
     }
 
-    pub(crate) fn moon_ecliptic_coordinates(days: f64) -> EclipticCoordinates {
-        let jd_tt = crate::J2000 + days;
-        let (longitude, latitude, distance_au) = crate::data::moonposition::position(jd_tt);
-        // The Meeus Ch.47 series is referred to the mean equinox/ecliptic OF DATE.
-        // Precess it back to J2000 so the backend emits a J2000 boundary frame,
-        // consistent with every other first-party backend; the apparent pipeline
-        // re-applies the forward J2000->date precession (no double-precession).
+    /// Re-expresses an of-date geocentric ecliptic position in the J2000 mean
+    /// equinox/ecliptic frame.
+    ///
+    /// Every ecliptic channel this backend emits passes through here, so the
+    /// boundary frame is uniformly J2000 (consistent with every other
+    /// first-party backend); consumers apply the forward J2000->date
+    /// precession exactly once. The Meeus Ch. 47 series and polynomials are all
+    /// referred to the mean equinox/ecliptic OF DATE, which is why this step is
+    /// needed for the Moon and the lunar point channels alike (issue #57).
+    fn ecliptic_of_date_to_j2000(
+        longitude: Longitude,
+        latitude: Latitude,
+        distance_au: Option<f64>,
+        jd_tt: f64,
+    ) -> EclipticCoordinates {
         let precessed = pleiades_apparent::precess_ecliptic_date_to_j2000(
             longitude.degrees(),
             latitude.degrees(),
             jd_tt,
         )
-        .expect("ELP lunar lon/lat precess cleanly to J2000");
+        .expect("ELP of-date lon/lat precess cleanly to J2000");
         EclipticCoordinates::new(
             Longitude::from_degrees(precessed.longitude_deg),
             Latitude::from_degrees(precessed.latitude_deg),
-            Some(distance_au),
+            distance_au,
         )
+    }
+
+    pub(crate) fn moon_ecliptic_coordinates(days: f64) -> EclipticCoordinates {
+        let jd_tt = crate::J2000 + days;
+        let (longitude, latitude, distance_au) = crate::data::moonposition::position(jd_tt);
+        Self::ecliptic_of_date_to_j2000(longitude, latitude, Some(distance_au), jd_tt)
+    }
+
+    /// Of-date longitude of a lunar point channel (node or mean apsis), straight
+    /// from the Meeus Ch. 47 polynomials (mean equinox of date). `None` for any
+    /// body that is not a lunar point channel.
+    fn point_longitude_of_date(body: &CelestialBody, days: f64) -> Option<Longitude> {
+        let degrees = match body {
+            CelestialBody::MeanNode => Self::mean_node_longitude(days),
+            CelestialBody::TrueNode => Self::true_node_longitude(days),
+            CelestialBody::MeanApogee => Self::mean_apogee_longitude(days),
+            CelestialBody::MeanPerigee => Self::mean_perigee_longitude(days),
+            _ => return None,
+        };
+        Some(Longitude::from_degrees(degrees))
+    }
+
+    /// J2000 boundary coordinates of a lunar point channel: the of-date point
+    /// `(lon, 0)` precessed back to J2000 exactly like the Moon. Expressed in
+    /// J2000 the point carries a small non-zero latitude (≈±0.003° in 2026, the
+    /// tilt between the two ecliptics); the consumer's forward J2000->date
+    /// precession restores `(lon, 0)`.
+    fn point_ecliptic_j2000(body: &CelestialBody, days: f64) -> Option<EclipticCoordinates> {
+        let longitude = Self::point_longitude_of_date(body, days)?;
+        Some(Self::ecliptic_of_date_to_j2000(
+            longitude,
+            Latitude::from_degrees(0.0),
+            None,
+            crate::J2000 + days,
+        ))
     }
 
     fn moon_ecliptic_of_date(days: f64) -> EclipticCoordinates {
@@ -144,27 +187,7 @@ impl ElpBackend {
     fn ecliptic_for_body(body: CelestialBody, days: f64) -> Option<EclipticCoordinates> {
         match body {
             CelestialBody::Moon => Some(Self::moon_ecliptic_coordinates(days)),
-            CelestialBody::MeanNode => Some(EclipticCoordinates::new(
-                Longitude::from_degrees(Self::mean_node_longitude(days)),
-                Latitude::from_degrees(0.0),
-                None,
-            )),
-            CelestialBody::TrueNode => Some(EclipticCoordinates::new(
-                Longitude::from_degrees(Self::true_node_longitude(days)),
-                Latitude::from_degrees(0.0),
-                None,
-            )),
-            CelestialBody::MeanApogee => Some(EclipticCoordinates::new(
-                Longitude::from_degrees(Self::mean_apogee_longitude(days)),
-                Latitude::from_degrees(0.0),
-                None,
-            )),
-            CelestialBody::MeanPerigee => Some(EclipticCoordinates::new(
-                Longitude::from_degrees(Self::mean_perigee_longitude(days)),
-                Latitude::from_degrees(0.0),
-                None,
-            )),
-            _ => None,
+            point => Self::point_ecliptic_j2000(&point, days),
         }
     }
 
@@ -298,7 +321,7 @@ impl EphemerisBackend for ElpBackend {
             req.apparent,
         );
         result.quality = QualityAnnotation::Approximate;
-        match body {
+        match &body {
             CelestialBody::Moon => {
                 let coords = Self::moon_ecliptic_coordinates(days); // J2000 boundary
                 result.ecliptic = Some(coords);
@@ -310,51 +333,26 @@ impl EphemerisBackend for ElpBackend {
                     of_date.distance_au,
                 ));
             }
-            CelestialBody::MeanNode => {
-                let longitude = Longitude::from_degrees(Self::mean_node_longitude(days));
-                let latitude = Latitude::from_degrees(0.0);
-                result.ecliptic = Some(EclipticCoordinates::new(longitude, latitude, None));
+            point => {
+                let Some(of_date_longitude) = Self::point_longitude_of_date(point, days) else {
+                    unreachable!("body support should be validated before position queries")
+                };
+                let of_date_latitude = Latitude::from_degrees(0.0);
+                // J2000 boundary, like the Moon.
+                result.ecliptic = Some(Self::ecliptic_of_date_to_j2000(
+                    of_date_longitude,
+                    of_date_latitude,
+                    None,
+                    crate::J2000 + days,
+                ));
+                // Mean-obliquity equatorial from the of-date point, like the Moon.
                 result.equatorial = Some(Self::ecliptic_point_to_equatorial(
-                    longitude,
-                    latitude,
+                    of_date_longitude,
+                    of_date_latitude,
                     req.instant,
                     None,
                 ));
             }
-            CelestialBody::TrueNode => {
-                let longitude = Longitude::from_degrees(Self::true_node_longitude(days));
-                let latitude = Latitude::from_degrees(0.0);
-                result.ecliptic = Some(EclipticCoordinates::new(longitude, latitude, None));
-                result.equatorial = Some(Self::ecliptic_point_to_equatorial(
-                    longitude,
-                    latitude,
-                    req.instant,
-                    None,
-                ));
-            }
-            CelestialBody::MeanApogee => {
-                let longitude = Longitude::from_degrees(Self::mean_apogee_longitude(days));
-                let latitude = Latitude::from_degrees(0.0);
-                result.ecliptic = Some(EclipticCoordinates::new(longitude, latitude, None));
-                result.equatorial = Some(Self::ecliptic_point_to_equatorial(
-                    longitude,
-                    latitude,
-                    req.instant,
-                    None,
-                ));
-            }
-            CelestialBody::MeanPerigee => {
-                let longitude = Longitude::from_degrees(Self::mean_perigee_longitude(days));
-                let latitude = Latitude::from_degrees(0.0);
-                result.ecliptic = Some(EclipticCoordinates::new(longitude, latitude, None));
-                result.equatorial = Some(Self::ecliptic_point_to_equatorial(
-                    longitude,
-                    latitude,
-                    req.instant,
-                    None,
-                ));
-            }
-            _ => unreachable!("body support should be validated before position queries"),
         }
         result.motion = Self::motion(body, days);
         Ok(result)

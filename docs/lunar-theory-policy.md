@@ -20,6 +20,8 @@ The backend currently covers:
 
 **Note:** the osculating true apogee and true perigee (True Lilith) are now served release-grade by `PackagedDataBackend` (`crates/pleiades-data` osculating path + `crates/pleiades-apsides`), computed from the packaged Moon state rather than the compact ELP theory. They are not served by this ELP backend. They are gated against the Swiss Ephemeris `SE_OSCU_APOG` corpus by `validate-lilith` and their coordinate frame is true ecliptic of date via precession + nutation-in-longitude only (no light-time, no aberration — geometric direction).
 
+**Frame:** every ecliptic channel above — the Moon and the four lunar point channels alike — is emitted in the **J2000 mean ecliptic** at the backend boundary, consistent with every other first-party backend (see `docs/time-observer-policy.md`). The Meeus Ch. 47 series and node/perigee polynomials are referred to the mean equinox of date, so the backend precesses them back to J2000 (`pleiades_apparent::precess_ecliptic_date_to_j2000`); consumers apply the forward J2000→date precession exactly once. Expressed in J2000 a node or apsis carries a small non-zero latitude (≈±0.003° in 2026, the tilt between the two ecliptics) that the forward precession removes. The backend's own `equatorial` channel is derived from the of-date position with the mean obliquity of date (see `docs/follow-ups.md`). Issue #57 tracked the earlier mixed-frame state in which the point channels were emitted of-date.
+
 The backend currently rejects:
 
 - true apogee (served release-grade by `PackagedDataBackend`; unsupported in this ELP backend)

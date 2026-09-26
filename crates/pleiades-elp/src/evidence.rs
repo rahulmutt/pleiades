@@ -129,24 +129,30 @@ pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
         LunarReferenceSample {
             body: CelestialBody::MeanNode,
             epoch: Instant::new(pleiades_types::JulianDay::from_days(2_419_914.5), TimeScale::Tt),
-            longitude_deg: 0.0,
-            latitude_deg: 0.0,
+            // J2000 ecliptic boundary: the published of-date value (lon=0.0, lat=0.0) precessed
+            // back to J2000 via precess_ecliptic_date_to_j2000, as for the Moon row above.
+            longitude_deg: 1.209_726_057,
+            latitude_deg: 0.001_206_955,
             distance_au: None,
             note: "Published 1913-05-27 mean ascending node example used to anchor the lunar node model",
         },
         LunarReferenceSample {
             body: CelestialBody::MeanNode,
             epoch: Instant::new(pleiades_types::JulianDay::from_days(2_436_909.5), TimeScale::Tt),
-            longitude_deg: 180.0,
-            latitude_deg: 0.0,
+            // J2000 ecliptic boundary: the published of-date value (lon=180.0, lat=0.0) precessed
+            // back to J2000.
+            longitude_deg: 180.609_431_878,
+            latitude_deg: -0.000_513_953,
             distance_au: None,
             note: "Published 1959-12-07 mean ascending node example used to anchor the lunar node model",
         },
         LunarReferenceSample {
             body: CelestialBody::MeanPerigee,
             epoch: Instant::new(pleiades_types::JulianDay::from_days(2_459_278.5), TimeScale::Tt),
-            longitude_deg: 224.891_94,
-            latitude_deg: 0.0,
+            // J2000 ecliptic boundary: the published of-date value (lon=224.891_94, lat=0.0)
+            // precessed back to J2000.
+            longitude_deg: 224.596_142_720,
+            latitude_deg: 0.002_110_247,
             distance_au: None,
             note: "Published 2021-03-05 mean perigee example used to anchor the lunar perigee model",
         },
@@ -169,8 +175,10 @@ pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
         LunarReferenceSample {
             body: CelestialBody::TrueNode,
             epoch: Instant::new(pleiades_types::JulianDay::from_days(2_419_914.5), TimeScale::Tt),
-            longitude_deg: 0.876_3,
-            latitude_deg: 0.0,
+            // J2000 ecliptic boundary: the published of-date value (lon=0.876_3, lat=0.0)
+            // precessed back to J2000.
+            longitude_deg: 2.085_852_606,
+            latitude_deg: 0.001_378_820,
             distance_au: None,
             note: "Published 1913-05-27 true ascending node example used to anchor the lunar node model",
         },

@@ -704,7 +704,7 @@ fn release_bundle_writes_expected_artifacts() {
             "ELP lunar request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
         ));
     assert!(release_summary.contains(
-            "ELP frame treatment: Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform"
+            "ELP frame treatment: Geocentric ecliptic coordinates are produced from the truncated lunar series and the Meeus lunar-point polynomials (mean equinox of date) and precessed to the J2000 mean ecliptic at the backend boundary for the Moon and every node/apogee/perigee channel alike; equatorial coordinates are derived from the of-date position with a mean-obliquity transform"
         ));
     assert!(release_summary.contains(
             "lunar theory catalog: 1 entry, 1 selected entry; selected source: meeus-style-truncated-lunar-baseline [Meeus-style truncated analytical baseline]"
@@ -1124,7 +1124,7 @@ fn release_bundle_writes_expected_artifacts() {
             "ELP lunar request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
         ));
     assert!(validation_report_summary.contains(
-            "ELP frame treatment: Geocentric ecliptic coordinates are produced directly from the truncated lunar series; equatorial coordinates are derived with a mean-obliquity transform"
+            "ELP frame treatment: Geocentric ecliptic coordinates are produced from the truncated lunar series and the Meeus lunar-point polynomials (mean equinox of date) and precessed to the J2000 mean ecliptic at the backend boundary for the Moon and every node/apogee/perigee channel alike; equatorial coordinates are derived from the of-date position with a mean-obliquity transform"
         ));
     assert!(validation_report_summary.contains("ELP lunar theory limitations:"));
     assert!(validation_report_summary.contains(
