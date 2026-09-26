@@ -12,4 +12,5 @@ mod request;
 mod sector;
 mod sunshine;
 mod support;
+mod timescale;
 mod trivial;

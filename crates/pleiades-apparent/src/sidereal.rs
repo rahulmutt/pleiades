@@ -1,10 +1,15 @@
 //! Sidereal time (GMST/GAST, Greenwich and local) for the of-date chart layer.
 //!
 //! Sidereal time is a function of UT1 (Earth rotation), not TT/TDB. The
-//! `Instant`'s Julian Day is used as supplied; pass a UT1-scale instant for
-//! rigorous results (see `docs/time-observer-policy.md`).
+//! `Instant`'s Julian Day is used as supplied by [`sidereal_time`]; pass a
+//! UT1-scale instant for rigorous results (see `docs/time-observer-policy.md`).
+//! Callers holding a TT/TDB instant convert it with [`ut1_instant`] first —
+//! that adapter is the single sanctioned place where the `Instant`'s time-scale
+//! tag drives a ΔT correction, so the house layer and any other Earth-rotation
+//! consumer apply the same policy.
 
-use pleiades_types::{Angle, Instant, Longitude};
+use pleiades_time::CivilTimeError;
+use pleiades_types::{Angle, Instant, JulianDay, Longitude, TimeScale};
 
 use crate::nutation::{mean_obliquity_degrees, nutation};
 
@@ -75,7 +80,44 @@ impl SiderealTime {
     }
 }
 
+/// Re-expresses an instant on the UT1 scale for Earth-rotation quantities.
+///
+/// Sidereal time (and everything built on it: ARMC, house cusps, hour
+/// angles) is a function of UT1. This adapter honours the `Instant`'s
+/// time-scale tag:
+///
+/// - `Tt` and `Tdb`: subtract ΔT from `pleiades-time` and retag `Ut1`. TDB is
+///   treated as TT (they differ by under 2 ms, far below sidereal-time
+///   precision).
+/// - `Ut1`: returned unchanged.
+/// - `Utc`: retagged `Ut1` without shifting the day. |UT1 − UTC| is kept
+///   under 0.9 s by leap seconds, about 0.004° of sidereal time, and this
+///   crate carries no DUT1 table.
+///
+/// # Errors
+///
+/// Fails when the packaged ΔT table cannot be read (a stale checksum — a
+/// development-time artifact, not a runtime condition), or when a time scale
+/// this adapter has no conversion for is supplied (`TimeScale` is
+/// `#[non_exhaustive]`).
+pub fn ut1_instant(instant: Instant) -> Result<Instant, CivilTimeError> {
+    let jd_ut1 = match instant.scale {
+        TimeScale::Tt | TimeScale::Tdb => pleiades_time::ut1_jd_from_tt(instant.julian_day.days())?,
+        TimeScale::Ut1 | TimeScale::Utc => instant.julian_day.days(),
+        other => {
+            return Err(CivilTimeError::UnsupportedScale {
+                source: other,
+                target: TimeScale::Ut1,
+            })
+        }
+    };
+    Ok(Instant::new(JulianDay::from_days(jd_ut1), TimeScale::Ut1))
+}
+
 /// Computes sidereal time for an instant and observer east longitude.
+///
+/// The Julian Day is consumed as supplied, whatever its `TimeScale` tag;
+/// convert TT/TDB instants with [`ut1_instant`] first.
 pub fn sidereal_time(instant: Instant, observer_longitude: Longitude) -> SiderealTime {
     let jd = instant.julian_day.days();
     let gmst = greenwich_mean_sidereal_time_degrees(jd);

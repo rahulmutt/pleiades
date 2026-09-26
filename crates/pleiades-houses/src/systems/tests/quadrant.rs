@@ -226,7 +226,7 @@ fn morinus_cusps_match_swiss_ephemeris_corpus_within_1_arcsec() {
 fn morinus_cusps_are_latitude_invariant() {
     let instant = Instant::new(
         pleiades_types::JulianDay::from_days(2_451_545.0),
-        pleiades_types::TimeScale::Tt,
+        pleiades_types::TimeScale::Ut1,
     );
     let lon = Longitude::from_degrees(0.0);
 
@@ -524,7 +524,8 @@ fn regiomontanus_cusps_match_swiss_ephemeris_corpus() {
 /// guard is only observable by calling the private function directly.
 #[test]
 fn koch_houses_fails_closed_inside_the_polar_circle() {
-    let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    // Direct call into the per-system function, which takes the UT1 sidereal instant.
+    let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
     let observer = ObserverLocation::new(
         Latitude::from_degrees(70.0),
         Longitude::from_degrees(0.0),
@@ -663,7 +664,7 @@ fn solve_placidian_cusp_fails_closed_when_the_iteration_does_not_converge() {
 fn quadrant_family_equivalent_mutants_are_documented() {
     // VT-1: the earlier validator wins, with the identical kind AND message.
     let request = HouseRequest::new(
-        Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1),
         ObserverLocation::new(
             Latitude::from_degrees(40.0),
             Longitude::from_degrees(0.0),

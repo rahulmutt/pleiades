@@ -92,7 +92,7 @@ fn chart_points_uses_true_obliquity_by_default() {
         Longitude::from_degrees(-74.0),
         None,
     );
-    let inst = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let inst = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
     let pts = chart_points(inst, &observer, None).expect("defined");
     // Ascendant matches the value derive_angles produces for the same inputs.
     let req = HouseRequest::new(inst, observer.clone(), HouseSystem::Placidus);
@@ -110,7 +110,7 @@ fn house_snapshot_carries_asc_mc_consistent_with_angles() {
         None,
     );
     let req = HouseRequest::new(
-        Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1),
         observer,
         HouseSystem::Placidus,
     );
@@ -130,7 +130,7 @@ fn porphyry_fallback_snapshot_carries_consistent_asc_mc() {
         Longitude::from_degrees(10.0),
         None,
     );
-    let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1);
     let req = HouseRequest::new(instant, observer.clone(), HouseSystem::Placidus)
         .with_high_latitude_policy(HighLatitudePolicy::SwissEphemerisFallback);
 

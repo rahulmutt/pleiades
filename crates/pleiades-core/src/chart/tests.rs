@@ -3649,3 +3649,47 @@ fn chart_snapshot_exposes_asc_mc_when_houses_present() {
         snapshot.houses.as_ref().unwrap().angles.ascendant
     );
 }
+
+#[test]
+fn chart_houses_for_a_tt_instant_are_taken_at_ut1() {
+    // Issue #56: Chennai, 2026-03-21 05:00 UTC as TT. The façade must hand
+    // the house layer the request instant as tagged, and the house layer
+    // must evaluate sidereal time at UT1 (TT − ΔT), so the ascendant matches
+    // an explicitly UT1-tagged request and not the old TT-as-UT value.
+    const JD_TT: f64 = 2_461_120.709_130;
+    let observer = pleiades_types::ObserverLocation::new(
+        Latitude::from_degrees(13.0827),
+        Longitude::from_degrees(80.2707),
+        None,
+    );
+    let tt = Instant::new(pleiades_types::JulianDay::from_days(JD_TT), TimeScale::Tt);
+    let chart = ChartEngine::new(ToyChartBackend)
+        .chart(
+            &ChartRequest::new(tt)
+                .with_observer(observer.clone())
+                .with_house_system(crate::HouseSystem::WholeSign)
+                .with_bodies(vec![CelestialBody::Sun]),
+        )
+        .expect("house-aware chart should render");
+    let asc = chart.houses.as_ref().unwrap().angles.ascendant.degrees();
+
+    let jd_ut1 = pleiades_time::ut1_jd_from_tt(JD_TT).expect("ΔT available");
+    let ut1 = Instant::new(pleiades_types::JulianDay::from_days(jd_ut1), TimeScale::Ut1);
+    let expected = calculate_houses(&HouseRequest::new(
+        ut1,
+        observer,
+        crate::HouseSystem::WholeSign,
+    ))
+    .expect("ut1 houses")
+    .angles
+    .ascendant
+    .degrees();
+
+    assert!((asc - expected).abs() < 1e-6, "asc {asc} vs ut1 {expected}");
+    assert!(
+        (asc - 71.267_308).abs() > 0.2,
+        "asc {asc} still sits at the TT-as-UT value"
+    );
+    // The snapshot still reports the instant the caller asked for.
+    assert_eq!(chart.houses.as_ref().unwrap().instant, tt);
+}

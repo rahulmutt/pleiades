@@ -14,3 +14,9 @@ readme = "README.md"
 [dependencies]
 pleiades-apparent = { workspace = true }
 pleiades-types = { workspace = true }
+
+[dev-dependencies]
+# ΔT lookups for the time-scale regression tests only; the runtime path reaches
+# ΔT through `pleiades_apparent::ut1_instant`. Path-only per the workspace
+# audit: cargo strips path-only dev-dependencies from the published manifest.
+pleiades-time = { path = "../pleiades-time" }

@@ -14,9 +14,13 @@ pub(super) fn observer() -> ObserverLocation {
     )
 }
 
+/// Baseline request at JD 2451545.0 tagged `Ut1`. Sidereal time is taken at
+/// UT1, so a `Tt` tag would shift every cusp by ΔT (~0.27° at J2000, #56);
+/// the corpus and frozen references in these tests are all recorded on the
+/// UT day, and the `Ut1` tag consumes that day as-is.
 pub(super) fn sample_request(system: HouseSystem) -> HouseRequest {
     HouseRequest::new(
-        Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1),
         observer(),
         system,
     )
@@ -75,8 +79,9 @@ pub(super) fn assert_corpus_cusps(
 ) {
     const TOLERANCE_ARCSEC: f64 = 1.0;
 
+    // The corpus JD is Swiss Ephemeris's `jd_ut`: a UT day, tagged as such.
     let request = HouseRequest::new(
-        Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Ut1),
         ObserverLocation::new(
             Latitude::from_degrees(latitude_deg),
             Longitude::from_degrees(0.0),

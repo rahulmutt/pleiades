@@ -391,11 +391,12 @@ pub fn validate_angles_corpus() -> Result<AnglesCorpusReport, AnglesCorpusError>
     for (idx, row) in rows.iter().enumerate() {
         let data_row = idx + 1;
 
-        // (a) Sidereal-time parity. Match the house gate's TT time-scale
-        //     convention for corpus jd_ut instants.
+        // (a) Sidereal-time parity. The corpus JD is Swiss Ephemeris's
+        //     `jd_ut`, tagged `Ut1` like the house gate; `sidereal_time`
+        //     consumes the day as supplied.
         let instant = pleiades_core::Instant::new(
             JulianDay::from_days(row.jd_ut),
-            pleiades_core::TimeScale::Tt,
+            pleiades_core::TimeScale::Ut1,
         );
         let sid = pleiades_apparent::sidereal::sidereal_time(
             instant,
