@@ -99,18 +99,20 @@ fn packaged_artifact_decode_rejects_checksum_corruption() {
 }
 
 #[test]
-fn packaged_metadata_claims_thirteen_bodies_release_grade() {
+fn packaged_metadata_claims_fourteen_bodies_release_grade() {
     use pleiades_backend::{BodyClaimTier, CelestialBody, CustomBodyId, EphemerisBackend};
     let backend = crate::PackagedDataBackend::default();
     let meta = backend.metadata();
-    // 11 artifact bodies + 2 derived osculating apsides (TrueApogee, TruePerigee).
-    assert_eq!(meta.release_grade_bodies().len(), 13);
+    // 11 artifact bodies + 2 derived osculating apsides (TrueApogee, TruePerigee) + 1
+    // derived osculating node (TrueNode).
+    assert_eq!(meta.release_grade_bodies().len(), 14);
     for body in [
         CelestialBody::Pluto,
         CelestialBody::Moon,
         CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
         CelestialBody::TrueApogee,
         CelestialBody::TruePerigee,
+        CelestialBody::TrueNode,
     ] {
         assert_eq!(
             meta.claim_for(&body).map(|c| c.tier),

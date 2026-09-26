@@ -227,6 +227,23 @@ pub fn apsis_body_claims() -> Vec<pleiades_backend::BodyClaim> {
     ]
 }
 
+/// Release claim for the derived osculating lunar ascending node
+/// (`TrueNode`). Computed from the packaged Moon state at lookup (formed in
+/// the mean ecliptic of date, emitted in J2000) and validated against the
+/// Swiss Ephemeris `SE_TRUE_NODE` corpus by the `validate-true-node` gate, so
+/// its evidence is `CorpusValidated`. Supersedes, in the routed chart chain,
+/// the `pleiades-elp` Meeus periodic-term approximation (issue #58).
+pub fn true_node_body_claims() -> Vec<pleiades_backend::BodyClaim> {
+    use pleiades_backend::{AccuracyClass, BodyClaim, ClaimEvidence};
+    vec![BodyClaim::release_grade(
+        CelestialBody::TrueNode,
+        AccuracyClass::High,
+        ClaimEvidence::CorpusValidated {
+            source: "Swiss Ephemeris 2.10.03 SE_TRUE_NODE (validate-true-node)".to_string(),
+        },
+    )]
+}
+
 pub(crate) fn packaged_reference_entry_for_body(
     snapshot: &[SnapshotEntry],
     body: &CelestialBody,
