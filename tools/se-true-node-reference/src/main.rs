@@ -1,0 +1,72 @@
+//! Emits a Swiss Ephemeris reference corpus for the osculating true lunar
+//! ascending node (`SE_TRUE_NODE`) to STDOUT as CSV.
+//!
+//! Frame: true ecliptic of date, nutation on (SE default — no SEFLG_NONUT,
+//! no SEFLG_J2000). Ephemeris: Moshier (SEFLG_MOSEPH) — no data files needed.
+//! Same deterministic grid as `tools/se-lilith-reference`, so the two corpora
+//! sample the same instants.
+//!
+//! Build inside `devenv shell` (provides clang/libclang/LIBCLANG_PATH):
+//! `devenv shell -- cargo run --release --manifest-path tools/se-true-node-reference/Cargo.toml \
+//!    > crates/pleiades-validate/data/true-node-corpus/true-node.csv`
+
+use std::ffi::CStr;
+use std::os::raw::{c_char, c_int};
+
+use libswisseph_sys::raw::swe_calc;
+
+const SE_TRUE_NODE: c_int = 11;
+const SEFLG_MOSEPH: c_int = 4;
+
+// Deterministic sampling grid across the 1900–2100 packaged window. 23 days is
+// coprime-ish with the ~13.6-day node oscillation and the ~27.2-day draconic
+// month, so successive samples land on different orbit phases.
+const JD_START_TT: f64 = 2_415_020.5; // 1900-01-01
+const JD_END_TT: f64 = 2_488_070.0; //   ~2100-01-01
+const STEP_DAYS: f64 = 23.0;
+
+fn se_true_node(jd_tt: f64) -> (f64, f64, f64) {
+    let mut xx = [0.0_f64; 6];
+    let mut serr = [0_i8; 256];
+    let ret = unsafe {
+        swe_calc(
+            jd_tt,
+            SE_TRUE_NODE,
+            SEFLG_MOSEPH,
+            xx.as_mut_ptr(),
+            serr.as_mut_ptr() as *mut c_char,
+        )
+    };
+    if ret < 0 {
+        let msg = unsafe { CStr::from_ptr(serr.as_ptr() as *const c_char) }
+            .to_string_lossy()
+            .into_owned();
+        panic!("swe_calc(SE_TRUE_NODE) failed at jd_tt={jd_tt}: {msg}");
+    }
+    let (lon, lat, dist) = (xx[0], xx[1], xx[2]);
+    assert!(
+        lon.is_finite() && lat.is_finite() && dist.is_finite(),
+        "non-finite SE result at jd_tt={jd_tt}"
+    );
+    (lon.rem_euclid(360.0), lat, dist)
+}
+
+fn main() {
+    println!(
+        "# Source: Swiss Ephemeris 2.10.03 (libswisseph-sys 0.1.2), swe_calc SE_TRUE_NODE=11,"
+    );
+    println!(
+        "# iflag=SEFLG_MOSEPH (Moshier, no data files). Frame: true ecliptic of date, nutation on."
+    );
+    println!(
+        "# Columns: of-date true ecliptic longitude/latitude (deg) and geocentric distance (AU)."
+    );
+    println!("# Accuracy note: Moshier Moon vs the DE440-sourced packaged Moon is part of the gate budget.");
+    println!("jd_tt,se_true_node_lon_deg,se_true_node_lat_deg,se_true_node_dist_au");
+    let mut jd = JD_START_TT;
+    while jd <= JD_END_TT {
+        let (lon, lat, dist) = se_true_node(jd);
+        println!("{jd:.1},{lon:.9},{lat:.9},{dist:.12}");
+        jd += STEP_DAYS;
+    }
+}
