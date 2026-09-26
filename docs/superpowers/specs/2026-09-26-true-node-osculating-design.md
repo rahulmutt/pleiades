@@ -294,9 +294,9 @@ truth:
   summary in the established pattern (what ships, gate name and aliases,
   corpus size and flags, measured maxima and ceilings, the ELP fallback
   caveat), bump `CURRENT_COMPATIBILITY_PROFILE_ID` to `0.7.14`, and add the
-  matching entry in the additions list; API stability profile unchanged at
-  `0.2.2` (purely additive: no new types, one new public fn in
-  `pleiades-data`).
+  matching entry in the additions list; API stability profile unchanged
+  (currently `0.3.0`; the change is purely additive: no new types, one new
+  public fn in `pleiades-data`).
 - `docs/threat-model.md`: unchanged. The corpus is untrusted-input-shaped but
   parsed by the same fail-closed reader pattern as the existing corpora, and
   no trust boundary moves.
