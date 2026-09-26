@@ -3526,6 +3526,114 @@ fn chart_serves_apparent_true_node_precession_nutation_only() {
 }
 
 #[test]
+fn topocentric_chart_leaves_derived_lunar_points_geocentric() {
+    use pleiades_backend::Apparentness;
+    use pleiades_data::PackagedDataBackend;
+    use pleiades_types::CelestialBody;
+
+    let instant = Instant::new(
+        pleiades_types::JulianDay::from_days(2_461_041.5),
+        TimeScale::Tt,
+    );
+    let observer = pleiades_types::ObserverLocation::new(
+        pleiades_types::Latitude::from_degrees(51.5),
+        pleiades_types::Longitude::from_degrees(0.0),
+        None,
+    );
+    let bodies = vec![
+        CelestialBody::TrueNode,
+        CelestialBody::TrueApogee,
+        CelestialBody::Moon,
+    ];
+
+    let backend = PackagedDataBackend::new();
+
+    let geo_request = ChartRequest::new(instant)
+        .with_bodies(bodies.clone())
+        .with_apparentness(Apparentness::Apparent)
+        .with_observer(observer.clone());
+    let geo = ChartEngine::new(backend.clone())
+        .chart(&geo_request)
+        .expect("geocentric apparent chart should succeed");
+
+    let topo_request = ChartRequest::new(instant)
+        .with_bodies(bodies)
+        .with_apparentness(Apparentness::Apparent)
+        .with_observer(observer)
+        .with_topocentric(true);
+    let topo = ChartEngine::new(backend)
+        .chart(&topo_request)
+        .expect("topocentric apparent chart should succeed");
+
+    for body in [CelestialBody::TrueNode, CelestialBody::TrueApogee] {
+        let geo_p = geo
+            .placement_for(&body)
+            .unwrap_or_else(|| panic!("{body:?} placement missing from geocentric chart"));
+        let topo_p = topo
+            .placement_for(&body)
+            .unwrap_or_else(|| panic!("{body:?} placement missing from topocentric chart"));
+
+        let geo_lon = geo_p.position.ecliptic.unwrap().longitude.degrees();
+        let topo_lon = topo_p.position.ecliptic.unwrap().longitude.degrees();
+        assert!(
+            (geo_lon - topo_lon).abs() < 1e-9,
+            "{body:?} longitude must be unchanged by the topocentric flag: \
+             geo={geo_lon} topo={topo_lon}"
+        );
+
+        let geo_lat = geo_p.position.ecliptic.unwrap().latitude.degrees();
+        let topo_lat = topo_p.position.ecliptic.unwrap().latitude.degrees();
+        assert!(
+            (geo_lat - topo_lat).abs() < 1e-9,
+            "{body:?} latitude must be unchanged by the topocentric flag: \
+             geo={geo_lat} topo={topo_lat}"
+        );
+
+        let prov = topo_p
+            .apparent
+            .as_ref()
+            .unwrap_or_else(|| panic!("{body:?} must carry apparent provenance"));
+        assert!(
+            !prov.corrections.diurnal_parallax,
+            "{body:?} is a geometric orbit direction: no diurnal parallax"
+        );
+        assert!(
+            !prov.corrections.diurnal_aberration,
+            "{body:?} is a geometric orbit direction: no diurnal aberration"
+        );
+        assert!(
+            topo_p.topocentric.is_none(),
+            "{body:?} topocentric provenance must be None (served geocentrically)"
+        );
+    }
+
+    // Moon proves the guard is selective: real diurnal parallax still applies to it.
+    let moon_geo_lon = geo
+        .placement_for(&CelestialBody::Moon)
+        .unwrap()
+        .position
+        .ecliptic
+        .unwrap()
+        .longitude
+        .degrees();
+    let moon_topo = topo.placement_for(&CelestialBody::Moon).unwrap();
+    let moon_topo_lon = moon_topo.position.ecliptic.unwrap().longitude.degrees();
+    let mut diff_arcsec = (moon_topo_lon - moon_geo_lon).abs() * 3600.0;
+    if diff_arcsec > 180.0 * 3600.0 {
+        diff_arcsec = 360.0 * 3600.0 - diff_arcsec;
+    }
+    assert!(
+        diff_arcsec > 100.0,
+        "Moon topocentric parallax {diff_arcsec}\" should exceed 100\" \
+         to prove the derived-point guard is selective"
+    );
+    assert!(
+        moon_topo.topocentric.is_some(),
+        "Moon should still carry topocentric provenance"
+    );
+}
+
+#[test]
 fn mean_chart_places_true_node_from_packaged_backend() {
     use pleiades_backend::Apparentness;
     use pleiades_data::PackagedDataBackend;

@@ -1277,6 +1277,11 @@ fn packaged_backend_serves_osculating_true_node() {
     let d = ecl.distance_au.expect("node distance");
     assert!((0.0023..0.0030).contains(&d), "node distance {d} AU");
     assert!(node.motion.expect("motion").longitude_deg_per_day.is_some());
+    assert_eq!(
+        node.quality,
+        pleiades_backend::QualityAnnotation::Interpolated
+    );
+    assert_eq!(node.backend_id.as_str(), PACKAGE_NAME);
 
     // Equatorial is the mean-obliquity transform of the ecliptic channel, like every
     // other packaged body.

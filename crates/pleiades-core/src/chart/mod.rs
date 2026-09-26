@@ -464,7 +464,14 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 // Operates on the tropical apparent ecliptic produced above; the sidereal
                 // ayanamsa re-apply (when requested) happens once below, after this block.
                 let mut apparent = apparent;
-                let topocentric_prov = if request.topocentric {
+                let topocentric_prov = if request.topocentric
+                    && !matches!(
+                        body,
+                        pleiades_types::CelestialBody::TrueApogee
+                            | pleiades_types::CelestialBody::TruePerigee
+                            | pleiades_types::CelestialBody::TrueNode
+                    )
+                {
                     let observer = request.observer.as_ref().ok_or_else(|| {
                         EphemerisError::new(
                             EphemerisErrorKind::InvalidRequest,

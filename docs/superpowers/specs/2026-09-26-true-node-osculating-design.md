@@ -278,7 +278,10 @@ truth:
   osculating node; that it differs from Swiss Ephemeris `SE_TRUE_NODE` by up
   to ±0.14° (issue #58, measured across 2026); and that the routed chart path
   serves the osculating node from `PackagedDataBackend`, so this channel is
-  reached only by direct ELP consumers or outside the packaged window.
+  reached only by direct ELP consumers; a routed chart that requests
+  `TrueNode` outside the packaged 1900–2100 window fails with
+  `OutOfRangeInstant` (the router does not fall back on that error kind), as
+  the Moon itself already does.
 - `docs/lunar-theory-policy.md`: a note beside the existing True Lilith note
   saying the same for the true node.
 

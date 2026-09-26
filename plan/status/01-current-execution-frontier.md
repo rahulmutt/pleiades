@@ -136,7 +136,7 @@ validation gate's comparison was reconciled to SE-equivalent semantics
 to 3/18 (residual: 1 knife-edge + 2 attributed to a continuous-scan-vs-
 discrete-instant visibility sampling delta), pinned fail-closed at 3; engine
 numerics were exonerated (Moon position agrees with `de440` to ~0.0001″).
-Compatibility profile is at 0.7.13. Next candidate slices: central-path
+Compatibility profile is at 0.7.14. Next candidate slices: central-path
 cartography (the full central-path polygon; the sub-lunar central-observation
 point and the occultation `central`-flag exactness are now done), and
 custom fictitious-body orbital elements (user-supplied, beyond the committed

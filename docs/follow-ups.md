@@ -1961,11 +1961,22 @@ Ephemeris 2.10.03 Moshier `SE_TRUE_NODE` corpus (3177 rows, 1900–2100, same
 2026-09-26: max longitude residual 52.851″, latitude 6.3e-11″ (floating-point
 noise; latitude is 0 by construction), distance 1.58e-4 relative, vs ceilings
 80″/1″/2.38e-4. A blocking-tier regression test pins the channel to the 8 Moon
-`SE_NODBIT_OSCU` rows of the nod-aps corpus at ≤40″.
+`SE_NODBIT_OSCU` rows of the nod-aps corpus at ≤40″. Topocentric charts leave
+`TrueNode`/`TrueApogee`/`TruePerigee` geocentric: no diurnal parallax or
+diurnal aberration is applied to a geometric orbit direction (matches Swiss
+Ephemeris), fixing a pre-existing ~1° parallax shift of True Lilith in
+topocentric charts.
 · **Residual, documented not gated:** `ElpBackend`'s own `TrueNode` stays
 Meeus's periodic-term-corrected mean node (±0.14° vs the osculating node) for
 direct ELP consumers; its evidence rows cannot detect the gap because the 1913
-sample is Meeus's own worked value. · **Build-env note:** the reference tool
-`tools/se-true-node-reference` builds inside `devenv shell` (clang/libclang
-from `devenv.nix`); the gate reads the committed CSV and never rebuilds the
-tool. · **Severity:** accuracy (now closed) · **Opened:** 2026-09-26
+sample is Meeus's own worked value. Routed charts requesting `TrueNode`
+outside 1900–2100 now fail with `OutOfRangeInstant` instead of receiving the
+ELP approximation (the router does not fall back on that kind; default
+charts already fail there because the Moon does). · **Build-env note:** the
+reference tool `tools/se-true-node-reference` builds inside `devenv shell`
+(clang/libclang from `devenv.nix`); the gate reads the committed CSV and
+never rebuilds the tool. · **Open question:** the gate comment attributes the
+52.851″ maximum to Moshier-vs-DE440 amplified by 1/sin i; the zero-mean,
+trend-free residual distribution supports that, but interpolation error in
+the packaged Moon velocity has not been separated out. · **Severity:**
+accuracy (now closed) · **Opened:** 2026-09-26
