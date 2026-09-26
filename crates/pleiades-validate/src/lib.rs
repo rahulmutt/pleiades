@@ -45,6 +45,7 @@ mod report;
 pub mod rise_trans_thresholds;
 pub mod rise_trans_validation;
 mod topocentric_validation;
+mod true_node_validation;
 
 pub use angles_validation::{validate_angles_corpus, AnglesCorpusError, AnglesCorpusReport};
 pub use apparent_validation::{
@@ -232,6 +233,9 @@ pub use nod_aps_validation::{validate_nod_aps_corpus, NodApsError, NodApsReport}
 pub use occult_validation::{validate_occultations_corpus, OccultError, OccultReport};
 pub use pheno_validation::{validate_pheno_corpus, PhenoError, PhenoReport};
 pub use rise_trans_validation::{validate_rise_trans_corpus, RiseTransError, RiseTransReport};
+pub use true_node_validation::{
+    validate_true_node_corpus, TrueNodeCorpusError, TrueNodeCorpusReport,
+};
 
 use crate::claims::{
     derived_release_posture, validate_release_posture,
