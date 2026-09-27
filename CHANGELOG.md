@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-09-27
+
+### Added
+
+- Add previous_rise_set, the last rise/set/transit at or before an instant ([#72](https://github.com/rahulmutt/pleiades/pull/72)) ([58d1695](https://github.com/rahulmutt/pleiades/commit/58d1695a8fdc4b970f8e58f89177fe631575e63a))
+
+### Performance
+
+- Bracket rise/set and transits on an hourly grid with graze detection ([#70](https://github.com/rahulmutt/pleiades/pull/70)) ([#71](https://github.com/rahulmutt/pleiades/pull/71)) ([a9b6113](https://github.com/rahulmutt/pleiades/commit/a9b6113c92d8482132c361a4cb94334c451c0498))
+
 ## [0.5.1] - 2026-09-27
 
 ### Added
