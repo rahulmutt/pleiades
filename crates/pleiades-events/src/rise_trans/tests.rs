@@ -271,7 +271,8 @@ fn upper_transit_puts_body_on_the_meridian() {
         )
         .unwrap()
         .expect("a transit");
-    // At upper transit the local hour angle H = LST − RA ≈ 0.
+    // At upper transit the local hour angle H = LST − RA ≈ 0, with sidereal
+    // time evaluated at the UT1 re-expression of the returned TDB instant.
     let jd = t.instant.julian_day.days();
     let (ra, _dec) = engine
         .target_equatorial(
@@ -281,11 +282,11 @@ fn upper_transit_puts_body_on_the_meridian() {
             jd,
         )
         .unwrap();
-    let lst = pleiades_apparent::sidereal_time(
-        Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
-        Longitude::from_degrees(0.0),
-    )
-    .local_apparent_deg;
+    let ut1 =
+        pleiades_apparent::ut1_instant(Instant::new(JulianDay::from_days(jd), TimeScale::Tdb))
+            .unwrap();
+    let lst =
+        pleiades_apparent::sidereal_time(ut1, Longitude::from_degrees(0.0)).local_apparent_deg;
     let ha = crate::root::wrap180(lst - ra);
     assert!(ha.abs() < 0.05, "hour angle at upper transit {ha} deg");
 }
@@ -596,8 +597,9 @@ fn previous_upper_transit_puts_body_on_the_meridian() {
             jd,
         )
         .unwrap();
+    let ut1 = pleiades_apparent::ut1_instant(tdb(jd)).unwrap();
     let lst =
-        pleiades_apparent::sidereal_time(tdb(jd), Longitude::from_degrees(0.0)).local_apparent_deg;
+        pleiades_apparent::sidereal_time(ut1, Longitude::from_degrees(0.0)).local_apparent_deg;
     let ha = crate::root::wrap180(lst - ra);
     assert!(
         ha.abs() < 0.05,

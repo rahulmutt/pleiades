@@ -5,7 +5,8 @@
 use crate::crossings::EventEngine;
 use crate::error::EventError;
 use crate::rise_trans::check_atmosphere;
-use pleiades_apparent::{apparent_from_true, sidereal_time, true_obliquity_degrees, Atmosphere};
+use crate::time_scale::{local_apparent_sidereal_deg, tdb_jd};
+use pleiades_apparent::{apparent_from_true, true_obliquity_degrees, Atmosphere};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{Angle, EclipticCoordinates, Instant, Latitude, Longitude, ObserverLocation};
 
@@ -33,7 +34,13 @@ pub enum HorizontalInput {
 }
 
 impl<B: EphemerisBackend> EventEngine<B> {
-    /// Azimuth/altitude of `input` for `observer` at `at` (TDB).
+    /// Azimuth/altitude of `input` for `observer` at `at`.
+    ///
+    /// `at` is read by its `TimeScale` tag (`Tdb`/`Tt` as TDB, `Ut1`/`Utc` with
+    /// ΔT added; other scales fail closed with
+    /// [`EventError::UnsupportedTimeScale`]), and the sky is rotated with local
+    /// apparent sidereal time at the UT1 re-expression of that instant. The
+    /// input coordinates themselves are taken as given (apparent of date).
     pub fn horizontal(
         &self,
         input: HorizontalInput,
@@ -47,7 +54,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
                 detail: e.to_string(),
             })?;
         check_atmosphere(atmos)?;
-        let jd = at.julian_day.days();
+        let jd = tdb_jd(at)?;
         // Resolve to apparent equatorial RA/Dec (degrees).
         let (ra_deg, dec_deg) = match input {
             HorizontalInput::Equatorial(ra, dec) => (ra.degrees(), dec.degrees()),
@@ -59,8 +66,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
                 (equ.right_ascension.degrees(), equ.declination.degrees())
             }
         };
-        // Local apparent sidereal time → local hour angle H = LST − RA.
-        let lst = sidereal_time(at, observer.longitude).local_apparent_deg;
+        // Local apparent sidereal time (UT1 rotation) → local hour angle H = LST − RA.
+        let lst = local_apparent_sidereal_deg(jd, observer.longitude)?;
         let h_deg = lst - ra_deg;
         let (h, dec, phi) = (
             h_deg.to_radians(),
@@ -83,7 +90,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
 impl<B: EphemerisBackend> EventEngine<B> {
     /// Inverse of [`EventEngine::horizontal`] (`swe_azalt_rev`): horizontal →
     /// apparent equatorial of date. When `is_apparent` is true the altitude is
-    /// de-refracted first.
+    /// de-refracted first. `at` is read by its `TimeScale` tag exactly as in
+    /// [`EventEngine::horizontal`].
     pub fn horizontal_to_equatorial(
         &self,
         azimuth_deg: f64,
@@ -112,7 +120,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let sin_dec = phi.sin() * alt.sin() - phi.cos() * alt.cos() * az.cos();
         let dec = sin_dec.clamp(-1.0, 1.0).asin();
         let h = (az.sin()).atan2(phi.sin() * az.cos() + phi.cos() * alt.tan());
-        let lst = sidereal_time(at, observer.longitude).local_apparent_deg;
+        let lst = local_apparent_sidereal_deg(tdb_jd(at)?, observer.longitude)?;
         let ra = (lst - h.to_degrees()).rem_euclid(360.0);
         Ok((
             Angle::from_degrees(ra),
@@ -133,6 +141,12 @@ mod tests {
     fn tdb(jd: f64) -> Instant {
         Instant::new(JulianDay::from_days(jd), TimeScale::Tdb)
     }
+    /// Local apparent sidereal time at Greenwich for a TDB instant, evaluated
+    /// the way the engine does: at its UT1 re-expression.
+    fn greenwich_last_deg(at: Instant) -> f64 {
+        let ut1 = pleiades_apparent::ut1_instant(at).unwrap();
+        pleiades_apparent::sidereal_time(ut1, Longitude::from_degrees(0.0)).local_apparent_deg
+    }
     fn greenwich() -> ObserverLocation {
         ObserverLocation::new(
             Latitude::from_degrees(51.48),
@@ -147,8 +161,7 @@ mod tests {
         // hour angle 0 → azimuth 0 (south) if it is south of zenith.
         let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
         let at = tdb(2_451_545.0);
-        let st = pleiades_apparent::sidereal_time(at, Longitude::from_degrees(0.0));
-        let ra = Angle::from_degrees(st.local_apparent_deg);
+        let ra = Angle::from_degrees(greenwich_last_deg(at));
         let dec = Latitude::from_degrees(10.0); // south of a 51°N observer's zenith
         let h = engine
             .horizontal(
@@ -185,8 +198,7 @@ mod tests {
         );
         let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
         let at = tdb(2_451_000.0);
-        let st = pleiades_apparent::sidereal_time(at, Longitude::from_degrees(0.0));
-        let ra = Angle::from_degrees(st.local_apparent_deg);
+        let ra = Angle::from_degrees(greenwich_last_deg(at));
         let dec = Latitude::from_degrees(-87.5); // == observer's latitude
         let h = engine
             .horizontal(

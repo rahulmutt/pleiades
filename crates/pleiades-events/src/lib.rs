@@ -3,6 +3,10 @@
 //!
 //! The engine is generic over any [`pleiades_backend::EphemerisBackend`] and,
 //! like `pleiades-eclipse`, works in TDB over the 1900–2100 CE packaged window.
+//! Every returned event instant is TDB, tagged `TimeScale::Tdb`. The
+//! observer-local surfaces (rise/set/transit, horizontal coordinates) read the
+//! `TimeScale` tag on their query instants and evaluate Earth rotation at the
+//! UT1 re-expression of each sampled day; see [`EventEngine::next_rise_set`].
 //!
 //! Lunar occultations of a planet (Mercury–Pluto) or a curated fixed star are
 //! covered by [`EventEngine::occultation`] (local circumstances),
@@ -98,6 +102,7 @@ mod pheno;
 mod rise_trans;
 mod root;
 mod semidiameter;
+mod time_scale;
 
 #[allow(deprecated)]
 pub use crossings::{Crossing, CrossingEngine, CrossingFrame, EventEngine};

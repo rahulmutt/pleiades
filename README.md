@@ -50,8 +50,10 @@ crate source in this repo; gate names are the runnable `validate-*` subcommands
 - Body/backend grades are **per-backend**: Pluto/Moon/Eros are release-grade via
   the packaged artifact; VSOP87 Pluto and the compact ELP Moon stay constrained.
   See `crates/pleiades-core/src/compatibility/mod.rs`.
-- Apparent place omits gravitational light-deflection; rise/set/transit instants
-  are **UT1-scale** (no ΔT model) — see `crates/pleiades-apparent` rustdoc and
+- Apparent place omits gravitational light-deflection. Rise/set/transit and
+  horizontal coordinates read the `TimeScale` tag on their query instants and
+  return **TDB** instants; their accuracy in civil time is bounded by the
+  packaged ΔT model (observed through 2020, extrapolated beyond) — see
   [docs/time-observer-policy.md](docs/time-observer-policy.md).
 - Several surfaces carry documented, non-gated bounds (occultation planet-total
   obscuration and `central` flag; fictitious Nibiru; osculating small-body
