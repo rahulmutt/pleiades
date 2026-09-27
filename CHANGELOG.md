@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-09-27
+
+### Added
+
+- Serve TrueNode as the osculating lunar node with a Swiss Ephemeris gate ([#58](https://github.com/rahulmutt/pleiades/pull/58)) ([#62](https://github.com/rahulmutt/pleiades/pull/62)) ([2c49c53](https://github.com/rahulmutt/pleiades/commit/2c49c53df64b205ea7c7c2c221e633227c49cb7d))
+
+### Fixed
+
+- Emit lunar node/apogee/perigee channels in the J2000 boundary frame ([#57](https://github.com/rahulmutt/pleiades/pull/57)) ([#61](https://github.com/rahulmutt/pleiades/pull/61)) ([20552a7](https://github.com/rahulmutt/pleiades/commit/20552a708aafc4748a2e38f93e989067a80821a0))
+- Evaluate sidereal time at UT1 for cusps and angles ([#56](https://github.com/rahulmutt/pleiades/pull/56)) ([#59](https://github.com/rahulmutt/pleiades/pull/59)) ([f5ce533](https://github.com/rahulmutt/pleiades/commit/f5ce5330eeabac737668c55cedc051450b6d2ec2))
+
 ## [0.5.1] - 2026-09-27
 
 ### Added
