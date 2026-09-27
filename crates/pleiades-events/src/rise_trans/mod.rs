@@ -4,7 +4,7 @@ use crate::crossings::EventEngine;
 use crate::ephemeris::{geocentric_apparent_ecliptic, read_mean_ecliptic};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::fixstar::fixed_star_apparent;
-use crate::root::{crossings_in_range, first_crossing_after, wrap180};
+use crate::root::{crossings_in_range, first_crossing_after, last_crossing_before, wrap180};
 use crate::semidiameter::semidiameter_deg;
 use pleiades_apparent::{
     apparent_from_true, sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
@@ -14,7 +14,9 @@ use pleiades_types::{
     Angle, CelestialBody, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude,
     ObserverLocation, TimeScale,
 };
-use scan::{first_horizon_crossing_after, horizon_crossings_in_range};
+use scan::{
+    first_horizon_crossing_after, horizon_crossings_in_range, last_horizon_crossing_before,
+};
 
 /// Grid step for rise/set bracketing: 1 hour. The horizon scanner
 /// (`scan.rs`) does not need the step to separate a graze's two crossings —
@@ -138,8 +140,8 @@ impl RiseSetOptions {
 
 /// Fail-closed guard for [`Atmosphere`] inputs: rejects non-finite pressure or
 /// temperature before they can propagate NaN through refraction. Shared by
-/// all four public entry points that accept an `Atmosphere`
-/// (`next_rise_set`, `rise_sets_in_range`, `horizontal`,
+/// all five public entry points that accept an `Atmosphere`
+/// (`next_rise_set`, `previous_rise_set`, `rise_sets_in_range`, `horizontal`,
 /// `horizontal_to_equatorial`).
 pub(crate) fn check_atmosphere(atmos: Atmosphere) -> Result<(), EventError> {
     if !atmos.pressure_mbar.is_finite() || !atmos.temperature_c.is_finite() {
@@ -356,6 +358,69 @@ impl<B: EphemerisBackend> EventEngine<B> {
         }
     }
 
+    /// Last rise/set/transit at or before `before`, or `None`. The backward
+    /// twin of [`next_rise_set`](Self::next_rise_set): the two partition the
+    /// event sequence, with events at or before the query instant belonging
+    /// here and events after it to `next_rise_set`. (An event within the
+    /// 0.5 s bisection tolerance of `before` may land on either side.)
+    ///
+    /// This is the question observer-local calendars ask most — the Hindu
+    /// civil day, its vara and hora, and every muhurta and panchanga reading
+    /// are anchored to the sunrise that began the day containing the query
+    /// instant, i.e. the last sunrise at or before it.
+    ///
+    /// Same options, time base, and bounded-window semantics as
+    /// `next_rise_set`: `Rise`/`Set` search only `RISE_SET_SEARCH_SPAN_DAYS`
+    /// back from `before`, so a body that has been circumpolar for longer
+    /// than that returns `None`; meridian transits always occur within a
+    /// sidereal day and are unaffected. Early-terminating: the search walks
+    /// backward from `before` and stops at the first event found, so its
+    /// cost does not depend on how far back the event is within the span.
+    /// The result agrees with `rise_sets_in_range(before − span, before)
+    /// .last()` to within the bisection tolerance.
+    pub fn previous_rise_set(
+        &self,
+        target: RiseSetTarget,
+        event: RiseSetEvent,
+        observer: ObserverLocation,
+        atmos: Atmosphere,
+        opts: RiseSetOptions,
+        before: Instant,
+    ) -> Result<Option<RiseSet>, EventError> {
+        observer
+            .validate()
+            .map_err(|e| EventError::InvalidObserver {
+                detail: e.to_string(),
+            })?;
+        check_atmosphere(atmos)?;
+        let opts = opts.effective();
+        let before_jd = before.julian_day.days();
+        self.check_window(before_jd)?;
+        match event {
+            RiseSetEvent::Rise | RiseSetEvent::Set => {
+                let scan_start = (before_jd - RISE_SET_SEARCH_SPAN_DAYS)
+                    .max(WINDOW_START_JD + RISE_SET_STEP_DAYS);
+                let scan_end = before_jd.min(WINDOW_END_JD - RISE_SET_STEP_DAYS);
+                let want_ascending = matches!(event, RiseSetEvent::Rise);
+                let root = last_horizon_crossing_before(
+                    |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
+                    scan_start,
+                    scan_end,
+                    RISE_SET_STEP_DAYS,
+                    want_ascending,
+                )?;
+                Ok(root.filter(|&jd| jd <= before_jd).map(|jd| RiseSet {
+                    event,
+                    target: target.clone(),
+                    instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+                }))
+            }
+            RiseSetEvent::UpperTransit | RiseSetEvent::LowerTransit => {
+                self.previous_transit(target, event, observer, opts, before)
+            }
+        }
+    }
+
     /// All rise/set/transit events of `event` kind in `[start, end]`, ascending.
     #[allow(clippy::too_many_arguments)]
     pub fn rise_sets_in_range(
@@ -452,6 +517,35 @@ impl<B: EphemerisBackend> EventEngine<B> {
             TRANSIT_STEP_DAYS,
         )?;
         Ok(root.filter(|&jd| jd > after_jd).map(|jd| RiseSet {
+            event,
+            target: target.clone(),
+            instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+        }))
+    }
+
+    /// Last meridian transit at or before `before`. Early-terminating: walks
+    /// the same window-anchored grid as `transits_in_range` backward from
+    /// `before` (as `previous_longitude_crossing` does for crossings) and
+    /// stops at the first transit found, always within a sidereal day.
+    pub(crate) fn previous_transit(
+        &self,
+        target: RiseSetTarget,
+        event: RiseSetEvent,
+        observer: ObserverLocation,
+        opts: RiseSetOptions,
+        before: Instant,
+    ) -> Result<Option<RiseSet>, EventError> {
+        let lower = matches!(event, RiseSetEvent::LowerTransit);
+        let before_jd = before.julian_day.days();
+        let scan_start = WINDOW_START_JD + TRANSIT_STEP_DAYS;
+        let scan_end = before_jd.min(WINDOW_END_JD - TRANSIT_STEP_DAYS);
+        let root = last_crossing_before(
+            |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
+            scan_start,
+            scan_end,
+            TRANSIT_STEP_DAYS,
+        )?;
+        Ok(root.filter(|&jd| jd <= before_jd).map(|jd| RiseSet {
             event,
             target: target.clone(),
             instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
