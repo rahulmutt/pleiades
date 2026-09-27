@@ -50,6 +50,38 @@
 //!     .unwrap();
 //! assert!(rise.is_some());
 //! ```
+//!
+//! ```rust
+//! // Which sunrise began the Hindu civil day containing an instant? That is
+//! // the last sunrise at or before it: `previous_rise_set`.
+//! use pleiades_data::packaged_backend;
+//! use pleiades_events::{EventEngine, RiseSetEvent, RiseSetOptions, RiseSetTarget};
+//! use pleiades_apparent::Atmosphere;
+//! use pleiades_types::{
+//!     CelestialBody, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+//! };
+//!
+//! let engine = EventEngine::new(packaged_backend());
+//! let chennai = ObserverLocation::new(
+//!     Latitude::from_degrees(13.0827),
+//!     Longitude::from_degrees(80.2707),
+//!     None,
+//! );
+//! let birth = Instant::new(JulianDay::from_days(2_458_849.9), TimeScale::Tdb);
+//! let day_start = engine
+//!     .previous_rise_set(
+//!         RiseSetTarget::Body(CelestialBody::Sun),
+//!         RiseSetEvent::Rise,
+//!         chennai,
+//!         Atmosphere::default(),
+//!         RiseSetOptions { hindu: true, ..RiseSetOptions::default() },
+//!         birth,
+//!     )
+//!     .unwrap()
+//!     .expect("the Sun rises daily in Chennai");
+//! assert!(day_start.instant.julian_day.days() <= birth.julian_day.days());
+//! assert!(day_start.instant.julian_day.days() > birth.julian_day.days() - 1.0);
+//! ```
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 

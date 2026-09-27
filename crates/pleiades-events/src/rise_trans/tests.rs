@@ -449,3 +449,227 @@ fn unknown_star_target_fails_closed() {
         .unwrap_err();
     assert!(matches!(err, EventError::UnknownFixedStar { .. }));
 }
+
+/// Shared arrange block for the `previous_rise_set` tests: the linear
+/// Sun/Moon test backend and a mid-latitude observer, as the tests above use.
+fn mid_latitude_fixture() -> (
+    EventEngine<pleiades_backend::test_backend::LinearSunMoon>,
+    ObserverLocation,
+) {
+    use pleiades_backend::test_backend::LinearSunMoon;
+    let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+    let obs = ObserverLocation::new(
+        Latitude::from_degrees(40.0),
+        Longitude::from_degrees(0.0),
+        None,
+    );
+    (engine, obs)
+}
+
+fn tdb(jd: f64) -> Instant {
+    Instant::new(JulianDay::from_days(jd), TimeScale::Tdb)
+}
+
+/// 1 s in days: twice the bisection tolerance, so two independently
+/// bracketed refinements of the same root always agree within it.
+const ONE_SECOND_DAYS: f64 = 1.0 / 86_400.0;
+
+/// `previous_rise_set` and `next_rise_set` partition the event sequence:
+/// events at or before the query instant belong to `previous`, events after
+/// it to `next`. Probed 60 s either side of a located sunrise so the check
+/// does not hinge on the bisection's own 0.5 s uncertainty at the root.
+#[test]
+fn previous_rise_set_partitions_events_with_next() {
+    let (engine, obs) = mid_latitude_fixture();
+    let sun = RiseSetTarget::Body(CelestialBody::Sun);
+    let rise = engine
+        .next_rise_set(
+            sun.clone(),
+            RiseSetEvent::Rise,
+            obs.clone(),
+            Atmosphere::default(),
+            RiseSetOptions::default(),
+            tdb(2_451_545.0),
+        )
+        .unwrap()
+        .expect("a rise")
+        .instant
+        .julian_day
+        .days();
+    let previous = |before: f64| {
+        engine
+            .previous_rise_set(
+                sun.clone(),
+                RiseSetEvent::Rise,
+                obs.clone(),
+                Atmosphere::default(),
+                RiseSetOptions::default(),
+                tdb(before),
+            )
+            .unwrap()
+            .expect("a previous rise")
+            .instant
+            .julian_day
+            .days()
+    };
+    let just_after = previous(rise + 60.0 * ONE_SECOND_DAYS);
+    assert!(
+        (just_after - rise).abs() < ONE_SECOND_DAYS,
+        "previous just after the rise should return it: {just_after} vs {rise}"
+    );
+    let just_before = previous(rise - 60.0 * ONE_SECOND_DAYS);
+    assert!(
+        just_before < rise - 0.5 && just_before > rise - 1.5,
+        "previous just before the rise should return the prior day's: {just_before} vs {rise}"
+    );
+}
+
+#[test]
+fn previous_rise_set_matches_rise_sets_in_range_last() {
+    let (engine, obs) = mid_latitude_fixture();
+    let sun = RiseSetTarget::Body(CelestialBody::Sun);
+    let before = 2_451_545.3;
+    for event in [RiseSetEvent::Rise, RiseSetEvent::Set] {
+        let expected = engine
+            .rise_sets_in_range(
+                sun.clone(),
+                event,
+                obs.clone(),
+                Atmosphere::default(),
+                RiseSetOptions::default(),
+                tdb(before - 3.0),
+                tdb(before),
+            )
+            .unwrap()
+            .last()
+            .expect("range has an event")
+            .instant
+            .julian_day
+            .days();
+        let actual = engine
+            .previous_rise_set(
+                sun.clone(),
+                event,
+                obs.clone(),
+                Atmosphere::default(),
+                RiseSetOptions::default(),
+                tdb(before),
+            )
+            .unwrap()
+            .expect("a previous event")
+            .instant
+            .julian_day
+            .days();
+        assert!(
+            (expected - actual).abs() < ONE_SECOND_DAYS,
+            "{event:?}: {expected} vs {actual}"
+        );
+        assert!(actual <= before);
+    }
+}
+
+#[test]
+fn previous_upper_transit_puts_body_on_the_meridian() {
+    let (engine, obs) = mid_latitude_fixture();
+    let before = 2_451_545.3;
+    let t = engine
+        .previous_rise_set(
+            RiseSetTarget::Body(CelestialBody::Sun),
+            RiseSetEvent::UpperTransit,
+            obs.clone(),
+            Atmosphere::default(),
+            RiseSetOptions::default(),
+            tdb(before),
+        )
+        .unwrap()
+        .expect("a previous transit");
+    let jd = t.instant.julian_day.days();
+    assert!(
+        jd <= before && jd > before - 1.1,
+        "transit {jd} vs {before}"
+    );
+    let (ra, _dec) = engine
+        .target_equatorial(
+            &RiseSetTarget::Body(CelestialBody::Sun),
+            &obs,
+            &RiseSetOptions::default(),
+            jd,
+        )
+        .unwrap();
+    let lst =
+        pleiades_apparent::sidereal_time(tdb(jd), Longitude::from_degrees(0.0)).local_apparent_deg;
+    let ha = crate::root::wrap180(lst - ra);
+    assert!(
+        ha.abs() < 0.05,
+        "hour angle at previous upper transit {ha} deg"
+    );
+}
+
+#[test]
+fn circumpolar_previous_rise_set_returns_none() {
+    use pleiades_backend::test_backend::LinearSunMoon;
+    let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+    let obs = ObserverLocation::new(
+        Latitude::from_degrees(89.9),
+        Longitude::from_degrees(0.0),
+        None,
+    );
+    let out = engine
+        .previous_rise_set(
+            RiseSetTarget::Body(CelestialBody::Sun),
+            RiseSetEvent::Rise,
+            obs,
+            Atmosphere::default(),
+            RiseSetOptions::default(),
+            tdb(2_451_545.0),
+        )
+        .unwrap();
+    assert!(
+        out.is_none(),
+        "circumpolar-now Sun should have no rise in the span, got {out:?}"
+    );
+}
+
+#[test]
+fn previous_rise_set_fails_closed() {
+    let (engine, obs) = mid_latitude_fixture();
+    let err = engine
+        .previous_rise_set(
+            RiseSetTarget::Body(CelestialBody::Sun),
+            RiseSetEvent::Rise,
+            obs.clone(),
+            Atmosphere::default(),
+            RiseSetOptions::default(),
+            tdb(2_000_000.0),
+        )
+        .unwrap_err();
+    assert!(matches!(err, EventError::OutOfWindow { .. }));
+
+    let bad = Atmosphere {
+        pressure_mbar: f64::NAN,
+        temperature_c: 15.0,
+    };
+    let err = engine
+        .previous_rise_set(
+            RiseSetTarget::Body(CelestialBody::Sun),
+            RiseSetEvent::Rise,
+            obs.clone(),
+            bad,
+            RiseSetOptions::default(),
+            tdb(2_451_545.0),
+        )
+        .unwrap_err();
+    assert!(matches!(err, EventError::InvalidAtmosphere { .. }));
+
+    let err = engine
+        .previous_rise_set(
+            RiseSetTarget::FixedStar("Nope".into()),
+            RiseSetEvent::Rise,
+            obs,
+            Atmosphere::default(),
+            RiseSetOptions::default(),
+            tdb(2_451_545.0),
+        )
+        .unwrap_err();
+    assert!(matches!(err, EventError::UnknownFixedStar { .. }));
+}

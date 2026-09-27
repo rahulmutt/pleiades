@@ -286,8 +286,6 @@ where
 /// as that root is refined. Its grid is anchored at `hi_jd`, not `lo_jd`, so
 /// it brackets different intervals from [`horizon_crossings_in_range`]; the
 /// two agree on the root to within the bisection tolerance, not bit-for-bit.
-// Wired by `previous_rise_set` (issue #69); until then only its tests call it.
-#[allow(dead_code)]
 pub(crate) fn last_horizon_crossing_before<F>(
     mut f: F,
     lo_jd: f64,
