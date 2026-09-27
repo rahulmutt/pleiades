@@ -93,10 +93,13 @@ fn tt_request_no_longer_reproduces_the_tt_as_ut_ascendant() {
         "ascendant {asc} still evaluated at the TT day"
     );
     // The 2026 residual against SE is bounded by the ΔT model, not the
-    // house math: the packaged table is observed through 2020 and its
-    // extrapolation overshoots 2026 by ~6 s ≈ 0.025° of ascendant.
+    // house math: pleiades uses the leap-second bound 69.184 s here while
+    // SE 2.10.03 interpolates its own table to ≈68.88 s, a 0.3 s ≈ 0.0014°
+    // difference in ascendant (FU-11 item 2; measured 0.001408°). Before that
+    // bound existed the extrapolated polynomial overshot by ~6 s ≈ 0.026°,
+    // which 0.005° rejects.
     assert!(
-        signed_wrap(asc, 70.988_218).abs() < 0.05,
+        signed_wrap(asc, 70.988_218).abs() < 0.005,
         "ascendant {asc} vs SE(jd_ut) 70.988218"
     );
 }

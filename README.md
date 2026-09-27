@@ -53,7 +53,8 @@ crate source in this repo; gate names are the runnable `validate-*` subcommands
 - Apparent place omits gravitational light-deflection. Rise/set/transit and
   horizontal coordinates read the `TimeScale` tag on their query instants and
   return **TDB** instants; their accuracy in civil time is bounded by the
-  packaged ΔT model (observed through 2020, extrapolated beyond) — see
+  packaged ΔT model (observed through 2020, leap-second-bound to within 0.9 s
+  through the leap table's horizon, extrapolated beyond) — see
   [docs/time-observer-policy.md](docs/time-observer-policy.md).
 - Several surfaces carry documented, non-gated bounds (occultation planet-total
   obscuration and `central` flag; fictitious Nibiru; osculating small-body
