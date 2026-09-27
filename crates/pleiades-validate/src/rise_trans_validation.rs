@@ -9,22 +9,23 @@
 //! non-grazing altitudes.
 //!
 //! Tier 2 (SE parity): every committed rise-trans row is recomputed with
-//! [`EventEngine::next_rise_set`] and compared to Swiss Ephemeris's `se_jd_ut`
-//! column (see below on why `se_jd_ut`, not `se_jd_tdb`); every azalt row is
-//! recomputed with [`EventEngine::horizontal`] and compared to SE's
+//! [`EventEngine::next_rise_set`] and compared to Swiss Ephemeris's
+//! `se_jd_tdb` column; every azalt row is recomputed with
+//! [`EventEngine::horizontal`] and compared to SE's
 //! azimuth/true-altitude/apparent-altitude.
 //!
-//! ## Time-base note (important)
+//! ## Time-base note
 //!
-//! `pleiades_apparent::sidereal_time` consumes its `Instant`'s Julian Day
-//! verbatim as UT1 (its own doc says so), even though this engine labels
-//! every instant `TimeScale::Tdb`. So the engine's found rise/set/transit JD
-//! is UT1-scale despite the `Tdb` label. This gate therefore compares against
-//! the corpus's `se_jd_ut` column, NOT `se_jd_tdb` — comparing to `se_jd_tdb`
-//! would show a systematic ~64s (Delta T) offset that has nothing to do with
-//! engine correctness. The gate also computes (but does not enforce) the
-//! `se_jd_tdb` residual, purely to make the ~64s gap visible in the report as
-//! evidence of the time-base fact.
+//! The corpus records Swiss Ephemeris's UT days (`start_jd_ut`, `jd_ut`,
+//! `se_jd_ut`) alongside `se_jd_tdb`. Since issue #74 the engine reads the
+//! `TimeScale` tag on its query instants and returns genuine TDB instants, so
+//! this gate tags every corpus UT day `TimeScale::Ut1` on the way in and
+//! compares the returned TDB day against `se_jd_tdb`. Swiss Ephemeris's own
+//! ΔT at the corpus epoch (2000-01-01: 63.83 s) matches the packaged
+//! `pleiades-time` table, so the switch from `se_jd_ut` is lossless for the
+//! parity ceilings. The residual against `se_jd_ut` is still computed (not
+//! enforced) so the ~ΔT gap stays visible in the report as evidence that the
+//! returned instants are TDB, not UT1.
 //!
 //! A sibling `manifest.txt` records fnv1a64 digests of both CSVs (drift guard).
 //!
@@ -159,22 +160,24 @@ impl std::error::Error for RiseTransError {}
 pub struct RiseTransReport {
     pub rise_trans_checked: usize,
     pub azalt_checked: usize,
-    /// Max rise/set time residual (seconds) against `se_jd_ut`, over
+    /// Max rise/set time residual (seconds) against `se_jd_tdb`, over
     /// well-conditioned, non-refraction-floor, non-grazing, non-transit rows
     /// (gated at `RISE_SET_SECONDS_TIGHT`).
     pub max_rise_set_residual_s: f64,
-    /// Max rise/set time residual (seconds) against `se_jd_ut`, over the
+    /// Max rise/set time residual (seconds) against `se_jd_tdb`, over the
     /// Sun/Moon refraction-floor rows (gated at
     /// `RISE_SET_SECONDS_REFRACTION_FLOOR`; see `is_refraction_floor_row`).
     pub max_refraction_floor_residual_s: f64,
-    /// Max rise/set time residual (seconds) against `se_jd_ut`, over the
+    /// Max rise/set time residual (seconds) against `se_jd_tdb`, over the
     /// lat-66.5N grazing rows (gated at `RISE_SET_SECONDS_GRAZING`).
     pub max_grazing_residual_s: f64,
-    /// Max meridian-transit time residual (seconds) against `se_jd_ut`.
+    /// Max meridian-transit time residual (seconds) against `se_jd_tdb`.
     pub max_transit_residual_s: f64,
-    /// Max rise/set/transit time residual (seconds) against `se_jd_tdb`
-    /// (informational only, NOT gated — proves the ~ΔT time-base offset).
-    pub max_residual_vs_se_jd_tdb_s: f64,
+    /// Max rise/set/transit time residual (seconds) against `se_jd_ut`
+    /// (informational only, NOT gated — shows the ~ΔT gap between the
+    /// engine's TDB instants and SE's UT days; see the module's time-base
+    /// note).
+    pub max_residual_vs_se_jd_ut_s: f64,
     /// Max azalt azimuth residual (arcseconds), gated at `AZIMUTH_ARCSEC`.
     pub max_azimuth_residual_arcsec: f64,
     /// Max azalt true-altitude residual (arcseconds), gated at
@@ -218,7 +221,8 @@ impl RiseTransReport {
              azalt azimuth max {:.3}\" (ceiling {:.1}\"), \
              true-altitude max {:.3}\" (ceiling {:.1}\"), \
              apparent-altitude (above horizon) max {:.3}\" (ceiling {:.1}\"), \
-             apparent-altitude (below horizon) max {:.3}\" (ceiling {:.1}\", Task 17)",
+             apparent-altitude (below horizon) max {:.3}\" (ceiling {:.1}\", Task 17); \
+             informational: max vs se_jd_ut {:.1} s (≈ΔT, returned instants are TDB)",
             self.rise_trans_checked,
             self.azalt_checked,
             self.max_self_consistency_arcsec,
@@ -239,6 +243,7 @@ impl RiseTransReport {
             APPARENT_ALTITUDE_ARCSEC,
             self.max_below_horizon_apparent_alt_residual_arcsec,
             APPARENT_ALTITUDE_ARCSEC,
+            self.max_residual_vs_se_jd_ut_s,
         )
     }
 }
@@ -400,6 +405,12 @@ fn tdb(jd: f64) -> Instant {
     Instant::new(JulianDay::from_days(jd), TimeScale::Tdb)
 }
 
+/// A corpus UT day as the engine expects it: tagged `Ut1`, so the engine adds
+/// ΔT itself (see the module's time-base note).
+fn ut1(jd: f64) -> Instant {
+    Instant::new(JulianDay::from_days(jd), TimeScale::Ut1)
+}
+
 /// Validate a 17-column rise-trans CSV string against the packaged engine.
 pub(crate) fn validate_rise_trans_csv(
     csv: &str,
@@ -457,13 +468,13 @@ pub(crate) fn validate_rise_trans_csv(
             horizon_altitude_deg: horizon_deg,
         };
         let target = parse_target(object);
-        let after = tdb(start_jd_ut);
+        let after = ut1(start_jd_ut);
 
         let got = engine
             .next_rise_set(target, event, observer, atmos, opts, after)
             .map_err(|e| RiseTransError::Engine(e.to_string()))?;
 
-        match (got, se_jd_ut) {
+        match (got, se_jd_tdb) {
             (None, None) => {
                 // Both agree there's no event — nothing further to check.
             }
@@ -477,9 +488,9 @@ pub(crate) fn validate_rise_trans_csv(
                     row: line.to_string(),
                 })
             }
-            (Some(rs), Some(se_ut)) => {
+            (Some(rs), Some(se_tdb)) => {
                 let got_jd = rs.instant.julian_day.days();
-                let residual_s = (got_jd - se_ut).abs() * 86_400.0;
+                let residual_s = (got_jd - se_tdb).abs() * 86_400.0;
                 if !residual_s.is_finite() {
                     return Err(RiseTransError::RiseTransParityExceeded {
                         row: line.to_string(),
@@ -525,13 +536,13 @@ pub(crate) fn validate_rise_trans_csv(
                     report.max_rise_set_residual_s = report.max_rise_set_residual_s.max(residual_s);
                 }
 
-                // Informational only (proves the time-base fact): residual
-                // against `se_jd_tdb`, NOT gated.
-                if let Some(se_tdb) = se_jd_tdb {
-                    let residual_tdb_s = (got_jd - se_tdb).abs() * 86_400.0;
-                    if residual_tdb_s.is_finite() {
-                        report.max_residual_vs_se_jd_tdb_s =
-                            report.max_residual_vs_se_jd_tdb_s.max(residual_tdb_s);
+                // Informational only (shows the ~ΔT time-base gap): residual
+                // against `se_jd_ut`, NOT gated.
+                if let Some(se_ut) = se_jd_ut {
+                    let residual_ut_s = (got_jd - se_ut).abs() * 86_400.0;
+                    if residual_ut_s.is_finite() {
+                        report.max_residual_vs_se_jd_ut_s =
+                            report.max_residual_vs_se_jd_ut_s.max(residual_ut_s);
                     }
                 }
             }
@@ -579,7 +590,7 @@ pub(crate) fn validate_azalt_csv(
             pressure_mbar: atpress_hpa,
             temperature_c: attemp_c,
         };
-        let at = tdb(jd_ut);
+        let at = ut1(jd_ut);
         let input = HorizontalInput::Ecliptic(
             Longitude::from_degrees(lon_ecl_deg),
             Latitude::from_degrees(lat_ecl_deg),
@@ -722,7 +733,10 @@ fn tier1_self_consistency(report: &mut RiseTransReport) -> Result<(), RiseTransE
     let equ = fixed_star_apparent("Aldebaran", tdb(jd))
         .map_err(|e| RiseTransError::Engine(e.to_string()))?;
     let ra = equ.right_ascension.degrees();
-    let lst = pleiades_apparent::sidereal_time(tdb(jd), observer.longitude).local_apparent_deg;
+    // The returned instant is TDB; Earth rotation is a function of UT1.
+    let ut1_at = pleiades_apparent::ut1_instant(tdb(jd))
+        .map_err(|e| RiseTransError::Engine(e.to_string()))?;
+    let lst = pleiades_apparent::sidereal_time(ut1_at, observer.longitude).local_apparent_deg;
     let ha_residual_arcsec = wrap180(lst - ra).abs() * 3600.0;
     if !ha_residual_arcsec.is_finite() || ha_residual_arcsec > SELF_CONSISTENCY_ARCSEC {
         return Err(RiseTransError::SelfConsistencyExceeded {
@@ -837,7 +851,7 @@ mod tests {
         // report) rather than the window-boundary case exercised here, so
         // this test deliberately avoids relying on that finding.
         let csv = "object,event,lat_deg,lon_deg,elev_m,preset,disc,refraction,no_ecl_lat,fixed_disc,hindu,horizon_deg,atpress_hpa,attemp_c,start_jd_ut,se_jd_ut,se_jd_tdb\n\
-Sun,Rise,40.0000,-74.0000,10.0,default,upper,1,0,0,0,none,1013.250,15.000,2488069.499000,none,none\n";
+Sun,Rise,40.0000,-74.0000,10.0,default,upper,1,0,0,0,none,1013.250,15.000,2488069.495000,none,none\n";
         let mut report = RiseTransReport::default();
         validate_rise_trans_csv(csv, &mut report).expect("no-event row should validate cleanly");
         assert_eq!(report.rise_trans_checked, 1);

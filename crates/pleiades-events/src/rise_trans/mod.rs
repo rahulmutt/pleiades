@@ -6,8 +6,9 @@ use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::fixstar::fixed_star_apparent;
 use crate::root::{crossings_in_range, first_crossing_after, last_crossing_before, wrap180};
 use crate::semidiameter::semidiameter_deg;
+use crate::time_scale::{local_apparent_sidereal_deg, tdb_jd};
 use pleiades_apparent::{
-    apparent_from_true, sidereal_time, topocentric_position, true_obliquity_degrees, Atmosphere,
+    apparent_from_true, topocentric_position, true_obliquity_degrees, Atmosphere,
 };
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{
@@ -155,12 +156,18 @@ pub(crate) fn check_atmosphere(atmos: Atmosphere) -> Result<(), EventError> {
     Ok(())
 }
 
-/// A located rise/set/transit event (TDB).
+/// A located rise/set/transit event.
+///
+/// `instant` is a genuine TDB instant, tagged `TimeScale::Tdb`, whatever the
+/// scale of the query instant that found it: convert with
+/// `pleiades_apparent::ut1_instant` (or `pleiades-time`) to read it as a UT
+/// or civil time. See [`EventEngine::next_rise_set`] for how query instants
+/// are interpreted.
 #[derive(Clone, Debug)]
 pub struct RiseSet {
     /// Which event this is.
     pub event: RiseSetEvent,
-    /// Instant of the event (TDB).
+    /// Instant of the event, TDB.
     pub instant: Instant,
     /// The target the event is for.
     pub target: RiseSetTarget,
@@ -168,7 +175,9 @@ pub struct RiseSet {
 
 impl<B: EphemerisBackend> EventEngine<B> {
     /// Topocentric right ascension / declination (degrees, apparent-of-date) of
-    /// `target` for `observer` at `jd` (TDB Julian Day).
+    /// `target` for `observer` at `jd` (TDB Julian Day). Body positions are
+    /// sampled at `jd`; the local sidereal time that places them against the
+    /// observer's sky is evaluated at its UT1 re-expression (`jd − ΔT`).
     ///
     /// - `FixedStar`: the curated catalog's apparent equatorial place (already
     ///   geocentric to the precision the catalog supports; no topocentric
@@ -189,7 +198,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
         let eps = true_obliquity_degrees(jd)
             .map_err(|e| EventError::Backend(format!("obliquity failed: {e}")))?;
-        let lst = sidereal_time(at, observer.longitude).local_apparent_deg;
+        let lst = local_apparent_sidereal_deg(jd, observer.longitude)?;
         match target {
             RiseSetTarget::FixedStar(name) => {
                 let equ = fixed_star_apparent(name, at)?;
@@ -232,10 +241,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
         atmos: Atmosphere,
         jd: f64,
     ) -> Result<f64, EventError> {
-        let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
         let (ra_deg, dec_deg) = self.target_equatorial(target, observer, opts, jd)?;
         let phi = observer.latitude.degrees().to_radians();
-        let lst = sidereal_time(at, observer.longitude).local_apparent_deg;
+        let lst = local_apparent_sidereal_deg(jd, observer.longitude)?;
         let ha = (lst - ra_deg).to_radians();
         let dec = dec_deg.to_radians();
         let sin_alt = phi.sin() * dec.sin() + phi.cos() * dec.cos() * ha.cos();
@@ -304,7 +312,26 @@ impl<B: EphemerisBackend> EventEngine<B> {
     }
 
     /// Next rise/set/transit strictly after `after`, or `None` if it does not
-    /// occur before the ephemeris window's end. For `Rise`/`Set`, the search
+    /// occur before the ephemeris window's end.
+    ///
+    /// # Time scales
+    ///
+    /// `after` is read by its `TimeScale` tag: `Tdb`/`Tt` days are taken as
+    /// TDB (they differ by under 2 ms), `Ut1`/`Utc` days have ΔT added (UTC is
+    /// treated as UT1; no DUT1 table). Any other scale fails closed with
+    /// [`EventError::UnsupportedTimeScale`]. Internally, body positions are
+    /// sampled in TDB and Earth rotation (sidereal time, hour angle, diurnal
+    /// parallax) at the UT1 re-expression of each sampled day, so a TT-tagged
+    /// query built from civil time via `pleiades-time` searches from the
+    /// intended physical instant. The returned [`RiseSet::instant`] is TDB,
+    /// tagged `Tdb`, regardless of the query's tag — the same convention as
+    /// every other event surface in this crate. Accuracy in UT/civil time is
+    /// bounded by the packaged ΔT model (observed through 2020, extrapolated
+    /// beyond).
+    ///
+    /// # Search window
+    ///
+    /// For `Rise`/`Set`, the search
     /// is additionally bounded to `RISE_SET_SEARCH_SPAN_DAYS` past `after` —
     /// a short-horizon search in the same spirit as SE's `swe_rise_trans`
     /// (which reports "no event" past its own, narrower ~28h window) but not
@@ -331,7 +358,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
             })?;
         check_atmosphere(atmos)?;
         let opts = opts.effective();
-        let after_jd = after.julian_day.days();
+        let after_jd = tdb_jd(after)?;
         self.check_window(after_jd)?;
         match event {
             RiseSetEvent::Rise | RiseSetEvent::Set => {
@@ -369,8 +396,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// are anchored to the sunrise that began the day containing the query
     /// instant, i.e. the last sunrise at or before it.
     ///
-    /// Same options, time base, and bounded-window semantics as
-    /// `next_rise_set`: `Rise`/`Set` search only `RISE_SET_SEARCH_SPAN_DAYS`
+    /// Same options, time-scale handling (`before` read by its tag, result
+    /// TDB), and bounded-window semantics as `next_rise_set`: `Rise`/`Set`
+    /// search only `RISE_SET_SEARCH_SPAN_DAYS`
     /// back from `before`, so a body that has been circumpolar for longer
     /// than that returns `None`; meridian transits always occur within a
     /// sidereal day and are unaffected. Early-terminating: the search walks
@@ -394,7 +422,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
             })?;
         check_atmosphere(atmos)?;
         let opts = opts.effective();
-        let before_jd = before.julian_day.days();
+        let before_jd = tdb_jd(before)?;
         self.check_window(before_jd)?;
         match event {
             RiseSetEvent::Rise | RiseSetEvent::Set => {
@@ -422,6 +450,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
     }
 
     /// All rise/set/transit events of `event` kind in `[start, end]`, ascending.
+    /// `start` and `end` are read by their `TimeScale` tags and every returned
+    /// instant is TDB, as for [`next_rise_set`](Self::next_rise_set).
     #[allow(clippy::too_many_arguments)]
     pub fn rise_sets_in_range(
         &self,
@@ -440,8 +470,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
             })?;
         check_atmosphere(atmos)?;
         let opts = opts.effective();
-        let start_jd = start.julian_day.days();
-        let end_jd = end.julian_day.days();
+        let start_jd = tdb_jd(start)?;
+        let end_jd = tdb_jd(end)?;
         self.check_window(start_jd)?;
         self.check_window(end_jd)?;
         match event {
@@ -487,8 +517,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         jd: f64,
     ) -> Result<f64, EventError> {
         let (ra, _dec) = self.target_equatorial(target, observer, opts, jd)?;
-        let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
-        let lst = sidereal_time(at, observer.longitude).local_apparent_deg;
+        let lst = local_apparent_sidereal_deg(jd, observer.longitude)?;
         let ha = lst - ra;
         Ok(if lower {
             wrap180(ha - 180.0)
@@ -507,7 +536,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         after: Instant,
     ) -> Result<Option<RiseSet>, EventError> {
         let lower = matches!(event, RiseSetEvent::LowerTransit);
-        let after_jd = after.julian_day.days();
+        let after_jd = tdb_jd(after)?;
         let scan_start = after_jd.max(WINDOW_START_JD + TRANSIT_STEP_DAYS);
         let scan_end = WINDOW_END_JD - TRANSIT_STEP_DAYS;
         let root = first_crossing_after(
@@ -536,7 +565,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         before: Instant,
     ) -> Result<Option<RiseSet>, EventError> {
         let lower = matches!(event, RiseSetEvent::LowerTransit);
-        let before_jd = before.julian_day.days();
+        let before_jd = tdb_jd(before)?;
         let scan_start = WINDOW_START_JD + TRANSIT_STEP_DAYS;
         let scan_end = before_jd.min(WINDOW_END_JD - TRANSIT_STEP_DAYS);
         let root = last_crossing_before(
@@ -563,11 +592,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
         end: Instant,
     ) -> Result<Vec<RiseSet>, EventError> {
         let lower = matches!(event, RiseSetEvent::LowerTransit);
-        let scan_start = start
-            .julian_day
-            .days()
-            .max(WINDOW_START_JD + TRANSIT_STEP_DAYS);
-        let scan_end = end.julian_day.days().min(WINDOW_END_JD - TRANSIT_STEP_DAYS);
+        let scan_start = tdb_jd(start)?.max(WINDOW_START_JD + TRANSIT_STEP_DAYS);
+        let scan_end = tdb_jd(end)?.min(WINDOW_END_JD - TRANSIT_STEP_DAYS);
         let roots = crossings_in_range(
             |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
             scan_start,
@@ -589,3 +615,6 @@ impl<B: EphemerisBackend> EventEngine<B> {
 mod tests;
 
 mod scan;
+
+#[cfg(test)]
+mod time_scale_tests;

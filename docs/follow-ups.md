@@ -1914,8 +1914,8 @@ inconsistency.
 
 ## FU-11: Sidereal-time consumers outside the house layer, and the ΔT extrapolation gap
 
-**Status:** open · Opened 2026-09-26 while fixing #56 (houses evaluated
-sidereal time at the TT day).
+**Status:** item 1 resolved 2026-09-27 (issue #74); item 2 open · Opened
+2026-09-26 while fixing #56 (houses evaluated sidereal time at the TT day).
 
 **What:** #56 fixed `pleiades-houses` by routing every Earth-rotation quantity
 through `pleiades_apparent::ut1_instant`. Two related items were deliberately
@@ -1933,6 +1933,19 @@ left out of that change:
    rise-trans gate to `se_jd_tdb`, and rewording the SP-2b caveat in
    `pleiades-core::compatibility`. That is a semantic change to returned event
    instants and belongs in its own reviewed change.
+   → **Resolved 2026-09-27 (issue #74):** `pleiades-events` now reads the
+   `TimeScale` tag on every rise/set/transit and horizontal query instant
+   (`time_scale::tdb_jd`: TDB/TT as TDB, UT1/UTC + ΔT, other scales fail
+   closed with `EventError::UnsupportedTimeScale`), samples bodies in TDB,
+   evaluates sidereal time at the UT1 re-expression of each sampled day
+   (`time_scale::local_apparent_sidereal_deg`), and returns genuine TDB
+   instants tagged `Tdb`. The `validate-rise-trans` gate tags corpus UT days
+   `Ut1` and compares against `se_jd_tdb` (all ceilings retained; the moon
+   transit residual dropped from 2.89 s to 1.00 s), the SP-2b caveat is
+   reworded, and `docs/time-observer-policy.md` documents the convention.
+   The occultation and local-eclipse paths were left as they were (they
+   already rotate with UT1); their `Tdb`-tagged converted instants are
+   internal and never passed to a scale-aware adapter.
 
 2. **ΔT model beyond 2020.** `crates/pleiades-time/data/delta-t-observed.csv`
    ends at 2020 (69.4 s) and `deltat::extrapolate` (Espenak–Meeus 2005–2050
@@ -1945,8 +1958,7 @@ left out of that change:
    test asserts a 0.05° ceiling on the 2026 Chennai fixture for this reason).
 
 **Severity:** medium for item 2 (visible sub-arcminute residual on current
-dates), low for item 1 (documented, gated against the matching reference) ·
-**Opened:** 2026-09-26
+dates); item 1 resolved · **Opened:** 2026-09-26
 
 ## FU-12: Osculating true lunar node for `TrueNode` (issue #58)
 

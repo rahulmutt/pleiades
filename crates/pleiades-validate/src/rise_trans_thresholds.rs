@@ -57,6 +57,28 @@
 //! - `RISE_SET_SECONDS_REFRACTION_FLOOR`: UNCHANGED (measured max unchanged).
 //! - `APPARENT_ALTITUDE_ARCSEC`: TIGHTENED, and now gates below-horizon azalt
 //!   rows too (previously informational-only) — see its doc below.
+//!
+//! ## Issue #74 — TDB time base
+//!
+//! The engine now reads the `TimeScale` tag on its query instants, rotates
+//! the sky with UT1, samples bodies in TDB, and returns genuine TDB instants,
+//! so the gate compares against `se_jd_tdb` (see `rise_trans_validation`'s
+//! time-base note). Every time ceiling was re-measured against that column;
+//! all four CEILINGS are retained unchanged, since no measured max moved by
+//! more than a few tenths of a second except the transits, which improved
+//! markedly (the Moon had been sampled ΔT earlier than the sky it was placed
+//! against — a systematic ~2 s term on moon transits that is now gone):
+//!
+//! | category          | pre-#74 max (vs `se_jd_ut`) | post-#74 max (vs `se_jd_tdb`) | ceiling |
+//! |-------------------|-----------------------------|-------------------------------|---------|
+//! | tight             | 3.4631 s                    | 3.039 s                       | 5.0 s   |
+//! | refraction floor  | 21.9052 s                   | 21.615 s                      | 31.0 s  |
+//! | grazing           | 110.8948 s                  | 110.989 s                     | 160.0 s |
+//! | transit           | 2.8894 s                    | 1.001 s                       | 4.0 s   |
+//!
+//! The per-constant docs below keep their original measured basis (the
+//! numbers the ceilings were derived from); this table is the current
+//! measurement.
 
 /// Rise/set time-parity ceiling (seconds) for a well-conditioned,
 /// non-grazing, non-refraction-floor row (point-like body: star or

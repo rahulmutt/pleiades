@@ -1,6 +1,7 @@
 //! Structured, fail-closed event errors.
 
 use core::fmt;
+use pleiades_types::TimeScale;
 
 /// First instant of the supported window (1900-01-01 TT), Julian Day.
 pub const WINDOW_START_JD: f64 = 2_415_020.5;
@@ -60,6 +61,12 @@ pub enum EventError {
         /// Human-readable explanation.
         detail: String,
     },
+    /// An instant tagged with a time scale the observer-local surfaces
+    /// (rise/set/transit, horizontal coordinates) cannot convert to TDB.
+    UnsupportedTimeScale {
+        /// The unsupported scale.
+        scale: TimeScale,
+    },
 }
 
 impl fmt::Display for EventError {
@@ -93,6 +100,11 @@ impl fmt::Display for EventError {
             EventError::UnsupportedOccultTarget { detail } => {
                 write!(f, "unsupported occultation target: {detail}")
             }
+            EventError::UnsupportedTimeScale { scale } => write!(
+                f,
+                "unsupported time scale {scale:?}: rise/set/transit and horizontal \
+                 coordinates accept TDB, TT, UT1, and UTC instants"
+            ),
         }
     }
 }
@@ -128,5 +140,14 @@ mod tests {
             detail: "node ill-defined".into(),
         };
         assert!(err.to_string().contains("node ill-defined"));
+    }
+
+    #[test]
+    fn unsupported_time_scale_names_the_scale() {
+        let err = EventError::UnsupportedTimeScale {
+            scale: TimeScale::Utc,
+        };
+        assert!(err.to_string().contains("Utc"));
+        assert!(err.to_string().contains("TDB, TT, UT1, and UTC"));
     }
 }
