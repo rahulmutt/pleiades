@@ -1,4 +1,3 @@
-
 use super::*;
 
 #[test]
@@ -170,8 +169,8 @@ fn sun_rises_and_sets_within_a_day() {
 
 /// Regression for the rise-vs-set DIRECTION, not merely that rise != set.
 /// `sun_rises_and_sets_within_a_day` above would still pass if
-/// `is_ascending_crossing` were reversed (rise/set labels swapped), since it
-/// only checks `alt ≈ h0` and `rise != set`. Here we sample the residual
+/// the scanner's bracket-sign direction test were reversed (rise/set labels
+/// swapped), since it only checks `alt ≈ h0` and `rise != set`. Here we sample the residual
 /// (`target_apparent_altitude - standard_altitude`) just before and just
 /// after each event and assert the sign change goes the correct way: rise
 /// must be ASCENDING (below -> above), set must be DESCENDING (above ->
@@ -216,10 +215,10 @@ fn rise_is_ascending_and_set_is_descending() {
         .unwrap()
         .expect("a set within the window");
 
-    // 120s: well outside the bisection's REFINE_TOLERANCE_DAYS (0.5s) and
-    // DIRECTION_PROBE_DAYS (2s) noise floors, but tiny compared to the
-    // ~12h spacing between consecutive rise/set events, so it stays
-    // within the same monotonic segment of the residual.
+    // 120s: well outside the bisection's REFINE_TOLERANCE_DAYS (0.5s) noise
+    // floor, but tiny compared to the ~12h spacing between consecutive
+    // rise/set events, so it stays within the same monotonic segment of the
+    // residual.
     const DT: f64 = 120.0 / 86_400.0;
     let resid = |jd: f64| {
         engine

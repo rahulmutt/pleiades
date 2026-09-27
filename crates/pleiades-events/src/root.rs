@@ -16,7 +16,12 @@ pub(crate) fn wrap180(mut d: f64) -> f64 {
     d
 }
 
-fn bisect<F>(f: &mut F, mut lo: f64, mut f_lo: f64, mut hi: f64) -> Result<f64, EventError>
+pub(crate) fn bisect<F>(
+    f: &mut F,
+    mut lo: f64,
+    mut f_lo: f64,
+    mut hi: f64,
+) -> Result<f64, EventError>
 where
     F: FnMut(f64) -> Result<f64, EventError>,
 {

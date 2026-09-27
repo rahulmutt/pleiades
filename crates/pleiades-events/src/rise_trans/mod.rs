@@ -14,25 +14,25 @@ use pleiades_types::{
     Angle, CelestialBody, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude,
     ObserverLocation, TimeScale,
 };
+use scan::{first_horizon_crossing_after, horizon_crossings_in_range};
 
-/// Scan step for rise/set bracketing: 2 minutes, small enough to separate
-/// fast-Moon grazes without a per-body table (rise/set changes little across
-/// the day compared to Task 8/9's longitude-crossing needs).
-const RISE_SET_STEP_DAYS: f64 = 2.0 / 1440.0;
+/// Grid step for rise/set bracketing: 1 hour. The horizon scanner
+/// (`scan.rs`) does not need the step to separate a graze's two crossings —
+/// it catches grazes by refining any culmination that comes near the horizon
+/// between samples — so the step only has to keep the three-sample parabola
+/// estimate of each culmination honest, which hourly sampling of a
+/// once-per-day sinusoid does comfortably (see `scan::GRAZE_MARGIN_DEG`).
+/// Search cost is therefore ~1 residual evaluation per hour scanned plus one
+/// bisection per candidate event, instead of ~30 per hour at the former
+/// 2-minute step (issue #70).
+const RISE_SET_STEP_DAYS: f64 = 1.0 / 24.0;
 
-/// How far past a located zero-crossing to probe when classifying its
-/// direction (ascending = rise, descending = set). Must clear the root
-/// refiner's own uncertainty (`root::REFINE_TOLERANCE_DAYS`, 0.5s) so the
-/// probe reads an unambiguous sign, while staying far shorter than the ~12h
-/// spacing between consecutive rise/set events so it can never probe into the
-/// next one.
-const DIRECTION_PROBE_DAYS: f64 = 2.0 / 86_400.0;
-
-/// Scan step for meridian-transit bracketing: 5 minutes. Unlike rise/set, the
-/// hour-angle residual is monotonic-ascending through its single zero per
-/// sidereal day at each transit, so there is no direction to classify — a
-/// coarser step than `RISE_SET_STEP_DAYS` is fine.
-const TRANSIT_STEP_DAYS: f64 = 5.0 / 1440.0;
+/// Scan step for meridian-transit bracketing: 1 hour. The hour-angle residual
+/// is monotonic-ascending at ~15°/h through its single zero per sidereal day,
+/// so any step well under the 12 h wrap-seam guard in `root` brackets each
+/// transit exactly once; 1 hour matches the rise/set grid and keeps the
+/// transit search ~12× cheaper per hour scanned than the former 5-minute step.
+const TRANSIT_STEP_DAYS: f64 = 1.0 / 24.0;
 
 /// How far forward of `after` `next_rise_set`'s `Rise`/`Set` arm searches
 /// before giving up and returning `None`. This is a deliberate ~2.5×
@@ -286,7 +286,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
 
     /// The rise/set residual: apparent altitude minus standard altitude. Its
     /// zeros (ascending = rise, descending = set) are what `next_rise_set` and
-    /// `rise_sets_in_range` root-find.
+    /// `rise_sets_in_range` root-find through the horizon scanner in `scan`,
+    /// which reads each crossing's direction from the signs across its bracket.
     fn horizon_residual(
         &self,
         target: &RiseSetTarget,
@@ -298,35 +299,6 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let alt = self.target_apparent_altitude(target, observer, opts, atmos, jd)?;
         let h0 = self.standard_altitude(target, observer, opts, atmos, jd)?;
         Ok(alt - h0)
-    }
-
-    /// Whether the residual is heading upward (ascending, i.e. a rise rather
-    /// than a set) at `root_jd`, a zero-crossing already located by
-    /// `first_crossing_after`/`crossings_in_range`. Both helpers detect ANY
-    /// sign change (ascending or descending) — they do not discriminate
-    /// direction — so callers must classify each root themselves. We sample
-    /// just past the root, outside the bisection's `REFINE_TOLERANCE_DAYS`
-    /// (0.5s) uncertainty, and read the residual's sign there: positive means
-    /// the residual has risen above zero (ascending / rise), negative means it
-    /// has fallen below (descending / set). `DIRECTION_PROBE_DAYS` (2s) is
-    /// tiny compared to the ~12h spacing between consecutive rise/set events,
-    /// so it can never probe into the next event.
-    fn is_ascending_crossing(
-        &self,
-        target: &RiseSetTarget,
-        observer: &ObserverLocation,
-        opts: &RiseSetOptions,
-        atmos: Atmosphere,
-        root_jd: f64,
-    ) -> Result<bool, EventError> {
-        let probe = self.horizon_residual(
-            target,
-            observer,
-            opts,
-            atmos,
-            root_jd + DIRECTION_PROBE_DAYS,
-        )?;
-        Ok(probe > 0.0)
     }
 
     /// Next rise/set/transit strictly after `after`, or `None` if it does not
@@ -364,33 +336,14 @@ impl<B: EphemerisBackend> EventEngine<B> {
                 let scan_end =
                     (after_jd + RISE_SET_SEARCH_SPAN_DAYS).min(WINDOW_END_JD - RISE_SET_STEP_DAYS);
                 let want_ascending = matches!(event, RiseSetEvent::Rise);
-                // `first_crossing_after` finds the next zero-crossing of the
-                // residual regardless of direction (ascending = rise,
-                // descending = set); skip crossings of the wrong direction by
-                // resuming the scan just past each rejected root.
-                let mut scan_start = after_jd.max(WINDOW_START_JD + RISE_SET_STEP_DAYS);
-                let root = loop {
-                    let candidate = first_crossing_after(
-                        |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
-                        scan_start,
-                        scan_end,
-                        RISE_SET_STEP_DAYS,
-                    )?;
-                    match candidate {
-                        None => break None,
-                        Some(jd) => {
-                            if self.is_ascending_crossing(&target, &observer, &opts, atmos, jd)?
-                                == want_ascending
-                            {
-                                break Some(jd);
-                            }
-                            // Resume exactly at the rejected root. `first_crossing_after`'s
-                            // first step may re-refine this same root (bounded, cheap) before
-                            // its scan advances past it to the next crossing.
-                            scan_start = jd;
-                        }
-                    }
-                };
+                let scan_start = after_jd.max(WINDOW_START_JD + RISE_SET_STEP_DAYS);
+                let root = first_horizon_crossing_after(
+                    |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
+                    scan_start,
+                    scan_end,
+                    RISE_SET_STEP_DAYS,
+                    want_ascending,
+                )?;
                 Ok(root.filter(|&jd| jd > after_jd).map(|jd| RiseSet {
                     event,
                     target: target.clone(),
@@ -431,28 +384,21 @@ impl<B: EphemerisBackend> EventEngine<B> {
                 let want_ascending = matches!(event, RiseSetEvent::Rise);
                 let scan_start = start_jd.max(WINDOW_START_JD + RISE_SET_STEP_DAYS);
                 let scan_end = end_jd.min(WINDOW_END_JD - RISE_SET_STEP_DAYS);
-                // `crossings_in_range` returns every zero-crossing (both rise
-                // and set, alternating); classify each by direction and keep
-                // only the ones matching `event` (see `is_ascending_crossing`).
-                let roots = crossings_in_range(
+                let roots = horizon_crossings_in_range(
                     |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
                     scan_start,
                     scan_end,
                     RISE_SET_STEP_DAYS,
+                    want_ascending,
                 )?;
-                let mut out = Vec::with_capacity(roots.len());
-                for jd in roots {
-                    if self.is_ascending_crossing(&target, &observer, &opts, atmos, jd)?
-                        == want_ascending
-                    {
-                        out.push(RiseSet {
-                            event,
-                            target: target.clone(),
-                            instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
-                        });
-                    }
-                }
-                Ok(out)
+                Ok(roots
+                    .into_iter()
+                    .map(|jd| RiseSet {
+                        event,
+                        target: target.clone(),
+                        instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+                    })
+                    .collect())
             }
             RiseSetEvent::UpperTransit | RiseSetEvent::LowerTransit => {
                 self.transits_in_range(target, event, observer, opts, start, end)
@@ -547,3 +493,5 @@ impl<B: EphemerisBackend> EventEngine<B> {
 
 #[cfg(test)]
 mod tests;
+
+mod scan;
