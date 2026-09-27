@@ -1950,8 +1950,8 @@ dates), low for item 1 (documented, gated against the matching reference) ·
 
 ## FU-12: Osculating true lunar node for `TrueNode` (issue #58)
 
-**Status:** resolved (2026-09-26) · Implemented on `feat/true-node-osculating`
-(spec `docs/superpowers/specs/2026-09-26-true-node-osculating-design.md`).
+**Status:** resolved (2026-09-26) · Implemented on `feat/true-node-osculating`,
+merged as PR #62 (spec `docs/superpowers/specs/2026-09-26-true-node-osculating-design.md`).
 `TrueNode` is now served release-grade by `PackagedDataBackend` as the
 osculating ascending node of the geocentric lunar orbit (formed in the mean
 ecliptic of date from the packaged Moon state, emitted in J2000; chart layer
@@ -1978,5 +1978,9 @@ reference tool `tools/se-true-node-reference` builds inside `devenv shell`
 never rebuilds the tool. · **Open question:** the gate comment attributes the
 52.851″ maximum to Moshier-vs-DE440 amplified by 1/sin i; the zero-mean,
 trend-free residual distribution supports that, but interpolation error in
-the packaged Moon velocity has not been separated out. · **Severity:**
-accuracy (now closed) · **Opened:** 2026-09-26
+the packaged Moon velocity has not been separated out (tracked as #65).
+· **Follow-up issues:** #63 (comment documenting the topocentric exemption in
+`chart/mod.rs`), #64 (enforce the validated-row floor inside the true-node and
+Lilith gate functions, not only in the nightly test), #65 (residual
+attribution above). · **Severity:** accuracy (now closed) · **Opened:**
+2026-09-26 · **Merged:** PR #62 (2026-09-27)
