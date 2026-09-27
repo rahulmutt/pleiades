@@ -33,8 +33,16 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
   # Opens/updates the release PR that bumps versions and prepends the changelog.
+  #
+  # Runs strictly after the release job. `release-pr` decides the next version
+  # by comparing the workspace against crates.io, so when it ran in parallel
+  # with a publish it observed a half-published registry (some crates already
+  # at the new version, others not) and opened a spurious follow-up bump with
+  # an empty changelog section (PR #67 after v0.5.1). Serialising the jobs
+  # costs a few minutes on every push to main but removes the race.
   release-plz-pr:
     name: release-plz PR
+    needs: release-plz-release
     runs-on: ubuntu-latest
     concurrency:
       group: release-plz-pr
