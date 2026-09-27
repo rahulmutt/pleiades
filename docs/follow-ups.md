@@ -1914,8 +1914,9 @@ inconsistency.
 
 ## FU-11: Sidereal-time consumers outside the house layer, and the ΔT extrapolation gap
 
-**Status:** item 1 resolved 2026-09-27 (issue #74); item 2 open · Opened
-2026-09-26 while fixing #56 (houses evaluated sidereal time at the TT day).
+**Status:** resolved — item 1 2026-09-27 (issue #74), item 2 2026-09-27 ·
+Opened 2026-09-26 while fixing #56 (houses evaluated sidereal time at the TT
+day).
 
 **What:** #56 fixed `pleiades-houses` by routing every Earth-rotation quantity
 through `pleiades_apparent::ut1_instant`. Two related items were deliberately
@@ -1956,9 +1957,25 @@ left out of that change:
    used, house angles for 2021+ carry a ≈6 s ≈ 0.025° residual against Swiss
    Ephemeris (documented in `docs/time-observer-policy.md`; the #56 regression
    test asserts a 0.05° ceiling on the 2026 Chennai fixture for this reason).
+   → **Resolved 2026-09-27:** `pleiades_time::deltat::delta_t` now has three
+   tiers. From the 2020 node while the leap-second table is authoritative it
+   returns `32.184 s + (TAI − UTC)` tagged with the new
+   `DeltaTQuality::LeapSecondBound` (DUT1 taken as zero, so within 0.9 s of
+   truth; `ConversionQuality` reports it as `Observed` on the `Ut1DeltaT`
+   path, leaving the three-tier report vocabulary unchanged). Beyond the leap
+   horizon the Espenak–Meeus polynomial is anchored to the bound at the
+   horizon so ΔT is continuous there, still tagged `Predicted`. The leap
+   horizon moved from 2025-12-31 to 2026-06-30 on IERS Bulletin C 71; a
+   test pins it, and each future Bulletin C should move it again. The
+   observed table stays authoritative through 2020 (0.2 s step at the node,
+   same order as its interpolation error). The 2026 Chennai ascendant
+   residual against SE dropped from 0.026° to 0.0014° and the #56 regression
+   ceiling tightened from 0.05° to 0.005°. A subtlety kept as a comment, not
+   fixed: the ΔT lookup receives a TT-scale day on the `ut1_jd_from_tt`
+   path while the leap lookup expects UTC; the 69 s difference only matters
+   within 69 s of a leap epoch, where ΔT steps by a full second anyway.
 
-**Severity:** medium for item 2 (visible sub-arcminute residual on current
-dates); item 1 resolved · **Opened:** 2026-09-26
+**Severity:** resolved (both items) · **Opened:** 2026-09-26
 
 ## FU-12: Osculating true lunar node for `TrueNode` (issue #58)
 

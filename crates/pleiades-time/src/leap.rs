@@ -17,9 +17,10 @@ const LEAP_CSV_CHECKSUM: u64 = 16253160508809344072; // pinned
 /// JD of the first UTC leap-second epoch (1972-01-01 00:00).
 pub const LEAP_EPOCH_JD: f64 = 2441317.5;
 
-/// Last UTC date the table is authoritative for (2025-12-31 00:00; no leap second
-/// announced through 2025 per IERS Bulletin C, as-of 2026-06).
-pub const VALID_THROUGH_JD: f64 = 2461040.5;
+/// Last UTC date the table is authoritative for (2026-06-30 00:00): IERS
+/// Bulletin C 71 (January 2026) announced no leap second at the end of June
+/// 2026. Bump this with each Bulletin C; `deltat` anchors its extrapolation here.
+pub const VALID_THROUGH_JD: f64 = 2461221.5;
 
 static LEAP_ROWS: OnceLock<Result<Vec<(f64, i32)>, CivilTimeError>> = OnceLock::new();
 
@@ -98,6 +99,15 @@ mod tests {
         assert_eq!(tai_minus_utc(2451545.0).unwrap(), Some(32));
         // 1972-01-01 -> 10
         assert_eq!(tai_minus_utc(2441317.5).unwrap(), Some(10));
+    }
+
+    #[test]
+    fn horizon_covers_first_half_of_2026() {
+        // IERS Bulletin C 71 (January 2026): no leap second at the end of
+        // June 2026, so the table is authoritative through 2026-06-30
+        // (JD 2461221.5) and TAI − UTC is still 37 s there.
+        assert_eq!(VALID_THROUGH_JD, 2_461_221.5);
+        assert_eq!(tai_minus_utc(2_461_221.5).unwrap(), Some(37));
     }
 
     #[test]

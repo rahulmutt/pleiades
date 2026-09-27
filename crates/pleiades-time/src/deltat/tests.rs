@@ -1,4 +1,5 @@
 use super::*;
+use crate::leap;
 
 #[test]
 fn pinned_checksum() {
@@ -23,9 +24,10 @@ fn observed_spot_values() {
 
 #[test]
 fn boundary_at_observed_through_jd() {
+    // The 2020 node itself is the first day served by the leap-second bound.
     assert_eq!(
         delta_t(OBSERVED_THROUGH_JD).unwrap().1,
-        DeltaTQuality::Predicted
+        DeltaTQuality::LeapSecondBound
     );
     assert_eq!(
         delta_t(OBSERVED_THROUGH_JD - 1.0).unwrap().1,
@@ -34,22 +36,47 @@ fn boundary_at_observed_through_jd() {
 }
 
 #[test]
+fn leap_second_bound_is_tt_minus_utc() {
+    // 2022-01-01 00:00 (JD 2459580.5): TAI − UTC = 37 s since 2017, so
+    // ΔT = 32.184 + 37 = 69.184 s exactly (DUT1 taken as zero).
+    let (dt, q) = delta_t(2_459_580.5).unwrap();
+    assert_eq!(q, DeltaTQuality::LeapSecondBound);
+    assert!((dt - 69.184).abs() < 1e-12, "got {dt}");
+}
+
+#[test]
+fn boundary_at_leap_horizon() {
+    let (at, q_at) = delta_t(leap::VALID_THROUGH_JD).unwrap();
+    let (past, q_past) = delta_t(leap::VALID_THROUGH_JD + 1.0).unwrap();
+    assert_eq!(q_at, DeltaTQuality::LeapSecondBound);
+    assert_eq!(q_past, DeltaTQuality::Predicted);
+    // Anchored extrapolation: the polynomial's slope at 2026 is ≈0.62 s/yr,
+    // so one day past the horizon moves ΔT by ≈0.0017 s, not by the ≈6 s
+    // jump the unanchored polynomial would produce.
+    assert!((past - at).abs() < 0.01, "at {at}, past {past}");
+    assert!(past > at, "at {at}, past {past}");
+}
+
+#[test]
 fn future_is_predicted() {
-    // 2080-ish: past the 2020 observed node -> Predicted
+    // 2080-ish: past the leap horizon -> Predicted
     let (dt, q) = delta_t(2480000.0).unwrap();
     assert_eq!(q, DeltaTQuality::Predicted);
     assert!(dt > 69.0, "got {dt}");
 }
 
 #[test]
-fn extrapolated_delta_t_matches_published_polynomial() {
+fn extrapolated_delta_t_is_the_anchored_published_polynomial() {
     // JD 2480765.0 = 2451545 + 365.25 * 80 exactly (representable), so
     // decimal_year is exactly 2080.0 and t = 80. Espenak-Meeus 2005-2050
-    // polynomial evaluated outside the code (see the design doc's
-    // Appendix script): 62.92 + 0.32217*80 + 0.005589*80*80 = 124.4632.
-    // Smallest mutant displacement at t = 80 is 25.77 s (spec §4.2), a
-    // ~2.6e10x margin over the 1e-9 s tolerance.
+    // polynomial P(t) = 62.92 + 0.32217 t + 0.005589 t²; P(80) = 124.4632.
+    // The extrapolation is anchored at the leap horizon (2026-06-30, decimal
+    // year 2026.4928131416839, P = 75.37793627892353) to the leap-bound
+    // value 69.184, so ΔT(2080) = 69.184 + 124.4632 − 75.37793627892353
+    // = 118.26926372107647 (evaluated outside the code with Python). Dropping
+    // the anchor displaces this by 6.19 s, dropping either polynomial term by
+    // 20 s or more, so the 1e-6 s tolerance leaves a >1e6x margin.
     let (dt, q) = delta_t(2_480_765.0).unwrap();
     assert_eq!(q, DeltaTQuality::Predicted);
-    assert!((dt - 124.4632).abs() < 1e-9, "got {dt}");
+    assert!((dt - 118.269_263_721).abs() < 1e-6, "got {dt}");
 }

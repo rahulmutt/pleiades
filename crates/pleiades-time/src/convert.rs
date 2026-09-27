@@ -5,7 +5,7 @@ use core::fmt;
 use pleiades_types::{Instant, JulianDay, TimeScale, SECONDS_PER_DAY};
 
 use crate::calendar::CivilDateTime;
-use crate::deltat::{self, DeltaTQuality};
+use crate::deltat::{self, DeltaTQuality, TT_MINUS_TAI};
 use crate::error::CivilTimeError;
 use crate::leap;
 use crate::tdb;
@@ -16,9 +16,6 @@ pub const SUPPORT_START_JD: f64 = 2415020.5;
 /// 2101 (JD 2488434.5). The last accepted instant is 2100-12-31T23:59:59.x;
 /// 2101-01-01T00:00:00 is rejected as `BeyondHorizon`.
 pub const SUPPORT_END_JD: f64 = 2488434.5;
-
-/// TT − TAI, in seconds (fixed by definition).
-const TT_MINUS_TAI: f64 = 32.184;
 
 const SOURCES: &str =
     "leap-seconds.csv (IERS Bulletin C); delta-t-observed.csv (IERS/USNO + Espenak–Meeus); as-of 2026-06";
@@ -173,8 +170,13 @@ fn to_tt(
             let (dt, q) = deltat::delta_t(jd_civil)?;
             let jd_tt = jd_civil + dt / SECONDS_PER_DAY;
             finite(jd_tt)?;
+            // The leap-second bound is observed data with a sub-second error
+            // bound, so it reports as Observed; the three-tier vocabulary
+            // (exact/observed/predicted) is unchanged.
             let (path, quality) = match q {
-                DeltaTQuality::Observed => (ConversionPath::Ut1DeltaT, ConversionQuality::Observed),
+                DeltaTQuality::Observed | DeltaTQuality::LeapSecondBound => {
+                    (ConversionPath::Ut1DeltaT, ConversionQuality::Observed)
+                }
                 DeltaTQuality::Predicted => (
                     ConversionPath::FutureExtrapolated,
                     ConversionQuality::Predicted,

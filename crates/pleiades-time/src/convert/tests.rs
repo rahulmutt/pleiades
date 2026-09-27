@@ -21,6 +21,31 @@ fn ut1_historical_is_observed() {
 }
 
 #[test]
+fn ut1_after_observed_table_is_leap_bound_and_reported_observed() {
+    // 2022-01-01: past the 2020 observed node, inside the leap table. ΔT is
+    // the leap-second bound 32.184 + 37 = 69.184 s, reported through the
+    // existing three-tier vocabulary as Observed on the Ut1DeltaT path.
+    let civil = CivilDateTime::new(2022, 1, 1, 0, 0, 0.0);
+    let out = tt_from_ut1_civil(civil).unwrap();
+    assert_eq!(out.provenance.quality, ConversionQuality::Observed);
+    assert_eq!(out.provenance.path, ConversionPath::Ut1DeltaT);
+    assert!((out.provenance.delta_t_seconds.unwrap() - 69.184).abs() < 1e-12);
+}
+
+#[test]
+fn ut1_and_utc_agree_where_delta_t_is_leap_bound() {
+    // The leap-second bound takes DUT1 = 0, so a civil day tagged UT1 and the
+    // same day tagged UTC must land on the same TT instant.
+    let civil = CivilDateTime::new(2022, 1, 1, 0, 0, 0.0);
+    let from_ut1 = tt_from_ut1_civil(civil).unwrap();
+    let from_utc = tt_from_utc_civil(civil).unwrap();
+    assert_eq!(
+        from_ut1.instant.julian_day.days(),
+        from_utc.instant.julian_day.days()
+    );
+}
+
+#[test]
 fn future_utc_is_predicted() {
     let civil = CivilDateTime::new(2090, 6, 1, 0, 0, 0.0);
     let out = tt_from_utc_civil(civil).unwrap();
@@ -171,15 +196,18 @@ fn utc_at_exact_leap_epoch_is_exact() {
 fn future_utc_and_ut1_jd_values_match_hand_computation() {
     // Future-UTC path: 2090-06-01 00:00 UTC -> jd_civil 2484568.5 (past
     // the leap table's VALID_THROUGH_JD, inside the support window).
-    // dT = Espenak-Meeus polynomial at decimal_year(2484568.5), evaluated
-    // outside the code: 137.73624952070443 s. Smallest mutant
-    // displacement on this path is 3.19e-3 days (spec §4.1 group D).
+    // dT = Espenak-Meeus polynomial at decimal_year(2484568.5), anchored at
+    // the leap horizon (JD 2461221.5, decimal year 2026.4928131416839) to the
+    // leap-second bound 69.184 s, evaluated outside the code with Python:
+    // 69.184 + P(2090.4133) − P(2026.4928) = 131.5423132417809 s (the
+    // unanchored polynomial gives 137.736 s). Smallest mutant displacement
+    // on this path is 3.19e-3 days (spec §4.1 group D).
     let out = tt_from_utc_civil(CivilDateTime::new(2090, 6, 1, 0, 0, 0.0)).unwrap();
     assert_eq!(out.provenance.path, ConversionPath::FutureExtrapolated);
     let dt = out.provenance.delta_t_seconds.unwrap();
-    assert!((dt - 137.736_249_520_704_43).abs() < 1e-9, "dt {dt}");
+    assert!((dt - 131.542_313_241_780_9).abs() < 1e-9, "dt {dt}");
     let jd = out.instant.julian_day.days();
-    assert!((jd - 2_484_568.501_594_169_5).abs() < 1e-9, "jd_tt {jd}");
+    assert!((jd - 2_484_568.501_522_480_5).abs() < 1e-9, "jd_tt {jd}");
 
     // UT1 path: 1955-06-15 00:00 UT1 -> jd_civil 2435273.5. dT hand-
     // interpolated between the committed 1950 (29.1 s) and 1960 (33.2 s)
