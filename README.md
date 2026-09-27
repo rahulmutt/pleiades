@@ -39,6 +39,7 @@ gate, and 48 ayanamsas pass theirs — of 25 and 59 catalogued respectively.
 | Phase & magnitude | [`pleiades-events`](crates/pleiades-events) | `validate-pheno` | arcsecond-class |
 | Lunar occultations | [`pleiades-events`](crates/pleiades-events) | `validate-occultations` | timing seconds-of-time; position arcminute-class |
 | True (osculating) Lilith | [`pleiades-apsides`](crates/pleiades-apsides) | `validate-lilith` | arcminute-class |
+| True (osculating) Node | [`pleiades-data`](crates/pleiades-data) | `validate-true-node` | arcsecond-class (cross-theory) |
 
 Crate names link to their docs.rs API docs where published, otherwise to the
 crate source in this repo; gate names are the runnable `validate-*` subcommands

@@ -212,6 +212,7 @@ dependencies = [
 name = "pleiades-data"
 version = "0.5.0"
 dependencies = [
+ "pleiades-apparent",
  "pleiades-apsides",
  "pleiades-backend",
  "pleiades-compression",

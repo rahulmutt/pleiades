@@ -3,7 +3,12 @@ use std::sync::Arc;
 #[cfg(feature = "packaged-artifact-path")]
 use std::path::Path;
 
-use pleiades_apsides::{apsides, MU_EARTH_MOON_AU3_PER_DAY2};
+use pleiades_apparent::{
+    precess_ecliptic_date_to_j2000, precess_ecliptic_j2000_to_date, ApparentPlaceError,
+};
+use pleiades_apsides::{
+    apsides, elements_from_state, points_from_elements, MU_EARTH_MOON_AU3_PER_DAY2,
+};
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
     BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance,
@@ -11,7 +16,9 @@ use pleiades_backend::{
     EphemerisErrorKind, EphemerisRequest, EphemerisResult, Instant, JulianDay, Latitude, Longitude,
     Motion, QualityAnnotation, TimeScale, ZodiacMode,
 };
-use pleiades_compression::{spherical_state_to_cartesian, CompressedArtifact, SphericalState};
+use pleiades_compression::{
+    spherical_state_to_cartesian, CartesianState, CompressedArtifact, SphericalState,
+};
 
 use crate::coverage::packaged_body_coverage_summary_details;
 #[cfg(feature = "packaged-artifact-path")]
@@ -73,13 +80,17 @@ impl PackagedDataBackend {
         &self.artifact
     }
 
-    fn osculating_apsis_position(
+    /// Assembles a derived lunar point (osculating apsis or node) into a
+    /// backend result: J2000 ecliptic from `eval`, mean-obliquity equatorial,
+    /// central-difference motion, `Interpolated` quality.
+    fn derived_point_position(
         &self,
         req: &EphemerisRequest,
+        eval: &dyn Fn(Instant) -> Result<EclipticCoordinates, EphemerisError>,
     ) -> Result<EphemerisResult, EphemerisError> {
-        let ecliptic = self.osculating_apsis_ecliptic(&req.body, req.instant)?;
+        let ecliptic = eval(req.instant)?;
         let equatorial = ecliptic.to_equatorial(req.instant.mean_obliquity());
-        let motion = self.osculating_apsis_motion(&req.body, req.instant)?;
+        let motion = self.derived_point_motion(req.instant, eval)?;
 
         let mut result = EphemerisResult::new(
             BackendId::new(PACKAGE_NAME),
@@ -96,11 +107,9 @@ impl PackagedDataBackend {
         Ok(result)
     }
 
-    fn osculating_apsis_ecliptic(
-        &self,
-        body: &CelestialBody,
-        instant: Instant,
-    ) -> Result<EclipticCoordinates, EphemerisError> {
+    /// The packaged Moon's geocentric J2000 Cartesian state at `instant`: the
+    /// shared input of every derived lunar point.
+    fn moon_state_j2000(&self, instant: Instant) -> Result<CartesianState, EphemerisError> {
         let li = normalize_lookup_instant(instant);
         let ecl = self
             .artifact
@@ -113,18 +122,25 @@ impl PackagedDataBackend {
         let dist = ecl.distance_au.ok_or_else(|| {
             EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,
-                "packaged Moon lacks distance for osculating apsis",
+                "packaged Moon lacks distance for a derived lunar point",
             )
         })?;
-        let state = SphericalState {
+        Ok(spherical_state_to_cartesian(SphericalState {
             lon_rad: ecl.longitude.degrees().to_radians(),
             lat_rad: ecl.latitude.degrees().to_radians(),
             dist_au: dist,
             lon_rate_rad_per_day: mot.longitude_deg_per_day.unwrap_or(0.0).to_radians(),
             lat_rate_rad_per_day: mot.latitude_deg_per_day.unwrap_or(0.0).to_radians(),
             dist_rate_au_per_day: mot.distance_au_per_day.unwrap_or(0.0),
-        };
-        let cart = spherical_state_to_cartesian(state);
+        }))
+    }
+
+    fn osculating_apsis_ecliptic(
+        &self,
+        body: &CelestialBody,
+        instant: Instant,
+    ) -> Result<EclipticCoordinates, EphemerisError> {
+        let cart = self.moon_state_j2000(instant)?;
         let aps = apsides(cart.pos_au, cart.vel_au_per_day, MU_EARTH_MOON_AU3_PER_DAY2).map_err(
             |_| {
                 EphemerisError::new(
@@ -150,10 +166,52 @@ impl PackagedDataBackend {
         ))
     }
 
-    fn osculating_apsis_motion(
+    /// Osculating ascending node of the geocentric lunar orbit, J2000 boundary
+    /// frame.
+    ///
+    /// The node is the intersection of the orbit plane with the *reference*
+    /// plane, so it must be formed in the plane consumers will read it in: the
+    /// mean ecliptic of date (spec §1; forming it in J2000 and rotating the
+    /// point would misplace it by ≈ tilt/sin(i) ≈ 0.04°). Position and velocity
+    /// are rotated J2000 → mean-of-date, the ellipse is formed there, and the
+    /// node point is precessed back to J2000 like the ELP point channels
+    /// (issue #57). The chart layer's forward precession + Δψ then reproduces
+    /// Swiss Ephemeris `SE_TRUE_NODE`.
+    fn osculating_node_ecliptic(
         &self,
-        body: &CelestialBody,
         instant: Instant,
+    ) -> Result<EclipticCoordinates, EphemerisError> {
+        let jd_tt = instant.julian_day.days();
+        let cart = self.moon_state_j2000(instant)?;
+        let pos = rotate_j2000_to_mean_of_date(cart.pos_au, jd_tt)?;
+        let vel = rotate_j2000_to_mean_of_date(cart.vel_au_per_day, jd_tt)?;
+        let undefined = |_| {
+            EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "osculating node undefined for the lunar state at this instant",
+            )
+        };
+        let elements =
+            elements_from_state(pos, vel, MU_EARTH_MOON_AU3_PER_DAY2).map_err(undefined)?;
+        let node = points_from_elements(&elements, false)
+            .map_err(undefined)?
+            .ascending;
+        let j2000 = precess_ecliptic_date_to_j2000(node.longitude_deg, node.latitude_deg, jd_tt)
+            .map_err(map_precession_error)?;
+        Ok(EclipticCoordinates::new(
+            Longitude::from_degrees(j2000.longitude_deg),
+            Latitude::from_degrees(j2000.latitude_deg),
+            Some(node.distance_au),
+        ))
+    }
+
+    /// Central-difference motion of a derived lunar point over ±0.5 day. A
+    /// probe that falls outside the packaged window degrades to `None`
+    /// channels rather than failing the position.
+    fn derived_point_motion(
+        &self,
+        instant: Instant,
+        eval: &dyn Fn(Instant) -> Result<EclipticCoordinates, EphemerisError>,
     ) -> Result<Motion, EphemerisError> {
         const HALF_SPAN_DAYS: f64 = 0.5;
         let shift = |days: f64| {
@@ -162,14 +220,14 @@ impl PackagedDataBackend {
                 instant.scale,
             )
         };
-        let before = match self.osculating_apsis_ecliptic(body, shift(-HALF_SPAN_DAYS)) {
+        let before = match eval(shift(-HALF_SPAN_DAYS)) {
             Ok(e) => e,
             Err(ref e) if e.kind == EphemerisErrorKind::OutOfRangeInstant => {
                 return Ok(Motion::new(None, None, None));
             }
             Err(e) => return Err(e),
         };
-        let after = match self.osculating_apsis_ecliptic(body, shift(HALF_SPAN_DAYS)) {
+        let after = match eval(shift(HALF_SPAN_DAYS)) {
             Ok(e) => e,
             Err(ref e) if e.kind == EphemerisErrorKind::OutOfRangeInstant => {
                 return Ok(Motion::new(None, None, None));
@@ -197,6 +255,31 @@ impl PackagedDataBackend {
             ddist_per_day,
         ))
     }
+}
+
+/// Rotates a J2000 mean-ecliptic vector into the mean ecliptic of date at
+/// `jd_tt`, preserving its magnitude. Precession is a rotation, so the same
+/// map applies to position and velocity vectors alike (the events engine's
+/// osculating path does the same).
+fn rotate_j2000_to_mean_of_date(v: [f64; 3], jd_tt: f64) -> Result<[f64; 3], EphemerisError> {
+    let r = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
+    if r == 0.0 {
+        return Ok(v);
+    }
+    let lon_deg = v[1].atan2(v[0]).to_degrees().rem_euclid(360.0);
+    let lat_deg = (v[2] / r).asin().to_degrees();
+    let p =
+        precess_ecliptic_j2000_to_date(lon_deg, lat_deg, jd_tt).map_err(map_precession_error)?;
+    let (sl, cl) = p.longitude_deg.to_radians().sin_cos();
+    let (sb, cb) = p.latitude_deg.to_radians().sin_cos();
+    Ok([r * cb * cl, r * cb * sl, r * sb])
+}
+
+fn map_precession_error(e: ApparentPlaceError) -> EphemerisError {
+    EphemerisError::new(
+        EphemerisErrorKind::InvalidRequest,
+        format!("precession failed for derived lunar point: {e}"),
+    )
 }
 
 impl EphemerisBackend for PackagedDataBackend {
@@ -245,6 +328,7 @@ impl EphemerisBackend for PackagedDataBackend {
                     })
                     .collect();
                 claims.extend(crate::apsis_body_claims());
+                claims.extend(crate::true_node_body_claims());
                 claims
             },
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
@@ -263,12 +347,14 @@ impl EphemerisBackend for PackagedDataBackend {
     }
 
     fn supports_body(&self, body: CelestialBody) -> bool {
-        matches!(body, CelestialBody::TrueApogee | CelestialBody::TruePerigee)
-            || self
-                .artifact
-                .bodies
-                .iter()
-                .any(|series| series.body == body)
+        matches!(
+            body,
+            CelestialBody::TrueApogee | CelestialBody::TruePerigee | CelestialBody::TrueNode
+        ) || self
+            .artifact
+            .bodies
+            .iter()
+            .any(|series| series.body == body)
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
@@ -296,7 +382,11 @@ impl EphemerisBackend for PackagedDataBackend {
             req.body,
             CelestialBody::TrueApogee | CelestialBody::TruePerigee
         ) {
-            return self.osculating_apsis_position(req);
+            let body = req.body.clone();
+            return self.derived_point_position(req, &|i| self.osculating_apsis_ecliptic(&body, i));
+        }
+        if req.body == CelestialBody::TrueNode {
+            return self.derived_point_position(req, &|i| self.osculating_node_ecliptic(i));
         }
 
         let lookup_instant = normalize_lookup_instant(req.instant);

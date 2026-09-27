@@ -15,6 +15,7 @@ readme = "README.md"
 packaged-artifact-path = []
 
 [dependencies]
+pleiades-apparent = { workspace = true }
 pleiades-apsides = { workspace = true }
 pleiades-backend = { workspace = true }
 pleiades-compression = { workspace = true }

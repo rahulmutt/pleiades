@@ -1208,3 +1208,255 @@ fn osculating_apsis_motion_degrades_gracefully_at_coverage_boundary() {
     );
     assert_eq!(result.apparent, Apparentness::Mean);
 }
+
+/// Swiss Ephemeris 2.10.03 Moshier `swe_nod_aps(SE_MOON, SE_NODBIT_OSCU)` ascending-node
+/// rows (nutation on, iflag 772), copied verbatim from
+/// `crates/pleiades-validate/data/nod-aps-corpus/nod-aps.csv` (`Moon,1,2,0,...` rows,
+/// columns jd_tt/asc_lon/asc_lat/asc_dist). For the Moon, SE's osculating nod_aps node
+/// is `SE_TRUE_NODE`. `pleiades-data` cannot depend on `pleiades-validate`, hence the
+/// literal copy. (jd_tt, lon_deg, lat_deg, dist_au)
+const SE_MOON_OSCULATING_NODE_ROWS: [(f64, f64, f64, f64); 8] = [
+    (2_415_100.5, 253.688_930_115, 0.0, 0.002_591_180),
+    (2_433_282.5, 12.557_322_345, 0.0, 0.002_703_927),
+    (2_441_683.5, 286.802_808_001, 0.0, 0.002_662_306),
+    (2_451_545.0, 123.953_312_512, 0.0, 0.002_445_371),
+    (2_459_000.5, 89.238_590_091, 0.0, 0.002_613_909),
+    (2_466_154.5, 72.822_192_397, 0.0, 0.002_701_149),
+    (2_477_476.5, 192.234_537_069, 0.0, 0.002_612_164),
+    (2_488_021.5, 354.954_487_171, 0.0, 0.002_733_866),
+];
+
+fn wrap_deg(a: f64, b: f64) -> f64 {
+    let mut d = a - b;
+    while d > 180.0 {
+        d -= 360.0;
+    }
+    while d < -180.0 {
+        d += 360.0;
+    }
+    d
+}
+
+/// Meeus Ch. 47 mean longitude of the ascending node, mean equinox of date (the same
+/// polynomial `pleiades-elp` uses for `MeanNode`).
+fn meeus_mean_node_of_date_deg(jd_tt: f64) -> f64 {
+    let t = (jd_tt - 2_451_545.0) / 36_525.0;
+    (125.044_547_9
+        + (-1_934.136_289_1 + (0.002_075_4 + (1.0 / 476_441.0 - t / 60_616_000.0) * t) * t) * t)
+        .rem_euclid(360.0)
+}
+
+#[test]
+fn packaged_backend_serves_osculating_true_node() {
+    use pleiades_backend::{Apparentness, EphemerisBackend, EphemerisRequest};
+
+    let backend = PackagedDataBackend::new();
+    assert!(backend.supports_body(CelestialBody::TrueNode));
+
+    // 2026-01-01 TT: inside the window, away from J2000 so the boundary precession is
+    // non-trivial.
+    let instant = Instant::new(JulianDay::from_days(2_461_041.5), TimeScale::Tt);
+    let node = backend
+        .position(&EphemerisRequest::new(CelestialBody::TrueNode, instant))
+        .expect("TrueNode position");
+    let ecl = node.ecliptic.expect("ecliptic present");
+
+    assert_eq!(node.apparent, Apparentness::Mean);
+    let lon = ecl.longitude.degrees();
+    assert!(
+        (0.0..360.0).contains(&lon),
+        "longitude {lon} not normalized"
+    );
+    // J2000 boundary frame: the of-date node carries only the small tilt between the
+    // two ecliptics (≈0.003° in 2026), never a real orbital latitude.
+    assert!(
+        ecl.latitude.degrees().abs() < 0.05,
+        "β {}",
+        ecl.latitude.degrees()
+    );
+    let d = ecl.distance_au.expect("node distance");
+    assert!((0.0023..0.0030).contains(&d), "node distance {d} AU");
+    assert!(node.motion.expect("motion").longitude_deg_per_day.is_some());
+    assert_eq!(
+        node.quality,
+        pleiades_backend::QualityAnnotation::Interpolated
+    );
+    assert_eq!(node.backend_id.as_str(), PACKAGE_NAME);
+
+    // Equatorial is the mean-obliquity transform of the ecliptic channel, like every
+    // other packaged body.
+    let eq = node.equatorial.expect("equatorial present");
+    let expected_eq = ecl.to_equatorial(instant.mean_obliquity());
+    assert!((eq.right_ascension.degrees() - expected_eq.right_ascension.degrees()).abs() < 1e-9);
+    assert!((eq.declination.degrees() - expected_eq.declination.degrees()).abs() < 1e-9);
+
+    let claim = backend
+        .metadata()
+        .body_claims
+        .into_iter()
+        .find(|c| c.body == CelestialBody::TrueNode)
+        .expect("TrueNode claim present");
+    assert_eq!(claim.tier, pleiades_backend::BodyClaimTier::ReleaseGrade);
+    match claim.evidence {
+        pleiades_backend::ClaimEvidence::CorpusValidated { source } => {
+            assert!(source.contains("validate-true-node"), "{source}");
+        }
+        other => panic!("expected CorpusValidated evidence, got {other:?}"),
+    }
+}
+
+#[test]
+fn osculating_true_node_lies_in_mean_ecliptic_of_date() {
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest};
+
+    let backend = PackagedDataBackend::new();
+    for jd in [2_433_282.5, 2_461_041.5, 2_477_476.5] {
+        let instant = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+        let ecl = backend
+            .position(&EphemerisRequest::new(CelestialBody::TrueNode, instant))
+            .unwrap()
+            .ecliptic
+            .unwrap();
+        let of_date = pleiades_apparent::precess_ecliptic_j2000_to_date(
+            ecl.longitude.degrees(),
+            ecl.latitude.degrees(),
+            jd,
+        )
+        .unwrap();
+        // Formed in the mean ecliptic of date → forward precession restores β = 0.
+        assert!(
+            of_date.latitude_deg.abs() < 1e-6,
+            "jd {jd}: of-date latitude {}° should be ~0",
+            of_date.latitude_deg
+        );
+    }
+}
+
+#[test]
+fn osculating_true_node_matches_swiss_ephemeris_nod_aps_rows() {
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest};
+
+    // Regression for issue #58: the Meeus periodic-term node sits 0.027° (≈97″) from the
+    // J2000 row below; the osculating node must sit within the cross-theory floor the
+    // SP-4 engine already measured on these rows (≤18″).
+    const LON_CEILING_ARCSEC: f64 = 40.0;
+    const LAT_CEILING_ARCSEC: f64 = 10.0;
+    const DIST_CEILING_REL: f64 = 1e-3;
+
+    let backend = PackagedDataBackend::new();
+    for (jd, se_lon, se_lat, se_dist) in SE_MOON_OSCULATING_NODE_ROWS {
+        let instant = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+        let mean = backend
+            .position(&EphemerisRequest::new(CelestialBody::TrueNode, instant))
+            .unwrap()
+            .ecliptic
+            .unwrap();
+        // Reproduce the chart path: precession + nutation in longitude only.
+        let apparent = pleiades_apparent::apparent_apsis_position(instant, mean).unwrap();
+        let lon = apparent.ecliptic.longitude.degrees();
+        let lat = apparent.ecliptic.latitude.degrees();
+        let dist = apparent.ecliptic.distance_au.unwrap();
+
+        let resid_lon = (wrap_deg(lon, se_lon) * 3600.0).abs();
+        let resid_lat = ((lat - se_lat) * 3600.0).abs();
+        let resid_dist = ((dist - se_dist) / se_dist).abs();
+        assert!(
+            resid_lon <= LON_CEILING_ARCSEC,
+            "jd {jd}: lon residual {resid_lon:.3}\""
+        );
+        assert!(
+            resid_lat <= LAT_CEILING_ARCSEC,
+            "jd {jd}: lat residual {resid_lat:.3}\""
+        );
+        assert!(
+            resid_dist <= DIST_CEILING_REL,
+            "jd {jd}: dist residual {resid_dist:.2e}"
+        );
+    }
+}
+
+#[test]
+fn osculating_true_node_stays_within_meeus_envelope_of_mean_node() {
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest};
+
+    // The osculating node oscillates around the mean node by up to ≈1.6°; the Meeus
+    // periodic terms sum to ≈2°. A frame or sign slip would show up as tens of degrees.
+    let backend = PackagedDataBackend::new();
+    for jd in [2_415_100.5, 2_441_683.5, 2_461_041.5, 2_488_021.5] {
+        let instant = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+        let ecl = backend
+            .position(&EphemerisRequest::new(CelestialBody::TrueNode, instant))
+            .unwrap()
+            .ecliptic
+            .unwrap();
+        let of_date = pleiades_apparent::precess_ecliptic_j2000_to_date(
+            ecl.longitude.degrees(),
+            ecl.latitude.degrees(),
+            jd,
+        )
+        .unwrap();
+        let delta = wrap_deg(of_date.longitude_deg, meeus_mean_node_of_date_deg(jd));
+        assert!(
+            delta.abs() < 2.5,
+            "jd {jd}: osculating − mean node = {delta}°"
+        );
+    }
+}
+
+#[test]
+fn osculating_true_node_accepts_tdb_like_tt() {
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest};
+
+    let backend = PackagedDataBackend::new();
+    let jd = 2_461_041.5;
+    let tt = backend
+        .position(&EphemerisRequest::new(
+            CelestialBody::TrueNode,
+            Instant::new(JulianDay::from_days(jd), TimeScale::Tt),
+        ))
+        .unwrap()
+        .ecliptic
+        .unwrap();
+    let tdb = backend
+        .position(&EphemerisRequest::new(
+            CelestialBody::TrueNode,
+            Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+        ))
+        .expect("TDB requests are accepted")
+        .ecliptic
+        .unwrap();
+    assert!((tt.longitude.degrees() - tdb.longitude.degrees()).abs() < 1e-6);
+}
+
+#[test]
+fn osculating_true_node_fails_closed_outside_window() {
+    use pleiades_backend::{EphemerisBackend, EphemerisErrorKind, EphemerisRequest};
+
+    let backend = PackagedDataBackend::new();
+    let err = backend
+        .position(&EphemerisRequest::new(
+            CelestialBody::TrueNode,
+            Instant::new(JulianDay::from_days(2_400_000.5), TimeScale::Tt),
+        ))
+        .expect_err("1858 is outside the packaged window");
+    assert_eq!(err.kind, EphemerisErrorKind::OutOfRangeInstant);
+}
+
+#[test]
+fn osculating_node_motion_degrades_gracefully_at_coverage_boundary() {
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest};
+
+    // At the coverage START boundary the −0.5 day motion probe is out of range; the
+    // position must still be served with all motion channels None (same contract as
+    // the osculating apsides).
+    let backend = PackagedDataBackend::new();
+    let boundary = Instant::new(JulianDay::from_days(2_415_020.5), TimeScale::Tt);
+    let result = backend
+        .position(&EphemerisRequest::new(CelestialBody::TrueNode, boundary))
+        .expect("position at coverage boundary must succeed");
+    assert!(result.ecliptic.unwrap().longitude.degrees().is_finite());
+    let motion = result.motion.expect("motion field present");
+    assert!(motion.longitude_deg_per_day.is_none());
+    assert!(motion.latitude_deg_per_day.is_none());
+    assert!(motion.distance_au_per_day.is_none());
+}

@@ -402,10 +402,11 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                             body,
                             pleiades_types::CelestialBody::TrueApogee
                                 | pleiades_types::CelestialBody::TruePerigee
+                                | pleiades_types::CelestialBody::TrueNode
                         ) {
-                            // Osculating apsis: a geometric direction. Apply precession +
-                            // nutation only (no light-time re-query, no annual aberration).
-                            // observer = None keeps it geocentric.
+                            // Osculating apsis or node: a geometric direction. Apply
+                            // precession + nutation only (no light-time re-query, no
+                            // annual aberration). observer = None keeps it geocentric.
                             self.query_mean_ecliptic(
                                 &body,
                                 request.instant,
@@ -463,7 +464,14 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 // Operates on the tropical apparent ecliptic produced above; the sidereal
                 // ayanamsa re-apply (when requested) happens once below, after this block.
                 let mut apparent = apparent;
-                let topocentric_prov = if request.topocentric {
+                let topocentric_prov = if request.topocentric
+                    && !matches!(
+                        body,
+                        pleiades_types::CelestialBody::TrueApogee
+                            | pleiades_types::CelestialBody::TruePerigee
+                            | pleiades_types::CelestialBody::TrueNode
+                    )
+                {
                     let observer = request.observer.as_ref().ok_or_else(|| {
                         EphemerisError::new(
                             EphemerisErrorKind::InvalidRequest,
