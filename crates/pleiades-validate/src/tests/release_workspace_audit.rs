@@ -429,6 +429,10 @@ fn workspace_audit_identifies_publishable_packages() {
         manifest_package_version("[workspace.package]\nversion = \"0.1.0\"\n"),
         None
     );
+    assert_eq!(
+        manifest_package_version("[package]\nname = \"a\"\nversion = { workspace = true }\n"),
+        None
+    );
 }
 
 #[test]

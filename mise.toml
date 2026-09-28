@@ -26,7 +26,7 @@ rust = { version = "1.98.1", components = "rustfmt,clippy" }
 # served from the mise cache. Runs on the pinned STABLE toolchain — unlike
 # cargo-fuzz it needs no nightly, so it adds no toolchain surface.
 "cargo:cargo-mutants" = "27.1.0"
-# Manual-only release fallback (see release.toml); no prebuilt binary for 1.1.3,
+# Manual-only release fallback (see release.toml); no prebuilt binary for 1.1.6,
 # so it stays a source build — compiled once, then served from the mise cache.
 "cargo:cargo-release" = "1.1.6"
 # Prebuilt-binary backends (aqua = checksum-verified) so `mise install` downloads

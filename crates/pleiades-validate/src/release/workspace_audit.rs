@@ -835,9 +835,11 @@ pub(crate) fn manifest_package_name(text: &str) -> Option<String> {
 }
 
 /// The literal `version = "x.y.z"` declared in a crate manifest's `[package]`
-/// table. `None` when the crate inherits its version (`version.workspace =
-/// true`) or declares none. Only a literal version can be bumped for one
-/// crate at a time, which per-crate releasing requires.
+/// table. `None` when the crate inherits its version, whether spelled as the
+/// dotted form (`version.workspace = true`) or the inline-table form
+/// (`version = { workspace = true }`), or declares none. Only a
+/// double-quoted string literal counts: anything else is not a version a
+/// single crate can be bumped by, which per-crate releasing requires.
 pub(crate) fn manifest_package_version(text: &str) -> Option<String> {
     let mut in_package = false;
     for raw_line in text.lines() {
@@ -847,8 +849,12 @@ pub(crate) fn manifest_package_version(text: &str) -> Option<String> {
             continue;
         }
         if in_package && manifest_has_assignment(line, "version") {
-            return manifest_assignment_value(line)
-                .map(|value| value.trim_matches('"').to_string());
+            let value = manifest_assignment_value(line)?;
+            return if value.len() >= 2 && value.starts_with('"') && value.ends_with('"') {
+                Some(value.trim_matches('"').to_string())
+            } else {
+                None
+            };
         }
     }
     None
