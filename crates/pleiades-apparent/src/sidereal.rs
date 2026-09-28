@@ -100,6 +100,10 @@ impl SiderealTime {
 /// development-time artifact, not a runtime condition), or when a time scale
 /// this adapter has no conversion for is supplied (`TimeScale` is
 /// `#[non_exhaustive]`).
+///
+/// The error type is `pleiades_time::CivilTimeError` from the `pleiades-time`
+/// release this crate pins (0.6 and later); a caller that matches on it must
+/// depend on the same `pleiades-time` release.
 pub fn ut1_instant(instant: Instant) -> Result<Instant, CivilTimeError> {
     let jd_ut1 = match instant.scale {
         TimeScale::Tt | TimeScale::Tdb => pleiades_time::ut1_jd_from_tt(instant.julian_day.days())?,
