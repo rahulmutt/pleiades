@@ -1,7 +1,7 @@
 [package]
 name = "pleiades-data"
 description = "Packaged offline ephemeris data (precomputed Sun and Moon positions, derived from JPL public-domain ephemerides) and its EphemerisBackend for the pleiades astrology workspace."
-version = "0.5.2"
+version = "0.5.3"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
