@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **Since 0.5.3 each crate is versioned and released on its own.** Release
+> notes from that point live in `crates/<name>/CHANGELOG.md` and on each
+> crate's GitHub Release. This file is the unified-version history through
+> 0.5.2 and is no longer updated.
+
 ## [0.5.2] - 2026-09-27
 
 ### Added

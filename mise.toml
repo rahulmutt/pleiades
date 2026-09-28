@@ -76,9 +76,7 @@ run = "gitleaks git ."
 shell = "bash -c"
 run = '''
 set -euo pipefail
-crates="pleiades-types pleiades-apparent pleiades-eclipse pleiades-time pleiades-backend pleiades-apsides pleiades-compression pleiades-houses pleiades-ayanamsa pleiades-vsop87 pleiades-elp pleiades-jpl pleiades-data pleiades-core"
-version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
-[ -n "$version" ] || { echo "package-check: could not extract workspace version from Cargo.toml" >&2; exit 1; }
+crates="pleiades-types pleiades-apparent pleiades-eclipse pleiades-time pleiades-backend pleiades-apsides pleiades-compression pleiades-houses pleiades-ayanamsa pleiades-vsop87 pleiades-elp pleiades-jpl pleiades-data pleiades-core pleiades-events pleiades-fict"
 budget_bytes=$((9 * 1024 * 1024))
 # Package all publishable crates together so cargo can resolve intra-workspace
 # path dependencies without hitting crates.io (required before first publish).
@@ -88,6 +86,9 @@ for crate in $crates; do
 done
 cargo package --quiet --no-verify --allow-dirty $pkg_args
 for crate in $crates; do
+  # Per-crate versioning: each crate declares its own version in its manifest.
+  version=$(sed -n 's/^version = "\(.*\)"$/\1/p' "crates/${crate}/Cargo.toml" | head -n 1)
+  [ -n "$version" ] || { echo "package-check: could not extract version from crates/${crate}/Cargo.toml" >&2; exit 1; }
   artifact="target/package/${crate}-${version}.crate"
   size=$(wc -c < "$artifact")
   if [ "$size" -gt "$budget_bytes" ]; then

@@ -1,7 +1,7 @@
 [package]
 name = "pleiades-vsop87"
 description = "Pure-Rust VSOP87B planetary position backend with generated coefficient tables and an approximate Pluto fallback, for the pleiades astrology workspace."
-version.workspace = true
+version = "0.5.2"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
