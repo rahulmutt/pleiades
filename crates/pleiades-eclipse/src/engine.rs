@@ -110,6 +110,10 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
     /// (via the returned variant) to test visibility. Solar contact instants are
     /// observer-dependent (topocentric); lunar contact instants are global with
     /// per-observer visibility.
+    ///
+    /// `atmosphere` is `pleiades_apparent::Atmosphere` from the
+    /// `pleiades-apparent` release this crate pins (0.6 and later); build it
+    /// from that same release.
     pub fn local_circumstances(
         &self,
         eclipse: &Eclipse,
