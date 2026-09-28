@@ -84,6 +84,13 @@ would rewrite every dependency table and invert the audit's
 - Every crate manifest (all 18): replace `version.workspace = true` with
   `version = "0.5.2"`.
 
+The `package-check` task in `mise.toml` reads the workspace version from the
+root `Cargo.toml` to locate `target/package/<crate>-<version>.crate`. With no
+workspace version it must read each crate's version from
+`crates/<crate>/Cargo.toml` instead. Its hard-coded crate list is also two
+crates short (`pleiades-events`, `pleiades-fict` are publishable but not
+checked); they are added while the block is being edited.
+
 ### 2. release-plz configuration
 
 `release-plz.toml` shrinks to the `[workspace]` table:
