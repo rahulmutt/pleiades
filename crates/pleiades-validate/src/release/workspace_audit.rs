@@ -687,6 +687,7 @@ fn manifest_assignment_value(line: &str) -> Option<&str> {
 pub(crate) fn audit_workspace_manifest_publish_text(
     path: &Path,
     text: &str,
+    crate_versions: &BTreeMap<String, String>,
 ) -> Vec<WorkspaceAuditViolation> {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum Section {
@@ -697,7 +698,6 @@ pub(crate) fn audit_workspace_manifest_publish_text(
 
     let mut section = Section::Other;
     let mut violations = Vec::new();
-    let mut workspace_version: Option<String> = None;
     let mut saw_license = false;
     let mut inherited_fields: Vec<&str> = Vec::new();
     let mut internal_dependencies: Vec<(String, String)> = Vec::new();
@@ -715,10 +715,6 @@ pub(crate) fn audit_workspace_manifest_publish_text(
 
         match section {
             Section::WorkspacePackage => {
-                if manifest_has_assignment(line, "version") {
-                    workspace_version = manifest_assignment_value(line)
-                        .map(|value| value.trim_matches('"').to_string());
-                }
                 if manifest_has_assignment(line, "license") {
                     saw_license = manifest_assignment_value(line)
                         .is_some_and(|value| value.trim_matches('"') == PUBLISH_WORKSPACE_LICENSE);
@@ -762,15 +758,6 @@ pub(crate) fn audit_workspace_manifest_publish_text(
         }
     }
 
-    if workspace_version.is_none() && !internal_dependencies.is_empty() {
-        violations.push(WorkspaceAuditViolation {
-            path: path.to_path_buf(),
-            rule: "publish.workspace-version-missing",
-            detail: "workspace Cargo.toml does not declare a workspace package version to compare against pinned internal dependency versions"
-                .to_string(),
-        });
-    }
-
     for (name, line) in &internal_dependencies {
         let expected_path = format!("path = \"crates/{name}\"");
         if !line.contains(expected_path.as_str()) {
@@ -784,13 +771,13 @@ pub(crate) fn audit_workspace_manifest_publish_text(
         }
         match extract_inline_table_string(line, "version") {
             Some(version) => {
-                if let Some(expected) = workspace_version.as_deref() {
+                if let Some(expected) = crate_versions.get(name.as_str()) {
                     if expected != version {
                         violations.push(WorkspaceAuditViolation {
                             path: path.to_path_buf(),
                             rule: "publish.workspace-dependency-version",
                             detail: format!(
-                                "workspace dependency `{name}` pins version {version}, but the workspace package version is {expected}"
+                                "workspace dependency `{name}` pins version {version}, but `crates/{name}/Cargo.toml` declares version {expected}"
                             ),
                         });
                     }
@@ -800,7 +787,7 @@ pub(crate) fn audit_workspace_manifest_publish_text(
                 path: path.to_path_buf(),
                 rule: "publish.workspace-dependency-version",
                 detail: format!(
-                    "workspace dependency `{name}` must pin a version equal to the workspace package version so published manifests carry a registry version"
+                    "workspace dependency `{name}` must pin a version equal to the crate's declared package version so published manifests carry a registry version"
                 ),
             }),
         }
@@ -840,6 +827,26 @@ pub(crate) fn manifest_package_name(text: &str) -> Option<String> {
             continue;
         }
         if in_package && manifest_has_assignment(line, "name") {
+            return manifest_assignment_value(line)
+                .map(|value| value.trim_matches('"').to_string());
+        }
+    }
+    None
+}
+
+/// The literal `version = "x.y.z"` declared in a crate manifest's `[package]`
+/// table. `None` when the crate inherits its version (`version.workspace =
+/// true`) or declares none. Only a literal version can be bumped for one
+/// crate at a time, which per-crate releasing requires.
+pub(crate) fn manifest_package_version(text: &str) -> Option<String> {
+    let mut in_package = false;
+    for raw_line in text.lines() {
+        let line = raw_line.trim();
+        if line.starts_with('[') && line.ends_with(']') {
+            in_package = line == "[package]";
+            continue;
+        }
+        if in_package && manifest_has_assignment(line, "version") {
             return manifest_assignment_value(line)
                 .map(|value| value.trim_matches('"').to_string());
         }
@@ -953,6 +960,14 @@ pub(crate) fn audit_publishable_manifest_text(
         }
     }
 
+    if manifest_package_version(text).is_none() {
+        violations.push(WorkspaceAuditViolation {
+            path: path.to_path_buf(),
+            rule: "publish.version-not-explicit",
+            detail: "publishable crate must declare a literal `version = \"x.y.z\"` in `[package]`; an inherited `version.workspace = true` returns the crate to lockstep and release-plz cannot bump it on its own"
+                .to_string(),
+        });
+    }
     if !saw_description {
         violations.push(WorkspaceAuditViolation {
             path: path.to_path_buf(),
@@ -1074,6 +1089,17 @@ fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Er
         .filter_map(|(_, text)| manifest_package_name(text))
         .collect();
 
+    let crate_versions: BTreeMap<String, String> = manifests
+        .iter()
+        .filter(|(_, text)| manifest_is_package(text))
+        .filter_map(|(_, text)| {
+            Some((
+                manifest_package_name(text)?,
+                manifest_package_version(text)?,
+            ))
+        })
+        .collect();
+
     let root_manifest_path = workspace_root.join("Cargo.toml");
     for (path, text) in &manifests {
         violations.extend(audit_manifest_text(path, text));
@@ -1081,7 +1107,11 @@ fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Er
             violations.push(violation);
         }
         if *path == root_manifest_path {
-            violations.extend(audit_workspace_manifest_publish_text(path, text));
+            violations.extend(audit_workspace_manifest_publish_text(
+                path,
+                text,
+                &crate_versions,
+            ));
         } else if manifest_is_package(text) && !manifest_declares_publish_false(text) {
             violations.extend(audit_publishable_manifest_text(
                 path,
