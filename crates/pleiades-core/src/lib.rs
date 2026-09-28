@@ -110,6 +110,10 @@ pub use compatibility::{
     current_compatibility_profile, validate_custom_definition_labels, CompatibilityProfile,
     HouseCodeAliasInventorySummary,
 };
+// Re-exported sibling types are the ones from the exact `pleiades-*` releases
+// this crate pins (`pleiades-apparent` and `pleiades-time` 0.6 and later). A
+// downstream crate that also depends on those siblings directly must use the
+// same releases, or the re-exported and direct types will not unify.
 pub use pleiades_apparent::{sidereal_time, ApparentProvenance, CorrectionSet, SiderealTime};
 pub use pleiades_ayanamsa::{
     baseline_ayanamsas, built_in_ayanamsas, descriptor as ayanamsa_descriptor, release_ayanamsas,
