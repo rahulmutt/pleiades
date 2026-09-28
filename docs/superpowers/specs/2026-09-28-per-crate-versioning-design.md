@@ -65,8 +65,25 @@ Exact pins were chosen for safety: every published manifest names the exact
 sibling version it was built against, so a consumer with a stale lockfile can
 never resolve a dependent against an older sibling that lacks an API it uses.
 The cost is cascade churn for widely used crates, accepted knowingly. Leaf
-crates (events, eclipse, houses, ayanamsa, vsop87, elp, jpl, fict, data, core)
-now release alone.
+crates — those with no in-workspace publishable dependent (verified with
+`cargo tree -i <crate> --workspace -e normal --depth 1`): events, eclipse,
+vsop87, elp, fict, data, core — now release alone. `houses`, `ayanamsa`, and
+`jpl` are not in this set: `houses` and `ayanamsa` are direct dependencies of
+`pleiades-core`, and `jpl` is a direct dependency of `pleiades-data`, so a
+release of any of the three still cascades to that dependent.
+
+Exact pins carry a hazard the cascade does not fix: a breaking bump (new
+minor pre-1.0, or new major) of a crate whose types are re-exported by a
+dependent — `pleiades-types` via `pleiades-backend`'s `pub use`,
+`pleiades-backend` via `pleiades-core`'s `pub use` — still only gives that
+dependent a patch bump under the exact-pin cascade, because the cascade
+looks at whether the pinned version changed, not at whether the pin change
+is itself breaking for the dependent's own public API. The accepted
+mitigation is procedural, not automated: the maintainer manually raises the
+re-exporting dependent to a breaking bump alongside the pinned crate before
+publishing (see the breaking-change caveat in `docs/release-process.md`).
+The decision to keep exact pins is unchanged; this is a documented manual
+step, not a design gap the tooling closes.
 
 ### Why the workspace dependency table stays
 

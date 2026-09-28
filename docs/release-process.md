@@ -146,12 +146,42 @@ for the next releasable commit to open the 0.4.0 Release PR.
 2. release-plz maintains an open **Release** pull request. For each crate
    with releasable commits since its last tag it bumps that crate and
    prepends a section to `crates/<name>/CHANGELOG.md`. Because the internal
-   pins in `[workspace.dependencies]` are exact, every crate that depends on
-   a bumped crate is bumped too (patch) so its published manifest names the
-   new version; those dependents get the one-line "no user-facing changes"
-   note. A change in a widely used crate such as `pleiades-types` therefore
-   still releases most of the workspace; a change in a leaf crate releases
-   only that crate. Review the PR.
+   pins in `[workspace.dependencies]` are exact (full-precision `x.y.z`
+   requirements — cargo's caret semantics, a minimum version, not `=x.y.z`),
+   every crate that depends on a bumped crate is bumped too (patch) so its
+   published manifest names the new version; those dependents get the
+   one-line "no user-facing changes" note. A change in a widely used crate
+   such as `pleiades-types` therefore still releases most of the workspace;
+   a change in a leaf crate releases only that crate. Review the PR.
+
+   > **Breaking changes in a shared crate.** If the Release PR bumps a crate
+   > by a breaking amount (a new minor while it is pre-1.0, or a new major
+   > once it is 1.0+) and that crate's types appear in a dependent's public
+   > API — `pleiades-types` (re-exported by `pleiades-backend` via `pub
+   > use`), `pleiades-backend` (re-exported by `pleiades-core` via `pub
+   > use`), or any other crate whose types a dependent similarly re-exports
+   > — the exact-pin cascade above still only gives those dependents a
+   > **patch** bump. That is semver-incorrect: the dependent now exposes the
+   > breaking types from what its own version number still claims is a
+   > backwards-compatible release. Do not merge the Release PR as-is in this
+   > case; raise the affected dependents to a breaking bump yourself first,
+   > naming every dependent that re-exports the bumped crate's types, e.g.:
+   >
+   > ```
+   > cargo release -p pleiades-backend -p pleiades-core 0.6.0 --execute
+   > ```
+   >
+   > release-plz's own documentation
+   > (<https://release-plz.dev/docs/usage/release-pr>) states that once a
+   > commit not authored by its bot lands on the Release PR's branch,
+   > release-plz closes that PR and opens a fresh one on its next run rather
+   > than continuing to update it — so pushing a commit directly to the
+   > Release PR branch to patch the dependents' `version` fields does not
+   > stick. Use the manual fallback below instead. Also do not rely on
+   > cargo-semver-checks (release-plz's default `semver_check`) to catch
+   > this: it diffs each crate's own public API, and a breaking change that
+   > only reaches a dependent through a re-exported dependency's `pub use`
+   > may not be classified as breaking for that dependent.
 3. **Merge the Release PR.** On merge, `release-plz-release` publishes the
    bumped crates to crates.io in dependency order, tags each one
    (`<crate>-v{version}`), and creates their GitHub Releases. Crates that
@@ -176,12 +206,21 @@ Use this only if the automation is unavailable.
    push.
 4. Execute: `cargo release -p <crate> <level> --execute`, where `<crate>` is
    the crate to release and `<level>` is `patch`, `minor`, or an explicit
-   version such as `0.6.0`. Name every crate that pins `<crate>` exactly with
-   an additional `-p` flag so their manifests are republished with the new
-   pin (`dependent-version = "fix"` rewrites the pins). cargo-release bumps
-   the selected crates, commits `chore: release`, publishes them in
-   dependency order (waiting for the index between publishes), tags each
-   one `<crate>-v{version}`, and pushes.
+   version such as `0.6.0`. Name every crate that **directly** pins
+   `<crate>` exactly with an additional `-p` flag so their manifests are
+   republished with the new pin (`dependent-version = "fix"` rewrites the
+   pins). Find the direct dependents with
+   `cargo tree -i <crate> --workspace -e normal --depth 1`. release-plz's
+   automated path also bumps transitive dependents (a dependent of a
+   dependent) so every published manifest in the chain names the new
+   version; a manual release naming only the direct set publishes a smaller
+   set than that. That is safe because the pins are minimum-version (caret)
+   requirements: an un-republished transitive dependent's already-published
+   manifest still resolves against the newly bumped crate, it just does not
+   advertise it in its own published version number. cargo-release bumps the
+   selected crates, commits `chore: release`, publishes them in dependency
+   order (waiting for the index between publishes), tags each one
+   `<crate>-v{version}`, and pushes.
 
 ### First-release note
 

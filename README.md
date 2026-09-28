@@ -252,7 +252,8 @@ Conventional Commits (`feat`/`fix`/`perf`/breaking), plus the crates that pin
 it exactly, and updates that crate's `crates/<name>/CHANGELOG.md`. Merge that
 PR to tag each bumped crate (`<crate>-v<version>`), publish it to crates.io,
 and create its GitHub Release. The root `CHANGELOG.md` is the unified-version
-history through 0.5.2.
+history through 0.5.2. See `docs/release-process.md` for the extra step a
+breaking change in a shared crate needs.
 
 ### Required repository secrets
 
