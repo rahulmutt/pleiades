@@ -1,13 +1,18 @@
-# Manual-release fallback (cargo-release). The default release path is now
+# Manual-release fallback (cargo-release). The default release path is
 # release-plz (see .github/workflows/release-plz.yml and release-plz.toml).
-# Use this only to cut a release by hand, e.g. `cargo release <version> --execute`.
+# Use this only to cut a release by hand, one crate at a time:
+#   cargo release -p <crate> <level> --execute
+# Name each direct exact-pin dependent that must move too with extra `-p`
+# flags. Find them with `cargo tree -i <crate> --workspace -e normal --depth
+# 1`. release-plz's automated path also bumps transitive dependents; a
+# manual release publishing only the direct set is safe because the pins
+# are minimum-version (caret) requirements, not exact-only constraints.
+# Tags use cargo-release's workspace default, `<crate>-v<version>`, which is
+# the same scheme release-plz uses.
 allow-branch = ["main"]
-shared-version = true
 consolidate-commits = true
 dependent-version = "fix"
-pre-release-commit-message = "Release {{version}}"
-tag-name = "v{{version}}"
-tag-message = "Release {{version}}"
+pre-release-commit-message = "chore: release"
 sign-commit = false
 sign-tag = false
 publish = true

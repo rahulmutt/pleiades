@@ -143,7 +143,7 @@ pub(crate) use release::workspace_audit::{
     audit_build_script_path, audit_lockfile_text, audit_manifest_text,
     audit_publishable_crate_files, audit_publishable_manifest_text, audit_tool_manifest_text,
     audit_workspace_manifest_publish_text, manifest_declares_publish_false, manifest_is_package,
-    manifest_package_name,
+    manifest_package_name, manifest_package_version,
 };
 use release::{
     release_checklist_bundle_contents, release_checklist_external_publishing_reminders,

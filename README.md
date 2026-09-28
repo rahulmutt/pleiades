@@ -245,11 +245,15 @@ crate-dependency map.
 
 ## Releasing
 
-Releases are automated with [release-plz](https://release-plz.dev). On every
-push to `main`, release-plz maintains a **Release** pull request that bumps all
-crates to the next unified version and updates `CHANGELOG.md` from Conventional
-Commits (`feat`/`fix`/`perf`/breaking). Merge that PR to tag the version,
-publish all publishable crates to crates.io, and create the GitHub Release.
+Releases are automated with [release-plz](https://release-plz.dev). Each
+publishable crate has its own version. On every push to `main`, release-plz
+maintains a **Release** pull request that bumps every crate with releasable
+Conventional Commits (`feat`/`fix`/`perf`/breaking), plus the crates that pin
+it exactly, and updates that crate's `crates/<name>/CHANGELOG.md`. Merge that
+PR to tag each bumped crate (`<crate>-v<version>`), publish it to crates.io,
+and create its GitHub Release. The root `CHANGELOG.md` is the unified-version
+history through 0.5.2. See `docs/release-process.md` for the extra step a
+breaking change in a shared crate needs.
 
 ### Required repository secrets
 
@@ -264,7 +268,8 @@ publish all publishable crates to crates.io, and create the GitHub Release.
 ### Manual fallback
 
 To cut a release by hand (e.g. if crates.io automation is unavailable), use the
-retained `release.toml` config: `cargo release <version> --execute`.
+retained `release.toml` config, one crate at a time:
+`cargo release -p <crate> <level> --execute`.
 
 ## Licensing
 

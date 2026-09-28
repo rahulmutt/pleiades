@@ -1,7 +1,7 @@
 [package]
 name = "pleiades-ayanamsa"
 description = "Ayanamsa catalog, aliases, reference offset metadata, and sidereal offset helpers for the pleiades astrology workspace."
-version.workspace = true
+version = "0.5.2"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true

@@ -1,7 +1,7 @@
 [package]
 name = "pleiades-time"
 description = "Civil-time conversion for the pleiades astrology workspace: Gregorian calendar, leap seconds, Delta-T, and TT/TDB with typed provenance."
-version.workspace = true
+version = "0.5.2"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true

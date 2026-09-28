@@ -2,7 +2,15 @@
 
 use super::test_support::*;
 use super::*;
+use std::collections::BTreeMap;
 use std::path::Path;
+
+fn crate_versions(entries: &[(&str, &str)]) -> BTreeMap<String, String> {
+    entries
+        .iter()
+        .map(|(name, version)| (name.to_string(), version.to_string()))
+        .collect()
+}
 
 #[test]
 fn workspace_audit_reports_a_clean_workspace() {
@@ -255,7 +263,11 @@ pleiades-types = { path = "crates/pleiades-types", version = "0.2.0" }
 pleiades-backend = { version = "0.1.0" }
 serde = { version = "1" }
 "#;
-    let violations = audit_workspace_manifest_publish_text(Path::new("/tmp/Cargo.toml"), manifest);
+    let violations = audit_workspace_manifest_publish_text(
+        Path::new("/tmp/Cargo.toml"),
+        manifest,
+        &crate_versions(&[("pleiades-types", "0.1.0")]),
+    );
 
     assert!(violations
         .iter()
@@ -275,12 +287,14 @@ serde = { version = "1" }
     assert!(!violations
         .iter()
         .any(|violation| violation.detail.contains("`serde`")));
+    assert!(!violations
+        .iter()
+        .any(|violation| violation.rule == "publish.workspace-version-missing"));
 }
 
 #[test]
 fn workspace_audit_accepts_publish_ready_workspace_manifest() {
     let manifest = r#"[workspace.package]
-version = "0.1.0"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rahulmutt/pleiades"
 homepage = "https://github.com/rahulmutt/pleiades"
@@ -291,7 +305,11 @@ categories = ["science"]
 serde = { version = "1" }
 pleiades-types = { path = "crates/pleiades-types", version = "0.1.0" }
 "#;
-    let violations = audit_workspace_manifest_publish_text(Path::new("/tmp/Cargo.toml"), manifest);
+    let violations = audit_workspace_manifest_publish_text(
+        Path::new("/tmp/Cargo.toml"),
+        manifest,
+        &crate_versions(&[("pleiades-types", "0.1.0")]),
+    );
     assert!(
         violations.is_empty(),
         "unexpected violations: {violations:?}"
@@ -299,7 +317,7 @@ pleiades-types = { path = "crates/pleiades-types", version = "0.1.0" }
 }
 
 #[test]
-fn workspace_audit_reports_missing_workspace_version_once() {
+fn workspace_audit_flags_workspace_dependency_pin_drift() {
     let manifest = r#"[workspace.package]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rahulmutt/pleiades"
@@ -311,12 +329,75 @@ categories = ["science"]
 pleiades-types = { path = "crates/pleiades-types", version = "0.1.0" }
 pleiades-backend = { path = "crates/pleiades-backend", version = "0.1.0" }
 "#;
-    let violations = audit_workspace_manifest_publish_text(Path::new("/tmp/Cargo.toml"), manifest);
-    let count = violations
+    let violations = audit_workspace_manifest_publish_text(
+        Path::new("/tmp/Cargo.toml"),
+        manifest,
+        &crate_versions(&[("pleiades-types", "0.1.1"), ("pleiades-backend", "0.1.0")]),
+    );
+    let drift: Vec<_> = violations
         .iter()
-        .filter(|violation| violation.rule == "publish.workspace-version-missing")
-        .count();
-    assert_eq!(count, 1, "violations: {violations:?}");
+        .filter(|violation| violation.rule == "publish.workspace-dependency-version")
+        .collect();
+    assert_eq!(drift.len(), 1, "violations: {violations:?}");
+    assert!(drift[0].detail.contains("pleiades-types"));
+    assert!(drift[0].detail.contains("0.1.0"));
+    assert!(drift[0].detail.contains("0.1.1"));
+    assert_eq!(
+        violations
+            .iter()
+            .filter(|violation| violation.rule != "publish.workspace-dependency-version")
+            .count(),
+        0,
+        "violations: {violations:?}"
+    );
+}
+
+#[test]
+fn workspace_audit_flags_missing_workspace_dependency_pin() {
+    let manifest = r#"[workspace.package]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rahulmutt/pleiades"
+homepage = "https://github.com/rahulmutt/pleiades"
+keywords = ["astrology", "astronomy", "ephemeris"]
+categories = ["science"]
+
+[workspace.dependencies]
+pleiades-types = { path = "crates/pleiades-types" }
+"#;
+    let violations = audit_workspace_manifest_publish_text(
+        Path::new("/tmp/Cargo.toml"),
+        manifest,
+        &crate_versions(&[("pleiades-types", "0.1.0")]),
+    );
+    assert!(violations.iter().any(|violation| violation.rule
+        == "publish.workspace-dependency-version"
+        && violation.detail.contains("pleiades-types")));
+}
+
+#[test]
+fn workspace_audit_skips_pin_comparison_for_unknown_crate_version() {
+    // A crate that still inherits its version has no entry in the map. The
+    // pin cannot be compared, and the crate-level
+    // `publish.version-not-explicit` rule is what reports that case.
+    let manifest = r#"[workspace.package]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rahulmutt/pleiades"
+homepage = "https://github.com/rahulmutt/pleiades"
+keywords = ["astrology", "astronomy", "ephemeris"]
+categories = ["science"]
+
+[workspace.dependencies]
+pleiades-types = { path = "crates/pleiades-types", version = "0.1.0" }
+"#;
+    let violations = audit_workspace_manifest_publish_text(
+        Path::new("/tmp/Cargo.toml"),
+        manifest,
+        &crate_versions(&[]),
+    );
+    assert!(
+        violations.is_empty(),
+        "unexpected violations: {violations:?}"
+    );
 }
 
 #[test]
@@ -335,6 +416,22 @@ fn workspace_audit_identifies_publishable_packages() {
     assert_eq!(
         manifest_package_name("[package]\nname = \"pleiades-types\"\n"),
         Some("pleiades-types".to_string())
+    );
+    assert_eq!(
+        manifest_package_version("[package]\nname = \"a\"\nversion = \"0.1.0\"\n"),
+        Some("0.1.0".to_string())
+    );
+    assert_eq!(
+        manifest_package_version("[package]\nname = \"a\"\nversion.workspace = true\n"),
+        None
+    );
+    assert_eq!(
+        manifest_package_version("[workspace.package]\nversion = \"0.1.0\"\n"),
+        None
+    );
+    assert_eq!(
+        manifest_package_version("[package]\nname = \"a\"\nversion = { workspace = true }\n"),
+        None
     );
 }
 
@@ -364,6 +461,9 @@ pleiades-jpl = { workspace = true }
     assert!(violations
         .iter()
         .any(|violation| violation.rule == "publish.description-missing"));
+    assert!(violations
+        .iter()
+        .any(|violation| violation.rule == "publish.version-not-explicit"));
     assert!(violations
         .iter()
         .any(|violation| violation.rule == "publish.license-not-inherited"));
@@ -531,7 +631,7 @@ fn workspace_audit_accepts_publish_ready_crate_manifest() {
     let manifest = r#"[package]
 name = "pleiades-example"
 description = "Example publishable crate."
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true

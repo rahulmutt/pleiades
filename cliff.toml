@@ -1,5 +1,7 @@
-# Changelog config shared by the 0.3.0 bootstrap (git-cliff CLI) and all future
-# releases (release-plz). Scope: feat / fix / perf / breaking only.
+# Changelog config shared by the 0.3.0 bootstrap (git-cliff CLI) and all
+# release-plz releases (one `crates/<name>/CHANGELOG.md` per crate since 0.5.3).
+# Scope: feat / fix / perf / breaking only; a crate released only because a
+# dependency pin changed gets a one-line fallback instead of an empty section.
 [changelog]
 header = """
 # Changelog
@@ -14,6 +16,9 @@ body = """
 ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
 {% else %}\
 ## [Unreleased]
+{% endif %}\
+{% if commits | length == 0 %}
+_No user-facing changes; released for a dependency or manifest update._
 {% endif %}\
 {% for group, commits in commits | group_by(attribute="group") %}
 ### {{ group | striptags | trim | upper_first }}
