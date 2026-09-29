@@ -57,7 +57,9 @@
 //!
 //! ```rust
 //! // Which sunrise began the Hindu civil day containing an instant? That is
-//! // the last sunrise at or before it: `previous_rise_set`.
+//! // the last sunrise at or before it: `previous_rise_set`. The day ends at
+//! // the sunrise after that one: a returned instant can be handed straight
+//! // back, and the search steps past the event it describes.
 //! use pleiades_data::packaged_backend;
 //! use pleiades_events::{EventEngine, RiseSetEvent, RiseSetOptions, RiseSetTarget};
 //! use pleiades_apparent::Atmosphere;
@@ -72,19 +74,35 @@
 //!     None,
 //! );
 //! let birth = Instant::new(JulianDay::from_days(2_458_849.9), TimeScale::Tdb);
+//! let hindu = RiseSetOptions { hindu: true, ..RiseSetOptions::default() };
 //! let day_start = engine
 //!     .previous_rise_set(
 //!         RiseSetTarget::Body(CelestialBody::Sun),
 //!         RiseSetEvent::Rise,
-//!         chennai,
+//!         chennai.clone(),
 //!         Atmosphere::default(),
-//!         RiseSetOptions { hindu: true, ..RiseSetOptions::default() },
+//!         hindu.clone(),
 //!         birth,
 //!     )
 //!     .unwrap()
 //!     .expect("the Sun rises daily in Chennai");
 //! assert!(day_start.instant.julian_day.days() <= birth.julian_day.days());
 //! assert!(day_start.instant.julian_day.days() > birth.julian_day.days() - 1.0);
+//!
+//! let day_end = engine
+//!     .next_rise_set(
+//!         RiseSetTarget::Body(CelestialBody::Sun),
+//!         RiseSetEvent::Rise,
+//!         chennai,
+//!         Atmosphere::default(),
+//!         hindu,
+//!         day_start.instant,
+//!     )
+//!     .unwrap()
+//!     .expect("the Sun rises daily in Chennai");
+//! let day_length = day_end.instant.julian_day.days() - day_start.instant.julian_day.days();
+//! assert!((0.99..1.01).contains(&day_length));
+//! assert!(birth.julian_day.days() < day_end.instant.julian_day.days());
 //! ```
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]

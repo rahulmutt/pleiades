@@ -2013,3 +2013,41 @@ the packaged Moon velocity has not been separated out (tracked as #65).
 Lilith gate functions, not only in the nightly test), #65 (residual
 attribution above). · **Severity:** accuracy (now closed) · **Opened:**
 2026-09-26 · **Merged:** PR #62 (2026-09-27)
+
+## FU-13: Event surfaces outside rise/set/transit and chained searches (issues #80, #81)
+
+**Status:** open · Opened 2026-09-29 while fixing #80 and #81.
+
+**What:** #80/#81 made every instant returned by `pleiades-events`'
+rise/set/transit searches "settled" (`root::bisect` returns the later end of
+its final bracket, so the instant trails its event by less than the 0.5 s
+tolerance and never precedes it) and anchored every such search at the query
+instant, so that `next_rise_set` and `previous_rise_set` partition the event
+sequence at any instant, including the ones the engine returns. Two
+neighbouring surfaces were deliberately left out of that change:
+
+1. **Longitude crossings, backward direction.** The shared `bisect` change
+   fixes the forward chain (`next_longitude_crossing(after = c.instant)` no
+   longer returns `c` again; pinned by
+   `next_after_a_returned_crossing_is_the_following_one`). The backward
+   searches still walk `root::last_crossing_before`'s window-anchored grid and
+   decide "before" by comparing a refined root against the query instant, so
+   `previous_longitude_crossing(before = c.instant)` returns either `c` or the
+   crossing before it, as it did before the change. Its documented contract
+   is "strictly before", which a sign-at-the-anchor rule would have to be
+   reconciled with (at a settled instant the crossing has already happened).
+   Documented on `previous_longitude_crossing`; callers step `before` back by
+   a second. The same applies to `longitude_crossings_in_range`'s two ends.
+2. **Occultations and `pleiades-eclipse` contacts.** `occult.rs` brackets
+   each Moon-target conjunction with the shared `root` scanners (so that
+   intermediate instant is now settled too) but refines contacts and maxima
+   with its own midpoint bisection and golden-section searches;
+   `pleiades-eclipse` (`syzygy.rs`, `local.rs`) carries its own
+   midpoint-returning copies throughout. Whether a search chained from a
+   returned contact or maximum can re-find or skip an event has NOT been
+   audited; these events are weeks apart and the searches step from one
+   conjunction to the next, so the exposure is likely smaller, but that is an
+   expectation, not a measurement.
+
+**Severity:** correctness at the tolerance boundary (consumer-visible only
+when chaining searches) · **Opened:** 2026-09-29

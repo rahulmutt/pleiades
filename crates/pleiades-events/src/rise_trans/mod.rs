@@ -4,7 +4,7 @@ use crate::crossings::EventEngine;
 use crate::ephemeris::{geocentric_apparent_ecliptic, read_mean_ecliptic};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::fixstar::fixed_star_apparent;
-use crate::root::{crossings_in_range, first_crossing_after, last_crossing_before, wrap180};
+use crate::root::wrap180;
 use crate::semidiameter::semidiameter_deg;
 use crate::time_scale::{local_apparent_sidereal_deg, tdb_jd};
 use pleiades_apparent::{
@@ -16,7 +16,7 @@ use pleiades_types::{
     ObserverLocation, TimeScale,
 };
 use scan::{
-    first_horizon_crossing_after, horizon_crossings_in_range, last_horizon_crossing_before,
+    directed_crossings_in_range, first_directed_crossing_after, last_directed_crossing_before,
 };
 
 /// Grid step for rise/set bracketing: 1 hour. The horizon scanner
@@ -31,11 +31,25 @@ use scan::{
 const RISE_SET_STEP_DAYS: f64 = 1.0 / 24.0;
 
 /// Scan step for meridian-transit bracketing: 1 hour. The hour-angle residual
-/// is monotonic-ascending at ~15°/h through its single zero per sidereal day,
-/// so any step well under the 12 h wrap-seam guard in `root` brackets each
-/// transit exactly once; 1 hour matches the rise/set grid and keeps the
-/// transit search ~12× cheaper per hour scanned than the former 5-minute step.
+/// climbs at ~15°/h through its single zero per sidereal day and drops 360°
+/// at the wrap seam half a day later, so any step well under 12 h puts each
+/// transit in exactly one ascending bracket; 1 hour matches the rise/set grid
+/// and keeps the transit search ~12× cheaper per hour scanned than the former
+/// 5-minute step.
 const TRANSIT_STEP_DAYS: f64 = 1.0 / 24.0;
+
+/// Earliest instant a scan may start from. The scanner samples up to two grid
+/// steps beyond the ends of the range it is given (the sample that overshoots
+/// the far end, plus one guard sample; see `scan`), and every sample must stay
+/// inside the ephemeris window.
+fn clamp_scan_start(jd: f64, step_days: f64) -> f64 {
+    jd.max(WINDOW_START_JD + 2.0 * step_days)
+}
+
+/// Latest instant a scan may run to; see [`clamp_scan_start`].
+fn clamp_scan_end(jd: f64, step_days: f64) -> f64 {
+    jd.min(WINDOW_END_JD - 2.0 * step_days)
+}
 
 /// How far forward of `after` `next_rise_set`'s `Rise`/`Set` arm searches
 /// before giving up and returning `None`. This is a deliberate ~2.5×
@@ -163,6 +177,10 @@ pub(crate) fn check_atmosphere(atmos: Atmosphere) -> Result<(), EventError> {
 /// `pleiades_apparent::ut1_instant` (or `pleiades-time`) to read it as a UT
 /// or civil time. See [`EventEngine::next_rise_set`] for how query instants
 /// are interpreted.
+///
+/// The instant trails the event by less than the 0.5 s refinement tolerance
+/// and never precedes it, so it can be handed back to a follow-on search; see
+/// "Chaining searches" on [`EventEngine::next_rise_set`].
 #[derive(Clone, Debug)]
 pub struct RiseSet {
     /// Which event this is.
@@ -341,7 +359,34 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// returns `None`, even though it may rise far in the future (use
     /// `rise_sets_in_range` with an explicit, longer window for that
     /// question). Meridian transits are unaffected — they always occur
-    /// within a sidereal day, well inside the bound.
+    /// within a sidereal day, well inside the bound. Every search stops two
+    /// scan steps (2 h) short of either end of the ephemeris window.
+    ///
+    /// # Chaining searches
+    ///
+    /// Every returned instant is the settled end of its refinement bracket:
+    /// the event has already happened there, less than 0.5 s earlier. The
+    /// Sun is up at a returned sunrise, down at a returned sunset, and past
+    /// the meridian at a returned transit. Which side of a query instant an
+    /// event falls on is likewise read from the target's state AT that
+    /// instant, not from comparing two refined instants.
+    ///
+    /// An instant this engine returned can therefore be handed straight
+    /// back:
+    ///
+    /// - as `after`, the search steps past the event the instant describes
+    ///   and returns the following one;
+    /// - as `before` to [`previous_rise_set`](Self::previous_rise_set), the
+    ///   search returns that same event;
+    /// - a rise searched from a returned set, or a set from a returned rise,
+    ///   is found however short the night or day between them, as it is
+    ///   from any other instant.
+    ///
+    /// This holds exactly when the follow-on search uses the same target,
+    /// observer, atmosphere, and options, and the instant is passed back
+    /// unchanged. A different disc or refraction setting defines a different
+    /// event, and an instant converted to another time scale and back may
+    /// move by a rounding step.
     pub fn next_rise_set(
         &self,
         target: RiseSetTarget,
@@ -363,10 +408,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
         match event {
             RiseSetEvent::Rise | RiseSetEvent::Set => {
                 let scan_end =
-                    (after_jd + RISE_SET_SEARCH_SPAN_DAYS).min(WINDOW_END_JD - RISE_SET_STEP_DAYS);
+                    clamp_scan_end(after_jd + RISE_SET_SEARCH_SPAN_DAYS, RISE_SET_STEP_DAYS);
                 let want_ascending = matches!(event, RiseSetEvent::Rise);
-                let scan_start = after_jd.max(WINDOW_START_JD + RISE_SET_STEP_DAYS);
-                let root = first_horizon_crossing_after(
+                let scan_start = clamp_scan_start(after_jd, RISE_SET_STEP_DAYS);
+                let root = first_directed_crossing_after(
                     |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
                     scan_start,
                     scan_end,
@@ -388,8 +433,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// Last rise/set/transit at or before `before`, or `None`. The backward
     /// twin of [`next_rise_set`](Self::next_rise_set): the two partition the
     /// event sequence, with events at or before the query instant belonging
-    /// here and events after it to `next_rise_set`. (An event within the
-    /// 0.5 s bisection tolerance of `before` may land on either side.)
+    /// here and events after it to `next_rise_set`. The partition holds at
+    /// every instant, including the ones the engine returns: given a
+    /// returned instant, this finds the event it describes and
+    /// `next_rise_set` the one after it (see "Chaining searches" there).
     ///
     /// This is the question observer-local calendars ask most — the Hindu
     /// civil day, its vara and hora, and every muhurta and panchanga reading
@@ -426,11 +473,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
         self.check_window(before_jd)?;
         match event {
             RiseSetEvent::Rise | RiseSetEvent::Set => {
-                let scan_start = (before_jd - RISE_SET_SEARCH_SPAN_DAYS)
-                    .max(WINDOW_START_JD + RISE_SET_STEP_DAYS);
-                let scan_end = before_jd.min(WINDOW_END_JD - RISE_SET_STEP_DAYS);
+                let scan_start =
+                    clamp_scan_start(before_jd - RISE_SET_SEARCH_SPAN_DAYS, RISE_SET_STEP_DAYS);
+                let scan_end = clamp_scan_end(before_jd, RISE_SET_STEP_DAYS);
                 let want_ascending = matches!(event, RiseSetEvent::Rise);
-                let root = last_horizon_crossing_before(
+                let root = last_directed_crossing_before(
                     |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
                     scan_start,
                     scan_end,
@@ -449,9 +496,17 @@ impl<B: EphemerisBackend> EventEngine<B> {
         }
     }
 
-    /// All rise/set/transit events of `event` kind in `[start, end]`, ascending.
-    /// `start` and `end` are read by their `TimeScale` tags and every returned
-    /// instant is TDB, as for [`next_rise_set`](Self::next_rise_set).
+    /// All rise/set/transit events of `event` kind after `start` and up to
+    /// `end`, ascending. `start` and `end` are read by their `TimeScale` tags
+    /// and every returned instant is TDB, as for
+    /// [`next_rise_set`](Self::next_rise_set).
+    ///
+    /// `start` is exclusive in the sense of `next_rise_set`: an event that
+    /// has already happened at `start`, such as the one a returned instant
+    /// describes, is left out, so consecutive ranges that share a returned
+    /// instant as their boundary do not report it twice. At `end` the
+    /// returned instant itself is compared, so an event within the 0.5 s
+    /// refinement tolerance before `end` may be left out.
     #[allow(clippy::too_many_arguments)]
     pub fn rise_sets_in_range(
         &self,
@@ -477,9 +532,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
         match event {
             RiseSetEvent::Rise | RiseSetEvent::Set => {
                 let want_ascending = matches!(event, RiseSetEvent::Rise);
-                let scan_start = start_jd.max(WINDOW_START_JD + RISE_SET_STEP_DAYS);
-                let scan_end = end_jd.min(WINDOW_END_JD - RISE_SET_STEP_DAYS);
-                let roots = horizon_crossings_in_range(
+                let scan_start = clamp_scan_start(start_jd, RISE_SET_STEP_DAYS);
+                let scan_end = clamp_scan_end(end_jd, RISE_SET_STEP_DAYS);
+                let roots = directed_crossings_in_range(
                     |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
                     scan_start,
                     scan_end,
@@ -503,11 +558,15 @@ impl<B: EphemerisBackend> EventEngine<B> {
 
     /// The meridian-transit residual: local hour angle `H = LST − RA`, wrapped
     /// to `(−180, 180]`. Upper transit is the zero of `H`; lower transit is the
-    /// zero of `H − 180` (also wrapped). Unlike the rise/set horizon residual,
-    /// this residual is monotonic-ascending through its single zero per
-    /// sidereal day (LST advances ~361°/day against a slowly-moving target RA),
-    /// so `first_crossing_after`/`crossings_in_range` locate upper and lower
-    /// transits unambiguously — no post-hoc direction classification needed.
+    /// zero of `H − 180` (also wrapped). The residual ascends through its
+    /// single zero per sidereal day (LST advances ~361°/day against a
+    /// slowly-moving target RA) and falls 360° at the wrap seam half a day
+    /// later. The transit searches therefore ask the `scan` module for
+    /// ASCENDING crossings: the seam reads as a descending sign change, which
+    /// the scanner skips without refining, and the residual has no same-sign
+    /// extremum for the culmination check to act on. Sharing the scanner
+    /// gives transits the same query-anchored grid as rise/set, so both
+    /// partition the event sequence the same way.
     fn hour_angle_residual(
         &self,
         target: &RiseSetTarget,
@@ -537,13 +596,14 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ) -> Result<Option<RiseSet>, EventError> {
         let lower = matches!(event, RiseSetEvent::LowerTransit);
         let after_jd = tdb_jd(after)?;
-        let scan_start = after_jd.max(WINDOW_START_JD + TRANSIT_STEP_DAYS);
-        let scan_end = WINDOW_END_JD - TRANSIT_STEP_DAYS;
-        let root = first_crossing_after(
+        let scan_start = clamp_scan_start(after_jd, TRANSIT_STEP_DAYS);
+        let scan_end = clamp_scan_end(WINDOW_END_JD, TRANSIT_STEP_DAYS);
+        let root = first_directed_crossing_after(
             |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
             scan_start,
             scan_end,
             TRANSIT_STEP_DAYS,
+            true,
         )?;
         Ok(root.filter(|&jd| jd > after_jd).map(|jd| RiseSet {
             event,
@@ -553,9 +613,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
     }
 
     /// Last meridian transit at or before `before`. Early-terminating: walks
-    /// the same window-anchored grid as `transits_in_range` backward from
-    /// `before` (as `previous_longitude_crossing` does for crossings) and
-    /// stops at the first transit found, always within a sidereal day.
+    /// a grid anchored at `before` backward and stops at the first transit
+    /// found, always within a sidereal day.
     pub(crate) fn previous_transit(
         &self,
         target: RiseSetTarget,
@@ -566,13 +625,14 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ) -> Result<Option<RiseSet>, EventError> {
         let lower = matches!(event, RiseSetEvent::LowerTransit);
         let before_jd = tdb_jd(before)?;
-        let scan_start = WINDOW_START_JD + TRANSIT_STEP_DAYS;
-        let scan_end = before_jd.min(WINDOW_END_JD - TRANSIT_STEP_DAYS);
-        let root = last_crossing_before(
+        let scan_start = clamp_scan_start(WINDOW_START_JD, TRANSIT_STEP_DAYS);
+        let scan_end = clamp_scan_end(before_jd, TRANSIT_STEP_DAYS);
+        let root = last_directed_crossing_before(
             |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
             scan_start,
             scan_end,
             TRANSIT_STEP_DAYS,
+            true,
         )?;
         Ok(root.filter(|&jd| jd <= before_jd).map(|jd| RiseSet {
             event,
@@ -592,13 +652,14 @@ impl<B: EphemerisBackend> EventEngine<B> {
         end: Instant,
     ) -> Result<Vec<RiseSet>, EventError> {
         let lower = matches!(event, RiseSetEvent::LowerTransit);
-        let scan_start = tdb_jd(start)?.max(WINDOW_START_JD + TRANSIT_STEP_DAYS);
-        let scan_end = tdb_jd(end)?.min(WINDOW_END_JD - TRANSIT_STEP_DAYS);
-        let roots = crossings_in_range(
+        let scan_start = clamp_scan_start(tdb_jd(start)?, TRANSIT_STEP_DAYS);
+        let scan_end = clamp_scan_end(tdb_jd(end)?, TRANSIT_STEP_DAYS);
+        let roots = directed_crossings_in_range(
             |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
             scan_start,
             scan_end,
             TRANSIT_STEP_DAYS,
+            true,
         )?;
         Ok(roots
             .into_iter()
@@ -618,3 +679,6 @@ mod scan;
 
 #[cfg(test)]
 mod time_scale_tests;
+
+#[cfg(test)]
+mod chain_tests;

@@ -1,12 +1,18 @@
-//! Horizon-crossing scanner for rise/set: a coarse time grid with culmination
-//! insertion, crossing direction read from the bracket signs, and bisection
-//! to the shared `root::REFINE_TOLERANCE_DAYS`.
+//! Directed-crossing scanner for the observer-local events (rise, set, and
+//! meridian transit): a coarse time grid anchored at the query instant, with
+//! culmination insertion, crossing direction read from the bracket signs, and
+//! bisection to the shared `root::REFINE_TOLERANCE_DAYS`.
 //!
 //! Why not `root::first_crossing_after` and friends: those are generic
 //! "any sign change" scanners tuned for wrapped longitude residuals, and the
 //! rise/set path used them at a 2-minute step so that a fast-Moon graze
 //! could not slip between two samples. That made every rise/set search
 //! linear in the distance to the event at ~30 samples per hour (issue #70).
+//! Their backward twin also walks a window-anchored grid, so whether an event
+//! within the bisection tolerance of the query instant counts as before it
+//! is decided by comparing two independently refined roots. Here every walk
+//! is anchored at the query instant and that question is settled by the
+//! residual's sign there (issues #80, #81; see [`walk`]).
 //!
 //! The altitude residual is smooth on the day scale: it is a sinusoid in
 //! hour angle with one culmination (maximum) and one anti-culmination
@@ -26,6 +32,12 @@
 //! ascending (rise), above-to-below is descending (set) — so callers never
 //! probe past a refined root to classify it, and brackets of the unwanted
 //! direction are skipped without being refined.
+//!
+//! The meridian-transit searches reuse the scanner on the wrapped hour-angle
+//! residual, asking for ascending crossings. That residual climbs steadily
+//! through its zero and drops 360° at the wrap seam, so the seam is a
+//! descending bracket (skipped) and no three same-sign samples ever form an
+//! extremum (the culmination search never runs).
 
 use crate::error::EventError;
 use crate::root::bisect;
@@ -270,7 +282,10 @@ where
 }
 
 /// Every root of the wanted direction in `[lo_jd, hi_jd]`, ascending in time.
-pub(crate) fn horizon_crossings_in_range<F>(
+/// A crossing is past `lo_jd` if the residual still carries its pre-crossing
+/// sign there, so one that a previous search settled at `lo_jd` is excluded;
+/// at `hi_jd` the refined root itself is compared.
+pub(crate) fn directed_crossings_in_range<F>(
     mut f: F,
     lo_jd: f64,
     hi_jd: f64,
@@ -297,8 +312,9 @@ where
 }
 
 /// The first root of the wanted direction in `[lo_jd, hi_jd]`, or `None`.
-/// Early-terminating: stops as soon as that root is refined.
-pub(crate) fn first_horizon_crossing_after<F>(
+/// Early-terminating: stops as soon as that root is refined. A crossing is
+/// past `lo_jd` if the residual still carries its pre-crossing sign there.
+pub(crate) fn first_directed_crossing_after<F>(
     mut f: F,
     lo_jd: f64,
     hi_jd: f64,
@@ -326,10 +342,11 @@ where
 
 /// The last root of the wanted direction in `[lo_jd, hi_jd]`, or `None`.
 /// Early-terminating: walks the grid backward from `hi_jd` and stops as soon
-/// as that root is refined. Its grid is anchored at `hi_jd`, not `lo_jd`, so
-/// it brackets different intervals from [`horizon_crossings_in_range`]; the
+/// as that root is refined. A crossing is at or before `hi_jd` if the
+/// residual already carries its post-crossing sign there. Its grid is anchored at `hi_jd`, not `lo_jd`, so
+/// it brackets different intervals from [`directed_crossings_in_range`]; the
 /// two agree on the root to within the bisection tolerance, not bit-for-bit.
-pub(crate) fn last_horizon_crossing_before<F>(
+pub(crate) fn last_directed_crossing_before<F>(
     mut f: F,
     lo_jd: f64,
     hi_jd: f64,
