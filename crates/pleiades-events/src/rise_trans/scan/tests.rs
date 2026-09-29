@@ -253,3 +253,229 @@ fn errors_propagate_from_all_entry_points() {
         EventError::Backend(_)
     ));
 }
+
+// ---- Issues #80 and #81: searches chained from a returned instant, and
+// ---- short nights (or days) at either end of the scanned range.
+
+const MINUTE: f64 = 1.0 / 1_440.0;
+
+/// `graze` mirrored: up all day except a ~20-minute night centred on
+/// `T0 + 0.25`, setting at `dip_set()` and rising at `dip_rise()`.
+fn dip(t: f64) -> f64 {
+    -graze(t)
+}
+fn dip_set() -> f64 {
+    T0 + 0.25 - graze_tau()
+}
+fn dip_rise() -> f64 {
+    T0 + 0.25 + graze_tau()
+}
+
+/// Search starts spread over a day, so the returned roots fall on both
+/// halves of the final bisection bracket.
+fn spread_starts() -> impl Iterator<Item = f64> {
+    (0..48).map(|i| T0 + 0.021_3 * f64::from(i))
+}
+
+#[test]
+fn first_after_a_returned_root_finds_the_following_one() {
+    for start in spread_starts() {
+        for want_ascending in [true, false] {
+            let root =
+                first_horizon_crossing_after(ok(diurnal), start, start + 3.0, HOUR, want_ascending)
+                    .unwrap()
+                    .expect("a root");
+            let next =
+                first_horizon_crossing_after(ok(diurnal), root, root + 3.0, HOUR, want_ascending)
+                    .unwrap()
+                    .expect("a following root");
+            assert!(
+                (next - root - 1.0).abs() < TOL,
+                "start {start} ascending {want_ascending}: {root} then {next}"
+            );
+        }
+    }
+}
+
+#[test]
+fn last_before_a_returned_root_returns_that_root() {
+    for start in spread_starts() {
+        for want_ascending in [true, false] {
+            let root =
+                first_horizon_crossing_after(ok(diurnal), start, start + 3.0, HOUR, want_ascending)
+                    .unwrap()
+                    .expect("a root");
+            let back =
+                last_horizon_crossing_before(ok(diurnal), root - 3.0, root, HOUR, want_ascending)
+                    .unwrap()
+                    .expect("the same root");
+            assert!(
+                back <= root && root - back < TOL,
+                "start {start} ascending {want_ascending}: {root} then {back}"
+            );
+        }
+    }
+}
+
+#[test]
+fn range_starting_at_a_returned_root_excludes_it() {
+    for start in spread_starts() {
+        let root = first_horizon_crossing_after(ok(diurnal), start, start + 3.0, HOUR, true)
+            .unwrap()
+            .expect("a root");
+        let roots = horizon_crossings_in_range(ok(diurnal), root, root + 0.5, HOUR, true).unwrap();
+        assert!(roots.is_empty(), "start {start}: {root} then {roots:?}");
+    }
+}
+
+#[test]
+fn first_after_a_returned_set_finds_the_rise_ending_a_short_night() {
+    for start in (0..48).map(|i| dip_set() - 0.9 + 0.017_3 * f64::from(i)) {
+        let set = first_horizon_crossing_after(ok(dip), start, start + 3.0, HOUR, false)
+            .unwrap()
+            .expect("the set");
+        assert!((set - dip_set()).abs() < TOL, "start {start}: set {set}");
+        let rise = first_horizon_crossing_after(ok(dip), set, set + 3.0, HOUR, true)
+            .unwrap()
+            .expect("the rise");
+        assert!(
+            (rise - dip_rise()).abs() < TOL,
+            "start {start}: rise {rise} vs {}",
+            dip_rise()
+        );
+    }
+}
+
+#[test]
+fn first_after_finds_a_short_night_in_the_first_grid_interval() {
+    // Anchored a few minutes before the set: the whole night lies inside the
+    // first grid interval and the anchor is the lowest sample, so only a
+    // sample before the anchor can reveal the culmination.
+    for minutes_before in [1.0, 5.0, 12.0, 18.0] {
+        let lo = dip_set() - minutes_before * MINUTE;
+        let rise = first_horizon_crossing_after(ok(dip), lo, lo + 3.0, HOUR, true)
+            .unwrap()
+            .expect("the rise");
+        assert!(
+            (rise - dip_rise()).abs() < TOL,
+            "{minutes_before} min before: rise {rise} vs {}",
+            dip_rise()
+        );
+        let set = first_horizon_crossing_after(ok(dip), lo, lo + 3.0, HOUR, false)
+            .unwrap()
+            .expect("the set");
+        assert!(
+            (set - dip_set()).abs() < TOL,
+            "{minutes_before} min before: set {set} vs {}",
+            dip_set()
+        );
+    }
+}
+
+#[test]
+fn last_before_finds_a_short_night_in_the_first_grid_interval() {
+    // The backward twin: anchored a few minutes after the rise.
+    for minutes_after in [1.0, 5.0, 12.0, 18.0] {
+        let hi = dip_rise() + minutes_after * MINUTE;
+        let set = last_horizon_crossing_before(ok(dip), hi - 3.0, hi, HOUR, false)
+            .unwrap()
+            .expect("the set");
+        assert!(
+            (set - dip_set()).abs() < TOL,
+            "{minutes_after} min after: set {set} vs {}",
+            dip_set()
+        );
+        let rise = last_horizon_crossing_before(ok(dip), hi - 3.0, hi, HOUR, true)
+            .unwrap()
+            .expect("the rise");
+        assert!(
+            (rise - dip_rise()).abs() < TOL,
+            "{minutes_after} min after: rise {rise} vs {}",
+            dip_rise()
+        );
+    }
+}
+
+#[test]
+fn a_short_night_in_the_far_grid_interval_is_found() {
+    // The night sits in the interval that holds the range's far end, nearer
+    // to the overshoot sample than to the last in-range one, so the
+    // overshoot sample is the lowest and needs a neighbour beyond it.
+    let centre = T0 + 0.25;
+    // Forward: nodes at `centre − 40 min` and `centre + 20 min` straddle it.
+    let hi = dip_rise() + 5.0 * MINUTE;
+    let lo = centre + 20.0 * MINUTE - 6.0 * HOUR;
+    let sets = horizon_crossings_in_range(ok(dip), lo, hi, HOUR, false).unwrap();
+    let rises = horizon_crossings_in_range(ok(dip), lo, hi, HOUR, true).unwrap();
+    assert_eq!(sets.len(), 1, "sets {sets:?}");
+    assert_eq!(rises.len(), 1, "rises {rises:?}");
+    assert!((sets[0] - dip_set()).abs() < TOL, "set {}", sets[0]);
+    assert!((rises[0] - dip_rise()).abs() < TOL, "rise {}", rises[0]);
+    // Backward: nodes at `centre + 40 min` and `centre − 20 min`.
+    let lo = dip_set() - 5.0 * MINUTE;
+    let hi = centre - 20.0 * MINUTE + 6.0 * HOUR;
+    let set = last_horizon_crossing_before(ok(dip), lo, hi, HOUR, false)
+        .unwrap()
+        .expect("the set");
+    assert!((set - dip_set()).abs() < TOL, "set {set}");
+}
+
+#[test]
+fn a_short_day_in_the_first_grid_interval_is_found() {
+    // The polar-night mirror of the short night: a ~20-minute day.
+    let (rise_at, set_at) = (dip_set(), dip_rise());
+    let lo = rise_at - 5.0 * MINUTE;
+    let set = first_horizon_crossing_after(ok(graze), lo, lo + 3.0, HOUR, false)
+        .unwrap()
+        .expect("the set");
+    assert!((set - set_at).abs() < TOL, "set {set} vs {set_at}");
+    let hi = set_at + 5.0 * MINUTE;
+    let rise = last_horizon_crossing_before(ok(graze), hi - 3.0, hi, HOUR, true)
+        .unwrap()
+        .expect("the rise");
+    assert!((rise - rise_at).abs() < TOL, "rise {rise} vs {rise_at}");
+}
+
+#[test]
+fn a_root_behind_the_anchor_is_neither_returned_nor_refined() {
+    // Ascending root 12 minutes before the forward anchor: it belongs to the
+    // guard interval, which informs culmination detection only.
+    let calls = Cell::new(0usize);
+    let lo = T0 + 5.0 * HOUR;
+    let behind = move |t: f64| 100.0 * (t - (lo - 0.2 * HOUR));
+    let counted = |t: f64| {
+        calls.set(calls.get() + 1);
+        Ok(behind(t))
+    };
+    let none = first_horizon_crossing_after(counted, lo, lo + 5.0 * HOUR, HOUR, true).unwrap();
+    assert!(none.is_none(), "{none:?}");
+    assert!(
+        calls.get() <= 9,
+        "expected grid samples only, got {} evaluations",
+        calls.get()
+    );
+    // Mirror: descending-in-reverse root 12 minutes after the backward anchor.
+    let calls = Cell::new(0usize);
+    let hi = T0 + 5.0 * HOUR;
+    let ahead = move |t: f64| 100.0 * (t - (hi + 0.2 * HOUR));
+    let counted = |t: f64| {
+        calls.set(calls.get() + 1);
+        Ok(ahead(t))
+    };
+    let none = last_horizon_crossing_before(counted, hi - 5.0 * HOUR, hi, HOUR, true).unwrap();
+    assert!(none.is_none(), "{none:?}");
+    assert!(
+        calls.get() <= 9,
+        "expected grid samples only, got {} evaluations",
+        calls.get()
+    );
+}
+
+#[test]
+fn an_empty_range_still_evaluates_the_anchor() {
+    let boom = |_: f64| Err(EventError::Backend("boom".into()));
+    assert!(first_horizon_crossing_after(boom, T0 + 1.0, T0, HOUR, true).is_err());
+    assert!(last_horizon_crossing_before(boom, T0 + 1.0, T0, HOUR, true).is_err());
+    let none = first_horizon_crossing_after(ok(diurnal), T0 + 1.0, T0, HOUR, true).unwrap();
+    assert!(none.is_none());
+}

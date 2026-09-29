@@ -7,7 +7,8 @@
 
 use crate::error::EventError;
 
-/// Bisection tolerance: 0.5 second of time, in days.
+/// Bisection tolerance: 0.5 second of time, in days. The widest the final
+/// bracket may be, and so the most a returned instant can trail its crossing.
 pub(crate) const REFINE_TOLERANCE_DAYS: f64 = 0.5 / 86_400.0;
 
 /// Signed wrap of a degree difference into `(-180, 180]`.
@@ -16,6 +17,16 @@ pub(crate) fn wrap180(mut d: f64) -> f64 {
     d
 }
 
+/// Refines a sign change of `f` across `[lo, hi]` and returns the LATER end of
+/// the final bracket, which is no wider than [`REFINE_TOLERANCE_DAYS`].
+///
+/// The later end, not the midpoint, because callers hand the instant back to
+/// a follow-on search (issues #80, #81). Bisection keeps the invariant that
+/// `f(lo)` carries the pre-crossing sign and `f(hi)` the post-crossing one,
+/// so the returned instant is "settled": the crossing has already happened
+/// there, less than the tolerance earlier, and a search anchored at it reads
+/// the post-crossing sign and cannot bracket the same crossing again. A
+/// midpoint sits before the crossing about half the time.
 pub(crate) fn bisect<F>(
     f: &mut F,
     mut lo: f64,
@@ -35,7 +46,7 @@ where
             hi = mid;
         }
     }
-    Ok(0.5 * (lo + hi))
+    Ok(hi)
 }
 
 /// All roots of `f` in `[lo_jd, hi_jd]`, ascending. `step_days` must be small
@@ -327,6 +338,38 @@ mod tests {
                 step,
                 offset,
             );
+        }
+    }
+
+    /// Roots spread across the final-bracket lattice, so a refinement that
+    /// returned the bracket's midpoint would land before about half of them.
+    fn spread_roots() -> impl Iterator<Item = f64> {
+        (0..40).map(|i| 2_451_545.0 + 0.3 + f64::from(i) * 0.013_7)
+    }
+
+    // Issue #80: the refined instant is the later end of the final bracket,
+    // so the residual there already carries the post-crossing sign and the
+    // instant is never earlier than the crossing it describes.
+    #[test]
+    fn bisect_returns_the_settled_end_of_an_ascending_crossing() {
+        for c in spread_roots() {
+            let mut f = |t: f64| Ok(t - c);
+            let (lo, hi) = (c - 0.4, c + 0.6);
+            let root = bisect(&mut f, lo, lo - c, hi).unwrap();
+            assert!(root > c, "root {root} is before the crossing {c}");
+            assert!(root - c <= REFINE_TOLERANCE_DAYS, "root {root} vs {c}");
+        }
+    }
+
+    #[test]
+    fn bisect_returns_the_settled_end_of_a_descending_crossing() {
+        for c in spread_roots() {
+            let mut f = |t: f64| Ok(c - t);
+            let (lo, hi) = (c - 0.4, c + 0.6);
+            let root = bisect(&mut f, lo, c - lo, hi).unwrap();
+            // Zero counts as "below", so the settled side is `f <= 0`.
+            assert!(root >= c, "root {root} is before the crossing {c}");
+            assert!(root - c <= REFINE_TOLERANCE_DAYS, "root {root} vs {c}");
         }
     }
 }

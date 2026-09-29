@@ -139,10 +139,29 @@ where
 /// Walks the grid `anchor + k·step` (forward from `lo_jd`, or backward from
 /// `hi_jd`), refining every bracket of the wanted direction whose root lies
 /// in `[lo_jd, hi_jd]` and handing each root to `visit` in walk order until
-/// `visit` breaks or the grid is exhausted. Like `root::crossings_in_range`,
-/// the anchor is always evaluated once (so a backend error there propagates
-/// even on an empty range) and the last sample may overshoot the far end by
-/// up to one step; roots outside the range are dropped.
+/// `visit` breaks or the grid is exhausted.
+///
+/// # Guard samples
+///
+/// A culmination shows up as a strict extremum of three consecutive samples,
+/// so the sample nearest to it needs a neighbour on both sides. The grid is
+/// therefore extended by one guard sample beyond each end of the walk: one
+/// step behind the anchor, and one step past the sample that overshoots the
+/// far end. Without them a night (or day) shorter than the step goes unseen
+/// whenever it falls in the first or the last grid interval with the end
+/// sample as its nearest one (issue #81).
+///
+/// Guards inform culmination detection only. A bracket is refined only if it
+/// lies on the walk's side of the anchor and starts before the far end, so a
+/// crossing behind the anchor costs no bisection and is never reported.
+/// Which side of the anchor a crossing falls on is thus decided by the
+/// residual's sign AT the anchor, exactly, not by comparing a refined root
+/// against it: together with `root::bisect` returning the settled end of its
+/// bracket, that is what lets a search anchored at a returned instant step
+/// past the event it describes (issue #80).
+///
+/// Like `root::crossings_in_range`, the anchor is always evaluated once, so
+/// a backend error there propagates even on an empty range.
 fn walk<F, V>(
     f: &mut F,
     lo_jd: f64,
@@ -161,19 +180,29 @@ where
     } else {
         (lo_jd, 1.0)
     };
-    let on_grid = |jd: f64| {
+    let node = |k: f64| anchor + direction * k * step_days;
+    let past_far_end = |jd: f64| {
         if backward {
-            jd >= lo_jd - step_days
+            jd < lo_jd
         } else {
-            jd <= hi_jd + step_days
+            jd > hi_jd
         }
     };
     let in_range = |jd: f64| jd >= lo_jd && jd <= hi_jd;
+    // Whether a time-ordered bracket lies wholly on the walk's side of the
+    // anchor and reaches into the range.
+    let searchable = |earlier: &Sample, later: &Sample| {
+        if backward {
+            later.jd <= hi_jd && later.jd >= lo_jd
+        } else {
+            earlier.jd >= lo_jd && earlier.jd <= hi_jd
+        }
+    };
 
     // Refines one time-ordered bracket and reports its root if wanted and in
     // range. Returns `true` when the visitor asked to stop.
     let mut emit = |f: &mut F, earlier: Sample, later: Sample| -> Result<bool, EventError> {
-        if ascending(&earlier, &later) != want_ascending {
+        if ascending(&earlier, &later) != want_ascending || !searchable(&earlier, &later) {
             return Ok(false);
         }
         let root = bisect(f, earlier.jd, earlier.f, later.jd)?;
@@ -183,45 +212,59 @@ where
         Ok(visit(root).is_break())
     };
 
-    let mut prev2: Option<Sample> = None;
-    let mut prev1: Option<Sample> = None;
-    let mut k = 0.0_f64;
+    let anchor_sample = Sample {
+        jd: anchor,
+        f: f(anchor)?,
+    };
+    if lo_jd > hi_jd {
+        return Ok(());
+    }
+    let guard_jd = node(-1.0);
+    let mut prev2 = Sample {
+        jd: guard_jd,
+        f: f(guard_jd)?,
+    };
+    let mut prev1 = anchor_sample;
+    let mut k = 1.0_f64;
     loop {
-        let jd = anchor + direction * k * step_days;
-        if k > 0.0 && !on_grid(jd) {
+        // `prev2` is the sample two nodes back. Once it is past the far end,
+        // the interval behind `prev1` holds nothing in range and `prev1`
+        // has already served as the far guard.
+        if past_far_end(prev2.jd) {
             return Ok(());
         }
+        let jd = node(k);
         let cur = Sample { jd, f: f(jd)? };
-        if let Some(p1) = prev1 {
-            if below(p1.f) != below(cur.f) {
-                let (earlier, later) = time_ordered(p1, cur);
-                if emit(f, earlier, later)? {
-                    return Ok(());
-                }
-            } else if let Some(p2) = prev2 {
-                // All three samples share a sign (a sign change between p2
-                // and p1 was handled on the previous step); only a grazing
-                // culmination could still hide a pair of crossings here.
-                if below(p2.f) == below(p1.f) && is_strict_extremum(&p2, &p1, &cur) {
-                    let (s0, s2) = time_ordered(p2, cur);
-                    if let Some(peak) = refine_grazing_culmination(f, s0, p1, s2)? {
-                        let (left, right) = if peak.jd < p1.jd { (s0, p1) } else { (p1, s2) };
-                        let brackets = if backward {
-                            [(peak, right), (left, peak)]
-                        } else {
-                            [(left, peak), (peak, right)]
-                        };
-                        for (earlier, later) in brackets {
-                            if emit(f, earlier, later)? {
-                                return Ok(());
-                            }
-                        }
+        if below(prev1.f) != below(cur.f) {
+            let (earlier, later) = time_ordered(prev1, cur);
+            if emit(f, earlier, later)? {
+                return Ok(());
+            }
+        } else if below(prev2.f) == below(prev1.f) && is_strict_extremum(&prev2, &prev1, &cur) {
+            // All three samples share a sign (a sign change between `prev2`
+            // and `prev1` was handled on the previous step); only a grazing
+            // culmination could still hide a pair of crossings here.
+            let (s0, s2) = time_ordered(prev2, cur);
+            if let Some(peak) = refine_grazing_culmination(f, s0, prev1, s2)? {
+                let (left, right) = if peak.jd < prev1.jd {
+                    (s0, prev1)
+                } else {
+                    (prev1, s2)
+                };
+                let brackets = if backward {
+                    [(peak, right), (left, peak)]
+                } else {
+                    [(left, peak), (peak, right)]
+                };
+                for (earlier, later) in brackets {
+                    if emit(f, earlier, later)? {
+                        return Ok(());
                     }
                 }
             }
         }
         prev2 = prev1;
-        prev1 = Some(cur);
+        prev1 = cur;
         k += 1.0;
     }
 }
