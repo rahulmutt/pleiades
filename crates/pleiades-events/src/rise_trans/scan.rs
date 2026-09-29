@@ -343,9 +343,10 @@ where
 /// The last root of the wanted direction in `[lo_jd, hi_jd]`, or `None`.
 /// Early-terminating: walks the grid backward from `hi_jd` and stops as soon
 /// as that root is refined. A crossing is at or before `hi_jd` if the
-/// residual already carries its post-crossing sign there. Its grid is anchored at `hi_jd`, not `lo_jd`, so
-/// it brackets different intervals from [`directed_crossings_in_range`]; the
-/// two agree on the root to within the bisection tolerance, not bit-for-bit.
+/// residual already carries its post-crossing sign there. Its grid is
+/// anchored at `hi_jd`, not `lo_jd`, so it brackets different intervals from
+/// [`directed_crossings_in_range`]; the two agree on the root to within the
+/// bisection tolerance, not bit-for-bit.
 pub(crate) fn last_directed_crossing_before<F>(
     mut f: F,
     lo_jd: f64,
