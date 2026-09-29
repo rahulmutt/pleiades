@@ -131,6 +131,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// `longitude_crossings_in_range(body, target, frame, after, WINDOW_END).first()`
     /// filtered to strictly-after `after` — same clamps, same step, same
     /// wrap-seam guard, same bisection tolerance.
+    ///
+    /// A returned [`Crossing::instant`] trails its crossing by less than the
+    /// 0.5 s bisection tolerance and never precedes it, so handing it back as
+    /// `after` returns the following crossing, not the same one again.
     pub fn next_longitude_crossing(
         &self,
         body: CelestialBody,
@@ -177,6 +181,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// `longitude_crossings_in_range(body, target, frame, WINDOW_START, before).last()`
     /// filtered to strictly-before `before` — same clamps, same step, same
     /// wrap-seam guard, same bisection tolerance.
+    ///
+    /// A crossing within the 0.5 s bisection tolerance of `before` may land
+    /// on either side: given an instant this engine returned, the result is
+    /// either the crossing that instant describes or the one before it (see
+    /// FU-13 in `docs/follow-ups.md`). Step `before` back by a second to
+    /// skip the described crossing for certain.
     pub fn previous_longitude_crossing(
         &self,
         body: CelestialBody,
@@ -515,5 +525,37 @@ mod tests {
             )
             .unwrap_err();
         assert!(matches!(err, EventError::OutOfWindow { .. }));
+    }
+
+    // Issue #80's family: a crossing instant handed back as `after` must not
+    // find the same crossing again. Every returned instant is the settled
+    // end of its bisection bracket (see `root::bisect`), so the search reads
+    // the post-crossing sign there. Targets spread round the zodiac put the
+    // roots on both halves of the final bracket.
+    #[test]
+    fn next_after_a_returned_crossing_is_the_following_one() {
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let frame = CrossingFrame::GeocentricApparentOfDate;
+        for target_deg in (0..24).map(|i| 7.3 + 15.0 * f64::from(i)) {
+            let target = Longitude::from_degrees(target_deg);
+            let found = engine
+                .previous_longitude_crossing(
+                    CelestialBody::Moon,
+                    target,
+                    frame,
+                    tdb(2_451_545.0 + 60.0),
+                )
+                .unwrap()
+                .expect("the Moon crosses every longitude monthly");
+            let following = engine
+                .next_longitude_crossing(CelestialBody::Moon, target, frame, found.instant)
+                .unwrap()
+                .expect("the Moon crosses every longitude monthly");
+            let gap = following.instant.julian_day.days() - found.instant.julian_day.days();
+            assert!(
+                (27.0..28.0).contains(&gap),
+                "target {target_deg}: {gap} days between a crossing and the next"
+            );
+        }
     }
 }

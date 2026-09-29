@@ -77,8 +77,30 @@
 //! | transit           | 2.8894 s                    | 1.001 s                       | 4.0 s   |
 //!
 //! The per-constant docs below keep their original measured basis (the
-//! numbers the ceilings were derived from); this table is the current
-//! measurement.
+//! numbers the ceilings were derived from); the table under "Issues #80/#81"
+//! is the current measurement.
+//!
+//! ## Issues #80/#81 — returned instants are settled
+//!
+//! The engine now returns the later end of its final refinement bracket
+//! instead of the midpoint, so every returned instant trails its event by
+//! less than the 0.5 s refinement tolerance and never precedes it (that is
+//! what lets a search chained from a returned instant step past the event).
+//! Relative to the midpoint, instants moved later by up to 0.22 s. Every
+//! time ceiling was re-measured and is retained unchanged:
+//!
+//! | category          | post-#74 max | post-#80/#81 max | ceiling |
+//! |-------------------|--------------|------------------|---------|
+//! | tight             | 3.039 s      | 3.259 s          | 5.0 s   |
+//! | refraction floor  | 21.615 s     | 21.446 s         | 31.0 s  |
+//! | grazing           | 110.989 s    | 111.209 s        | 160.0 s |
+//! | transit           | 1.001 s      | 0.781 s          | 4.0 s   |
+//!
+//! One Tier-1 check changed shape. The hour angle at a returned transit used
+//! to be gated two-sided under `SELF_CONSISTENCY_ARCSEC`; it is now gated
+//! one-sided under `TRANSIT_HOUR_ANGLE_ARCSEC` (past the meridian by no more
+//! than the tolerance's worth of rotation, and not before it), which states
+//! the engine's contract rather than one fixture's position in its bracket.
 
 /// Rise/set time-parity ceiling (seconds) for a well-conditioned,
 /// non-grazing, non-refraction-floor row (point-like body: star or
@@ -144,15 +166,39 @@ pub const TRUE_ALTITUDE_ARCSEC: f64 = 0.1;
 pub const APPARENT_ALTITUDE_ARCSEC: f64 = 13.0;
 
 /// Self-consistency ceiling (arcseconds): azalt round-trip
-/// (`horizontal_to_equatorial(horizontal(x)) ~ x`), the meridian-transit
-/// hour-angle-zero check, and the refraction round-trip
+/// (`horizontal_to_equatorial(horizontal(x)) ~ x`) and the refraction
+/// round-trip
 /// (`true_from_apparent(apparent_from_true(h)) ~ h`) evaluated at
 /// representative non-grazing altitudes (30 deg, 60 deg, 85 deg — chosen away
 /// from the horizon, where Bennett/Saemundsson's inherent forward/inverse
 /// mismatch is a known, documented non-bug rather than an engine defect;
 /// exact horizon behavior is exercised by the Tier-2 rise/set corpus rows
-/// instead). Measured max across all three checks: 1.81" (refraction
+/// instead). Measured max across both checks: 1.81" (refraction
 /// round-trip at 30 deg true altitude) — unaffected by either Task 16 engine
 /// fix (neither touches these code paths). Ceiling = ceil(1.4 x 1.81) rounded
-/// to 2.6".
+/// to 2.6". The meridian-transit hour-angle check was gated here too until
+/// issues #80/#81; it now has its own bound, [`TRANSIT_HOUR_ANGLE_ARCSEC`].
 pub const SELF_CONSISTENCY_ARCSEC: f64 = 2.6;
+
+/// Ceiling (arcseconds) on the hour angle at a returned upper transit,
+/// measured PAST the meridian. Since issues #80/#81 the engine returns the
+/// settled end of its refinement bracket, so a returned transit instant
+/// trails the transit by less than the 0.5 s refinement tolerance and never
+/// precedes it. The hour angle there is therefore one-sided: between zero and
+/// the tolerance times the sidereal rate, 0.5 s x 15.0411"/s = 7.52".
+///
+/// Unlike the other ceilings in this module this one is ANALYTIC, not 1.4 x a
+/// measured max: the residual is the position of the transit inside a
+/// bisection bracket, uniform over that bracket, so any tighter figure would
+/// pin one fixture's luck rather than the engine's contract. Measured on the
+/// gate's Aldebaran fixture: 4.065" (0.27 s past the transit). Before the
+/// change the instant was the bracket's midpoint, the residual two-sided and
+/// at most half as large, and the check shared `SELF_CONSISTENCY_ARCSEC`.
+pub const TRANSIT_HOUR_ANGLE_ARCSEC: f64 = 7.6;
+
+/// How far BEFORE the meridian (arcseconds) a returned transit may read
+/// before the gate calls it early. The engine guarantees none at all; this
+/// slack only absorbs rounding between the engine's UT1 re-expression of the
+/// instant and the gate's own (`pleiades_apparent::ut1_instant`), at 15"/s
+/// under a millisecond.
+pub const TRANSIT_HOUR_ANGLE_EARLY_SLACK_ARCSEC: f64 = 0.01;

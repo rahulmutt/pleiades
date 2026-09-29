@@ -1,12 +1,18 @@
-//! Horizon-crossing scanner for rise/set: a coarse time grid with culmination
-//! insertion, crossing direction read from the bracket signs, and bisection
-//! to the shared `root::REFINE_TOLERANCE_DAYS`.
+//! Directed-crossing scanner for the observer-local events (rise, set, and
+//! meridian transit): a coarse time grid anchored at the query instant, with
+//! culmination insertion, crossing direction read from the bracket signs, and
+//! bisection to the shared `root::REFINE_TOLERANCE_DAYS`.
 //!
 //! Why not `root::first_crossing_after` and friends: those are generic
 //! "any sign change" scanners tuned for wrapped longitude residuals, and the
 //! rise/set path used them at a 2-minute step so that a fast-Moon graze
 //! could not slip between two samples. That made every rise/set search
 //! linear in the distance to the event at ~30 samples per hour (issue #70).
+//! Their backward twin also walks a window-anchored grid, so whether an event
+//! within the bisection tolerance of the query instant counts as before it
+//! is decided by comparing two independently refined roots. Here every walk
+//! is anchored at the query instant and that question is settled by the
+//! residual's sign there (issues #80, #81; see [`walk`]).
 //!
 //! The altitude residual is smooth on the day scale: it is a sinusoid in
 //! hour angle with one culmination (maximum) and one anti-culmination
@@ -26,6 +32,12 @@
 //! ascending (rise), above-to-below is descending (set) — so callers never
 //! probe past a refined root to classify it, and brackets of the unwanted
 //! direction are skipped without being refined.
+//!
+//! The meridian-transit searches reuse the scanner on the wrapped hour-angle
+//! residual, asking for ascending crossings. That residual climbs steadily
+//! through its zero and drops 360° at the wrap seam, so the seam is a
+//! descending bracket (skipped) and no three same-sign samples ever form an
+//! extremum (the culmination search never runs).
 
 use crate::error::EventError;
 use crate::root::bisect;
@@ -139,10 +151,29 @@ where
 /// Walks the grid `anchor + k·step` (forward from `lo_jd`, or backward from
 /// `hi_jd`), refining every bracket of the wanted direction whose root lies
 /// in `[lo_jd, hi_jd]` and handing each root to `visit` in walk order until
-/// `visit` breaks or the grid is exhausted. Like `root::crossings_in_range`,
-/// the anchor is always evaluated once (so a backend error there propagates
-/// even on an empty range) and the last sample may overshoot the far end by
-/// up to one step; roots outside the range are dropped.
+/// `visit` breaks or the grid is exhausted.
+///
+/// # Guard samples
+///
+/// A culmination shows up as a strict extremum of three consecutive samples,
+/// so the sample nearest to it needs a neighbour on both sides. The grid is
+/// therefore extended by one guard sample beyond each end of the walk: one
+/// step behind the anchor, and one step past the sample that overshoots the
+/// far end. Without them a night (or day) shorter than the step goes unseen
+/// whenever it falls in the first or the last grid interval with the end
+/// sample as its nearest one (issue #81).
+///
+/// Guards inform culmination detection only. A bracket is refined only if it
+/// lies on the walk's side of the anchor and starts before the far end, so a
+/// crossing behind the anchor costs no bisection and is never reported.
+/// Which side of the anchor a crossing falls on is thus decided by the
+/// residual's sign AT the anchor, exactly, not by comparing a refined root
+/// against it: together with `root::bisect` returning the settled end of its
+/// bracket, that is what lets a search anchored at a returned instant step
+/// past the event it describes (issue #80).
+///
+/// Like `root::crossings_in_range`, the anchor is always evaluated once, so
+/// a backend error there propagates even on an empty range.
 fn walk<F, V>(
     f: &mut F,
     lo_jd: f64,
@@ -161,19 +192,29 @@ where
     } else {
         (lo_jd, 1.0)
     };
-    let on_grid = |jd: f64| {
+    let node = |k: f64| anchor + direction * k * step_days;
+    let past_far_end = |jd: f64| {
         if backward {
-            jd >= lo_jd - step_days
+            jd < lo_jd
         } else {
-            jd <= hi_jd + step_days
+            jd > hi_jd
         }
     };
     let in_range = |jd: f64| jd >= lo_jd && jd <= hi_jd;
+    // Whether a time-ordered bracket lies wholly on the walk's side of the
+    // anchor and reaches into the range.
+    let searchable = |earlier: &Sample, later: &Sample| {
+        if backward {
+            later.jd <= hi_jd && later.jd >= lo_jd
+        } else {
+            earlier.jd >= lo_jd && earlier.jd <= hi_jd
+        }
+    };
 
     // Refines one time-ordered bracket and reports its root if wanted and in
     // range. Returns `true` when the visitor asked to stop.
     let mut emit = |f: &mut F, earlier: Sample, later: Sample| -> Result<bool, EventError> {
-        if ascending(&earlier, &later) != want_ascending {
+        if ascending(&earlier, &later) != want_ascending || !searchable(&earlier, &later) {
             return Ok(false);
         }
         let root = bisect(f, earlier.jd, earlier.f, later.jd)?;
@@ -183,51 +224,68 @@ where
         Ok(visit(root).is_break())
     };
 
-    let mut prev2: Option<Sample> = None;
-    let mut prev1: Option<Sample> = None;
-    let mut k = 0.0_f64;
+    let anchor_sample = Sample {
+        jd: anchor,
+        f: f(anchor)?,
+    };
+    if lo_jd > hi_jd {
+        return Ok(());
+    }
+    let guard_jd = node(-1.0);
+    let mut prev2 = Sample {
+        jd: guard_jd,
+        f: f(guard_jd)?,
+    };
+    let mut prev1 = anchor_sample;
+    let mut k = 1.0_f64;
     loop {
-        let jd = anchor + direction * k * step_days;
-        if k > 0.0 && !on_grid(jd) {
+        // `prev2` is the sample two nodes back. Once it is past the far end,
+        // the interval behind `prev1` holds nothing in range and `prev1`
+        // has already served as the far guard.
+        if past_far_end(prev2.jd) {
             return Ok(());
         }
+        let jd = node(k);
         let cur = Sample { jd, f: f(jd)? };
-        if let Some(p1) = prev1 {
-            if below(p1.f) != below(cur.f) {
-                let (earlier, later) = time_ordered(p1, cur);
-                if emit(f, earlier, later)? {
-                    return Ok(());
-                }
-            } else if let Some(p2) = prev2 {
-                // All three samples share a sign (a sign change between p2
-                // and p1 was handled on the previous step); only a grazing
-                // culmination could still hide a pair of crossings here.
-                if below(p2.f) == below(p1.f) && is_strict_extremum(&p2, &p1, &cur) {
-                    let (s0, s2) = time_ordered(p2, cur);
-                    if let Some(peak) = refine_grazing_culmination(f, s0, p1, s2)? {
-                        let (left, right) = if peak.jd < p1.jd { (s0, p1) } else { (p1, s2) };
-                        let brackets = if backward {
-                            [(peak, right), (left, peak)]
-                        } else {
-                            [(left, peak), (peak, right)]
-                        };
-                        for (earlier, later) in brackets {
-                            if emit(f, earlier, later)? {
-                                return Ok(());
-                            }
-                        }
+        if below(prev1.f) != below(cur.f) {
+            let (earlier, later) = time_ordered(prev1, cur);
+            if emit(f, earlier, later)? {
+                return Ok(());
+            }
+        } else if below(prev2.f) == below(prev1.f) && is_strict_extremum(&prev2, &prev1, &cur) {
+            // All three samples share a sign (a sign change between `prev2`
+            // and `prev1` was handled on the previous step); only a grazing
+            // culmination could still hide a pair of crossings here.
+            let (s0, s2) = time_ordered(prev2, cur);
+            if let Some(peak) = refine_grazing_culmination(f, s0, prev1, s2)? {
+                let (left, right) = if peak.jd < prev1.jd {
+                    (s0, prev1)
+                } else {
+                    (prev1, s2)
+                };
+                let brackets = if backward {
+                    [(peak, right), (left, peak)]
+                } else {
+                    [(left, peak), (peak, right)]
+                };
+                for (earlier, later) in brackets {
+                    if emit(f, earlier, later)? {
+                        return Ok(());
                     }
                 }
             }
         }
         prev2 = prev1;
-        prev1 = Some(cur);
+        prev1 = cur;
         k += 1.0;
     }
 }
 
 /// Every root of the wanted direction in `[lo_jd, hi_jd]`, ascending in time.
-pub(crate) fn horizon_crossings_in_range<F>(
+/// A crossing is past `lo_jd` if the residual still carries its pre-crossing
+/// sign there, so one that a previous search settled at `lo_jd` is excluded;
+/// at `hi_jd` the refined root itself is compared.
+pub(crate) fn directed_crossings_in_range<F>(
     mut f: F,
     lo_jd: f64,
     hi_jd: f64,
@@ -254,8 +312,9 @@ where
 }
 
 /// The first root of the wanted direction in `[lo_jd, hi_jd]`, or `None`.
-/// Early-terminating: stops as soon as that root is refined.
-pub(crate) fn first_horizon_crossing_after<F>(
+/// Early-terminating: stops as soon as that root is refined. A crossing is
+/// past `lo_jd` if the residual still carries its pre-crossing sign there.
+pub(crate) fn first_directed_crossing_after<F>(
     mut f: F,
     lo_jd: f64,
     hi_jd: f64,
@@ -283,10 +342,12 @@ where
 
 /// The last root of the wanted direction in `[lo_jd, hi_jd]`, or `None`.
 /// Early-terminating: walks the grid backward from `hi_jd` and stops as soon
-/// as that root is refined. Its grid is anchored at `hi_jd`, not `lo_jd`, so
-/// it brackets different intervals from [`horizon_crossings_in_range`]; the
-/// two agree on the root to within the bisection tolerance, not bit-for-bit.
-pub(crate) fn last_horizon_crossing_before<F>(
+/// as that root is refined. A crossing is at or before `hi_jd` if the
+/// residual already carries its post-crossing sign there. Its grid is
+/// anchored at `hi_jd`, not `lo_jd`, so it brackets different intervals from
+/// [`directed_crossings_in_range`]; the two agree on the root to within the
+/// bisection tolerance, not bit-for-bit.
+pub(crate) fn last_directed_crossing_before<F>(
     mut f: F,
     lo_jd: f64,
     hi_jd: f64,

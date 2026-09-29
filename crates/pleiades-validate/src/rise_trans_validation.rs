@@ -194,8 +194,12 @@ pub struct RiseTransReport {
     /// `rise_trans_thresholds`); tracked in its own field purely so the
     /// summary line can show above/below horizon separately.
     pub max_below_horizon_apparent_alt_residual_arcsec: f64,
-    /// Max Tier-1 self-consistency residual (arcseconds).
+    /// Max Tier-1 self-consistency residual (arcseconds) over the azalt and
+    /// refraction round-trips, gated at `SELF_CONSISTENCY_ARCSEC`.
     pub max_self_consistency_arcsec: f64,
+    /// Hour angle (arcseconds past the meridian) at the Tier-1 returned upper
+    /// transit, gated one-sided at `TRANSIT_HOUR_ANGLE_ARCSEC`.
+    pub transit_hour_angle_arcsec: f64,
 }
 
 impl RiseTransReport {
@@ -214,6 +218,7 @@ impl RiseTransReport {
         format!(
             "validate-rise-trans: {} rise-trans + {} azalt SE fixtures — \
              Tier 1 self-consistency max {:.3}\" (ceiling {:.1}\"), \
+             returned transit {:.3}\" past the meridian (ceiling {:.1}\", never before it), \
              Tier 2 rise/set max {:.3} s (ceiling {:.1} s tight), \
              refraction-floor max {:.3} s (ceiling {:.1} s, Task 17), \
              grazing max {:.3} s (ceiling {:.1} s), \
@@ -227,6 +232,8 @@ impl RiseTransReport {
             self.azalt_checked,
             self.max_self_consistency_arcsec,
             SELF_CONSISTENCY_ARCSEC,
+            self.transit_hour_angle_arcsec,
+            TRANSIT_HOUR_ANGLE_ARCSEC,
             self.max_rise_set_residual_s,
             RISE_SET_SECONDS_TIGHT,
             self.max_refraction_floor_residual_s,
@@ -710,7 +717,10 @@ fn tier1_self_consistency(report: &mut RiseTransReport) -> Result<(), RiseTransE
             report.max_self_consistency_arcsec.max(residual_arcsec);
     }
 
-    // (b) A transit's hour angle ~= 0 (upper) at the found instant. Uses a
+    // (b) A returned upper transit is the settled end of the engine's
+    // refinement bracket: the star is past the meridian there, by less than
+    // the refinement tolerance's worth of rotation, and never short of it
+    // (issues #80/#81). Uses a
     // FixedStar target (Aldebaran) rather than a Body: `target_equatorial`'s
     // FixedStar path is exactly the public `fixed_star_apparent` with no
     // topocentric correction, so this check can be reproduced here without
@@ -737,15 +747,9 @@ fn tier1_self_consistency(report: &mut RiseTransReport) -> Result<(), RiseTransE
     let ut1_at = pleiades_apparent::ut1_instant(tdb(jd))
         .map_err(|e| RiseTransError::Engine(e.to_string()))?;
     let lst = pleiades_apparent::sidereal_time(ut1_at, observer.longitude).local_apparent_deg;
-    let ha_residual_arcsec = wrap180(lst - ra).abs() * 3600.0;
-    if !ha_residual_arcsec.is_finite() || ha_residual_arcsec > SELF_CONSISTENCY_ARCSEC {
-        return Err(RiseTransError::SelfConsistencyExceeded {
-            detail: "transit hour-angle-zero".to_string(),
-            residual_arcsec: ha_residual_arcsec,
-            ceiling_arcsec: SELF_CONSISTENCY_ARCSEC,
-        });
-    }
-    report.max_self_consistency_arcsec = report.max_self_consistency_arcsec.max(ha_residual_arcsec);
+    let hour_angle_arcsec = wrap180(lst - ra) * 3600.0;
+    check_transit_hour_angle(hour_angle_arcsec)?;
+    report.transit_hour_angle_arcsec = hour_angle_arcsec;
 
     // (c) true_from_apparent(apparent_from_true(h)) ~= h at representative
     // non-grazing altitudes.
@@ -762,6 +766,28 @@ fn tier1_self_consistency(report: &mut RiseTransReport) -> Result<(), RiseTransE
         }
         report.max_self_consistency_arcsec =
             report.max_self_consistency_arcsec.max(residual_arcsec);
+    }
+    Ok(())
+}
+
+/// Gates the signed hour angle (arcseconds, positive past the meridian) at a
+/// returned upper transit: fail-closed on a non-finite value, on an instant
+/// that precedes the transit, and on one that trails it by more than the
+/// refinement tolerance allows.
+fn check_transit_hour_angle(hour_angle_arcsec: f64) -> Result<(), RiseTransError> {
+    if !hour_angle_arcsec.is_finite() || hour_angle_arcsec > TRANSIT_HOUR_ANGLE_ARCSEC {
+        return Err(RiseTransError::SelfConsistencyExceeded {
+            detail: "returned transit trails the meridian passage".to_string(),
+            residual_arcsec: hour_angle_arcsec,
+            ceiling_arcsec: TRANSIT_HOUR_ANGLE_ARCSEC,
+        });
+    }
+    if hour_angle_arcsec < -TRANSIT_HOUR_ANGLE_EARLY_SLACK_ARCSEC {
+        return Err(RiseTransError::SelfConsistencyExceeded {
+            detail: "returned transit precedes the meridian passage".to_string(),
+            residual_arcsec: hour_angle_arcsec,
+            ceiling_arcsec: TRANSIT_HOUR_ANGLE_EARLY_SLACK_ARCSEC,
+        });
     }
     Ok(())
 }
@@ -865,5 +891,39 @@ Sun,Rise,40.0000,-74.0000,10.0,default,upper,1,0,0,0,none,1013.250,15.000,248806
             validate_rise_trans_csv(csv, &mut report).unwrap_err(),
             RiseTransError::Schema { .. }
         ));
+    }
+
+    // Issues #80/#81: a returned transit is the settled end of the engine's
+    // refinement bracket, so the gate on its hour angle is one-sided.
+    #[test]
+    fn transit_hour_angle_gate_accepts_a_settled_instant() {
+        for hour_angle_arcsec in [0.0, 4.065, TRANSIT_HOUR_ANGLE_ARCSEC] {
+            check_transit_hour_angle(hour_angle_arcsec)
+                .unwrap_or_else(|e| panic!("{hour_angle_arcsec}: {e:?}"));
+        }
+    }
+
+    #[test]
+    fn transit_hour_angle_gate_rejects_an_instant_before_the_transit() {
+        // 1.0" short of the meridian: inside the old two-sided 2.6" ceiling,
+        // but an instant that precedes its event breaks chained searches.
+        let err = check_transit_hour_angle(-1.0).unwrap_err();
+        assert!(
+            matches!(&err, RiseTransError::SelfConsistencyExceeded { detail, .. }
+                if detail.contains("precedes")),
+            "{err:?}"
+        );
+    }
+
+    #[test]
+    fn transit_hour_angle_gate_rejects_an_instant_beyond_the_tolerance() {
+        for hour_angle_arcsec in [TRANSIT_HOUR_ANGLE_ARCSEC + 0.1, f64::NAN, f64::INFINITY] {
+            let err = check_transit_hour_angle(hour_angle_arcsec).unwrap_err();
+            assert!(
+                matches!(&err, RiseTransError::SelfConsistencyExceeded { detail, .. }
+                    if detail.contains("trails")),
+                "{hour_angle_arcsec}: {err:?}"
+            );
+        }
     }
 }
