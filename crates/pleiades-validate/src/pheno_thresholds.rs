@@ -13,15 +13,15 @@
 //! non-Saturn body, does not fire), so no coefficient audit against `swecl.c`
 //! was needed before pinning.
 
-/// Phase-angle residual vs Swiss Ephemeris, arcsec. Measured max 57.791329″
-/// (Mercury) on 2026-07-07 corpus; ceiling ~1.4×.
-pub const PHASE_ANGLE_ARCSEC: f64 = 85.0;
+/// Phase-angle residual vs Swiss Ephemeris, arcsec. Measured max 37.037″
+/// on 2026-09-30 corpus, after the #93 aberration fix; ceiling ~1.4×.
+pub const PHASE_ANGLE_ARCSEC: f64 = 52.0;
 /// Illuminated-fraction residual (absolute). Measured max 0.00012207 on
 /// 2026-07-07 corpus; ceiling ~1.4×.
 pub const PHASE_FRACTION_ABS: f64 = 2e-4;
-/// Elongation residual, arcsec. Measured max 20.966209″ (Uranus) on
-/// 2026-07-07 corpus; ceiling ~1.4×.
-pub const ELONGATION_ARCSEC: f64 = 30.0;
+/// Elongation residual, arcsec. Measured max 1.803″ on
+/// 2026-09-30 corpus, after the #93 aberration fix; ceiling ~1.4×.
+pub const ELONGATION_ARCSEC: f64 = 3.0;
 /// Apparent-diameter residual, arcsec. Measured max 0.192600″ (Moon) on
 /// 2026-07-07 corpus; ceiling ~1.4×.
 pub const DIAMETER_ARCSEC: f64 = 0.3;

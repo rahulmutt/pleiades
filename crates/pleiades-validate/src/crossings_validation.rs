@@ -32,20 +32,21 @@ const EXPECTED_ROWS: usize = 86;
 const SELF_CONSISTENCY_TOL_S: f64 = 1.0;
 
 // Tier-2 per-body arcsecond ceilings — MEASURED from the committed corpus and set
-// to ceil(1.4x each body-class group max). These are cross-theory (SE Moshier vs
-// engine VSOP87/ELP) floors, not engine error; cf. validate-lilith accepting ~306".
-// Measured group maxima (86-row corpus): geo Sun 0.32", geo Moon 21.70",
-// geo planets (Mercury-Neptune) 20.96", helio (non-Pluto) 35.09".
+// to ceil(1.4x each body-class group max). Cross-theory (SE Moshier vs engine)
+// floors, not engine error. Measured group maxima (86-row corpus, 2026-09-30, after
+// the #93 aberration fix): geo Sun 0.322", geo Moon 2.606", geo planets
+// (Mercury-Neptune) 0.483", helio (non-Pluto) 35.090". Before #93 the geo Moon and
+// planet groups measured 21.70" and 20.96": the double-counted ~20" term.
 const GEO_SUN_ARCSEC: f64 = 1.0;
-const GEO_MOON_ARCSEC: f64 = 31.0;
-const GEO_PLANET_ARCSEC: f64 = 30.0;
+const GEO_MOON_ARCSEC: f64 = 4.0;
+const GEO_PLANET_ARCSEC: f64 = 1.0;
 const HELIO_ARCSEC: f64 = 50.0;
 // Pluto meets a normal measured per-body ceiling like every other body (not a coverage
 // boundary or an exclusion). It is simply wider than the inner planets because VSOP87
 // excludes Pluto, so the backend serves it from a mean-element fallback instead: that
-// fallback is accurate for the corpus targets — measured max 11.88" (geo) / 3.53"
+// fallback is accurate for the corpus targets — measured max 0.697" (geo) / 3.530"
 // (helio) — so the ceiling is just Pluto's own 1.4x value like the other groups.
-const PLUTO_ARCSEC: f64 = 17.0;
+const PLUTO_ARCSEC: f64 = 5.0;
 
 #[derive(Debug)]
 pub enum CrossingsCorpusError {
