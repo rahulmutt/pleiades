@@ -2048,3 +2048,51 @@ neighbouring surfaces were deliberately left out of that change:
 
 **Severity:** correctness at the tolerance boundary (consumer-visible only
 when chaining searches) · **Opened:** 2026-09-29
+
+---
+
+## FU-14: Moon apparent-place residual against Horizons after the #93 aberration fix
+
+**Status:** open · Opened 2026-09-30 while fixing #93.
+
+**What:** #93 removed the separate annual-aberration term from the generic
+light-time path; the planets' Horizons residuals collapsed to the ephemeris-fit
+floor (Jupiter–Pluto under 0.5″). The Moon did not. Measured on the #93 branch
+(`validate-apparent` diagnostic, geocentric, Horizons ObsEcLon Q31):
+
+| JD (TT) | Moon residual vs Horizons |
+|---|---|
+| 2415025.5 | +1.095″ |
+| 2433282.5 | −14.781″ |
+| 2451545.0 | −32.100″ |
+| 2469807.5 | −38.781″ |
+| 2488065.5 | −38.704″ |
+
+Against Swiss Ephemeris (`validate-crossings` Tier-2, `geo/Moon` group, engine
+longitude at the SE crossing instant) the same code measures a maximum of
+2.606″ (21.701″ before the fix). The Moon's equatorial-goldens Dec maximum rose
+from 11.70″ to 12.37″ (jd 2469807.5) with the fix while every other body's
+residual fell; the `validate-equatorial` Moon Dec tolerance was tightened to
+14.4″ under #93. The tightened Moon tolerances are: apparent 40.8″, equatorial
+RA 40.3″ / Dec 14.4″, topocentric longitude 16.7″ (each = measured max + 2″);
+`validate-crossings` `GEO_MOON_ARCSEC` is 4″.
+
+**Reading:** The two references disagree by roughly the size of the removed
+term, so the suspect is the Horizons goldens themselves (what Horizons'
+geocentric "apparent" ObsEcLon includes for the Moon) rather than the packaged
+Moon.
+
+**Impact:** Moon apparent longitude may carry a systematic error of up to the
+Horizons residual above in charts and every `pleiades-events` surface built on
+it (about 2 s of time per 1″). The `validate-apparent`, `validate-equatorial`
+and `validate-topocentric` Moon tolerances were tightened to the measured
+maxima + 2″ under #93 and bound it.
+
+**Suggested next step:** one probe per hypothesis. (a) Query Horizons for the
+Moon at one epoch with `QUANTITIES='31'` and again with the geometric
+`QUANTITIES='18'`-style astrometric quantity and compare their difference to
+the engine's provenance aberration estimate. (b) Compare the packaged Moon's
+J2000 geometric longitude at the same epoch against the DE440 SPK sample the
+artifact was fit from.
+
+**Origin:** issue #93, `docs/superpowers/specs/2026-09-30-apparent-aberration-double-count-design.md` section 4.
