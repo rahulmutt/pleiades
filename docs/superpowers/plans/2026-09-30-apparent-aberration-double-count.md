@@ -71,10 +71,36 @@ Per-body (from the diagnostic tests in Task 1):
 
 ### After the fix (Task 4)
 
-Same two tables, measured on the Task 2 commit.
+Same two tables, measured on the Task 2 commit. The crossings engine-golden column was regenerated in Task 2, so `validate-crossings` passes Tier-1 (max 0.000 s).
 
 | Gate | Reported maximum | Row / body |
 |---|---|---|
+| validate-apparent | 38.78" | Moon, jd 2469807.5 |
+| validate-equatorial (RA / Dec) | 38.28" / 12.37" | Moon, RA jd 2488065.5 / Dec jd 2469807.5 |
+| validate-topocentric (lon) | 14.68" | Moon, jd 2488065.5 |
+| validate-crossings Tier-2 (overall) | 35.1" | helio/Mercury (35.090"), row helio,Mercury,0.0,2426000.5 |
+| validate-pheno elongation / phase angle | 1.803" / 37.037" | row not printed by the gate |
+| validate-occultations contact / contact_grazing | 6.747 s / 709.779 s | row not printed by the gate |
+| validate-rise-trans rise/set tight / transit | 3.259 s / 0.383 s | row not printed by the gate |
+
+| Body | apparent goldens max \|res\| | equatorial max RA / Dec | topocentric max lon | crossings Tier-2 group max |
+|---|---|---|---|---|
+| Sun | 2.83" | 2.825" / 0.244" | 0.080" | geo 0.322" |
+| Moon | 38.78" | 38.28" / 12.37" | 14.68" | geo 2.606" |
+| Mercury | 4.54" | 4.53" / 0.49" | n/a (no rows) | geo 0.328" |
+| Venus | 3.67" | 3.68" / 1.05" | n/a (no rows) | geo 0.376" |
+| Mars | 2.03" | 1.89" / 0.73" | 0.17" | geo 0.356" |
+| Jupiter | 0.46" | 0.45" / 0.10" | n/a (no rows) | geo 0.315" |
+| Saturn | 0.26" | 0.26" / 0.05" | n/a (no rows) | geo 0.483" |
+| Uranus | 0.26" | 0.25" / 0.08" | n/a (no rows) | geo 0.261" |
+| Neptune | 0.19" | 0.18" / 0.06" | n/a (no rows) | geo 0.435" |
+| Pluto | 0.18" | 0.17" / 0.08" | n/a (no rows) | geo 0.697" |
+| helio (non-Pluto) | n/a | n/a | n/a | 35.090" (Mercury; Venus 23.912", Mars 17.951", Jupiter 9.322", Saturn 6.540", Uranus 5.095", Neptune 4.137") |
+| helio Pluto | n/a | n/a | n/a | 3.530" |
+
+Moon signed apparent residuals per epoch (jd 2415025.5, 2433282.5, 2451545, 2469807.5, 2488065.5): +1.095", -14.781", -32.100", -38.781", -38.704". They grow steadily with epoch and do not agree with the SE crossings residual (geo/Moon max 2.606"), so the Moon's apparent-vs-Horizons gap is not a crossings-parity effect (FU-14 reading input).
+
+---|---|---|
 | validate-apparent | | |
 | validate-equatorial (RA / Dec) | | |
 | validate-topocentric (lon) | | |
