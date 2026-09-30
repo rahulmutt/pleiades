@@ -1,8 +1,13 @@
 //! Orchestrator: light-time-corrected J2000 position + Sun's longitude of date +
 //! instant -> apparent ecliptic-of-date position with provenance. Applies, in
-//! order: light-time, precession (J2000 -> mean equinox of date), nutation Δψ
-//! (-> true equinox of date), then annual aberration. Gravitational
-//! light-deflection is not applied (sub-arcsec except near the solar limb).
+//! order: light-time (a re-query of the *geocentric* position at `t − τ`, which
+//! retards the Earth along with the body and so already carries annual
+//! aberration to first order — Meeus, *Astronomical Algorithms* ch. 33),
+//! precession (J2000 -> mean equinox of date), then nutation Δψ (-> true equinox
+//! of date). No separate annual-aberration term is added on that path; the
+//! Meeus 23.2 value is computed only to report the included component in the
+//! provenance (#93). Gravitational light-deflection is not applied (sub-arcsec
+//! except near the solar limb).
 
 use pleiades_types::{EclipticCoordinates, Instant, Latitude, Longitude};
 
@@ -63,9 +68,17 @@ pub struct ApparentPosition {
 /// Computes the apparent ecliptic-of-date position for a body.
 ///
 /// `query` returns the body's geocentric ecliptic position (J2000, with
-/// `distance_au`) at a given instant in mean mode. `sun_true_longitude_of_date_deg`
-/// is the Sun's true geometric longitude OF DATE at `instant` (the caller is
-/// responsible for precessing it), supplied for the aberration term.
+/// `distance_au`) at a given instant in mean mode; it is re-queried at the
+/// light-time-retarded instant `t − τ`. Because that position is
+/// `body(t − τ) − Earth(t − τ)`, the Earth is retarded with the body and the
+/// direction already includes annual aberration. Precession and nutation are
+/// then applied; no further aberration term is added.
+///
+/// `sun_true_longitude_of_date_deg` is the Sun's true geometric longitude OF
+/// DATE at `instant` (the caller is responsible for precessing it). It feeds
+/// only the provenance's `aberration_longitude_arcsec`, the Meeus 23.2 estimate
+/// of the aberration component the retarded query contains; a non-finite value
+/// fails closed with `NonFiniteCorrection { stage: "aberration-estimate" }`.
 pub fn apparent_position<F, E>(
     instant: Instant,
     sun_true_longitude_of_date_deg: f64,
@@ -85,14 +98,25 @@ where
     let lambda = precessed.longitude_deg;
     let beta = precessed.latitude_deg;
 
+    // The light-time re-query retarded the Earth along with the body, so the
+    // retarded geocentric direction already carries annual aberration to first
+    // order. The Meeus 23.2 value is computed only to report that included
+    // component in the provenance; it is NOT added to the position (#93).
     let aberration = annual_aberration(lambda, beta, sun_true_longitude_of_date_deg, jd_tt);
+    if !aberration.d_lambda_arcsec.is_finite() || !aberration.d_beta_arcsec.is_finite() {
+        return Err(ApparentLightTimeError::Apparent(
+            ApparentPlaceError::NonFiniteCorrection {
+                stage: "aberration-estimate",
+            },
+        ));
+    }
     let nut = nutation(jd_tt).map_err(ApparentLightTimeError::Apparent)?;
 
     let (apparent_lon, apparent_lat) = combine_apparent(
         lambda,
         beta,
-        aberration.d_lambda_arcsec,
-        aberration.d_beta_arcsec,
+        0.0,
+        0.0,
         nut.delta_psi_arcsec,
         "apparent-combine",
     )
@@ -130,14 +154,15 @@ where
 /// Computes the apparent ecliptic-of-date position of the **geocentric Sun**,
 /// applying annual aberration **exactly once** with no light-time re-query.
 ///
-/// For a planet, light-time retardation and annual aberration are physically
-/// distinct effects ("planetary aberration" = both). For the Sun they are the
-/// *same* ~20.5″ Earth-orbital reflex effect (Meeus, *Astronomical Algorithms*
-/// §25): re-querying the geocentric Sun at `t − τ` already displaces it by the
-/// aberration amount, so applying a separate annual-aberration term on top
-/// double-counts it. This routine therefore takes the Sun's instantaneous
-/// (un-retarded) Mean/J2000 geocentric ecliptic position and applies precession,
-/// nutation, and aberration once — never a light-time re-query.
+/// Every body's light-time re-query of its *geocentric* position at `t − τ`
+/// carries annual aberration, because the Earth is retarded together with the
+/// body (see the module doc; this is why [`apparent_position`] adds no separate
+/// term). The Sun path takes the equivalent un-retarded route instead: it
+/// starts from the Sun's instantaneous Mean/J2000 geocentric position and
+/// applies precession, nutation, and the Meeus 23.2 term once — never a
+/// light-time re-query. For the Sun the two routes agree to first order
+/// (~20.5″); the un-retarded form keeps the Sun's distance and provenance
+/// simple and was the FU-1 fix (2026-06-30).
 ///
 /// The Sun's own true longitude of date supplies the `⊙` argument of the
 /// aberration formula (`⊙ = λ`). Distance passes through unchanged (it is

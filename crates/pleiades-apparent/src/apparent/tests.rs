@@ -10,16 +10,23 @@ fn fixed(lon: f64, lat: f64, dist: f64) -> EclipticCoordinates {
 }
 
 #[test]
-fn at_j2000_only_aberration_and_nutation_shift_longitude() {
-    // At J2000 precession is the identity, so the shift from mean is only
-    // (Δψ + Δλ)/3600, < ~0.01°, and the precession provenance is ~0.
+fn at_j2000_only_nutation_shifts_longitude() {
+    // At J2000 precession is the identity, so the shift from mean is only Δψ/3600
+    // and the precession provenance is ~0.
     let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
     let out = apparent_position::<_, ApparentPlaceError>(instant, 280.0, 8, |_| {
         Ok(fixed(100.0, 0.0, 1.0))
     })
     .unwrap();
     let shift_arcsec = (out.ecliptic.longitude.degrees() - 100.0) * 3600.0;
-    assert!(shift_arcsec.abs() < 40.0, "shift {shift_arcsec}\"");
+    assert!(
+        shift_arcsec.abs() < 20.0,
+        "shift {shift_arcsec}\" must be Δψ only"
+    );
+    assert!(
+        shift_arcsec.abs() > 1.0,
+        "nutation Δψ not applied: {shift_arcsec}\""
+    );
     assert!(
         out.provenance.precession_longitude_arcsec.abs() < 1.0,
         "precession should be ~0 at J2000"
@@ -49,15 +56,15 @@ fn precession_dominates_far_from_j2000() {
 }
 
 #[test]
-fn latitude_moves_by_precession_and_aberration_only() {
-    // At J2000, Δψ does not change latitude; only aberration's sub-arcsec Δβ does.
+fn latitude_unchanged_on_light_time_path_at_j2000() {
+    // At J2000 precession is the identity and Δψ does not touch latitude; with no separate aberration term the latitude passes through.
     let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
     let out = apparent_position::<_, ApparentPlaceError>(instant, 280.0, 8, |_| {
         Ok(fixed(100.0, 5.0, 1.0))
     })
     .unwrap();
     let dlat_arcsec = (out.ecliptic.latitude.degrees() - 5.0) * 3600.0;
-    assert!(dlat_arcsec.abs() < 1.0, "Δβ {dlat_arcsec}\"");
+    assert!(dlat_arcsec.abs() < 1e-3, "Δβ {dlat_arcsec}\"");
 }
 
 #[test]
@@ -337,13 +344,13 @@ fn apparent_position_equals_independent_recomposition() {
             .unwrap();
 
     let p = crate::precession::precess_ecliptic_j2000_to_date(l0, b0, jd).unwrap();
-    let ab = crate::aberration::annual_aberration(p.longitude_deg, p.latitude_deg, sun, jd);
     let nut = crate::nutation::nutation(jd).unwrap();
+    // No separate aberration term on the light-time path (#93).
     let (exp_lon, exp_lat) = combine_apparent(
         p.longitude_deg,
         p.latitude_deg,
-        ab.d_lambda_arcsec,
-        ab.d_beta_arcsec,
+        0.0,
+        0.0,
         nut.delta_psi_arcsec,
         "apparent-combine",
     )
@@ -407,6 +414,174 @@ fn apparent_apsis_position_propagates_non_finite_input() {
             ApparentPlaceError::NonFiniteCorrection {
                 stage: "precession"
             }
+        ),
+        "unexpected error: {err:?}"
+    );
+}
+
+#[test]
+fn light_time_path_applies_no_separate_aberration_term() {
+    // A body that does not move between queries carries no aberration in its
+    // retarded geocentric position, so the output must be precession + Δψ only.
+    // With the Sun 180° from the body the Meeus estimate is ≈ +κ ≈ +20.5″, a
+    // regression that re-adds the term fails here by that amount.
+    let jd = 2_451_545.0_f64;
+    let instant = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+    let out = apparent_position::<_, ApparentPlaceError>(instant, 280.0, 8, |_| {
+        Ok(fixed(100.0, 5.0, 1.0))
+    })
+    .unwrap();
+
+    let p = crate::precession::precess_ecliptic_j2000_to_date(100.0, 5.0, jd).unwrap();
+    let nut = crate::nutation::nutation(jd).unwrap();
+    let expected_lon = (p.longitude_deg + nut.delta_psi_arcsec / 3600.0).rem_euclid(360.0);
+    let dlon_arcsec = (out.ecliptic.longitude.degrees() - expected_lon) * 3600.0;
+    let dlat_arcsec = (out.ecliptic.latitude.degrees() - p.latitude_deg) * 3600.0;
+    assert!(
+        dlon_arcsec.abs() < 1e-6,
+        "separate aberration term applied: {dlon_arcsec}\""
+    );
+    assert!(dlat_arcsec.abs() < 1e-6, "latitude moved: {dlat_arcsec}\"");
+
+    // The estimate of the included component is still reported, and it is not small.
+    let ab = crate::aberration::annual_aberration(p.longitude_deg, p.latitude_deg, 280.0, jd);
+    assert!(
+        ab.d_lambda_arcsec.abs() > 5.0,
+        "fixture should give a ~20\" estimate"
+    );
+    assert!((out.provenance.aberration_longitude_arcsec - ab.d_lambda_arcsec).abs() < 1e-12);
+    assert!(out.provenance.corrections.annual_aberration);
+    assert!(out.provenance.corrections.light_time);
+}
+
+mod retarded_earth {
+    use super::*;
+    use crate::lighttime::LIGHT_TIME_DAYS_PER_AU;
+
+    type Vec3 = [f64; 3];
+
+    pub fn earth_helio(t_days: f64) -> Vec3 {
+        let a = core::f64::consts::TAU / 365.25 * t_days;
+        [a.cos(), a.sin(), 0.0]
+    }
+
+    pub fn body_helio(t_days: f64) -> Vec3 {
+        // Phase offset 1 rad so the body is neither at opposition nor conjunction.
+        let a = core::f64::consts::TAU / 4332.6 * t_days + 1.0;
+        let (r, inc) = (5.2, 1.3_f64.to_radians());
+        [
+            r * a.cos(),
+            r * a.sin() * inc.cos(),
+            r * a.sin() * inc.sin(),
+        ]
+    }
+
+    pub fn sub(a: Vec3, b: Vec3) -> Vec3 {
+        [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+    }
+
+    pub fn norm(v: Vec3) -> f64 {
+        (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt()
+    }
+
+    pub fn to_ecliptic(v: Vec3) -> EclipticCoordinates {
+        let d = norm(v);
+        let lon = v[1].atan2(v[0]).to_degrees().rem_euclid(360.0);
+        let lat = (v[2] / d).asin().to_degrees();
+        fixed(lon, lat, d)
+    }
+
+    /// `body(t − τ) − Earth(t)`, τ converged, then first-order aberration
+    /// (û + v/c) applied once. J2000 frame, degrees.
+    pub fn reference_j2000_at_epoch() -> EclipticCoordinates {
+        let earth = earth_helio(0.0);
+        let mut tau = 0.0_f64;
+        for _ in 0..10 {
+            tau = norm(sub(body_helio(-tau), earth)) * LIGHT_TIME_DAYS_PER_AU;
+        }
+        let u = sub(body_helio(-tau), earth);
+        let d = norm(u);
+        let h = 1e-3;
+        let (e1, e0) = (earth_helio(h), earth_helio(-h));
+        let v = [
+            (e1[0] - e0[0]) / (2.0 * h),
+            (e1[1] - e0[1]) / (2.0 * h),
+            (e1[2] - e0[2]) / (2.0 * h),
+        ];
+        // v/c with c in AU/day = 1 / LIGHT_TIME_DAYS_PER_AU.
+        let aberrated = [
+            u[0] / d + v[0] * LIGHT_TIME_DAYS_PER_AU,
+            u[1] / d + v[1] * LIGHT_TIME_DAYS_PER_AU,
+            u[2] / d + v[2] * LIGHT_TIME_DAYS_PER_AU,
+        ];
+        to_ecliptic(aberrated)
+    }
+}
+
+#[test]
+fn light_time_requery_of_geocentric_position_matches_retarded_earth_reference() {
+    // The retarded geocentric query is body(t−τ) − Earth(t−τ). Retarding the
+    // Earth by τ displaces the direction by v·τ = Δ·(v/c), the first-order
+    // annual aberration, so the pipeline must agree with an explicit
+    // "retard the body only, then aberrate once" reference to well under 0.1″
+    // in both longitude and latitude. Second-order terms are ~0.01″.
+    use retarded_earth::*;
+    let jd0 = 2_451_545.0 + 1000.0;
+    let instant = Instant::new(JulianDay::from_days(jd0), TimeScale::Tt);
+    let out = apparent_position::<_, ApparentPlaceError>(instant, 0.0, 8, |t| {
+        let dt = t.julian_day.days() - jd0;
+        Ok(to_ecliptic(sub(body_helio(dt), earth_helio(dt))))
+    })
+    .unwrap();
+
+    let reference = reference_j2000_at_epoch();
+    let p = crate::precession::precess_ecliptic_j2000_to_date(
+        reference.longitude.degrees(),
+        reference.latitude.degrees(),
+        jd0,
+    )
+    .unwrap();
+    let nut = crate::nutation::nutation(jd0).unwrap();
+    let expected_lon = (p.longitude_deg + nut.delta_psi_arcsec / 3600.0).rem_euclid(360.0);
+    let expected_lat = p.latitude_deg;
+
+    let mut dlon = out.ecliptic.longitude.degrees() - expected_lon;
+    if dlon > 180.0 {
+        dlon -= 360.0;
+    } else if dlon < -180.0 {
+        dlon += 360.0;
+    }
+    let dlon_arcsec = dlon * 3600.0;
+    let dlat_arcsec = (out.ecliptic.latitude.degrees() - expected_lat) * 3600.0;
+    assert!(
+        dlon_arcsec.abs() < 0.1,
+        "longitude off retarded-Earth reference by {dlon_arcsec}\""
+    );
+    assert!(
+        dlat_arcsec.abs() < 0.1,
+        "latitude off retarded-Earth reference by {dlat_arcsec}\""
+    );
+    assert!(
+        out.provenance.light_time_days > 0.02,
+        "Jupiter-like light-time expected"
+    );
+}
+
+#[test]
+fn non_finite_sun_longitude_fails_closed() {
+    // The Sun longitude only feeds the provenance estimate now, but a NaN in
+    // provenance must not ride out on a finite position.
+    let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
+    let err = apparent_position::<_, ApparentPlaceError>(instant, f64::NAN, 8, |_| {
+        Ok(fixed(100.0, 0.0, 1.0))
+    })
+    .unwrap_err();
+    assert!(
+        matches!(
+            err,
+            ApparentLightTimeError::Apparent(ApparentPlaceError::NonFiniteCorrection {
+                stage: "aberration-estimate"
+            })
         ),
         "unexpected error: {err:?}"
     );
