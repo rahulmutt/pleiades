@@ -411,4 +411,43 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,NaN
         }
         out
     }
+
+    /// Diagnostic: Tier-2 SE-parity maximum per (frame, body) group, so the
+    /// per-group ceilings can be re-measured. Run with
+    /// `cargo test -p pleiades-validate crossings_validation::tests::measure_per_group_parity -- --nocapture --ignored`
+    #[test]
+    #[ignore]
+    fn measure_per_group_parity() {
+        let engine = EventEngine::new(packaged_backend());
+        let mut max_by_group: std::collections::BTreeMap<String, (f64, String)> =
+            std::collections::BTreeMap::new();
+        for line in CORPUS_CSV.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') || line.starts_with("frame,") {
+                continue;
+            }
+            let f: Vec<&str> = line.split(',').collect();
+            let frame = match f[0] {
+                "geo" => CrossingFrame::GeocentricApparentOfDate,
+                "helio" => CrossingFrame::Heliocentric,
+                other => panic!("unknown frame {other}"),
+            };
+            let body = parse_body(f[1]).expect("known body");
+            let target: f64 = f[2].parse().expect("target");
+            let se_jd: f64 = f[5].parse().expect("se jd");
+            let se_instant = Instant::new(JulianDay::from_days(se_jd), TimeScale::Tdb);
+            let lambda = engine
+                .longitude_at(body.clone(), frame, se_instant)
+                .expect("longitude_at");
+            let residual_arcsec = wrap180_deg(lambda.degrees() - target).abs() * 3600.0;
+            let group = format!("{}/{}", f[0], f[1]);
+            let entry = max_by_group.entry(group).or_insert((0.0, String::new()));
+            if residual_arcsec > entry.0 {
+                *entry = (residual_arcsec, line.to_string());
+            }
+        }
+        for (group, (max, row)) in &max_by_group {
+            eprintln!("max {group} {max:.3}\" on row: {row}");
+        }
+    }
 }

@@ -44,30 +44,30 @@ Fill these tables in as the tasks run. They are the record the spec asks for.
 
 | Gate | Reported maximum | Row / body |
 |---|---|---|
-| validate-apparent | | |
-| validate-equatorial (RA / Dec) | | |
-| validate-topocentric (lon) | | |
-| validate-crossings Tier-2 (overall) | | |
-| validate-pheno elongation / phase angle | | |
-| validate-occultations contact / contact_grazing | | |
-| validate-rise-trans rise/set tight / transit | | |
+| validate-apparent | 43.46" | Moon, jd 2451545 |
+| validate-equatorial (RA / Dec) | 41.69" / 11.70" | Moon, jd 2451545 (both) |
+| validate-topocentric (lon) | 35.82" | Moon, jd 2488065.5 |
+| validate-crossings Tier-2 (overall) | 35.1" | helio/Mercury (35.090"), row helio,Mercury,0.0,2426000.5 |
+| validate-pheno elongation / phase angle | 20.966" / 57.791" | row not printed by the gate |
+| validate-occultations contact / contact_grazing | 45.782 s / 710.029 s | row not printed by the gate |
+| validate-rise-trans rise/set tight / transit | 3.259 s / 0.781 s | row not printed by the gate |
 
 Per-body (from the diagnostic tests in Task 1):
 
 | Body | apparent goldens max \|res\| | equatorial max RA / Dec | topocentric max lon | crossings Tier-2 group max |
 |---|---|---|---|---|
-| Sun | | | | |
-| Moon | | | | |
-| Mercury | | | | |
-| Venus | | | | |
-| Mars | | | | |
-| Jupiter | | | | |
-| Saturn | | | | |
-| Uranus | | | | |
-| Neptune | | | | |
-| Pluto | | | | |
-| helio (non-Pluto) | n/a | n/a | n/a | |
-| helio Pluto | n/a | n/a | n/a | |
+| Sun | 2.83" | 2.825" / 0.244" | 0.080" | geo 0.322" |
+| Moon | 43.46" | 41.69" / 11.70" | 35.82" | geo 21.701" |
+| Mercury | 25.31" | 25.21" / 4.76" | n/a (no rows) | geo 20.868" |
+| Venus | 24.51" | 24.44" / 6.31" | n/a (no rows) | geo 20.911" |
+| Mars | 20.93" | 20.74" / 5.87" | 20.99" | geo 19.998" |
+| Jupiter | 19.93" | 19.42" / 4.84" | n/a (no rows) | geo 19.989" |
+| Saturn | 20.21" | 19.95" / 4.00" | n/a (no rows) | geo 20.960" |
+| Uranus | 20.87" | 20.87" / 5.19" | n/a (no rows) | geo 20.209" |
+| Neptune | 19.52" | 19.50" / 4.41" | n/a (no rows) | geo 19.831" |
+| Pluto | 18.61" | 18.38" / 7.98" | n/a (no rows) | geo 11.882" |
+| helio (non-Pluto) | n/a | n/a | n/a | 35.090" (Mercury; Venus 23.912", Mars 17.951", Jupiter 9.322", Saturn 6.540", Uranus 5.095", Neptune 4.137") |
+| helio Pluto | n/a | n/a | n/a | 3.530" |
 
 ### After the fix (Task 4)
 

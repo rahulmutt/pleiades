@@ -607,4 +607,47 @@ mod tests {
             "update GOLDENS_CHECKSUM to {actual}"
         );
     }
+
+    /// Diagnostic: per-body maximum cos(Dec)-weighted RA and Dec residual against
+    /// the Horizons goldens. Run with
+    /// `cargo test -p pleiades-validate equatorial_validation::tests::measure_goldens_per_body -- --nocapture --ignored`
+    #[test]
+    #[ignore]
+    fn measure_goldens_per_body() {
+        let rows = parse().expect("goldens parse");
+        let engine = ChartEngine::new(PackagedDataBackend::new());
+        let mut max_by_body: std::collections::BTreeMap<String, (f64, f64, f64, f64)> =
+            std::collections::BTreeMap::new();
+        for row in &rows {
+            let instant = Instant::new(JulianDay::from_days(row.jd_tt), TimeScale::Tt);
+            let req = ChartRequest::new(instant)
+                .with_bodies(vec![row.body.clone()])
+                .with_apparentness(Apparentness::Apparent);
+            let snap = engine.chart(&req).expect("chart");
+            let p = snap.placement_for(&row.body).expect("placement");
+            let eq = p.position.equatorial.expect("equatorial");
+            let cos_dec = row.dec_deg.to_radians().cos();
+            let ra_resid =
+                (wrap_deg(eq.right_ascension.degrees() - row.ra_deg).abs() * cos_dec) * 3600.0;
+            let dec_resid = (eq.declination.degrees() - row.dec_deg).abs() * 3600.0;
+            eprintln!(
+                "{},{},{ra_resid:.3},{dec_resid:.3}",
+                row.body_label, row.jd_tt
+            );
+            let entry = max_by_body
+                .entry(row.body_label.clone())
+                .or_insert((0.0, row.jd_tt, 0.0, row.jd_tt));
+            if ra_resid > entry.0 {
+                entry.0 = ra_resid;
+                entry.1 = row.jd_tt;
+            }
+            if dec_resid > entry.2 {
+                entry.2 = dec_resid;
+                entry.3 = row.jd_tt;
+            }
+        }
+        for (body, (ra, ra_jd, dec, dec_jd)) in &max_by_body {
+            eprintln!("max {body} RA {ra:.3}\" at jd {ra_jd}; Dec {dec:.3}\" at jd {dec_jd}");
+        }
+    }
 }

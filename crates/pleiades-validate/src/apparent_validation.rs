@@ -394,6 +394,59 @@ mod tests {
         );
     }
 
+    /// Diagnostic: signed per-row residual against the Horizons goldens and the
+    /// aberration component the pipeline reports, plus a per-body maximum. Run with
+    /// `cargo test -p pleiades-validate apparent_validation::tests::measure_per_body_residuals -- --nocapture --ignored`
+    #[test]
+    #[ignore]
+    fn measure_per_body_residuals() {
+        let rows = parse_goldens().expect("goldens parse");
+        let engine = ChartEngine::new(PackagedDataBackend::new());
+        let mut max_by_body: std::collections::BTreeMap<String, (f64, f64)> =
+            std::collections::BTreeMap::new();
+        eprintln!("body,jd_tt,signed_residual_arcsec,reported_aberration_arcsec");
+        for row in &rows {
+            let instant = Instant::new(JulianDay::from_days(row.jd_tt), TimeScale::Tt);
+            let request = ChartRequest::new(instant)
+                .with_bodies(vec![row.body.clone()])
+                .with_apparentness(Apparentness::Apparent);
+            let snapshot = engine.chart(&request).expect("chart");
+            let placement = snapshot.placement_for(&row.body).expect("placement");
+            let got = placement
+                .position
+                .ecliptic
+                .as_ref()
+                .expect("ecliptic")
+                .longitude
+                .degrees();
+            let mut signed = got - row.apparent_longitude_deg;
+            if signed > 180.0 {
+                signed -= 360.0;
+            } else if signed < -180.0 {
+                signed += 360.0;
+            }
+            let residual_arcsec = signed * 3600.0;
+            let aberration = placement
+                .apparent
+                .as_ref()
+                .map(|a| a.aberration_longitude_arcsec)
+                .unwrap_or(f64::NAN);
+            eprintln!(
+                "{},{},{residual_arcsec:.3},{aberration:.3}",
+                row.body_label, row.jd_tt
+            );
+            let entry = max_by_body
+                .entry(row.body_label.clone())
+                .or_insert((0.0, row.jd_tt));
+            if residual_arcsec.abs() > entry.0 {
+                *entry = (residual_arcsec.abs(), row.jd_tt);
+            }
+        }
+        for (body, (max, jd)) in &max_by_body {
+            eprintln!("max {body} {max:.3}\" at jd {jd}");
+        }
+    }
+
     #[test]
     fn apparent_goldens_pass() {
         validate_apparent_goldens().expect("apparent goldens within tolerance");
