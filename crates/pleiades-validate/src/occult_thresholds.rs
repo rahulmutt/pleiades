@@ -55,9 +55,10 @@
 //! convention would apply to.
 
 /// Contact/maximum instant residual vs SE, seconds (well-conditioned: `Total`
-/// `loc` rows and all `glob` rows). Measured max 46.44s (Regulus@center,
-/// jd 2460882.894225485) on 2026-07-08.
-pub const CONTACT_SECONDS: f64 = 65.0;
+/// `loc` rows and all `glob` rows). Measured max 6.747 s on 2026-09-30
+/// corpus, after the #93 aberration fix (row not printed by the gate);
+/// ceiling ~1.4×.
+pub const CONTACT_SECONDS: f64 = 10.0;
 /// Contact/maximum instant residual near grazing/limb chords, seconds.
 /// Grazing contact timing is inherently ill-conditioned (near-tangential
 /// geometry: the relative closing rate perpendicular to the limb is small,

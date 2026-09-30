@@ -139,10 +139,9 @@ pub const RISE_SET_SECONDS_GRAZING: f64 = 160.0;
 /// `standard_altitude` (no disc/dip term, no horizon residual at all — they
 /// root-find the hour-angle zero instead), so this ceiling is unaffected by
 /// either Task 16 engine fix. Well-conditioned (hour angle advances at the
-/// full sidereal rate through the crossing), but the Moon's ~0.55 deg/hr
-/// motion still shows up: measured max over all 14 transit rows: 2.8894 s
-/// (Moon). Ceiling = ceil(1.4 x 2.8894) rounded to 4.0 s.
-pub const TRANSIT_SECONDS: f64 = 4.0;
+/// full sidereal rate through the crossing). Measured max 0.383 s on
+/// 2026-09-30 corpus, after the #93 aberration fix; ceiling ~1.4×.
+pub const TRANSIT_SECONDS: f64 = 1.0;
 
 /// Azimuth angle-parity ceiling (arcseconds), mod-360 wraparound. Measured
 /// max: 0.1146". Ceiling = ceil(1.4 x 0.1146) rounded to 0.2".

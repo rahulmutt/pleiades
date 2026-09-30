@@ -13,7 +13,7 @@ entry: what, where, evidence, impact, suggested fix, and origin.
 
 ## FU-1: Latent geocentric-Sun aberration double-count in `pleiades-core` apparent path
 
-**Status:** resolved (2026-06-30) · Fixed by `apparent_sun_position` in pleiades-apparent (cc575c04); chart Sun path applies aberration once (a6113705); eclipse delegates to the shared routine (70a2adf2); Sun golden tolerance tightened 26″ → 5.0″, measured residual max 2.83″ (eb4339f2). · **Severity:** important (accuracy) · **Opened:** 2026-06-29
+**Status:** resolved (2026-06-30) · Fixed by `apparent_sun_position` in pleiades-apparent (cc575c04); chart Sun path applies aberration once (a6113705); eclipse delegates to the shared routine (70a2adf2); Sun golden tolerance tightened 26″ → 5.0″, measured residual max 2.83″ (eb4339f2). · **Addendum (2026-09-30):** the "planets are unaffected" reasoning below was wrong: the geocentric light-time re-query retards the Earth too and so already carries aberration, and the generic path added it a second time for every non-Sun body. Fixed under issue #93 (`docs/superpowers/specs/2026-09-30-apparent-aberration-double-count-design.md`); the Moon's remaining residual is FU-14. · **Severity:** important (accuracy) · **Opened:** 2026-06-29
 
 **Where:** `crates/pleiades-core/src/chart/mod.rs` (~lines 304–313, the
 `apparent_position::<_, EphemerisError>(instant, sun_lon, max_iter, query)`
@@ -27,10 +27,7 @@ reflex-motion effect (~20.5″), not two independent corrections — Meeus,
 *Astronomical Algorithms* §25. Re-querying the geocentric Sun at `t − τ`
 (τ ≈ 499 s) already displaces it ~20.5″; adding the annual-aberration term on
 top double-counts it, producing a systematic ~+20″ error in the apparent solar
-ecliptic longitude. (This is Sun-specific: for the planets, light-time and
-stellar aberration are genuinely distinct — "planetary aberration" = both — so
-the standard `apparent_position` is correct for them. The Moon should be
-checked but is likely unaffected for the same reason as planets.)
+ecliptic longitude. (At the time this was thought Sun-specific; see the 2026-09-30 addendum in the status line — it was not.)
 
 **Evidence:** The `pleiades-eclipse` work (this phase) proved the *same*
 packaged backend matches an independent Skyfield 1.54 + DE440 apparent solar
@@ -2051,3 +2048,76 @@ neighbouring surfaces were deliberately left out of that change:
 
 **Severity:** correctness at the tolerance boundary (consumer-visible only
 when chaining searches) · **Opened:** 2026-09-29
+
+---
+
+## FU-14: Moon apparent-place residual against Horizons after the #93 aberration fix
+
+**Status:** open · Opened 2026-09-30 while fixing #93.
+
+**What:** #93 removed the separate annual-aberration term from the generic
+light-time path; the planets' Horizons residuals collapsed to the ephemeris-fit
+floor (Jupiter–Pluto under 0.5″). The Moon did not. Measured on the #93 branch
+(`validate-apparent` diagnostic, geocentric, Horizons ObsEcLon Q31):
+
+| JD (TT) | Moon residual vs Horizons |
+|---|---|
+| 2415025.5 | +1.095″ |
+| 2433282.5 | −14.781″ |
+| 2451545.0 | −32.100″ |
+| 2469807.5 | −38.781″ |
+| 2488065.5 | −38.704″ |
+
+Against Swiss Ephemeris (`validate-crossings` Tier-2, `geo/Moon` group, engine
+longitude at the SE crossing instant) the same code measures a maximum of
+2.606″ (21.701″ before the fix). The Moon's equatorial-goldens Dec maximum rose
+from 11.70″ to 12.37″ (jd 2469807.5) with the fix while every other body's
+residual fell; the `validate-equatorial` Moon Dec tolerance was tightened to
+14.4″ under #93. The tightened Moon tolerances are: apparent 40.8″, equatorial
+RA 40.3″ / Dec 14.4″, topocentric longitude 16.7″ (each = measured max + 2″);
+`validate-crossings` `GEO_MOON_ARCSEC` is 4″.
+
+**Cause:** the reference epoch tag, not the engine or the ephemeris fit. The
+Horizons goldens in `apparent-goldens.csv` and `equatorial-goldens.csv` were
+fetched by `regen-apparent-goldens.sh` / `regen-equatorial-goldens.sh` without
+`TIME_TYPE=TT`, so Horizons read `TLIST` as UT (its output header says
+`Date_________JDUT`) while the engine evaluates the same rows as TT. The offset
+is ΔT (about 64 s at J2000) times the Moon's rate of about 0.5″/s. Re-derived
+2026-09-30 for the Moon (COMMAND 301, CENTER 500@399, QUANTITIES 31,
+EXTRA_PREC=YES) by re-querying each epoch with `TIME_TYPE=TT`; engine = committed
+golden + the signed residual above:
+
+| JD | Committed golden (deg) | Horizons, TIME_TYPE=TT (deg) | UT−TT delta (golden − TT) | Engine − TT value |
+|---|---|---|---|---|
+| 2415025.5 | 345.7526277 | 345.7529518 | −1.167″ | −0.072″ |
+| 2433282.5 | 61.4154091 | 61.4113240 | +14.706″ | −0.075″ |
+| 2451545.0 | 223.3237860 | 223.3148557 | +32.149″ | +0.049″ |
+| 2469807.5 | 18.6755948 | 18.6647918 | +38.891″ | +0.110″ |
+| 2488065.5 | 102.2038630 | 102.1930835 | +38.806″ | +0.102″ |
+
+Against TT-tagged Horizons the engine's Moon agrees to about 0.1″ at every
+epoch. The same tag explains the floors of the other bodies: the UT−TT deltas
+at J2000 for the Sun, Mercury, Venus and Mars are 2.93″ / 4.63″ / 3.62″ / 2.07″
+against measured maxima of 2.83″ / 4.54″ / 3.67″ / 2.03″, and the Moon's
+equatorial Dec rise from 11.70″ to 12.37″ is the Dec rate times ΔT. The
+topocentric goldens DO pass `TIME_TYPE=TT` (Sun maximum 0.080″).
+
+**Impact:** the engine matches TT-tagged Horizons to about 0.1″ for the Moon, so
+there is no known Moon error in charts or `pleiades-events` surfaces from this
+item. The cost is slack in the gates: the three Moon goldens tolerances (apparent
+40.8″, equatorial RA 40.3″ / Dec 14.4″) and the Sun/Mercury/Venus/Mars ones
+certify ΔT-sized slack until the goldens are regenerated, so a real Moon
+regression of up to about 35″ would currently pass those three gates. The
+`validate-crossings` `GEO_MOON_ARCSEC` gate (4″ against Swiss Ephemeris) still
+bounds it. Separately recorded, not diagnosed: in `validate-occultations` the
+metrics not gated by this change rose after #93 (`planet_mag_rel` 0.0489 to
+0.0502, `sublunar` 20.2′ to 21.1′), both within their ceilings (0.07 / 30′).
+
+**Suggested next step:** amend spec section 3 or open a follow-up change that
+adds `TIME_TYPE=TT` to both regen scripts, regenerates the two goldens files and
+re-tightens the tolerances (expected: planets and Sun about 0.1–0.5″, Moon about
+0.1″). Lower confidence: the topocentric Moon's 14.68″ at 2100 (a TT-tagged
+file) is the size that ΔT-ignored Earth rotation would give in lunar parallax,
+and deserves its own probe.
+
+**Origin:** issue #93, `docs/superpowers/specs/2026-09-30-apparent-aberration-double-count-design.md` section 4.

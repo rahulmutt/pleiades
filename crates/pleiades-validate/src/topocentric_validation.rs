@@ -17,7 +17,7 @@ const GOLDENS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/topocentric-goldens.csv"
 ));
-const GOLDENS_CHECKSUM: u64 = 4_174_939_177_719_971_837;
+const GOLDENS_CHECKSUM: u64 = 6_567_719_788_038_833_109;
 
 /// Madrid observer site used for all topocentric golden comparisons.
 ///
@@ -537,6 +537,49 @@ mod tests {
             "checksum = {}",
             pleiades_apparent::fnv1a64(GOLDENS_CSV)
         );
+    }
+
+    /// Diagnostic: per-body maximum longitude residual against the Horizons
+    /// topocentric goldens (Madrid observer). Run with
+    /// `cargo test -p pleiades-validate topocentric_validation::tests::measure_per_body_residuals -- --nocapture --ignored`
+    #[test]
+    #[ignore]
+    fn measure_per_body_residuals() {
+        let rows = parse_goldens().expect("goldens parse");
+        let engine = ChartEngine::new(PackagedDataBackend::new());
+        let mut max_by_body: std::collections::BTreeMap<String, (f64, f64)> =
+            std::collections::BTreeMap::new();
+        for row in &rows {
+            let instant = Instant::new(JulianDay::from_days(row.jd_tt), TimeScale::Tt);
+            let request = ChartRequest::new(instant)
+                .with_bodies(vec![row.body.clone()])
+                .with_apparentness(Apparentness::Apparent)
+                .with_observer(madrid_observer())
+                .with_topocentric(true);
+            let snapshot = engine.chart(&request).expect("chart");
+            let placement = snapshot.placement_for(&row.body).expect("placement");
+            let ecl = placement.position.ecliptic.as_ref().expect("ecliptic");
+            let mut lon_diff = (ecl.longitude.degrees() - row.topo_longitude_deg).abs();
+            if lon_diff > 180.0 {
+                lon_diff = 360.0 - lon_diff;
+            }
+            let lon_residual_arcsec = lon_diff * 3600.0;
+            let lat_residual_arcsec =
+                (ecl.latitude.degrees() - row.topo_latitude_deg).abs() * 3600.0;
+            eprintln!(
+                "{},{},{lon_residual_arcsec:.3},{lat_residual_arcsec:.3}",
+                row.body_label, row.jd_tt
+            );
+            let entry = max_by_body
+                .entry(row.body_label.clone())
+                .or_insert((0.0, row.jd_tt));
+            if lon_residual_arcsec > entry.0 {
+                *entry = (lon_residual_arcsec, row.jd_tt);
+            }
+        }
+        for (body, (max, jd)) in &max_by_body {
+            eprintln!("max {body} lon {max:.3}\" at jd {jd}");
+        }
     }
 
     #[test]

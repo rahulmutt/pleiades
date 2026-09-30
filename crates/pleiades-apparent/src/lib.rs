@@ -1,5 +1,6 @@
-//! Apparent-place corrections: light-time, precession-to-date, annual
-//! aberration, and nutation-in-longitude, with typed provenance.
+//! Apparent-place corrections: light-time (whose geocentric re-query carries
+//! annual aberration), precession-to-date, and nutation-in-longitude, with
+//! typed provenance; the geocentric Sun applies aberration once instead.
 //! Gravitational light-deflection is omitted everywhere in this crate.
 //! Atmospheric refraction is now implemented (see the [`refraction`] module,
 //! used by `pleiades-events`'s horizontal-coordinate and rise/set/transit
@@ -11,8 +12,8 @@
 //! Turn a mean J2000 ecliptic position into an apparent place of date with
 //! [`apparent_position`]. The `query` closure returns the body's mean/J2000
 //! geocentric position at a (light-time-retarded) instant; the routine applies
-//! light-time, precession to the equinox of date, annual aberration, and
-//! nutation-in-longitude. Gravitational light-deflection and atmospheric
+//! light-time (which carries annual aberration), precession to the equinox of
+//! date, and nutation-in-longitude. Gravitational light-deflection and atmospheric
 //! refraction are **not** applied by this function (refraction is applied
 //! separately, only on the horizontal/rise-set surface — see the crate-level
 //! docs above). One century after J2000 precession alone shifts ecliptic
@@ -26,7 +27,7 @@
 //! let mean_lon = 100.0;
 //! let out = apparent_position::<_, ApparentPlaceError>(
 //!     instant,
-//!     280.0, // Sun's true longitude of date, of-date, for the aberration term
+//!     280.0, // Sun's true longitude of date, for the aberration provenance estimate
 //!     DEFAULT_MAX_ITERATIONS,
 //!     |_| {
 //!         Ok(EclipticCoordinates::new(

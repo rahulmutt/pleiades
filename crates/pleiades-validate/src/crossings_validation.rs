@@ -32,20 +32,21 @@ const EXPECTED_ROWS: usize = 86;
 const SELF_CONSISTENCY_TOL_S: f64 = 1.0;
 
 // Tier-2 per-body arcsecond ceilings — MEASURED from the committed corpus and set
-// to ceil(1.4x each body-class group max). These are cross-theory (SE Moshier vs
-// engine VSOP87/ELP) floors, not engine error; cf. validate-lilith accepting ~306".
-// Measured group maxima (86-row corpus): geo Sun 0.32", geo Moon 21.70",
-// geo planets (Mercury-Neptune) 20.96", helio (non-Pluto) 35.09".
+// to ceil(1.4x each body-class group max). Cross-theory (SE Moshier vs engine)
+// floors, not engine error. Measured group maxima (86-row corpus, 2026-09-30, after
+// the #93 aberration fix): geo Sun 0.322", geo Moon 2.606", geo planets
+// (Mercury-Neptune) 0.483", helio (non-Pluto) 35.090". Before #93 the geo Moon and
+// planet groups measured 21.70" and 20.96": the double-counted ~20" term.
 const GEO_SUN_ARCSEC: f64 = 1.0;
-const GEO_MOON_ARCSEC: f64 = 31.0;
-const GEO_PLANET_ARCSEC: f64 = 30.0;
+const GEO_MOON_ARCSEC: f64 = 4.0;
+const GEO_PLANET_ARCSEC: f64 = 1.0;
 const HELIO_ARCSEC: f64 = 50.0;
 // Pluto meets a normal measured per-body ceiling like every other body (not a coverage
 // boundary or an exclusion). It is simply wider than the inner planets because VSOP87
 // excludes Pluto, so the backend serves it from a mean-element fallback instead: that
-// fallback is accurate for the corpus targets — measured max 11.88" (geo) / 3.53"
+// fallback is accurate for the corpus targets — measured max 0.697" (geo) / 3.530"
 // (helio) — so the ceiling is just Pluto's own 1.4x value like the other groups.
-const PLUTO_ARCSEC: f64 = 17.0;
+const PLUTO_ARCSEC: f64 = 5.0;
 
 #[derive(Debug)]
 pub enum CrossingsCorpusError {
@@ -410,5 +411,44 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,NaN
             }
         }
         out
+    }
+
+    /// Diagnostic: Tier-2 SE-parity maximum per (frame, body) group, so the
+    /// per-group ceilings can be re-measured. Run with
+    /// `cargo test -p pleiades-validate crossings_validation::tests::measure_per_group_parity -- --nocapture --ignored`
+    #[test]
+    #[ignore]
+    fn measure_per_group_parity() {
+        let engine = EventEngine::new(packaged_backend());
+        let mut max_by_group: std::collections::BTreeMap<String, (f64, String)> =
+            std::collections::BTreeMap::new();
+        for line in CORPUS_CSV.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') || line.starts_with("frame,") {
+                continue;
+            }
+            let f: Vec<&str> = line.split(',').collect();
+            let frame = match f[0] {
+                "geo" => CrossingFrame::GeocentricApparentOfDate,
+                "helio" => CrossingFrame::Heliocentric,
+                other => panic!("unknown frame {other}"),
+            };
+            let body = parse_body(f[1]).expect("known body");
+            let target: f64 = f[2].parse().expect("target");
+            let se_jd: f64 = f[5].parse().expect("se jd");
+            let se_instant = Instant::new(JulianDay::from_days(se_jd), TimeScale::Tdb);
+            let lambda = engine
+                .longitude_at(body.clone(), frame, se_instant)
+                .expect("longitude_at");
+            let residual_arcsec = wrap180_deg(lambda.degrees() - target).abs() * 3600.0;
+            let group = format!("{}/{}", f[0], f[1]);
+            let entry = max_by_group.entry(group).or_insert((0.0, String::new()));
+            if residual_arcsec > entry.0 {
+                *entry = (residual_arcsec, line.to_string());
+            }
+        }
+        for (group, (max, row)) in &max_by_group {
+            eprintln!("max {group} {max:.3}\" on row: {row}");
+        }
     }
 }

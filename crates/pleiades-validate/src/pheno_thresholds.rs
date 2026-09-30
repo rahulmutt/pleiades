@@ -3,25 +3,28 @@
 //! diameter, apparent magnitude), mirroring the measured-basis convention of
 //! `nod_aps_thresholds` / `fictitious_thresholds` / `eclipse_local_thresholds`
 //! / `lilith_validation`. Pinned in Task 7 from the actual per-metric residual
-//! maxima measured over the committed 80-row pheno corpus (2026-07-07), each
-//! ceiling set to ~1.4× the observed maximum, rounded up to a clean value —
+//! maxima measured over the committed 80-row pheno corpus (2026-07-07; the
+//! phase-angle and elongation maxima were re-measured on 2026-09-30 after the
+//! #93 aberration fix), each ceiling set to ~1.4× the observed maximum, rounded up to a clean value —
 //! replacing the Task 6 provisional (deliberately generous) placeholders. See
 //! the SP-5 plan §Gate.
 //!
-//! All six measured maxima are sub-arcminute / sub-hundredth-magnitude — no
+//! All six measured maxima (as of each constant's date) are sub-arcminute / sub-hundredth-magnitude — no
 //! metric is anomalous (the sanity trigger, magnitude > ~0.2 for a
 //! non-Saturn body, does not fire), so no coefficient audit against `swecl.c`
 //! was needed before pinning.
 
-/// Phase-angle residual vs Swiss Ephemeris, arcsec. Measured max 57.791329″
-/// (Mercury) on 2026-07-07 corpus; ceiling ~1.4×.
-pub const PHASE_ANGLE_ARCSEC: f64 = 85.0;
+/// Phase-angle residual vs Swiss Ephemeris, arcsec. Measured max 37.037″
+/// on 2026-09-30 corpus, after the #93 aberration fix (row not printed by
+/// the gate); ceiling ~1.4×.
+pub const PHASE_ANGLE_ARCSEC: f64 = 52.0;
 /// Illuminated-fraction residual (absolute). Measured max 0.00012207 on
 /// 2026-07-07 corpus; ceiling ~1.4×.
 pub const PHASE_FRACTION_ABS: f64 = 2e-4;
-/// Elongation residual, arcsec. Measured max 20.966209″ (Uranus) on
-/// 2026-07-07 corpus; ceiling ~1.4×.
-pub const ELONGATION_ARCSEC: f64 = 30.0;
+/// Elongation residual, arcsec. Measured max 1.803″ on
+/// 2026-09-30 corpus, after the #93 aberration fix (row not printed by the
+/// gate); ceiling ~1.4×.
+pub const ELONGATION_ARCSEC: f64 = 3.0;
 /// Apparent-diameter residual, arcsec. Measured max 0.192600″ (Moon) on
 /// 2026-07-07 corpus; ceiling ~1.4×.
 pub const DIAMETER_ARCSEC: f64 = 0.3;

@@ -11,7 +11,10 @@ pub struct CorrectionSet {
     pub light_time: bool,
     /// Precession from J2000 to the equinox of date was applied.
     pub precession: bool,
-    /// Annual aberration was applied.
+    /// The place includes annual aberration. On the light-time path it is
+    /// carried by the retarded geocentric re-query (no separate term is added);
+    /// on the Sun path it is the single Meeus 23.2 term added to the
+    /// un-retarded position.
     pub annual_aberration: bool,
     /// Nutation in longitude (Δψ) was applied.
     pub nutation_longitude: bool,
@@ -46,8 +49,11 @@ pub struct ApparentProvenance {
     pub precession_longitude_arcsec: f64,
     /// Nutation-in-longitude (Delta-psi) applied to longitude, arcseconds.
     pub nutation_longitude_arcsec: f64,
-    /// Annual-aberration shift applied to longitude, arcseconds (0.0 on the
-    /// aberration-free lunar-apsis path).
+    /// Annual-aberration component of the longitude, arcseconds. On the
+    /// light-time path this is the Meeus 23.2 *estimate* of the component the
+    /// retarded geocentric query already contains (reported, not added); on
+    /// the Sun path it is the term actually added; 0.0 on the aberration-free
+    /// lunar-apsis path.
     pub aberration_longitude_arcsec: f64,
     /// Flags recording which corrections were applied.
     pub corrections: CorrectionSet,
