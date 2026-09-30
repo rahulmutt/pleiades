@@ -57,7 +57,8 @@ fn precession_dominates_far_from_j2000() {
 
 #[test]
 fn latitude_unchanged_on_light_time_path_at_j2000() {
-    // At J2000 precession is the identity and Δψ does not touch latitude; with no separate aberration term the latitude passes through.
+    // At J2000 precession is the identity and Δψ does not touch latitude; with no
+    // separate aberration term the latitude passes through.
     let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
     let out = apparent_position::<_, ApparentPlaceError>(instant, 280.0, 8, |_| {
         Ok(fixed(100.0, 5.0, 1.0))
