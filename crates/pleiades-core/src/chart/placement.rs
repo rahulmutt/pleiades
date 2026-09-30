@@ -9,7 +9,17 @@ use pleiades_types::{CelestialBody, Motion, MotionDirection, ZodiacSign};
 pub struct BodyPlacement {
     /// The queried body.
     pub body: CelestialBody,
-    /// The raw backend result.
+    /// The backend result, moved to the place this placement reports.
+    ///
+    /// `position.apparent` names that place. When it is `Apparent`, the
+    /// ecliptic and equatorial coordinates are the apparent place and
+    /// `position.motion` is its speed: the backend's mean-place speed plus the
+    /// rate of the apparent-place correction, differenced over ±0.5 day. When
+    /// it is `Mean`, both are the backend's own values.
+    ///
+    /// Two chart-layer steps move the longitude without moving the speed:
+    /// the topocentric correction and the sidereal ayanamsa. `position.motion`
+    /// is always the speed of the geocentric tropical place.
     pub position: EphemerisResult,
     /// The body's zodiac sign in the requested mode, when ecliptic longitude is available.
     pub sign: Option<ZodiacSign>,
@@ -59,7 +69,12 @@ impl fmt::Display for BodyPlacementValidationError {
 impl std::error::Error for BodyPlacementValidationError {}
 
 impl BodyPlacement {
-    /// Returns the backend motion sample when the backend supplied motion data.
+    /// Returns the speed of the reported place when the backend supplied motion data.
+    ///
+    /// For an apparent placement this is the apparent-place speed; see
+    /// [`BodyPlacement::position`]. It is `None` when the backend supplied no
+    /// motion, or when an apparent placement has no neighbouring instant the
+    /// backend can serve to difference the correction over.
     pub fn motion(&self) -> Option<&Motion> {
         self.position.motion.as_ref()
     }
@@ -85,7 +100,7 @@ impl BodyPlacement {
         Ok(())
     }
 
-    /// Returns the backend motion sample when the backend supplied motion data.
+    /// Returns the longitudinal direction of the reported place's motion, when it is known.
     pub fn motion_direction(&self) -> Option<MotionDirection> {
         let motion = self.motion()?;
         motion.validate().ok()?;
