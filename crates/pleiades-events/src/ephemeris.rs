@@ -115,11 +115,12 @@ pub(crate) fn geocentric_apparent_ecliptic<B: EphemerisBackend>(
         ));
     }
 
-    // General body: apparent_position needs the Sun's true longitude of date for
-    // the provenance aberration estimate (the light-time re-query carries aberration, #93), plus a light-time-retarded body query closure. The
-    // closure propagates `EventError` verbatim (its own error type), so the
-    // combined error is `ApparentLightTimeError<EventError>`, which we flatten
-    // back to `EventError::Backend` — preserving fail-closed on missing reads.
+    // General body: the Sun's true longitude of date feeds only the provenance
+    // aberration estimate (the light-time re-query carries aberration, #93), plus
+    // a light-time-retarded body query closure. The closure propagates
+    // `EventError` verbatim (its own error type), so the combined error is
+    // `ApparentLightTimeError<EventError>`, which we flatten back to
+    // `EventError::Backend` — preserving fail-closed on missing reads.
     let sun_true_lon =
         geocentric_apparent_longitude_deg(backend, CelestialBody::Sun, "Sun", julian_day)?;
     let apparent = apparent_position::<_, EventError>(
