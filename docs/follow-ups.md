@@ -13,7 +13,7 @@ entry: what, where, evidence, impact, suggested fix, and origin.
 
 ## FU-1: Latent geocentric-Sun aberration double-count in `pleiades-core` apparent path
 
-**Status:** resolved (2026-06-30) · Fixed by `apparent_sun_position` in pleiades-apparent (cc575c04); chart Sun path applies aberration once (a6113705); eclipse delegates to the shared routine (70a2adf2); Sun golden tolerance tightened 26″ → 5.0″, measured residual max 2.83″ (eb4339f2). · **Severity:** important (accuracy) · **Opened:** 2026-06-29
+**Status:** resolved (2026-06-30) · Fixed by `apparent_sun_position` in pleiades-apparent (cc575c04); chart Sun path applies aberration once (a6113705); eclipse delegates to the shared routine (70a2adf2); Sun golden tolerance tightened 26″ → 5.0″, measured residual max 2.83″ (eb4339f2). · **Addendum (2026-09-30):** the "planets are unaffected" reasoning below was wrong: the geocentric light-time re-query retards the Earth too and so already carries aberration, and the generic path added it a second time for every non-Sun body. Fixed under issue #93 (`docs/superpowers/specs/2026-09-30-apparent-aberration-double-count-design.md`); the Moon's remaining residual is FU-14. · **Severity:** important (accuracy) · **Opened:** 2026-06-29
 
 **Where:** `crates/pleiades-core/src/chart/mod.rs` (~lines 304–313, the
 `apparent_position::<_, EphemerisError>(instant, sun_lon, max_iter, query)`
@@ -27,10 +27,7 @@ reflex-motion effect (~20.5″), not two independent corrections — Meeus,
 *Astronomical Algorithms* §25. Re-querying the geocentric Sun at `t − τ`
 (τ ≈ 499 s) already displaces it ~20.5″; adding the annual-aberration term on
 top double-counts it, producing a systematic ~+20″ error in the apparent solar
-ecliptic longitude. (This is Sun-specific: for the planets, light-time and
-stellar aberration are genuinely distinct — "planetary aberration" = both — so
-the standard `apparent_position` is correct for them. The Moon should be
-checked but is likely unaffected for the same reason as planets.)
+ecliptic longitude. (At the time this was thought Sun-specific; see the 2026-09-30 addendum in the status line — it was not.)
 
 **Evidence:** The `pleiades-eclipse` work (this phase) proved the *same*
 packaged backend matches an independent Skyfield 1.54 + DE440 apparent solar

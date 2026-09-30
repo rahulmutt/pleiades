@@ -601,9 +601,11 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         body_observer: &Option<ObserverLocation>,
     ) -> Result<ApparentPosition, EphemerisError> {
         match body {
-            // Sun: aberration and light-time are the same effect, so apply
-            // aberration ONCE via apparent_sun_position with the instantaneous
-            // (un-retarded) geocentric Sun. observer = None keeps the aberration
+            // Sun: light-time and aberration are the same ~20.5″ effect, so the
+            // Sun path applies aberration ONCE to the instantaneous (un-retarded)
+            // geocentric Sun. Every other body goes through apparent_position,
+            // whose geocentric light-time re-query already carries aberration
+            // (no separate term, #93). observer = None keeps the aberration
             // argument geocentric.
             CelestialBody::Sun => self
                 .query_mean_ecliptic(body, instant, zodiac_mode, None)

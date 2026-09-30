@@ -84,10 +84,11 @@ fn read<B: EphemerisBackend>(
 /// under the 60 s gate (and keeps `eclipsed_longitude` within 1″). One iteration
 /// suffices: a body's distance is essentially constant across its own light-time.
 ///
-/// Note: this is distinct from, and must not be combined with, the annual
-/// aberration applied in [`apparent_sun_longitude_deg`] — for the Sun those are
-/// the same physical effect, so `eclipsed_longitude` applies it exactly once and
-/// uses the *un*-retarded [`read`].
+/// Note: a retarded *geocentric* position already carries annual aberration
+/// (the Earth is retarded with the body), so nothing here adds a separate
+/// aberration term; `eclipsed_longitude` takes the equivalent un-retarded
+/// route through [`apparent_sun_longitude_deg`] and uses the *un*-retarded
+/// [`read`].
 fn read_retarded<B: EphemerisBackend>(
     backend: &B,
     body: CelestialBody,
@@ -131,13 +132,14 @@ pub(crate) fn elongation_deg(sample: &SunMoonSample) -> f64 {
 ///
 /// # Why aberration is applied only once
 ///
-/// For a planet, light-time retardation (re-querying the body at the epoch the
-/// light left it) and annual aberration are two physically independent effects.
-/// For the **Sun**, they are the *same* effect: the ~20.5″ displacement caused
-/// by Earth's orbital velocity. Light-time retardation moves the Sun's geometric
-/// place backward along its apparent path by exactly the annual-aberration amount,
-/// so an apparent-place routine that applies a light-time re-query *and* a
-/// separate annual-aberration term double-counts ~20.5″.
+/// Re-querying any body's geocentric position at the epoch the light left it
+/// retards the Earth as well, so the retarded direction already carries annual
+/// aberration; `pleiades_apparent::apparent_position` therefore adds no
+/// separate term (#93). For the **Sun** this crate takes the equivalent
+/// un-retarded route: the ~20.5″ displacement caused by Earth's orbital
+/// velocity is applied once to the instantaneous position. A routine that
+/// applied a light-time re-query *and* a separate annual-aberration term would
+/// double-count ~20.5″, which was FU-1 for the Sun and #93 for the planets.
 ///
 /// **Assumption**: the backend returns Mean/J2000 geocentric coordinates
 /// (as `packaged_backend()` does). A backend that already applies apparent

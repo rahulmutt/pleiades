@@ -67,7 +67,7 @@ The current contract is intentionally mechanical rather than modeled:
 
 ## Apparent versus mean coordinates
 
-- Apparent place of date is the **default chart-layer output** for release-grade bodies, implemented in `pleiades-apparent`: light-time + precession-to-date + annual aberration + nutation-in-longitude, true equinox of date; gravitational light-deflection omitted.
+- Apparent place of date is the **default chart-layer output** for release-grade bodies, implemented in `pleiades-apparent`: light-time (whose geocentric re-query carries annual aberration) + precession-to-date + nutation-in-longitude, true equinox of date; the geocentric Sun applies aberration once to its un-retarded position instead; gravitational light-deflection omitted.
 - First-party backends remain **mean-only and J2000 at the backend boundary**; the `pleiades-apparent` chart layer applies the corrections after backend lookup.
 - The existing J2000 corpus is retained as the geometric-core gate; apparent-place output is validated against that corpus by applying the corrections at report time.
 - Backends whose metadata has `capabilities.apparent = false` must reject `Apparentness::Apparent` requests with `UnsupportedApparentness` instead of silently returning mean coordinates.

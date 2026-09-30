@@ -116,7 +116,7 @@ pub(crate) fn geocentric_apparent_ecliptic<B: EphemerisBackend>(
     }
 
     // General body: apparent_position needs the Sun's true longitude of date for
-    // the aberration term, plus a light-time-retarded body query closure. The
+    // the provenance aberration estimate (the light-time re-query carries aberration, #93), plus a light-time-retarded body query closure. The
     // closure propagates `EventError` verbatim (its own error type), so the
     // combined error is `ApparentLightTimeError<EventError>`, which we flatten
     // back to `EventError::Backend` — preserving fail-closed on missing reads.
