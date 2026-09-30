@@ -5,10 +5,12 @@
 //! captures the body placements plus their zodiac signs and the chart-level
 //! apparentness requested for the snapshot. Apparent-place corrections are
 //! applied in the engine layer; first-party backends are always queried in
-//! `Mean` mode. House placement can be requested
+//! `Mean` mode, and an apparent placement's speed is moved to the apparent
+//! place along with its coordinates. House placement can be requested
 //! explicitly for chart-aware consumers, which keeps the workflow practical
 //! without hardwiring more chart logic than the façade needs.
 
+mod apparent_motion;
 mod aspects;
 mod errors;
 mod houses;
@@ -40,15 +42,18 @@ pub use snapshot::ChartSnapshot;
 
 use pleiades_apparent::{
     apparent_apsis_position, apparent_equatorial_of_date, apparent_position, apparent_sun_position,
-    precess_ecliptic_j2000_to_date, ApparentLightTimeError, ApparentPlaceError,
+    precess_ecliptic_j2000_to_date, ApparentLightTimeError, ApparentPlaceError, ApparentPosition,
     DEFAULT_MAX_ITERATIONS,
 };
 use pleiades_backend::{
     Apparentness, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
 };
 use pleiades_houses::{calculate_houses, house_for_longitude, HouseRequest};
-use pleiades_types::{CoordinateFrame, ZodiacMode};
+use pleiades_types::{
+    CelestialBody, CoordinateFrame, Instant, JulianDay, Motion, ObserverLocation, ZodiacMode,
+};
 
+use apparent_motion::{apparent_motion, Correction, CorrectionSample, HALF_SPAN_DAYS};
 use errors::map_house_error;
 
 fn map_apparent_error(error: ApparentLightTimeError<EphemerisError>) -> EphemerisError {
@@ -65,6 +70,22 @@ fn map_apparent_place_error(error: ApparentPlaceError) -> EphemerisError {
     EphemerisError::new(
         EphemerisErrorKind::InvalidRequest,
         format!("apparent-place computation failed: {error}"),
+    )
+}
+
+/// An instant of the apparent-speed difference and the Sun's true geometric
+/// longitude of date there, in degrees.
+#[derive(Clone, Copy)]
+struct SunSample {
+    instant: Instant,
+    sun_lon: f64,
+}
+
+/// `instant` shifted by `offset_days`, in the same time scale.
+fn offset_instant(instant: Instant, offset_days: f64) -> Instant {
+    Instant::new(
+        JulianDay::from_days(instant.julian_day.days() + offset_days),
+        instant.scale,
     )
 }
 
@@ -342,10 +363,25 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         // is unnecessary (and costly) when no body in the batch can be corrected.
         let has_release_grade_body = request.bodies.iter().any(|b| release_grade.contains(b));
         let sun_true_longitude_of_date = if apparent_requested && has_release_grade_body {
-            Some(self.query_sun_longitude_of_date(request, &backend_zodiac_mode)?)
+            Some(self.query_sun_longitude_of_date(request.instant, &backend_zodiac_mode)?)
         } else {
             None
         };
+        // The Sun at the instants the apparent speed is differenced over, shared
+        // by every body in the chart. A neighbour the backend cannot serve is
+        // simply absent; the speed then falls back to a one-sided difference.
+        let speed_suns = sun_true_longitude_of_date.map(|sun_lon| {
+            [-HALF_SPAN_DAYS, 0.0, HALF_SPAN_DAYS].map(|offset_days| {
+                let instant = offset_instant(request.instant, offset_days);
+                let sun_lon = if offset_days == 0.0 {
+                    Some(sun_lon)
+                } else {
+                    self.query_sun_longitude_of_date(instant, &backend_zodiac_mode)
+                        .ok()
+                };
+                sun_lon.map(|sun_lon| SunSample { instant, sun_lon })
+            })
+        });
 
         let placements = request
             .bodies
@@ -383,51 +419,13 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 });
                 let apparent = if let Some(sun_lon) = sun_true_longitude_of_date {
                     if release_grade.contains(&body) {
-                        let outcome = if matches!(body, pleiades_types::CelestialBody::Sun) {
-                            // Sun: aberration and light-time are the same effect, so
-                            // apply aberration ONCE via apparent_sun_position with the
-                            // instantaneous (un-retarded) geocentric Sun. observer = None
-                            // keeps the aberration argument geocentric.
-                            self.query_mean_ecliptic(
-                                &body,
-                                request.instant,
-                                &backend_zodiac_mode,
-                                None,
-                            )
-                            .and_then(|sun_j2000| {
-                                apparent_sun_position(request.instant, sun_j2000)
-                                    .map_err(map_apparent_place_error)
-                            })
-                        } else if matches!(
-                            body,
-                            pleiades_types::CelestialBody::TrueApogee
-                                | pleiades_types::CelestialBody::TruePerigee
-                                | pleiades_types::CelestialBody::TrueNode
-                        ) {
-                            // Osculating apsis or node: a geometric direction. Apply
-                            // precession + nutation only (no light-time re-query, no
-                            // annual aberration). observer = None keeps it geocentric.
-                            self.query_mean_ecliptic(
-                                &body,
-                                request.instant,
-                                &backend_zodiac_mode,
-                                None,
-                            )
-                            .and_then(|apsis_j2000| {
-                                apparent_apsis_position(request.instant, apsis_j2000)
-                                    .map_err(map_apparent_place_error)
-                            })
-                        } else {
-                            let body_for_query = body.clone();
-                            let body_observer_for_query = request.body_observer.clone();
-                            apparent_position::<_, EphemerisError>(
-                                request.instant,
-                                sun_lon,
-                                DEFAULT_MAX_ITERATIONS,
-                                |instant| self.query_mean_ecliptic(&body_for_query, instant, &backend_zodiac_mode, body_observer_for_query.clone()),
-                            )
-                            .map_err(map_apparent_error)
-                        };
+                        let outcome = self.apparent_place(
+                            &body,
+                            request.instant,
+                            sun_lon,
+                            &backend_zodiac_mode,
+                            &request.body_observer,
+                        );
                         match outcome {
                             Ok(outcome) => {
                                 if let Some(ecliptic) = position.ecliptic.as_mut() {
@@ -439,6 +437,17 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                                     *ecliptic = outcome.ecliptic;
                                 }
                                 position.apparent = Apparentness::Apparent;
+                                // The backend's speed describes the mean place; move it
+                                // to the apparent place stored above.
+                                if let Some(mean) = position.motion {
+                                    position.motion = self.apparent_motion(
+                                        mean,
+                                        &body,
+                                        speed_suns.as_ref().map_or(&[], |suns| suns.as_slice()),
+                                        &backend_zodiac_mode,
+                                        &request.body_observer,
+                                    );
+                                }
                                 Some(outcome.provenance)
                             }
                             Err(_) => {
@@ -580,6 +589,101 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         })
     }
 
+    /// Apparent place of a release-grade body at `instant`.
+    /// `sun_longitude_of_date` is the Sun's true geometric longitude of date at
+    /// the same instant, the argument of the annual-aberration term.
+    fn apparent_place(
+        &self,
+        body: &CelestialBody,
+        instant: Instant,
+        sun_longitude_of_date: f64,
+        zodiac_mode: &ZodiacMode,
+        body_observer: &Option<ObserverLocation>,
+    ) -> Result<ApparentPosition, EphemerisError> {
+        match body {
+            // Sun: aberration and light-time are the same effect, so apply
+            // aberration ONCE via apparent_sun_position with the instantaneous
+            // (un-retarded) geocentric Sun. observer = None keeps the aberration
+            // argument geocentric.
+            CelestialBody::Sun => self
+                .query_mean_ecliptic(body, instant, zodiac_mode, None)
+                .and_then(|sun_j2000| {
+                    apparent_sun_position(instant, sun_j2000).map_err(map_apparent_place_error)
+                }),
+            // Osculating apsis or node: a geometric direction. Apply precession +
+            // nutation only (no light-time re-query, no annual aberration).
+            // observer = None keeps it geocentric.
+            CelestialBody::TrueApogee | CelestialBody::TruePerigee | CelestialBody::TrueNode => {
+                self.query_mean_ecliptic(body, instant, zodiac_mode, None)
+                    .and_then(|apsis_j2000| {
+                        apparent_apsis_position(instant, apsis_j2000)
+                            .map_err(map_apparent_place_error)
+                    })
+            }
+            _ => apparent_position::<_, EphemerisError>(
+                instant,
+                sun_longitude_of_date,
+                DEFAULT_MAX_ITERATIONS,
+                |instant| {
+                    self.query_mean_ecliptic(body, instant, zodiac_mode, body_observer.clone())
+                },
+            )
+            .map_err(map_apparent_error),
+        }
+    }
+
+    /// Apparent minus mean place of a body at one instant of the speed difference.
+    fn correction_sample(
+        &self,
+        body: &CelestialBody,
+        sun: &SunSample,
+        zodiac_mode: &ZodiacMode,
+        body_observer: &Option<ObserverLocation>,
+    ) -> Result<CorrectionSample, EphemerisError> {
+        let apparent =
+            self.apparent_place(body, sun.instant, sun.sun_lon, zodiac_mode, body_observer)?;
+        // The mean place the backend's speed describes: the same query the
+        // chart's position batch makes.
+        let mean =
+            self.query_mean_ecliptic(body, sun.instant, zodiac_mode, body_observer.clone())?;
+        Ok(CorrectionSample {
+            julian_day: sun.instant.julian_day.days(),
+            correction: Correction::between(&apparent.ecliptic, &mean),
+        })
+    }
+
+    /// Speed of a body's apparent place, from the backend's `mean` speed.
+    ///
+    /// `suns` holds the instants before, at and after the chart instant. The
+    /// correction is differenced centrally over the outer two; when the backend
+    /// cannot serve one of them (the chart instant sits at the edge of its
+    /// range) the difference is one-sided. With neither neighbour the apparent
+    /// speed is unknown and `None` is returned: the mean speed would describe a
+    /// different place from the one the placement reports.
+    fn apparent_motion(
+        &self,
+        mean: Motion,
+        body: &CelestialBody,
+        suns: &[Option<SunSample>],
+        zodiac_mode: &ZodiacMode,
+        body_observer: &Option<ObserverLocation>,
+    ) -> Option<Motion> {
+        let sample = |sun: &Option<SunSample>| {
+            self.correction_sample(body, sun.as_ref()?, zodiac_mode, body_observer)
+                .ok()
+        };
+        let [earlier, centre, later] = suns else {
+            return None;
+        };
+        let (earlier, later) = match (sample(earlier), sample(later)) {
+            (Some(earlier), Some(later)) => (earlier, later),
+            (Some(earlier), None) => (earlier, sample(centre)?),
+            (None, Some(later)) => (sample(centre)?, later),
+            (None, None) => return None,
+        };
+        Some(apparent_motion(mean, &earlier, &later))
+    }
+
     fn query_mean_ecliptic(
         &self,
         body: &pleiades_types::CelestialBody,
@@ -606,13 +710,13 @@ impl<B: EphemerisBackend> ChartEngine<B> {
 
     fn query_sun_longitude_of_date(
         &self,
-        request: &ChartRequest,
+        instant: Instant,
         zodiac_mode: &ZodiacMode,
     ) -> Result<f64, EphemerisError> {
         // The Sun longitude for the aberration term must remain geocentric — pass None.
         let ecliptic = self.query_mean_ecliptic(
             &pleiades_types::CelestialBody::Sun,
-            request.instant,
+            instant,
             zodiac_mode,
             None,
         )?;
@@ -620,7 +724,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         let precessed = precess_ecliptic_j2000_to_date(
             ecliptic.longitude.degrees(),
             ecliptic.latitude.degrees(),
-            request.instant.julian_day.days(),
+            instant.julian_day.days(),
         )
         .map_err(|e| {
             EphemerisError::new(
