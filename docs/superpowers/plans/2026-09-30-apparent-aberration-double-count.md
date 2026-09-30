@@ -98,31 +98,7 @@ Same two tables, measured on the Task 2 commit. The crossings engine-golden colu
 | helio (non-Pluto) | n/a | n/a | n/a | 35.090" (Mercury; Venus 23.912", Mars 17.951", Jupiter 9.322", Saturn 6.540", Uranus 5.095", Neptune 4.137") |
 | helio Pluto | n/a | n/a | n/a | 3.530" |
 
-Moon signed apparent residuals per epoch (jd 2415025.5, 2433282.5, 2451545, 2469807.5, 2488065.5): +1.095", -14.781", -32.100", -38.781", -38.704". They grow steadily with epoch and do not agree with the SE crossings residual (geo/Moon max 2.606"), so the Moon's apparent-vs-Horizons gap is not a crossings-parity effect (FU-14 reading input).
-
----|---|---|
-| validate-apparent | | |
-| validate-equatorial (RA / Dec) | | |
-| validate-topocentric (lon) | | |
-| validate-crossings Tier-2 (overall) | | |
-| validate-pheno elongation / phase angle | | |
-| validate-occultations contact / contact_grazing | | |
-| validate-rise-trans rise/set tight / transit | | |
-
-| Body | apparent goldens max \|res\| | equatorial max RA / Dec | topocentric max lon | crossings Tier-2 group max |
-|---|---|---|---|---|
-| Sun | | | | |
-| Moon | | | | |
-| Mercury | | | | |
-| Venus | | | | |
-| Mars | | | | |
-| Jupiter | | | | |
-| Saturn | | | | |
-| Uranus | | | | |
-| Neptune | | | | |
-| Pluto | | | | |
-| helio (non-Pluto) | n/a | n/a | n/a | |
-| helio Pluto | n/a | n/a | n/a | |
+Moon signed apparent residuals per epoch (jd 2415025.5, 2433282.5, 2451545, 2469807.5, 2488065.5): +1.095", -14.781", -32.100", -38.781", -38.704". They grow steadily with epoch and do not agree with the SE crossings residual (geo/Moon max 2.606"), so the Moon's apparent-vs-Horizons gap is not a crossings-parity effect (FU-14 reading input). The Moon's equatorial Dec maximum rose from 11.70" (Task 1) to 12.37" (jd 2469807.5) after the fix; every other cell is unchanged or lower.
 
 ---
 
