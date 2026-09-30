@@ -2053,7 +2053,11 @@ when chaining searches) · **Opened:** 2026-09-29
 
 ## FU-14: Moon apparent-place residual against Horizons after the #93 aberration fix
 
-**Status:** open · Opened 2026-09-30 while fixing #93.
+**Status:** resolved (2026-09-30) — the goldens' epoch tag was the cause; both
+regen scripts now pass `TIME_TYPE=TT`, both goldens files are regenerated, and the
+tolerances are re-tightened (see **Resolution** below). One lower-confidence
+probe (the topocentric Moon at 2100) remains open as **Remaining**. · Opened
+2026-09-30 while fixing #93.
 
 **What:** #93 removed the separate annual-aberration term from the generic
 light-time path; the planets' Horizons residuals collapsed to the ephemeris-fit
@@ -2113,11 +2117,36 @@ bounds it. Separately recorded, not diagnosed: in `validate-occultations` the
 metrics not gated by this change rose after #93 (`planet_mag_rel` 0.0489 to
 0.0502, `sublunar` 20.2′ to 21.1′), both within their ceilings (0.07 / 30′).
 
-**Suggested next step:** amend spec section 3 or open a follow-up change that
-adds `TIME_TYPE=TT` to both regen scripts, regenerates the two goldens files and
-re-tightens the tolerances (expected: planets and Sun about 0.1–0.5″, Moon about
-0.1″). Lower confidence: the topocentric Moon's 14.68″ at 2100 (a TT-tagged
-file) is the size that ΔT-ignored Earth rotation would give in lunar parallax,
-and deserves its own probe.
+**Resolution (2026-09-30):** `regen-apparent-goldens.sh` and
+`regen-equatorial-goldens.sh` now pass `TIME_TYPE=TT` and refuse to write a
+response whose header is not `Date_________JDTT`; both goldens files were
+regenerated from Horizons (the Moon J2000 row became 223.3148557°, the value
+re-derived above) and the pinned checksums updated. Measured against the
+TT-tagged goldens, every body's maximum residual is at the packaged-ephemeris
+fit floor, and every tolerance is the measured maximum + 2″ rounded up to 0.1″:
+
+| Gate | Body | Before (max / tolerance) | After (max / tolerance) |
+|---|---|---|---|
+| `validate-apparent` | Moon | 38.781″ / 40.8″ | 0.109″ / 2.2″ |
+| `validate-apparent` | Sun | 2.83″ / 5.0″ | 0.111″ / 2.2″ |
+| `validate-apparent` | Mercury / Venus / Mars | 4.541″ / 3.670″ / 2.028″ (6.6″ / 5.7″ / 4.1″) | 0.114″ / 0.107″ / 0.166″ (2.2″ each) |
+| `validate-apparent` | Jupiter–Pluto | 0.18–0.46″ / 2.2–2.5″ | 0.11–0.25″ / 2.2″ (Uranus 2.3″) |
+| `validate-equatorial` RA | Moon | 38.283″ / 40.3″ | 0.102″ / 2.2″ |
+| `validate-equatorial` RA | Sun | 2.825″ / 6.0″ floor | 0.111″ / 2.2″ |
+| `validate-equatorial` RA | others | 0.17–4.53″ / 2.2–6.6″ | 0.10–0.25″ / 2.2″ (Uranus 2.3″) |
+| `validate-equatorial` Dec | Moon | 12.370″ / 14.4″ | 0.046″ / 2.1″ |
+| `validate-equatorial` Dec | others | ≤ 2.8″ measured / 2.1–6.0″ | 0.005–0.18″ / 2.1″ (Venus 2.2″) |
+
+Gate output after the change: `validate-apparent` 50 rows, max residual 0.25″;
+`validate-equatorial` 50 rows, max RA 0.25″ (cos δ-weighted), max Dec 0.18″. No
+engine code changed, so `validate-crossings` and `validate-topocentric` are
+unaffected. The README "Current state" row for apparent place now reads
+sub-arcsecond.
+
+**Remaining (open, lower confidence):** the topocentric Moon's 14.68″ at 2100 in
+`topocentric-goldens.csv` (already a TT-tagged file, so not this cause) is the
+size that ΔT-ignored Earth rotation would give in lunar parallax, and deserves
+its own probe. The `validate-topocentric` Moon longitude tolerance stays 16.7″
+until then.
 
 **Origin:** issue #93, `docs/superpowers/specs/2026-09-30-apparent-aberration-double-count-design.md` section 4.
