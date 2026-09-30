@@ -98,7 +98,9 @@ Same two tables, measured on the Task 2 commit. The crossings engine-golden colu
 | helio (non-Pluto) | n/a | n/a | n/a | 35.090" (Mercury; Venus 23.912", Mars 17.951", Jupiter 9.322", Saturn 6.540", Uranus 5.095", Neptune 4.137") |
 | helio Pluto | n/a | n/a | n/a | 3.530" |
 
-Moon signed apparent residuals per epoch (jd 2415025.5, 2433282.5, 2451545, 2469807.5, 2488065.5): +1.095", -14.781", -32.100", -38.781", -38.704". They grow steadily with epoch and do not agree with the SE crossings residual (geo/Moon max 2.606"), so the Moon's apparent-vs-Horizons gap is not a crossings-parity effect (FU-14 reading input). The Moon's equatorial Dec maximum rose from 11.70" (Task 1) to 12.37" (jd 2469807.5) after the fix; every other cell is unchanged or lower.
+Moon signed apparent residuals per epoch (jd 2415025.5, 2433282.5, 2451545, 2469807.5, 2488065.5): +1.095", -14.781", -32.100", -38.781", -38.704". They grow steadily with epoch and do not agree with the SE crossings residual (geo/Moon max 2.606"), so the Moon's apparent-vs-Horizons gap is not a crossings-parity effect; the cause is the goldens' UT epoch tag (Horizons queried without `TIME_TYPE=TT`; see FU-14). The Moon's equatorial Dec maximum rose from 11.70" (Task 1) to 12.37" (jd 2469807.5) after the fix; every other cell is unchanged or lower.
+
+In `validate-occultations` the metrics not gated by this change rose after the fix: `planet_mag_rel` 0.0489 to 0.0502 and `sublunar` 20.2' to 21.1' (both within their ceilings 0.07 / 30').
 
 ---
 

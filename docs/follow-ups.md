@@ -2077,22 +2077,47 @@ residual fell; the `validate-equatorial` Moon Dec tolerance was tightened to
 RA 40.3″ / Dec 14.4″, topocentric longitude 16.7″ (each = measured max + 2″);
 `validate-crossings` `GEO_MOON_ARCSEC` is 4″.
 
-**Reading:** The two references disagree by roughly the size of the removed
-term, so the suspect is the Horizons goldens themselves (what Horizons'
-geocentric "apparent" ObsEcLon includes for the Moon) rather than the packaged
-Moon.
+**Cause:** the reference epoch tag, not the engine or the ephemeris fit. The
+Horizons goldens in `apparent-goldens.csv` and `equatorial-goldens.csv` were
+fetched by `regen-apparent-goldens.sh` / `regen-equatorial-goldens.sh` without
+`TIME_TYPE=TT`, so Horizons read `TLIST` as UT (its output header says
+`Date_________JDUT`) while the engine evaluates the same rows as TT. The offset
+is ΔT (about 64 s at J2000) times the Moon's rate of about 0.5″/s. Re-derived
+2026-09-30 for the Moon (COMMAND 301, CENTER 500@399, QUANTITIES 31,
+EXTRA_PREC=YES) by re-querying each epoch with `TIME_TYPE=TT`; engine = committed
+golden + the signed residual above:
 
-**Impact:** Moon apparent longitude may carry a systematic error of up to the
-Horizons residual above in charts and every `pleiades-events` surface built on
-it (about 2 s of time per 1″). The `validate-apparent`, `validate-equatorial`
-and `validate-topocentric` Moon tolerances were tightened to the measured
-maxima + 2″ under #93 and bound it.
+| JD | Committed golden (deg) | Horizons, TIME_TYPE=TT (deg) | UT−TT delta (golden − TT) | Engine − TT value |
+|---|---|---|---|---|
+| 2415025.5 | 345.7526277 | 345.7529518 | −1.167″ | −0.072″ |
+| 2433282.5 | 61.4154091 | 61.4113240 | +14.706″ | −0.075″ |
+| 2451545.0 | 223.3237860 | 223.3148557 | +32.149″ | +0.049″ |
+| 2469807.5 | 18.6755948 | 18.6647918 | +38.891″ | +0.110″ |
+| 2488065.5 | 102.2038630 | 102.1930835 | +38.806″ | +0.102″ |
 
-**Suggested next step:** one probe per hypothesis. (a) Query Horizons for the
-Moon at one epoch with `QUANTITIES='31'` and again with the geometric
-`QUANTITIES='18'`-style astrometric quantity and compare their difference to
-the engine's provenance aberration estimate. (b) Compare the packaged Moon's
-J2000 geometric longitude at the same epoch against the DE440 SPK sample the
-artifact was fit from.
+Against TT-tagged Horizons the engine's Moon agrees to about 0.1″ at every
+epoch. The same tag explains the floors of the other bodies: the UT−TT deltas
+at J2000 for the Sun, Mercury, Venus and Mars are 2.93″ / 4.63″ / 3.62″ / 2.07″
+against measured maxima of 2.83″ / 4.54″ / 3.67″ / 2.03″, and the Moon's
+equatorial Dec rise from 11.70″ to 12.37″ is the Dec rate times ΔT. The
+topocentric goldens DO pass `TIME_TYPE=TT` (Sun maximum 0.080″).
+
+**Impact:** the engine matches TT-tagged Horizons to about 0.1″ for the Moon, so
+there is no known Moon error in charts or `pleiades-events` surfaces from this
+item. The cost is slack in the gates: the three Moon goldens tolerances (apparent
+40.8″, equatorial RA 40.3″ / Dec 14.4″) and the Sun/Mercury/Venus/Mars ones
+certify ΔT-sized slack until the goldens are regenerated, so a real Moon
+regression of up to about 35″ would currently pass those three gates. The
+`validate-crossings` `GEO_MOON_ARCSEC` gate (4″ against Swiss Ephemeris) still
+bounds it. Separately recorded, not diagnosed: in `validate-occultations` the
+metrics not gated by this change rose after #93 (`planet_mag_rel` 0.0489 to
+0.0502, `sublunar` 20.2′ to 21.1′), both within their ceilings (0.07 / 30′).
+
+**Suggested next step:** amend spec section 3 or open a follow-up change that
+adds `TIME_TYPE=TT` to both regen scripts, regenerates the two goldens files and
+re-tightens the tolerances (expected: planets and Sun about 0.1–0.5″, Moon about
+0.1″). Lower confidence: the topocentric Moon's 14.68″ at 2100 (a TT-tagged
+file) is the size that ΔT-ignored Earth rotation would give in lunar parallax,
+and deserves its own probe.
 
 **Origin:** issue #93, `docs/superpowers/specs/2026-09-30-apparent-aberration-double-count-design.md` section 4.
