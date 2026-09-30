@@ -14,7 +14,7 @@ const GOLDENS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/equatorial-goldens.csv"
 ));
-const GOLDENS_CHECKSUM: u64 = 7_911_902_500_580_784_449;
+const GOLDENS_CHECKSUM: u64 = 7_442_282_696_487_651_885;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct EquatorialValidationReport {

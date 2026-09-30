@@ -5,11 +5,11 @@
 # observer (500@399). Same epochs/bodies as regen-apparent-goldens.sh. Run
 # manually when refreshing the corpus.
 #
-# Tolerances (applied to BOTH cos(Dec)-weighted RA residual and signed Dec residual):
+# Tolerances (RA applies to the cos(Dec)-weighted residual, Dec to the signed residual):
 #   Sun 6" (ecliptic gate is 5"; RA/Dec adds a small obliquity-rotation epsilon above
 #   that floor; max observed cos(Dec)-weighted RA residual ~5.06" at 1900),
-#   planets 26", Moon 45". 433-Eros excluded (apparent iteration diverges; see
-#   apparent gate header).
+#   per-body RA/Dec tolerances = max observed + 2" (#93, 2026-09-30). 433-Eros
+#   excluded (apparent iteration diverges; see apparent gate header).
 set -euo pipefail
 OUT="$(dirname "$0")/../data/equatorial-goldens.csv"
 API="https://ssd.jpl.nasa.gov/api/horizons.api"
@@ -27,9 +27,13 @@ BODIES="Sun:10 Moon:301 Mercury:199 Venus:299 Mars:499 Jupiter:599 Saturn:699 Ur
   echo "#     rotation, adding a small epsilon above the ecliptic-gate's 5\" floor. Max observed"
   echo "#     RA residual (cos(Dec)-weighted) is ~5.06\" at the 1900 epoch — the farthest from"
   echo "#     J2000 in the corpus. Tolerance set to 6\" (max + ~1\" margin)."
-  echo "#   - Planets: polynomial-fit ephemeris accuracy vs JPL DE441, apparent-mode residuals"
-  echo "#     15-25 arcsec; tolerance 26\" matches the ecliptic apparent gate."
-  echo "#   - Moon: ELP2000 theory limit (annual aberration systematic), tolerance 45\" unchanged."
+  echo "#   - Planets: light-time re-query carries annual aberration, no separate term (#93,"
+  echo "#     2026-09-30); residual is the polynomial-fit floor. RA tolerance = per-body max"
+  echo "#     observed cos(Dec)-weighted residual + 2\" (Mercury 4.533\", Venus 3.682\", Mars 1.890\","
+  echo "#     Jupiter 0.453\", Saturn 0.258\", Uranus 0.253\", Neptune 0.180\", Pluto 0.172\"); Dec"
+  echo "#     tolerance = per-body max observed + 2\" where that is below the former value."
+  echo "#   - Moon: same path; RA max observed 38.283\" after #93 (2026-09-30), tolerance = max + 2\"."
+  echo "#     Dec max observed 12.370\" (jd 2469807.5), tolerance 14.4\". Remaining residual tracked as FU-14."
   echo "#   - 433-Eros: EXCLUDED. Light-time iteration diverges at most epochs; see apparent gate."
   echo "#"
   echo "# EPOCHS: 2415025.5 = 1900-Jan-06 TT; 2433282.5 = 1950 TT; 2451545.0 = J2000 TT;"
@@ -37,11 +41,23 @@ BODIES="Sun:10 Moon:301 Mercury:199 Venus:299 Mars:499 Jupiter:599 Saturn:699 Ur
   echo "body,jd_tt,apparent_ra_deg,apparent_dec_deg,ra_tolerance_arcsec,dec_tolerance_arcsec"
   for entry in $BODIES; do
     label="${entry%%:*}"; code="${entry##*:}"
-    if [ "$label" = "Moon" ]; then tol=45.0; elif [ "$label" = "Sun" ]; then tol=6.0; else tol=26.0; fi
+    # Per-body RA / Dec tolerance = max observed residual + 2" (measured 2026-09-30, #93).
+    case "$label" in
+      Sun) ra_tol=6.0; dec_tol=6.0 ;;
+      Moon) ra_tol=40.3; dec_tol=14.4 ;;
+      Mercury) ra_tol=6.6; dec_tol=2.5 ;;
+      Venus) ra_tol=5.7; dec_tol=3.1 ;;
+      Mars) ra_tol=3.9; dec_tol=2.8 ;;
+      Jupiter) ra_tol=2.5; dec_tol=2.1 ;;
+      Saturn) ra_tol=2.3; dec_tol=2.1 ;;
+      Uranus) ra_tol=2.3; dec_tol=2.1 ;;
+      Neptune) ra_tol=2.2; dec_tol=2.1 ;;
+      Pluto) ra_tol=2.2; dec_tol=2.1 ;;
+    esac
     for jd in $EPOCHS; do
       radec=$(curl -sS -m 30 "$API?format=text&COMMAND='$code'&EPHEM_TYPE=OBSERVER&CENTER='500@399'&TLIST='$jd'&QUANTITIES='2'&ANG_FORMAT=DEG&CAL_FORMAT=JD&extra_prec=YES" \
         | sed -n '/\$\$SOE/,/\$\$EOE/p' | sed '1d;$d' | awk '{print $2","$3}')
-      echo "$label,$jd,$radec,$tol,$tol"
+      echo "$label,$jd,$radec,$ra_tol,$dec_tol"
     done
   done
 } > "$OUT"

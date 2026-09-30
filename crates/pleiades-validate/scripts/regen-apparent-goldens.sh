@@ -32,11 +32,15 @@ BODIES="Sun:10 Moon:301 Mercury:199 Venus:299 Mars:499 Jupiter:599 Saturn:699 Ur
   echo "#     are the same effect, so no separate light-time re-query is performed. Residual vs"
   echo "#     Horizons Q31 is now a few arcsec (was masked by a ~20\" aberration double-count under"
   echo "#     the old 26\" tolerance). Tolerance = max observed residual + 2\"."
-  echo "#   - Planets: polynomial-fit ephemeris matches JPL DE441 to ~0.01 deg (36 arcsec);"
-  echo "#     apparent-mode residuals 15-25 arcsec, set to max observed residual + 2 arcsec margin."
-  echo "#   - Moon: ELP2000-based theory; aberration formula is the planetary formula applied to a body"
-  echo "#     sharing Earth's orbit, causing a systematic error. Max observed residual 44 arcsec; tolerance"
-  echo "#     set to 45 arcsec."
+  echo "#   - Planets: the light-time re-query of the geocentric position carries annual"
+  echo "#     aberration; no separate term is added (#93, 2026-09-30). The residual is the"
+  echo "#     polynomial-fit ephemeris vs DE441 floor. Tolerance = per-body max observed"
+  echo "#     residual + 2\" (Mercury 4.541\", Venus 3.670\", Mars 2.028\", Jupiter 0.464\","
+  echo "#     Saturn 0.261\", Uranus 0.256\", Neptune 0.189\", Pluto 0.183\"), measured 2026-09-30."
+  echo "#     The former 26\" ceiling was absorbing a ~20\" double count."
+  echo "#   - Moon: same path. Max observed residual 38.781\" (2026-09-30) after the #93 fix;"
+  echo "#     tolerance = max + 2\". The remaining residual is tracked as FU-14 in"
+  echo "#     docs/follow-ups.md."
   echo "#   - 433-Eros: EXCLUDED. The light-time iteration diverges or goes out of range at 4 of 5 epochs"
   echo "#     because Eros's packaged data covers a limited span and the apparent-mode iteration steps outside"
   echo "#     it. Apparent-mode validation of Eros is not supported with the current packaged backend."
@@ -47,9 +51,19 @@ BODIES="Sun:10 Moon:301 Mercury:199 Venus:299 Mars:499 Jupiter:599 Saturn:699 Ur
   echo "body,jd_tt,apparent_longitude_deg,tolerance_arcsec"
   for entry in $BODIES; do
     label="${entry%%:*}"; code="${entry##*:}"
-    # Moon is theory-limited under the generic pipeline (annual aberration is
-    # mis-applied to a body sharing Earth's velocity); give it a looser tolerance.
-    if [ "$label" = "Moon" ]; then tol=45.0; else tol=26.0; fi
+    # Per-body tolerance = max observed residual + 2" (measured 2026-09-30, #93).
+    case "$label" in
+      Sun) tol=5.0 ;;
+      Moon) tol=40.8 ;;
+      Mercury) tol=6.6 ;;
+      Venus) tol=5.7 ;;
+      Mars) tol=4.1 ;;
+      Jupiter) tol=2.5 ;;
+      Saturn) tol=2.3 ;;
+      Uranus) tol=2.3 ;;
+      Neptune) tol=2.2 ;;
+      Pluto) tol=2.2 ;;
+    esac
     for jd in $EPOCHS; do
       lon=$(curl -sS -m 30 "$API?format=text&COMMAND='$code'&EPHEM_TYPE=OBSERVER&CENTER='500@399'&TLIST='$jd'&QUANTITIES='31'&ANG_FORMAT=DEG&CAL_FORMAT=JD&extra_prec=YES" \
         | sed -n '/\$\$SOE/,/\$\$EOE/p' | sed '1d;$d' | awk '{print $2}')

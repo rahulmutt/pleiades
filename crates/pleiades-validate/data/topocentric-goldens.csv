@@ -6,15 +6,14 @@
 # CAL_FORMAT=JD, TIME_TYPE=TT.
 #
 # TOLERANCE RATIONALE:
-#   - Sun/planets longitude: The packaged polynomial-fit ephemeris matches JPL DE441 to ~26
-#     arcsec for Sun/planets (the observed residual floor in the apparent goldens). The
-#     topocentric correction for the Sun is ~8.8 arcsec peak (sub-arcsec vs the data limit)
-#     and ~0.7 arcsec for Mars, so the dominant error is the packaged ephemeris vs DE441,
-#     not the topocentric formula. Longitude tolerances match the apparent goldens (26 arcsec).
-#   - Moon longitude: ELP2000-based theory; same 45 arcsec data ceiling as the apparent
-#     goldens. The lunar topocentric parallax is ~52 arcsec peak and is resolvable via the
-#     non-geocentric assertion (Moon topo vs geo > 0.1°). The absolute longitude tolerance is
-#     set to 45 arcsec for the same data-ceiling reason.
+#   - Sun/Mars longitude: the topocentric correction is ~8.8 arcsec peak for the Sun and
+#     ~0.7 arcsec for Mars; the residual is the packaged-ephemeris floor. Since #93
+#     (2026-09-30) the light-time re-query carries annual aberration with no separate term.
+#     Longitude tolerance = per-body max observed residual + 2" (Sun 0.080", Mars 0.165").
+#   - Moon longitude: same path; max observed residual 14.677" after #93 (2026-09-30),
+#     tolerance = max + 2" (remaining residual tracked as FU-14). The lunar topocentric
+#     parallax is ~52 arcsec peak and is resolvable via the non-geocentric assertion
+#     (Moon topo vs geo > 0.1°).
 #   - Latitude: Post-J2000-frame-fix (B1–B7), the engine's ecliptic latitude residuals are
 #     dominated by the DE440-vs-Horizons model difference and interpolation noise, NOT by a
 #     frame offset. Measured max latitude residual across all rows (B7, 2026-06-30):
@@ -35,15 +34,15 @@
 #
 # FORMAT: body, jd_tt, topo_longitude_deg, topo_latitude_deg, lon_tolerance_arcsec, lat_tolerance_arcsec
 body,jd_tt,topo_longitude_deg,topo_latitude_deg,lon_tolerance_arcsec,lat_tolerance_arcsec
-Sun,2415025.5,285.2517220,-0.0005328,26.0,20.0
-Sun,2433282.5,280.0042133,-0.0007271,26.0,20.0
-Sun,2451545.0,280.3682051,-0.0019837,26.0,20.0
-Sun,2488065.5,276.5283172,-0.0005096,26.0,20.0
-Moon,2415025.5,344.8810699,4.8928005,45.0,20.0
-Moon,2433282.5,60.9208151,3.5619060,45.0,20.0
-Moon,2451545.0,222.9687708,4.3786729,45.0,20.0
-Moon,2488065.5,102.3545604,4.4529609,45.0,20.0
-Mars,2415025.5,287.7272067,-0.9530314,26.0,20.0
-Mars,2433282.5,182.2129977,2.5118980,26.0,20.0
-Mars,2451545.0,327.9631884,-1.0689734,26.0,20.0
-Mars,2488065.5,27.9399782,0.8688553,26.0,20.0
+Sun,2415025.5,285.2517220,-0.0005328,2.1,20.0
+Sun,2433282.5,280.0042133,-0.0007271,2.1,20.0
+Sun,2451545.0,280.3682051,-0.0019837,2.1,20.0
+Sun,2488065.5,276.5283172,-0.0005096,2.1,20.0
+Moon,2415025.5,344.8810699,4.8928005,16.7,20.0
+Moon,2433282.5,60.9208151,3.5619060,16.7,20.0
+Moon,2451545.0,222.9687708,4.3786729,16.7,20.0
+Moon,2488065.5,102.3545604,4.4529609,16.7,20.0
+Mars,2415025.5,287.7272067,-0.9530314,2.2,20.0
+Mars,2433282.5,182.2129977,2.5118980,2.2,20.0
+Mars,2451545.0,327.9631884,-1.0689734,2.2,20.0
+Mars,2488065.5,27.9399782,0.8688553,2.2,20.0

@@ -9,11 +9,15 @@
 #     are the same effect, so no separate light-time re-query is performed. Residual vs
 #     Horizons Q31 is now a few arcsec (was masked by a ~20" aberration double-count under
 #     the old 26" tolerance). Tolerance = max observed residual + 2".
-#   - Planets: polynomial-fit ephemeris matches JPL DE441 to ~0.01 deg (36 arcsec);
-#     apparent-mode residuals 15-25 arcsec, set to max observed residual + 2 arcsec margin.
-#   - Moon: ELP2000-based theory; aberration formula is the planetary formula applied to a body
-#     sharing Earth's orbit, causing a systematic error. Max observed residual 44 arcsec; tolerance
-#     set to 45 arcsec.
+#   - Planets: the light-time re-query of the geocentric position carries annual
+#     aberration; no separate term is added (#93, 2026-09-30). The residual is the
+#     polynomial-fit ephemeris vs DE441 floor. Tolerance = per-body max observed
+#     residual + 2" (Mercury 4.541", Venus 3.670", Mars 2.028", Jupiter 0.464",
+#     Saturn 0.261", Uranus 0.256", Neptune 0.189", Pluto 0.183"), measured 2026-09-30.
+#     The former 26" ceiling was absorbing a ~20" double count.
+#   - Moon: same path. Max observed residual 38.781" (2026-09-30) after the #93 fix;
+#     tolerance = max + 2". The remaining residual is tracked as FU-14 in
+#     docs/follow-ups.md.
 #   - 433-Eros: EXCLUDED from apparent goldens. The packaged distance channel for Eros is
 #     unreliable: the light-time iterator diverges (NonConvergentLightTime), goes out of range
 #     (OutOfRangeInstant), or silently converges to a physically implausible retardation (~167 days
@@ -31,48 +35,48 @@ Sun,2433282.5,280.0048301,5.0
 Sun,2451545.0,280.3689092,5.0
 Sun,2469807.5,280.7483801,5.0
 Sun,2488065.5,276.5293785,5.0
-Moon,2415025.5,345.7526277,45.0
-Moon,2433282.5,61.4154091,45.0
-Moon,2451545.0,223.3237860,45.0
-Moon,2469807.5,18.6755948,45.0
-Moon,2488065.5,102.2038630,45.0
-Mercury,2415025.5,265.6623398,26.0
-Mercury,2433282.5,299.4472523,26.0
-Mercury,2451545.0,271.8892699,26.0
-Mercury,2469807.5,270.0594863,26.0
-Mercury,2488065.5,281.5442924,26.0
-Venus,2415025.5,312.5871991,26.0
-Venus,2433282.5,316.9794775,26.0
-Venus,2451545.0,241.5657794,26.0
-Venus,2469807.5,281.2480358,26.0
-Venus,2488065.5,315.2500199,26.0
-Mars,2415025.5,287.7274025,26.0
-Mars,2433282.5,182.2111967,26.0
-Mars,2451545.0,327.9632921,26.0
-Mars,2469807.5,227.7146915,26.0
-Mars,2488065.5,27.9427791,26.0
-Jupiter,2415025.5,242.0990184,26.0
-Jupiter,2433282.5,306.5053249,26.0
-Jupiter,2451545.0,25.2530685,26.0
-Jupiter,2469807.5,121.6915461,26.0
-Jupiter,2488065.5,200.7615150,26.0
-Saturn,2415025.5,268.2946179,26.0
-Saturn,2433282.5,169.4374218,26.0
-Saturn,2451545.0,40.3956366,26.0
-Saturn,2469807.5,297.5742780,26.0
-Saturn,2488065.5,205.3875861,26.0
-Uranus,2415025.5,250.4105874,26.0
-Uranus,2433282.5,92.6827205,26.0
-Uranus,2451545.0,314.8091680,26.0
-Uranus,2469807.5,170.7326081,26.0
-Uranus,2488065.5,17.7299214,26.0
-Neptune,2415025.5,85.0847754,26.0
-Neptune,2433282.5,197.2660405,26.0
-Neptune,2451545.0,303.1930003,26.0
-Neptune,2469807.5,53.6034292,26.0
-Neptune,2488065.5,167.3147801,26.0
-Pluto,2415025.5,75.1671147,26.0
-Pluto,2433282.5,137.7983813,26.0
-Pluto,2451545.0,251.4547644,26.0
-Pluto,2469807.5,337.5330655,26.0
-Pluto,2488065.5,32.4273890,26.0
+Moon,2415025.5,345.7526277,40.8
+Moon,2433282.5,61.4154091,40.8
+Moon,2451545.0,223.3237860,40.8
+Moon,2469807.5,18.6755948,40.8
+Moon,2488065.5,102.2038630,40.8
+Mercury,2415025.5,265.6623398,6.6
+Mercury,2433282.5,299.4472523,6.6
+Mercury,2451545.0,271.8892699,6.6
+Mercury,2469807.5,270.0594863,6.6
+Mercury,2488065.5,281.5442924,6.6
+Venus,2415025.5,312.5871991,5.7
+Venus,2433282.5,316.9794775,5.7
+Venus,2451545.0,241.5657794,5.7
+Venus,2469807.5,281.2480358,5.7
+Venus,2488065.5,315.2500199,5.7
+Mars,2415025.5,287.7274025,4.1
+Mars,2433282.5,182.2111967,4.1
+Mars,2451545.0,327.9632921,4.1
+Mars,2469807.5,227.7146915,4.1
+Mars,2488065.5,27.9427791,4.1
+Jupiter,2415025.5,242.0990184,2.5
+Jupiter,2433282.5,306.5053249,2.5
+Jupiter,2451545.0,25.2530685,2.5
+Jupiter,2469807.5,121.6915461,2.5
+Jupiter,2488065.5,200.7615150,2.5
+Saturn,2415025.5,268.2946179,2.3
+Saturn,2433282.5,169.4374218,2.3
+Saturn,2451545.0,40.3956366,2.3
+Saturn,2469807.5,297.5742780,2.3
+Saturn,2488065.5,205.3875861,2.3
+Uranus,2415025.5,250.4105874,2.3
+Uranus,2433282.5,92.6827205,2.3
+Uranus,2451545.0,314.8091680,2.3
+Uranus,2469807.5,170.7326081,2.3
+Uranus,2488065.5,17.7299214,2.3
+Neptune,2415025.5,85.0847754,2.2
+Neptune,2433282.5,197.2660405,2.2
+Neptune,2451545.0,303.1930003,2.2
+Neptune,2469807.5,53.6034292,2.2
+Neptune,2488065.5,167.3147801,2.2
+Pluto,2415025.5,75.1671147,2.2
+Pluto,2433282.5,137.7983813,2.2
+Pluto,2451545.0,251.4547644,2.2
+Pluto,2469807.5,337.5330655,2.2
+Pluto,2488065.5,32.4273890,2.2
