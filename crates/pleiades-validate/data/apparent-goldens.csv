@@ -10,14 +10,15 @@
 #     Horizons Q31 is now a few arcsec (was masked by a ~20" aberration double-count under
 #     the old 26" tolerance). Tolerance = max observed residual + 2".
 #   - Planets: the light-time re-query of the geocentric position carries annual
-#     aberration; no separate term is added (#93, 2026-09-30). The residual is the
-#     polynomial-fit ephemeris vs DE441 floor. Tolerance = per-body max observed
+#     aberration; no separate term is added (#93, 2026-09-30). The residual is
+#     dominated by the goldens' UT-tagged Horizons epochs (fetched without
+#     TIME_TYPE=TT; see FU-14), not the ephemeris fit. Tolerance = per-body max observed
 #     residual + 2" (Mercury 4.541", Venus 3.670", Mars 2.028", Jupiter 0.464",
 #     Saturn 0.261", Uranus 0.256", Neptune 0.189", Pluto 0.183"), measured 2026-09-30.
 #     The former 26" ceiling was absorbing a ~20" double count.
 #   - Moon: same path. Max observed residual 38.781" (2026-09-30) after the #93 fix;
-#     tolerance = max + 2". The remaining residual is tracked as FU-14 in
-#     docs/follow-ups.md.
+#     tolerance = max + 2". The remaining residual is the same UT/TT tag; tracked
+#     as FU-14 in docs/follow-ups.md.
 #   - 433-Eros: EXCLUDED from apparent goldens. The packaged distance channel for Eros is
 #     unreliable: the light-time iterator diverges (NonConvergentLightTime), goes out of range
 #     (OutOfRangeInstant), or silently converges to a physically implausible retardation (~167 days

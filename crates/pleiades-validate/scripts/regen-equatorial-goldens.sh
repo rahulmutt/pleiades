@@ -6,10 +6,11 @@
 # manually when refreshing the corpus.
 #
 # Tolerances (RA applies to the cos(Dec)-weighted residual, Dec to the signed residual):
-#   Sun 6" (ecliptic gate is 5"; RA/Dec adds a small obliquity-rotation epsilon above
-#   that floor; max observed cos(Dec)-weighted RA residual ~5.06" at 1900),
-#   per-body RA/Dec tolerances = max observed + 2" (#93, 2026-09-30). 433-Eros
-#   excluded (apparent iteration diverges; see apparent gate header).
+#   Sun 6" (a floor; max observed cos(Dec)-weighted RA residual is 2.825" after #93),
+#   per-body RA/Dec tolerances = max observed + 2" (#93, 2026-09-30). The Sun/inner-planet/
+#   Moon residuals are dominated by the goldens' UT epoch tag (this script does not pass
+#   TIME_TYPE=TT; FU-14 in docs/follow-ups.md). 433-Eros excluded (apparent iteration
+#   diverges; see apparent gate header).
 set -euo pipefail
 OUT="$(dirname "$0")/../data/equatorial-goldens.csv"
 API="https://ssd.jpl.nasa.gov/api/horizons.api"
@@ -24,16 +25,18 @@ BODIES="Sun:10 Moon:301 Mercury:199 Venus:299 Mars:499 Jupiter:599 Saturn:699 Ur
   echo "# TOLERANCE RATIONALE (per-body model limits, applied to cos(Dec)-weighted RA residual"
   echo "# and signed Dec residual):"
   echo "#   - Sun: The RA/Dec channel converts the apparent ecliptic longitude via obliquity"
-  echo "#     rotation, adding a small epsilon above the ecliptic-gate's 5\" floor. Max observed"
-  echo "#     RA residual (cos(Dec)-weighted) is ~5.06\" at the 1900 epoch — the farthest from"
-  echo "#     J2000 in the corpus. Tolerance set to 6\" (max + ~1\" margin)."
+  echo "#     rotation. Max observed RA residual (cos(Dec)-weighted) is 2.825\" after #93"
+  echo "#     (2026-09-30), essentially the goldens' UT epoch tag (FU-14). The 6\" tolerance is"
+  echo "#     kept as a floor, not max + margin."
   echo "#   - Planets: light-time re-query carries annual aberration, no separate term (#93,"
-  echo "#     2026-09-30); residual is the polynomial-fit floor. RA tolerance = per-body max"
+  echo "#     2026-09-30); the residual is dominated by the goldens' UT-tagged Horizons epochs"
+  echo "#     (fetched without TIME_TYPE=TT; see FU-14), not the ephemeris fit. RA tolerance = per-body max"
   echo "#     observed cos(Dec)-weighted residual + 2\" (Mercury 4.533\", Venus 3.682\", Mars 1.890\","
   echo "#     Jupiter 0.453\", Saturn 0.258\", Uranus 0.253\", Neptune 0.180\", Pluto 0.172\"); Dec"
   echo "#     tolerance = per-body max observed + 2\" where that is below the former value."
   echo "#   - Moon: same path; RA max observed 38.283\" after #93 (2026-09-30), tolerance = max + 2\"."
-  echo "#     Dec max observed 12.370\" (jd 2469807.5), tolerance 14.4\". Remaining residual tracked as FU-14."
+  echo "#     Dec max observed 12.370\" (jd 2469807.5), tolerance 14.4\". The remaining residual is the"
+  echo "#     same UT/TT tag; tracked as FU-14."
   echo "#   - 433-Eros: EXCLUDED. Light-time iteration diverges at most epochs; see apparent gate."
   echo "#"
   echo "# EPOCHS: 2415025.5 = 1900-Jan-06 TT; 2433282.5 = 1950 TT; 2451545.0 = J2000 TT;"

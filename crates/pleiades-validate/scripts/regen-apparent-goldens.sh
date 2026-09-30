@@ -4,10 +4,11 @@
 # light-time, gravitational deflection, and stellar aberrations),
 # geocentric observer (500@399). Run manually when refreshing the corpus.
 #
-# Tolerances: Sun ~5 arcsec (aberration applied once via apparent_sun_position; post-fix
-# residual a few arcsec, was masked by ~20" double-count under old 26" tolerance); planets
-# 26 arcsec (polynomial-fit ephemeris accuracy vs JPL DE441, apparent-mode residuals
-# 15-25 arcsec); Moon 45 arcsec (ELP2000 theory limit, unchanged).
+# Tolerances: per-body, each = max observed residual + 2 arcsec (#93, 2026-09-30; see the
+# TOLERANCE RATIONALE block echoed below): Sun 5.0, Moon 40.8, Mercury 6.6, Venus 5.7, Mars
+# 4.1, Jupiter-Pluto 2.5 or less. The Sun/Mercury/Venus/Mars/Moon residuals are dominated by
+# the goldens' UT epoch tag: this script does not pass TIME_TYPE=TT, so Horizons reads TLIST
+# as UT while the engine evaluates the rows as TT (FU-14 in docs/follow-ups.md).
 # 433-Eros is EXCLUDED: the light-time iteration diverges or goes out of range at most
 # epochs because Eros's packaged data span is too narrow for apparent-mode convergence.
 set -euo pipefail
@@ -33,14 +34,15 @@ BODIES="Sun:10 Moon:301 Mercury:199 Venus:299 Mars:499 Jupiter:599 Saturn:699 Ur
   echo "#     Horizons Q31 is now a few arcsec (was masked by a ~20\" aberration double-count under"
   echo "#     the old 26\" tolerance). Tolerance = max observed residual + 2\"."
   echo "#   - Planets: the light-time re-query of the geocentric position carries annual"
-  echo "#     aberration; no separate term is added (#93, 2026-09-30). The residual is the"
-  echo "#     polynomial-fit ephemeris vs DE441 floor. Tolerance = per-body max observed"
+  echo "#     aberration; no separate term is added (#93, 2026-09-30). The residual is"
+  echo "#     dominated by the goldens' UT-tagged Horizons epochs (fetched without"
+  echo "#     TIME_TYPE=TT; see FU-14), not the ephemeris fit. Tolerance = per-body max observed"
   echo "#     residual + 2\" (Mercury 4.541\", Venus 3.670\", Mars 2.028\", Jupiter 0.464\","
   echo "#     Saturn 0.261\", Uranus 0.256\", Neptune 0.189\", Pluto 0.183\"), measured 2026-09-30."
   echo "#     The former 26\" ceiling was absorbing a ~20\" double count."
   echo "#   - Moon: same path. Max observed residual 38.781\" (2026-09-30) after the #93 fix;"
-  echo "#     tolerance = max + 2\". The remaining residual is tracked as FU-14 in"
-  echo "#     docs/follow-ups.md."
+  echo "#     tolerance = max + 2\". The remaining residual is the same UT/TT tag; tracked"
+  echo "#     as FU-14 in docs/follow-ups.md."
   echo "#   - 433-Eros: EXCLUDED. The light-time iteration diverges or goes out of range at 4 of 5 epochs"
   echo "#     because Eros's packaged data covers a limited span and the apparent-mode iteration steps outside"
   echo "#     it. Apparent-mode validation of Eros is not supported with the current packaged backend."

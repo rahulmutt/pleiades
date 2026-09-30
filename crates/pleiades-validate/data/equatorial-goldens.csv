@@ -6,16 +6,18 @@
 # TOLERANCE RATIONALE (per-body model limits, applied to cos(Dec)-weighted RA residual
 # and signed Dec residual):
 #   - Sun: The RA/Dec channel converts the apparent ecliptic longitude via obliquity
-#     rotation, adding a small epsilon above the ecliptic-gate's 5" floor. Max observed
-#     RA residual (cos(Dec)-weighted) is ~5.06" at the 1900 epoch — the farthest from
-#     J2000 in the corpus. Tolerance set to 6" (max + ~1" margin).
+#     rotation. Max observed RA residual (cos(Dec)-weighted) is 2.825" after #93
+#     (2026-09-30), essentially the goldens' UT epoch tag (FU-14). The 6" tolerance is
+#     kept as a floor, not max + margin.
 #   - Planets: light-time re-query carries annual aberration, no separate term (#93,
-#     2026-09-30); residual is the polynomial-fit floor. RA tolerance = per-body max
+#     2026-09-30); the residual is dominated by the goldens' UT-tagged Horizons epochs
+#     (fetched without TIME_TYPE=TT; see FU-14), not the ephemeris fit. RA tolerance = per-body max
 #     observed cos(Dec)-weighted residual + 2" (Mercury 4.533", Venus 3.682", Mars 1.890",
 #     Jupiter 0.453", Saturn 0.258", Uranus 0.253", Neptune 0.180", Pluto 0.172"); Dec
 #     tolerance = per-body max observed + 2" where that is below the former value.
 #   - Moon: same path; RA max observed 38.283" after #93 (2026-09-30), tolerance = max + 2".
-#     Dec max observed 12.370" (jd 2469807.5), tolerance 14.4". Remaining residual tracked as FU-14.
+#     Dec max observed 12.370" (jd 2469807.5), tolerance 14.4". The remaining residual is the
+#     same UT/TT tag; tracked as FU-14.
 #   - 433-Eros: EXCLUDED. Light-time iteration diverges at most epochs; see apparent gate.
 #
 # EPOCHS: 2415025.5 = 1900-Jan-06 TT; 2433282.5 = 1950 TT; 2451545.0 = J2000 TT;
