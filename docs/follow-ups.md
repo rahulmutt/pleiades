@@ -2210,3 +2210,28 @@ packaged planets); direct `ElpBackend` consumers are unaffected.
 needed to run the gate.
 
 **Severity:** feature gap (closed) · **Opened:** 2026-10-01
+
+## FU-16: A public ecliptic position with latitude and speed (issue #89)
+
+**Status:** resolved (2026-10-01) · Spec
+`docs/superpowers/specs/2026-10-01-heliocentric-position-design.md`, plan
+`docs/superpowers/plans/2026-10-01-heliocentric-position.md`.
+
+**What:** the only public heliocentric read was `EventEngine::longitude_at`,
+which returned a longitude alone. `EventEngine::position_at` now returns
+longitude, latitude, distance and their speeds in either `CrossingFrame`, with
+a longitude bit-identical to `longitude_at`. The speed is the backend's speed
+plus the rate of the frame or apparent-place correction, differenced over
+±0.5 day, using the helper shared with the chart layer
+(`pleiades_apparent::motion`).
+
+**Gate:** `validate-helio-position` (25424-row Swiss Ephemeris
+`SEFLG_HELCTR | SEFLG_SPEED` corpus, Mercury–Pluto, 1900–2100; measured:
+Helio-position gate: 25424 rows validated (0 oor-skipped) vs Swiss Ephemeris SEFLG_HELCTR|SEFLG_SPEED, Mercury-Neptune max lon 40.805" lat 4.908" dist 3.38e-5 rel, speed lon 1.1503"/d lat 0.5663"/d dist 6.56e-6 AU/d; Pluto max lon 4.407" lat 1.129" dist 6.62e-6 rel, speed lon 0.0300"/d lat 0.0870"/d dist 2.59e-7 AU/d; outer-planet mean signed lon speed +0.0002"/d). The geocentric frame is pinned to the
+apparent chart placement by `crates/pleiades-events/tests/position.rs`.
+
+**Still open:** the heliocentric longitude carries the light-time signature of
+the planet-minus-Sun reconstruction (also seen by `validate-crossings`);
+removing it would move the crossings golden and is a separate change.
+
+**Also in this change:** toolchain and MSRV moved from Rust 1.98.1 to 1.99.0.

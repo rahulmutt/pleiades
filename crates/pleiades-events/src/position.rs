@@ -157,9 +157,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///
     /// Longitude and latitude are degrees, distance is AU; speeds are per day.
     /// The speed is the backend's own speed plus the rate of the frame or
-    /// apparent-place correction, differenced over ±0.5 day (one-sided at the
-    /// edges of the window). A speed channel is `None` when the backend
-    /// reports no speed to derive it from.
+    /// apparent-place correction, differenced over ±0.5 day. The difference is
+    /// one-sided at the edges of the window and, more generally, whenever a
+    /// neighbouring instant cannot be served by the backend. A speed channel is
+    /// `None` when the backend reports no speed to derive it from.
     ///
     /// # Errors
     ///
@@ -168,6 +169,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// [`EventError::UnsupportedFrame`] for a heliocentric Sun or Moon,
     /// [`EventError::MissingCoordinates`] when the backend returns no ecliptic
     /// place or no distance, and [`EventError::Backend`] for a backend failure.
+    /// In the geocentric frame an instant within a light-time of the start of
+    /// the packaged range can fail with [`EventError::Backend`], exactly as
+    /// `longitude_at` does there, because the light-time re-query leaves the
+    /// backend's range (for example Mars or the Moon at JD 2415020.5).
     ///
     /// ```
     /// use pleiades_data::packaged_backend;

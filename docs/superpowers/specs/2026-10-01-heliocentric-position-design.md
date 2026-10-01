@@ -1,6 +1,6 @@
 # A public ecliptic position with latitude and speed (issue #89) — design
 
-**Status:** approved design, not yet implemented ·
+**Status:** implemented (2026-10-01) ·
 **Opened:** 2026-10-01 · **Issue:** #89 ·
 **Crates:** `pleiades-events`, `pleiades-apparent`, `pleiades-core`,
 `pleiades-validate` ·
