@@ -2226,12 +2226,57 @@ plus the rate of the frame or apparent-place correction, differenced over
 (`pleiades_apparent::motion`).
 
 **Gate:** `validate-helio-position` (25424-row Swiss Ephemeris
-`SEFLG_HELCTR | SEFLG_SPEED` corpus, Mercury–Pluto, 1900–2100; measured:
-Helio-position gate: 25424 rows validated (0 oor-skipped) vs Swiss Ephemeris SEFLG_HELCTR|SEFLG_SPEED, Mercury-Neptune max lon 40.805" lat 4.908" dist 3.38e-5 rel, speed lon 1.1503"/d lat 0.5663"/d dist 6.56e-6 AU/d; Pluto max lon 4.407" lat 1.129" dist 6.62e-6 rel, speed lon 0.0300"/d lat 0.0870"/d dist 2.59e-7 AU/d; outer-planet mean signed lon speed +0.0002"/d). The geocentric frame is pinned to the
-apparent chart placement by `crates/pleiades-events/tests/position.rs`.
+`SEFLG_MOSEPH | SEFLG_HELCTR | SEFLG_TRUEPOS | SEFLG_SPEED` corpus,
+Mercury–Pluto, 1900–2100). Both sides are the geometric heliocentric place, so
+the residual is the Moshier-vs-DE440 ephemeris difference. Measured
+(2026-10-01, final review):
 
-**Still open:** the heliocentric longitude carries the light-time signature of
-the planet-minus-Sun reconstruction (also seen by `validate-crossings`);
-removing it would move the crossings golden and is a separate change.
+```text
+Helio-position gate: 25424 rows validated (0 oor-skipped) vs Swiss Ephemeris SEFLG_HELCTR|SEFLG_TRUEPOS|SEFLG_SPEED, Mercury-Neptune max lon 2.294" lat 0.237" dist 3.10e-6 rel, speed lon 0.0795"/d lat 0.0898"/d dist 1.86e-7 AU/d; Pluto max lon 1.194" lat 0.606" dist 4.27e-6 rel, speed lon 0.0300"/d lat 0.0869"/d dist 1.96e-7 AU/d; outer-planet mean signed lon speed +0.0002"/d
+```
+
+The gate also fails closed when the mean signed Jupiter–Neptune longitude-speed
+residual reaches ±0.02″/day (≈ ±0.137″/day would mean the two sides disagree
+on whether the speed includes the precession rate). The geocentric frame is
+pinned to the apparent chart placement by
+`crates/pleiades-events/tests/position.rs`.
+
+**Corpus history:** the first corpus used `SEFLG_HELCTR | SEFLG_SPEED` without
+`SEFLG_TRUEPOS`, which retards the planet by the heliocentric light-time r/c;
+its 40.8″ Mercury longitude maximum was that retardation, not a pleiades
+defect, and was misattributed to the planet-minus-Sun reconstruction.
+
+**Latitude-speed artefact (not modelled):** for Mars–Pluto the latitude-speed
+residual is a near-uniform ≈ 0.085″/day that regresses on dΔε/dt · sin λ
+(slope −1.001, 99.7 % of the variance; ≤ 0.0065″/day remains after removing
+it). Swiss Ephemeris' latitude speed carries a nutation-in-obliquity rate term
+that is not the derivative of its own latitude; pleiades' latitude speed
+matches the central difference of its own latitude to < 1e-5″/day. The gate's
+latitude-speed ceilings absorb the term deliberately.
 
 **Also in this change:** toolchain and MSRV moved from Rust 1.98.1 to 1.99.0.
+
+## FU-17: Heliocentric follow-ups from the issue #89 final review
+
+**Status:** open · **Opened:** 2026-10-01
+
+Three items the final review of issue #89 found outside that change's scope:
+
+- **(a) `validate-crossings` Tier-2 heliocentric reference.** The Tier-2
+  heliocentric Swiss Ephemeris reference and
+  `crates/pleiades-events/tests/heliocentric.rs` carry the same
+  misattribution FU-16 corrected: their reference lacks `SEFLG_TRUEPOS`, so it
+  is light-time-retarded, and that — not the planet-minus-Sun reconstruction —
+  is the real source of the 35.09″ maximum. Regenerate the reference with
+  `SEFLG_TRUEPOS` and tighten the ceilings in a separate change.
+- **(b) Heliocentric lunar points.** Heliocentric `longitude_at` /
+  `position_at` return `Ok` for `MeanNode`, `TrueNode`, `MeanApogee` and
+  `TrueApogee`, although "node minus Sun" is meaningless. Rejecting them
+  changes `longitude_at`'s public behaviour and needs its own decision.
+- **(c) Geocentric reads near the range start.** Geocentric reads within a
+  light-time of the packaged range start (for example Mars or the Moon at
+  JD 2415020.5) fail with `Backend(OutOfRangeInstant)` although the instant is
+  inside the documented window.
+
+**Severity:** (a) validation accuracy, (b) API correctness, (c) edge-case
+availability

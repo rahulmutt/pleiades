@@ -179,7 +179,9 @@ pub(crate) fn combine_velocities(
 /// distance (AU); a missing distance fails closed.
 ///
 /// The heliocentric place is GEOMETRIC (Sun-centred): no annual aberration or
-/// light-time is applied.
+/// light-time is applied — Swiss Ephemeris `SEFLG_HELCTR | SEFLG_TRUEPOS`, not
+/// plain `SEFLG_HELCTR`, whose output is retarded by the heliocentric
+/// light-time (up to ≈ 41″ in longitude for Mercury).
 pub(crate) fn heliocentric_j2000<B: EphemerisBackend>(
     backend: &B,
     body: CelestialBody,
@@ -213,7 +215,8 @@ pub(crate) fn j2000_spherical(position: [f64; 3]) -> (f64, f64, f64) {
 }
 
 /// Rotates a heliocentric J2000 vector to the **true equinox of date**
-/// (precession, then nutation in longitude) to match SE's `SEFLG_HELCTR`:
+/// (precession, then nutation in longitude), the frame of Swiss Ephemeris'
+/// `SEFLG_HELCTR | SEFLG_TRUEPOS` geometric heliocentric place:
 /// `(longitude_deg, latitude_deg, distance_au)`. Nutation in longitude leaves
 /// the ecliptic latitude unchanged, and the rotation leaves the distance
 /// unchanged.
@@ -238,7 +241,8 @@ pub(crate) fn heliocentric_of_date(
     ))
 }
 
-/// Heliocentric ecliptic longitude (degrees) of the true equinox of date.
+/// Geometric heliocentric ecliptic longitude (degrees, no light-time) of the
+/// true equinox of date.
 /// Thin wrapper over [`heliocentric_j2000`] and [`heliocentric_of_date`]; its
 /// return value is byte-identical to before their extraction, which
 /// `validate-crossings` depends on.

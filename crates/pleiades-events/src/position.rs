@@ -9,6 +9,11 @@
 //! |---|---|---|
 //! | geocentric apparent of date | backend mean J2000 place and its motion | apparent place of date |
 //! | heliocentric | planet minus Sun in J2000, rates from Cartesian velocities | true equinox of date |
+//!
+//! The heliocentric place is geometric — no light-time, no aberration — in the
+//! true ecliptic and equinox of date, i.e. Swiss Ephemeris
+//! `SEFLG_HELCTR | SEFLG_TRUEPOS`. Plain `SEFLG_HELCTR` output is retarded by
+//! the heliocentric light-time and differs from it by up to ≈ 41″ (Mercury).
 
 use crate::crossings::{body_label, CrossingFrame, EventEngine};
 use crate::ephemeris::{
@@ -32,7 +37,7 @@ pub struct EclipticPosition {
     pub body: CelestialBody,
     /// The frame `ecliptic` and `motion` are expressed in.
     pub frame: CrossingFrame,
-    /// Instant of the position (TDB).
+    /// The instant as given; its Julian day is read as TDB.
     pub instant: Instant,
     /// Ecliptic longitude and latitude (degrees) and distance (AU, always
     /// `Some`): from the Earth's centre for the geocentric frame, from the Sun
@@ -153,7 +158,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///   `pleiades-core` apparent chart reports.
     /// - [`CrossingFrame::Heliocentric`]: the geometric place from the Sun (no
     ///   light-time, no aberration) in the true ecliptic and equinox of date,
-    ///   as Swiss Ephemeris `SEFLG_HELCTR`.
+    ///   i.e. Swiss Ephemeris `SEFLG_HELCTR | SEFLG_TRUEPOS`. Plain
+    ///   `SEFLG_HELCTR` output is retarded by the heliocentric light-time and
+    ///   differs from this place by up to ≈ 41″ (Mercury).
     ///
     /// Longitude and latitude are degrees, distance is AU; speeds are per day.
     /// The speed is the backend's own speed plus the rate of the frame or

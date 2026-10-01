@@ -31,7 +31,9 @@ Decisions taken on 2026-10-01:
 3. The heliocentric values are gated against a **Swiss Ephemeris corpus**
    (`SEFLG_HELCTR | SEFLG_SPEED`). The geocentric values are gated by
    agreement with the chart layer, whose apparent place is already gated
-   against JPL Horizons by `validate-apparent`.
+   against JPL Horizons by `validate-apparent`. *(Flags corrected to
+   `SEFLG_HELCTR | SEFLG_TRUEPOS | SEFLG_SPEED` — see the amendment at the
+   end.)*
 4. The pending `mise.toml` toolchain bump ships in the same pull request.
 
 ### What already exists
@@ -186,7 +188,8 @@ as in `longitude_at`. Missing speeds are not errors (see above).
   are set per channel from the measured maxima with headroom, recorded with
   the measured values, and wired into the release posture alongside the other
   SE gates. The gate enforces a validated-row floor on the release path.
-- **Expected residual class.** `validate-crossings` already measures the
+- **Expected residual class.** *(The light-time premise of this paragraph
+  was wrong — see the amendment at the end.)* `validate-crossings` already measures the
   heliocentric longitude against SE: 35.09″ maximum for Mercury–Neptune and
   3.53″ for Pluto (ceilings 50″ and 5″). The larger figure is the known
   light-time signature of reconstructing the heliocentric vector from the
@@ -273,3 +276,21 @@ Consumer-visible effect: crates released after this change require Rust
 - **Refactor drift.** Moving the helper into `pleiades-apparent` must not
   change chart output; the existing #92 tests and the chart goldens are the
   guard.
+
+## Amendment (2026-10-01, final review)
+
+The reference corpus is generated with
+`SEFLG_MOSEPH | SEFLG_HELCTR | SEFLG_TRUEPOS | SEFLG_SPEED`, not
+`SEFLG_HELCTR | SEFLG_SPEED`. Under plain `SEFLG_HELCTR` Swiss Ephemeris
+retards the planet by the heliocentric light-time r/c, whereas pleiades'
+heliocentric place is geometric; the like-for-like reference is the true
+(geometric) place that `SEFLG_TRUEPOS` selects. Evaluated against it, the
+longitude maximum falls from 40.8″ to 2.29″ (Mercury–Neptune) and the residual
+is the Moshier-vs-DE440 ephemeris difference.
+
+The "Expected residual class" paragraph's premise was therefore wrong: the
+tens-of-arcseconds heliocentric residual (here and in `validate-crossings`) is
+the reference's light-time retardation, not a signature of reconstructing the
+heliocentric vector from the backend's geocentric vectors. The
+`validate-crossings` reference is regenerated in a separate change
+(`docs/follow-ups.md` FU-17).

@@ -1,14 +1,18 @@
 //! Fail-closed gate: `EventEngine::position_at(.., CrossingFrame::Heliocentric, ..)`
 //! on the packaged backend vs the committed Swiss Ephemeris
-//! `SEFLG_HELCTR | SEFLG_SPEED` reference corpus (Mercury–Pluto, 1900–2100),
-//! for longitude, latitude, distance and their speeds (issue #89).
+//! `SEFLG_HELCTR | SEFLG_TRUEPOS | SEFLG_SPEED` reference corpus (Mercury–Pluto,
+//! 1900–2100), for longitude, latitude, distance and their speeds (issue #89).
 //!
-//! The longitude residual carries the known light-time signature of
-//! reconstructing the heliocentric vector from the backend's geocentric
-//! vectors (see `pleiades-events` `tests/heliocentric.rs`), the same floor
-//! `validate-crossings` measures for the heliocentric frame.
+//! Both sides are the geometric heliocentric place (no light-time, no
+//! aberration), true ecliptic and equinox of date, so the residual is the
+//! Moshier-vs-DE440 ephemeris difference. A fail-closed diagnostic also bounds
+//! the mean signed outer-planet longitude-speed residual, which would sit near
+//! ±0.137″/day if the reference and the engine disagreed on whether the speed
+//! includes the precession rate. See `helio_position_thresholds` for the basis.
 
-use crate::helio_position_thresholds::{PLANET_CEILINGS, PLUTO_CEILINGS};
+use crate::helio_position_thresholds::{
+    OUTER_LON_SPEED_MEAN_SIGNED_BOUND_ARCSEC_PER_DAY, PLANET_CEILINGS, PLUTO_CEILINGS,
+};
 use pleiades_apparent::fnv1a64;
 use pleiades_data::packaged_backend;
 use pleiades_events::{CrossingFrame, EventEngine, EventError};
@@ -70,6 +74,12 @@ pub enum HelioPositionError {
         residual: f64,
         ceiling: f64,
     },
+    /// The mean signed outer-planet longitude-speed residual is at or beyond
+    /// its bound (or NaN).
+    SpeedConventionMismatch {
+        mean_signed_arcsec_per_day: f64,
+        bound: f64,
+    },
 }
 
 impl std::fmt::Display for HelioPositionError {
@@ -92,6 +102,11 @@ impl std::fmt::Display for HelioPositionError {
             Self::CeilingExceeded { body, jd_tt, kind, got, want, residual, ceiling } => write!(
                 f,
                 "{body} {kind} ceiling exceeded at jd_tt={jd_tt}: got {got:.12} want {want:.12} residual {residual:.6e} > ceiling {ceiling:.6e}"
+            ),
+            Self::SpeedConventionMismatch { mean_signed_arcsec_per_day, bound } => write!(
+                f,
+                "outer-planet mean signed longitude-speed residual {mean_signed_arcsec_per_day:+.4}\"/day is not within ±{bound}\"/day; \
+                 a value near ±0.137\"/day means the reference and the engine disagree on whether the speed includes the precession rate"
             ),
         }
     }
@@ -225,6 +240,19 @@ fn parse_manifest(manifest: &str) -> Result<(usize, u64), HelioPositionError> {
 
 fn wrap_deg(got_deg: f64, want_deg: f64) -> f64 {
     (got_deg - want_deg + 180.0).rem_euclid(360.0) - 180.0
+}
+
+/// Fail-closed check of the mean signed outer-planet longitude-speed residual:
+/// `Ok` only when it is finite and strictly inside `±bound`.
+fn check_speed_convention(mean_signed: f64, bound: f64) -> Result<(), HelioPositionError> {
+    if mean_signed.abs() < bound {
+        Ok(())
+    } else {
+        Err(HelioPositionError::SpeedConventionMismatch {
+            mean_signed_arcsec_per_day: mean_signed,
+            bound,
+        })
+    }
 }
 
 fn validate(csv: &str, manifest: &str) -> Result<HelioPositionReport, HelioPositionError> {
@@ -377,7 +405,9 @@ fn validate(csv: &str, manifest: &str) -> Result<HelioPositionReport, HelioPosit
     let outer_mean = if outer_count == 0 {
         0.0
     } else {
-        outer_sum / outer_count as f64
+        let mean = outer_sum / outer_count as f64;
+        check_speed_convention(mean, OUTER_LON_SPEED_MEAN_SIGNED_BOUND_ARCSEC_PER_DAY)?;
+        mean
     };
 
     let group = |m: &HelioMaxima| {
@@ -388,7 +418,7 @@ fn validate(csv: &str, manifest: &str) -> Result<HelioPositionReport, HelioPosit
         )
     };
     let summary_line = format!(
-        "Helio-position gate: {validated} rows validated ({skipped_oor} oor-skipped) vs Swiss Ephemeris SEFLG_HELCTR|SEFLG_SPEED, \
+        "Helio-position gate: {validated} rows validated ({skipped_oor} oor-skipped) vs Swiss Ephemeris SEFLG_HELCTR|SEFLG_TRUEPOS|SEFLG_SPEED, \
          Mercury-Neptune max {}; Pluto max {}; outer-planet mean signed lon speed {:+.4}\"/d",
         group(&maxima),
         group(&pluto_maxima),
