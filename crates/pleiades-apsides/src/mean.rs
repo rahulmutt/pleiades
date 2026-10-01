@@ -25,27 +25,49 @@ pub const MOON_MEAN_ECCENTRICITY: f64 = 0.054_900_489;
 /// `MOON_MEAN_DIST`).
 pub const MOON_MEAN_SEMI_MAJOR_AU: f64 = 384_400_000.0 / METERS_PER_AU;
 
+/// Reduces `deg` to `[0, 360)`. `rem_euclid` alone can return exactly `360.0`
+/// for a tiny negative dividend (`-1e-20 + 360.0` rounds up), so that case is
+/// folded to `0.0`. NaN passes through.
+fn normalize_degrees(deg: f64) -> f64 {
+    let d = deg.rem_euclid(360.0);
+    if d >= 360.0 {
+        0.0
+    } else {
+        d
+    }
+}
+
 fn julian_centuries(jd_tt: f64) -> f64 {
     (jd_tt - J2000_JD) / DAYS_PER_JULIAN_CENTURY
 }
 
 /// Mean longitude of the Moon's ascending node, degrees in `[0, 360)`, mean
-/// equinox of date, at the TT Julian day `jd_tt`. Non-finite input yields NaN.
+/// equinox of date, at the TT Julian day `jd_tt`.
+///
+/// The result is in `[0, 360)` for every finite `jd_tt` whose polynomial value
+/// is finite. Non-finite input, or a finite input so large the polynomial
+/// overflows (about |jd| > 1e80), yields NaN. Never panics.
 pub fn mean_lunar_node_longitude_of_date(jd_tt: f64) -> f64 {
     let t = julian_centuries(jd_tt);
-    (125.044_547_9
-        + (-1_934.136_289_1 + (0.002_075_4 + (1.0 / 476_441.0 - t / 60_616_000.0) * t) * t) * t)
-        .rem_euclid(360.0)
+    normalize_degrees(
+        125.044_547_9
+            + (-1_934.136_289_1 + (0.002_075_4 + (1.0 / 476_441.0 - t / 60_616_000.0) * t) * t) * t,
+    )
 }
 
 /// Mean longitude of the Moon's perigee (node longitude plus in-plane argument
 /// of perigee), degrees in `[0, 360)`, mean equinox of date, at the TT Julian
-/// day `jd_tt`. Non-finite input yields NaN.
+/// day `jd_tt`.
+///
+/// The result is in `[0, 360)` for every finite `jd_tt` whose polynomial value
+/// is finite. Non-finite input, or a finite input so large the polynomial
+/// overflows (about |jd| > 1e80), yields NaN. Never panics.
 pub fn mean_lunar_perigee_longitude_of_date(jd_tt: f64) -> f64 {
     let t = julian_centuries(jd_tt);
-    (83.353_246_5
-        + (4_069.013_728_7 + (-0.010_32 + (-1.0 / 80_053.0 + t / 18_999_000.0) * t) * t) * t)
-        .rem_euclid(360.0)
+    normalize_degrees(
+        83.353_246_5
+            + (4_069.013_728_7 + (-0.010_32 + (-1.0 / 80_053.0 + t / 18_999_000.0) * t) * t) * t,
+    )
 }
 
 /// The Moon's mean Keplerian elements in the mean ecliptic of date at the TT

@@ -59,6 +59,38 @@ fn non_finite_input_does_not_panic() {
     assert!(mean_lunar_perigee_longitude_of_date(f64::INFINITY).is_nan());
 }
 
+#[test]
+fn normalize_degrees_never_returns_360() {
+    let d = normalize_degrees(-1e-20);
+    assert!((0.0..360.0).contains(&d), "{d}");
+    assert!((0.0..360.0).contains(&normalize_degrees(-360.0)));
+    assert!(normalize_degrees(f64::NAN).is_nan());
+}
+
+#[test]
+fn far_but_finite_epochs_stay_normalized() {
+    for jd in [-1e9, -100_000.0, 0.0, 1e9] {
+        let node = mean_lunar_node_longitude_of_date(jd);
+        let peri = mean_lunar_perigee_longitude_of_date(jd);
+        assert!((0.0..360.0).contains(&node), "node at {jd}: {node}");
+        assert!((0.0..360.0).contains(&peri), "perigee at {jd}: {peri}");
+    }
+}
+
+#[test]
+fn non_finite_and_overflowing_input_yields_nan() {
+    for jd in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, 1e200] {
+        assert!(
+            mean_lunar_node_longitude_of_date(jd).is_nan(),
+            "node at {jd}"
+        );
+        assert!(
+            mean_lunar_perigee_longitude_of_date(jd).is_nan(),
+            "perigee at {jd}"
+        );
+    }
+}
+
 proptest! {
     #[test]
     fn longitudes_stay_normalized(jd in 0.0_f64..5_000_000.0) {
