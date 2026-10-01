@@ -2055,9 +2055,9 @@ when chaining searches) · **Opened:** 2026-09-29
 
 **Status:** resolved (2026-09-30) — the goldens' epoch tag was the cause; both
 regen scripts now pass `TIME_TYPE=TT`, both goldens files are regenerated, and the
-tolerances are re-tightened (see **Resolution** below). One lower-confidence
-probe (the topocentric Moon at 2100) remains open as **Remaining**. · Opened
-2026-09-30 while fixing #93.
+tolerances are re-tightened (see **Resolution** below). The topocentric Moon at
+2100 was probed and closed 2026-10-01 (see **Topocentric Moon at 2100** below).
+· Opened 2026-09-30 while fixing #93.
 
 **What:** #93 removed the separate annual-aberration term from the generic
 light-time path; the planets' Horizons residuals collapsed to the ephemeris-fit
@@ -2143,10 +2143,31 @@ engine code changed, so `validate-crossings` and `validate-topocentric` are
 unaffected. The README "Current state" row for apparent place now reads
 sub-arcsecond.
 
-**Remaining (open, lower confidence):** the topocentric Moon's 14.68″ at 2100 in
-`topocentric-goldens.csv` (already a TT-tagged file, so not this cause) is the
-size that ΔT-ignored Earth rotation would give in lunar parallax, and deserves
-its own probe. The `validate-topocentric` Moon longitude tolerance stays 16.7″
-until then.
+**Topocentric Moon at 2100 (resolved 2026-10-01):** the topocentric Moon's
+14.68″ at JD 2488065.5 in `topocentric-goldens.csv` (a TT-tagged file, so not
+the cause above) was a disagreement between two ΔT extrapolations, not an engine
+defect. The engine does convert TT to UT1 before sidereal time
+(`chart/mod.rs`, `ut1_jd_from_tt`); at 2099-12-26 its predicted ΔT is 144.8 s,
+while Horizons reports TDB−UT = 69.18 s there (its current value held forward).
+The 75.6 s gap is 0.32° of Earth rotation. Probe: re-running each Moon row with
+the observer's longitude shifted by the rotation equivalent to the gap, i.e.
+feeding the engine Horizons' Earth orientation:
+
+| JD (TT) | Engine ΔT | Horizons TDB−UT | Moon Δlon as-is | Moon Δlon at Horizons' value |
+|---|---|---|---|---|
+| 2415025.5 | −2.780 s | −1.929 s | +0.004″ | −0.069″ |
+| 2433282.5 | 29.100 s | 28.931 s | −0.057″ | −0.083″ |
+| 2451545.0 | 63.800 s | 64.184 s | +0.043″ | +0.086″ |
+| 2488065.5 | 144.815 s | 69.184 s | +14.635″ | +0.076″ |
+
+(Horizons' column is TDB−UT as printed; at the measured epochs the engine's ΔT
+is the better UT1 value, which is why substituting does not help there.) Neither
+extrapolation is knowable truth for 2100, so the row gated nothing about the
+engine. The three 2099 rows were replaced with 2458849.5 (2020-01-01 TT, inside
+measured ΔT) and the tolerances re-derived as measured maximum + 2″: Moon
+0.124″ / 2.2″ (was 14.677″ / 16.7″), Sun 0.120″ / 2.2″, Mars 0.165″ / 2.2″.
+Standing caveat: a topocentric Moon past the leap-second horizon carries the ΔT
+prediction's uncertainty at about 0.2″ of longitude per second of ΔT (see FU-11
+item 2); geocentric places do not.
 
 **Origin:** issue #93, `docs/superpowers/specs/2026-09-30-apparent-aberration-double-count-design.md` section 4.

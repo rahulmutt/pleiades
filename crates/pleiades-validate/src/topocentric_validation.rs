@@ -17,7 +17,7 @@ const GOLDENS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/topocentric-goldens.csv"
 ));
-const GOLDENS_CHECKSUM: u64 = 6_567_719_788_038_833_109;
+const GOLDENS_CHECKSUM: u64 = 10_768_141_929_860_791_758;
 
 /// Madrid observer site used for all topocentric golden comparisons.
 ///
