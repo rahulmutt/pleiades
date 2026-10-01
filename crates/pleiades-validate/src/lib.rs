@@ -29,6 +29,8 @@ mod equatorial_validation;
 mod fictitious_thresholds;
 pub mod fictitious_validation;
 mod frame_consistency_validation;
+mod helio_position_thresholds;
+mod helio_position_validation;
 mod house_validation;
 mod lilith_validation;
 mod mean_lunar_validation;
@@ -220,6 +222,9 @@ pub use equatorial_validation::{
 pub use fictitious_validation::{validate_fictitious_corpus, FictitiousError, FictitiousReport};
 pub use frame_consistency_validation::{
     validate_frame_consistency, FrameConsistencyError, FrameConsistencyReport,
+};
+pub use helio_position_validation::{
+    validate_helio_position_corpus, HelioMaxima, HelioPositionError, HelioPositionReport,
 };
 pub use house_validation::{
     house_validation_report, house_validation_summary_for_report,
