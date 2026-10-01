@@ -1,3 +1,7 @@
+//! Lunar orbit points for the pleiades workspace: the osculating (true) apsides
+//! and node from a state vector, and the mean node and apsides from the mean
+//! lunar elements (see [`mean_lunar_elements_of_date`]).
+//!
 //! Osculating lunar apsides — the true (osculating) apogee and perigee of the
 //! Moon's instantaneous Kepler ellipse, derived from its geocentric position and
 //! velocity. Computes the same osculating-apogee/perigee quantity Swiss
@@ -12,6 +16,14 @@
 //! as the input Cartesian state — here, geocentric J2000 mean ecliptic.
 
 #![deny(missing_docs)]
+
+mod mean;
+
+pub use mean::{
+    mean_lunar_elements_of_date, mean_lunar_node_longitude_of_date,
+    mean_lunar_perigee_longitude_of_date, MOON_MEAN_ECCENTRICITY, MOON_MEAN_INCLINATION_DEG,
+    MOON_MEAN_SEMI_MAJOR_AU,
+};
 
 /// `G(M⊕ + M☾)` in AU³/day². Derived from GM⊕ = 398600.4418 km³/s² and
 /// GM☾ = 4902.800 km³/s² (sum 403503.2418) with 1 AU = 149597870.7 km and
