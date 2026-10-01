@@ -6,6 +6,7 @@
 #![allow(dead_code)]
 
 use crate::error::EventError;
+use crate::state_vector::cartesian_velocity;
 use pleiades_apparent::nutation::nutation;
 use pleiades_apparent::{
     apparent_position, apparent_sun_position, precess_ecliptic_j2000_to_date,
@@ -14,7 +15,7 @@ use pleiades_apparent::{
 use pleiades_backend::{EphemerisBackend, EphemerisRequest};
 use pleiades_types::{
     Apparentness, CelestialBody, CoordinateFrame, EclipticCoordinates, Instant, JulianDay,
-    Latitude, Longitude, TimeScale, ZodiacMode,
+    Latitude, Longitude, Motion, TimeScale, ZodiacMode,
 };
 
 fn request(body: CelestialBody, julian_day: f64) -> EphemerisRequest {
@@ -28,13 +29,17 @@ fn request(body: CelestialBody, julian_day: f64) -> EphemerisRequest {
     }
 }
 
-/// Mean/J2000 geocentric ecliptic (longitude_deg, latitude_deg, distance_au).
-pub(crate) fn read_mean_ecliptic<B: EphemerisBackend>(
+/// `(longitude_deg, latitude_deg, distance_au)`.
+type EclipticTriple = (f64, f64, f64);
+
+/// Mean/J2000 geocentric ecliptic `(longitude_deg, latitude_deg, distance_au)`
+/// and the backend's motion for that place, when it reports one.
+pub(crate) fn read_mean_ecliptic_with_motion<B: EphemerisBackend>(
     backend: &B,
     body: CelestialBody,
     body_label: &'static str,
     julian_day: f64,
-) -> Result<(f64, f64, f64), EventError> {
+) -> Result<(EclipticTriple, Option<Motion>), EventError> {
     let result = backend
         .position(&request(body, julian_day))
         .map_err(|e| EventError::Backend(e.to_string()))?;
@@ -47,10 +52,23 @@ pub(crate) fn read_mean_ecliptic<B: EphemerisBackend>(
         julian_day,
     })?;
     Ok((
-        ecliptic.longitude.degrees(),
-        ecliptic.latitude.degrees(),
-        distance,
+        (
+            ecliptic.longitude.degrees(),
+            ecliptic.latitude.degrees(),
+            distance,
+        ),
+        result.motion,
     ))
+}
+
+/// Mean/J2000 geocentric ecliptic (longitude_deg, latitude_deg, distance_au).
+pub(crate) fn read_mean_ecliptic<B: EphemerisBackend>(
+    backend: &B,
+    body: CelestialBody,
+    body_label: &'static str,
+    julian_day: f64,
+) -> Result<(f64, f64, f64), EventError> {
+    Ok(read_mean_ecliptic_with_motion(backend, body, body_label, julian_day)?.0)
 }
 
 /// Geocentric apparent-of-date ecliptic (longitude_deg, latitude_deg, distance_au)
@@ -138,31 +156,72 @@ pub(crate) fn geocentric_apparent_longitude_deg<B: EphemerisBackend>(
     Ok(geocentric_apparent_ecliptic(backend, body, body_label, julian_day)?.0)
 }
 
-/// Heliocentric ecliptic longitude (degrees) via `P_helio = P_geo − S_geo`,
-/// reconstructed from the mean geocentric planet and Sun vectors, then rotated
-/// from the J2000 ecliptic to the **true equinox of date** (precession +
-/// nutation in longitude) to match SE's `SEFLG_HELCTR`. Both vectors carry
+/// Heliocentric J2000 ecliptic state of a body: `P_helio = P_geo − S_geo`,
+/// reconstructed from the mean geocentric planet and Sun.
+pub(crate) struct HeliocentricJ2000 {
+    /// Heliocentric position vector, AU.
+    pub(crate) position: [f64; 3],
+    /// Heliocentric velocity vector, AU/day, when the backend reports all
+    /// three rates for both the body and the Sun.
+    pub(crate) velocity: Option<[f64; 3]>,
+}
+
+/// Planet-minus-Sun velocity, when both are known.
+pub(crate) fn combine_velocities(
+    planet: Option<[f64; 3]>,
+    sun: Option<[f64; 3]>,
+) -> Option<[f64; 3]> {
+    let (planet, sun) = planet.zip(sun)?;
+    Some([planet[0] - sun[0], planet[1] - sun[1], planet[2] - sun[2]])
+}
+
+/// Reads the mean geocentric body and Sun and subtracts them. Both carry
 /// distance (AU); a missing distance fails closed.
 ///
-/// The heliocentric position is GEOMETRIC (Sun-centered): no annual aberration
-/// or light-time is applied — only the frame rotation to of-date.
-pub(crate) fn heliocentric_longitude_deg<B: EphemerisBackend>(
+/// The heliocentric place is GEOMETRIC (Sun-centred): no annual aberration or
+/// light-time is applied.
+pub(crate) fn heliocentric_j2000<B: EphemerisBackend>(
     backend: &B,
     body: CelestialBody,
     body_label: &'static str,
     julian_day: f64,
-) -> Result<f64, EventError> {
-    let (pl, pb, pd) = read_mean_ecliptic(backend, body, body_label, julian_day)?;
-    let (sl, sb, sd) = read_mean_ecliptic(backend, CelestialBody::Sun, "Sun", julian_day)?;
+) -> Result<HeliocentricJ2000, EventError> {
+    let ((pl, pb, pd), planet_motion) =
+        read_mean_ecliptic_with_motion(backend, body, body_label, julian_day)?;
+    let ((sl, sb, sd), sun_motion) =
+        read_mean_ecliptic_with_motion(backend, CelestialBody::Sun, "Sun", julian_day)?;
     let planet = spherical_to_cartesian(pl, pb, pd);
     let sun = spherical_to_cartesian(sl, sb, sd);
-    let helio = [planet[0] - sun[0], planet[1] - sun[1], planet[2] - sun[2]];
+    Ok(HeliocentricJ2000 {
+        position: [planet[0] - sun[0], planet[1] - sun[1], planet[2] - sun[2]],
+        velocity: combine_velocities(
+            cartesian_velocity(pl, pb, pd, planet_motion),
+            cartesian_velocity(sl, sb, sd, sun_motion),
+        ),
+    })
+}
 
-    // Heliocentric J2000 ecliptic (longitude, latitude).
-    let lon_j2000 = helio[1].atan2(helio[0]).to_degrees().rem_euclid(360.0);
-    let lat_j2000 = helio[2]
-        .atan2((helio[0] * helio[0] + helio[1] * helio[1]).sqrt())
-        .to_degrees();
+/// J2000 ecliptic `(longitude_deg, latitude_deg, distance_au)` of a vector.
+pub(crate) fn j2000_spherical(position: [f64; 3]) -> (f64, f64, f64) {
+    let [x, y, z] = position;
+    let planar = (x * x + y * y).sqrt();
+    (
+        y.atan2(x).to_degrees().rem_euclid(360.0),
+        z.atan2(planar).to_degrees(),
+        (x * x + y * y + z * z).sqrt(),
+    )
+}
+
+/// Rotates a heliocentric J2000 vector to the **true equinox of date**
+/// (precession, then nutation in longitude) to match SE's `SEFLG_HELCTR`:
+/// `(longitude_deg, latitude_deg, distance_au)`. Nutation in longitude leaves
+/// the ecliptic latitude unchanged, and the rotation leaves the distance
+/// unchanged.
+pub(crate) fn heliocentric_of_date(
+    position: [f64; 3],
+    julian_day: f64,
+) -> Result<(f64, f64, f64), EventError> {
+    let (lon_j2000, lat_j2000, distance) = j2000_spherical(position);
 
     // J2000 -> mean equinox/ecliptic of date (precession).
     let precessed = precess_ecliptic_j2000_to_date(lon_j2000, lat_j2000, julian_day)
@@ -172,7 +231,25 @@ pub(crate) fn heliocentric_longitude_deg<B: EphemerisBackend>(
     let nut = nutation(julian_day)
         .map_err(|e| EventError::Backend(format!("helio nutation failed: {e}")))?;
 
-    Ok((precessed.longitude_deg + nut.delta_psi_arcsec / 3600.0).rem_euclid(360.0))
+    Ok((
+        (precessed.longitude_deg + nut.delta_psi_arcsec / 3600.0).rem_euclid(360.0),
+        precessed.latitude_deg,
+        distance,
+    ))
+}
+
+/// Heliocentric ecliptic longitude (degrees) of the true equinox of date.
+/// Thin wrapper over [`heliocentric_j2000`] and [`heliocentric_of_date`]; its
+/// return value is byte-identical to before their extraction, which
+/// `validate-crossings` depends on.
+pub(crate) fn heliocentric_longitude_deg<B: EphemerisBackend>(
+    backend: &B,
+    body: CelestialBody,
+    body_label: &'static str,
+    julian_day: f64,
+) -> Result<f64, EventError> {
+    let helio = heliocentric_j2000(backend, body, body_label, julian_day)?;
+    Ok(heliocentric_of_date(helio.position, julian_day)?.0)
 }
 
 pub(crate) fn spherical_to_cartesian(lon_deg: f64, lat_deg: f64, r_au: f64) -> [f64; 3] {
@@ -189,6 +266,94 @@ pub(crate) fn spherical_to_cartesian(lon_deg: f64, lat_deg: f64, r_au: f64) -> [
 mod tests {
     use super::*;
     use pleiades_backend::test_backend::LinearSunMoon;
+
+    const PINNED_HELIO_LONGITUDE_BITS: [u64; 4] = [
+        4640199238401330988,
+        4645031011594974728,
+        4566141178696634184,
+        4629851122814407423,
+    ];
+
+    /// The longitude wrapper must not move by a single bit when the
+    /// reconstruction is refactored: `validate-crossings` root-finds on it.
+    #[test]
+    fn heliocentric_longitude_bits_are_pinned() {
+        let backend = pleiades_data::packaged_backend();
+        let cases = [
+            (CelestialBody::Mercury, "Mercury", 2_415_100.25),
+            (CelestialBody::Mars, "Mars", 2_451_545.0),
+            (CelestialBody::Saturn, "Saturn", 2_439_500.066527),
+            (CelestialBody::Pluto, "Pluto", 2_487_900.5),
+        ];
+        let got: Vec<u64> = cases
+            .iter()
+            .map(|(body, label, jd)| {
+                heliocentric_longitude_deg(&backend, body.clone(), label, *jd)
+                    .unwrap()
+                    .to_bits()
+            })
+            .collect();
+        assert_eq!(got, PINNED_HELIO_LONGITUDE_BITS);
+    }
+
+    #[test]
+    fn of_date_longitude_matches_the_longitude_wrapper() {
+        let backend = pleiades_data::packaged_backend();
+        let jd = 2_451_545.0;
+        let helio = heliocentric_j2000(&backend, CelestialBody::Mars, "Mars", jd).unwrap();
+        let (lon, lat, dist) = heliocentric_of_date(helio.position, jd).unwrap();
+        let wrapper =
+            heliocentric_longitude_deg(&backend, CelestialBody::Mars, "Mars", jd).unwrap();
+        assert_eq!(lon.to_bits(), wrapper.to_bits());
+        // Mars: heliocentric latitude within its 1.85° inclination, distance 1.38–1.67 AU.
+        assert!(lat.abs() < 1.9, "latitude {lat}");
+        assert!((1.38..1.67).contains(&dist), "distance {dist}");
+    }
+
+    #[test]
+    fn j2000_and_of_date_share_the_distance() {
+        let backend = pleiades_data::packaged_backend();
+        let jd = 2_470_000.5;
+        let helio = heliocentric_j2000(&backend, CelestialBody::Jupiter, "Jupiter", jd).unwrap();
+        let j2000 = j2000_spherical(helio.position);
+        let of_date = heliocentric_of_date(helio.position, jd).unwrap();
+        assert_eq!(j2000.2.to_bits(), of_date.2.to_bits());
+        // 2050: precession has moved the equinox by roughly 0.7°.
+        let shift = (of_date.0 - j2000.0 + 180.0).rem_euclid(360.0) - 180.0;
+        assert!((0.6..0.8).contains(&shift), "precession shift {shift}");
+    }
+
+    #[test]
+    fn packaged_backend_gives_a_heliocentric_velocity() {
+        let backend = pleiades_data::packaged_backend();
+        let helio =
+            heliocentric_j2000(&backend, CelestialBody::Venus, "Venus", 2_451_545.0).unwrap();
+        let v = helio.velocity.expect("packaged backend reports motion");
+        // Venus orbital speed is about 0.0202 AU/day.
+        let speed = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
+        assert!((0.0195..0.0210).contains(&speed), "speed {speed}");
+    }
+
+    #[test]
+    fn partial_backend_motion_gives_no_heliocentric_velocity() {
+        // LinearSunMoon serves no planets; the Sun–Moon mock has no full
+        // planetary motion, so use the pure helper on a partial rate set.
+        use crate::state_vector::cartesian_velocity;
+        use pleiades_types::Motion;
+        let planet = cartesian_velocity(
+            10.0,
+            0.0,
+            1.5,
+            Some(Motion::new(Some(0.5), None, Some(0.0))),
+        );
+        let sun = cartesian_velocity(
+            100.0,
+            0.0,
+            1.0,
+            Some(Motion::new(Some(1.0), Some(0.0), Some(0.0))),
+        );
+        assert!(combine_velocities(planet, sun).is_none());
+    }
 
     #[test]
     fn mean_read_returns_sun_longitude() {
