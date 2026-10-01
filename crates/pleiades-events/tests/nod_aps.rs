@@ -275,3 +275,34 @@ fn packaged_fit_asteroids_fail_closed() {
         "expected a fail-closed DegenerateNodAps error, got: {err:?}"
     );
 }
+
+/// Issue #90: the mean lunar node and apsides are analytic, so the Mean method
+/// for the Moon must work on the packaged backend alone.
+#[test]
+fn moon_mean_points_work_on_the_packaged_backend_alone() {
+    let engine = EventEngine::new(PackagedDataBackend::new());
+    let r = engine
+        .nod_aps(
+            CelestialBody::Moon,
+            tdb(2_460_000.5),
+            NodApsMethod::Mean,
+            ApsisConvention::Aphelion,
+        )
+        .expect("Moon mean nod_aps on the packaged backend");
+    assert!(r.ascending.longitude_deg.is_finite());
+
+    // Swiss Ephemeris swe_nod_aps, Moon, SE_NODBIT_MEAN at J2000 (nod-aps corpus).
+    let j2000 = engine
+        .nod_aps(
+            CelestialBody::Moon,
+            tdb(JD),
+            NodApsMethod::Mean,
+            ApsisConvention::Aphelion,
+        )
+        .unwrap();
+    let arcsec =
+        |got: f64, want: f64| ((got - want + 180.0).rem_euclid(360.0) - 180.0).abs() * 3600.0;
+    assert!(arcsec(j2000.ascending.longitude_deg, 125.040_685_175) < 0.8);
+    assert!(arcsec(j2000.aphelion.longitude_deg, 263.464_250_479) < 0.8);
+    assert!(((j2000.aphelion.latitude_deg - 3.419_723_161) * 3600.0).abs() < 0.06);
+}
