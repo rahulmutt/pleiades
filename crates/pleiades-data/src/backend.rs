@@ -379,6 +379,7 @@ impl EphemerisBackend for PackagedDataBackend {
                     .collect();
                 claims.extend(crate::apsis_body_claims());
                 claims.extend(crate::true_node_body_claims());
+                claims.extend(crate::mean_lunar_point_body_claims());
                 claims
             },
             supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],

@@ -1608,3 +1608,30 @@ fn mean_node_reports_the_mean_lunar_distance() {
     let (_, _, dist) = mean_point_of_date(CelestialBody::MeanNode, 2_461_041.5);
     assert_eq!(dist, pleiades_apsides::MOON_MEAN_SEMI_MAJOR_AU);
 }
+
+#[test]
+fn mean_lunar_points_carry_release_grade_corpus_claims() {
+    use pleiades_backend::EphemerisBackend;
+    let claims = PackagedDataBackend::new().metadata().body_claims;
+    for body in MEAN_LUNAR_POINTS {
+        let claim = claims
+            .iter()
+            .find(|c| c.body == body)
+            .unwrap_or_else(|| panic!("{body:?} claim present"));
+        assert_eq!(claim.tier, pleiades_backend::BodyClaimTier::ReleaseGrade);
+        match &claim.evidence {
+            pleiades_backend::ClaimEvidence::CorpusValidated { source } => {
+                assert!(source.contains("validate-mean-lunar-points"), "{source}");
+            }
+            other => panic!("expected CorpusValidated evidence, got {other:?}"),
+        }
+    }
+    assert_eq!(
+        claims
+            .iter()
+            .filter(|c| MEAN_LUNAR_POINTS.contains(&c.body))
+            .count(),
+        3,
+        "exactly one claim per mean lunar point"
+    );
+}
