@@ -7,7 +7,8 @@ use pleiades_apparent::{
     precess_ecliptic_date_to_j2000, precess_ecliptic_j2000_to_date, ApparentPlaceError,
 };
 use pleiades_apsides::{
-    apsides, elements_from_state, points_from_elements, MU_EARTH_MOON_AU3_PER_DAY2,
+    apsides, elements_from_state, mean_lunar_elements_of_date, points_from_elements,
+    MOON_MEAN_SEMI_MAJOR_AU, MU_EARTH_MOON_AU3_PER_DAY2,
 };
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
@@ -80,7 +81,7 @@ impl PackagedDataBackend {
         &self.artifact
     }
 
-    /// Assembles a derived lunar point (osculating apsis or node) into a
+    /// Assembles a derived lunar point (osculating or mean apsis or node) into a
     /// backend result: J2000 ecliptic from `eval`, mean-obliquity equatorial,
     /// central-difference motion, `Interpolated` quality.
     fn derived_point_position(
@@ -202,6 +203,55 @@ impl PackagedDataBackend {
             Longitude::from_degrees(j2000.longitude_deg),
             Latitude::from_degrees(j2000.latitude_deg),
             Some(node.distance_au),
+        ))
+    }
+
+    /// A mean lunar point (mean node, mean apogee or mean perigee), J2000
+    /// boundary frame.
+    ///
+    /// The point is placed on the Moon's mean orbit in the mean ecliptic of
+    /// date — the apsides through the inclined orbit, as Swiss Ephemeris'
+    /// `SE_MEAN_APOG` is, not as the raw longitude-of-perigee element — and
+    /// precessed back to J2000 like the osculating node. The elements are
+    /// analytic, but the point is served only inside the packaged window so
+    /// the backend's advertised range holds for every body it answers.
+    fn mean_lunar_point_ecliptic(
+        &self,
+        body: &CelestialBody,
+        instant: Instant,
+    ) -> Result<EclipticCoordinates, EphemerisError> {
+        // Window probe: the Moon series spans the packaged window.
+        self.artifact
+            .lookup_ecliptic(&CelestialBody::Moon, normalize_lookup_instant(instant))
+            .map_err(map_artifact_error)?;
+
+        let jd_tt = instant.julian_day.days();
+        let points =
+            points_from_elements(&mean_lunar_elements_of_date(jd_tt), false).map_err(|_| {
+                EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "mean lunar point undefined at this instant",
+                )
+            })?;
+        let (point, distance_au) = match body {
+            // Swiss Ephemeris reports the mean lunar distance for SE_MEAN_NODE,
+            // not the orbit radius at the node.
+            CelestialBody::MeanNode => (points.ascending, MOON_MEAN_SEMI_MAJOR_AU),
+            CelestialBody::MeanApogee => (points.aphelion, points.aphelion.distance_au),
+            CelestialBody::MeanPerigee => (points.perihelion, points.perihelion.distance_au),
+            _ => {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "not a mean lunar point",
+                ))
+            }
+        };
+        let j2000 = precess_ecliptic_date_to_j2000(point.longitude_deg, point.latitude_deg, jd_tt)
+            .map_err(map_precession_error)?;
+        Ok(EclipticCoordinates::new(
+            Longitude::from_degrees(j2000.longitude_deg),
+            Latitude::from_degrees(j2000.latitude_deg),
+            Some(distance_au),
         ))
     }
 
@@ -349,7 +399,12 @@ impl EphemerisBackend for PackagedDataBackend {
     fn supports_body(&self, body: CelestialBody) -> bool {
         matches!(
             body,
-            CelestialBody::TrueApogee | CelestialBody::TruePerigee | CelestialBody::TrueNode
+            CelestialBody::TrueApogee
+                | CelestialBody::TruePerigee
+                | CelestialBody::TrueNode
+                | CelestialBody::MeanNode
+                | CelestialBody::MeanApogee
+                | CelestialBody::MeanPerigee
         ) || self
             .artifact
             .bodies
@@ -387,6 +442,13 @@ impl EphemerisBackend for PackagedDataBackend {
         }
         if req.body == CelestialBody::TrueNode {
             return self.derived_point_position(req, &|i| self.osculating_node_ecliptic(i));
+        }
+        if matches!(
+            req.body,
+            CelestialBody::MeanNode | CelestialBody::MeanApogee | CelestialBody::MeanPerigee
+        ) {
+            let body = req.body.clone();
+            return self.derived_point_position(req, &|i| self.mean_lunar_point_ecliptic(&body, i));
         }
 
         let lookup_instant = normalize_lookup_instant(req.instant);

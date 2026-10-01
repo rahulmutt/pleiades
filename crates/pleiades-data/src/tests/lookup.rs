@@ -1460,3 +1460,151 @@ fn osculating_node_motion_degrades_gracefully_at_coverage_boundary() {
     assert!(motion.latitude_deg_per_day.is_none());
     assert!(motion.distance_au_per_day.is_none());
 }
+
+const MEAN_LUNAR_POINTS: [CelestialBody; 3] = [
+    CelestialBody::MeanNode,
+    CelestialBody::MeanApogee,
+    CelestialBody::MeanPerigee,
+];
+
+fn mean_point_of_date(body: CelestialBody, jd: f64) -> (f64, f64, f64) {
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest};
+    let instant = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+    let ecl = PackagedDataBackend::new()
+        .position(&EphemerisRequest::new(body, instant))
+        .expect("mean lunar point position")
+        .ecliptic
+        .expect("ecliptic present");
+    let of_date = pleiades_apparent::precess_ecliptic_j2000_to_date(
+        ecl.longitude.degrees(),
+        ecl.latitude.degrees(),
+        jd,
+    )
+    .unwrap();
+    (
+        of_date.longitude_deg,
+        of_date.latitude_deg,
+        ecl.distance_au.expect("distance present"),
+    )
+}
+
+#[test]
+fn packaged_backend_supports_the_mean_lunar_points() {
+    use pleiades_backend::EphemerisBackend;
+    let backend = PackagedDataBackend::new();
+    for body in MEAN_LUNAR_POINTS {
+        assert!(backend.supports_body(body.clone()), "{body:?}");
+    }
+}
+
+#[test]
+fn mean_node_is_the_meeus_polynomial_on_the_ecliptic_of_date() {
+    let jd = 2_461_041.5; // 2026-01-01 TT
+    let (lon, lat, _) = mean_point_of_date(CelestialBody::MeanNode, jd);
+    let want = pleiades_apsides::mean_lunar_node_longitude_of_date(jd);
+    assert!((lon - want).abs() < 1e-8, "lon {lon} want {want}");
+    assert!(lat.abs() < 1e-8, "node latitude of date {lat}");
+}
+
+#[test]
+fn mean_apogee_at_j2000_is_the_swiss_ephemeris_point() {
+    // SE mean apogee at J2000 in the true equinox of date is 263.464250479°,
+    // +3.419723161°; without Δψ (−0.003868°) the mean-equinox longitude is
+    // ≈ 263.46812°. The raw Meeus element would be 263.3532°, latitude 0.
+    let (lon, lat, dist) = mean_point_of_date(CelestialBody::MeanApogee, 2_451_545.0);
+    assert!((lon - 263.468_12).abs() < 1e-4, "lon {lon}");
+    assert!((lat - 3.419_722).abs() < 1e-5, "lat {lat}");
+    assert!((dist - 0.002_710_625).abs() < 1e-9, "dist {dist}");
+}
+
+#[test]
+fn mean_perigee_is_antipodal_to_mean_apogee() {
+    let jd = 2_461_041.5;
+    let (alon, alat, adist) = mean_point_of_date(CelestialBody::MeanApogee, jd);
+    let (plon, plat, pdist) = mean_point_of_date(CelestialBody::MeanPerigee, jd);
+    let dlon = (plon - alon).rem_euclid(360.0);
+    assert!((dlon - 180.0).abs() < 1e-8, "Δλ {dlon}");
+    assert!((plat + alat).abs() < 1e-8, "β {plat} vs {alat}");
+    assert!((pdist - 0.002_428_485).abs() < 1e-9, "perigee dist {pdist}");
+    assert!(adist > pdist);
+}
+
+#[test]
+fn mean_lunar_point_motion_has_the_expected_rates() {
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest};
+    let backend = PackagedDataBackend::new();
+    let instant = Instant::new(JulianDay::from_days(2_461_041.5), TimeScale::Tt);
+    let rate = |body: CelestialBody| {
+        backend
+            .position(&EphemerisRequest::new(body, instant))
+            .unwrap()
+            .motion
+            .expect("motion")
+            .longitude_deg_per_day
+            .expect("longitude rate")
+    };
+    // J2000-frame rates: of-date rate minus general precession (3.8e-5°/day).
+    assert!((rate(CelestialBody::MeanNode) + 0.052_99).abs() < 2e-4);
+    // The projected apsis oscillates around the element's 0.1114°/day.
+    let apogee = rate(CelestialBody::MeanApogee);
+    assert!((0.110..0.113).contains(&apogee), "apogee rate {apogee}");
+}
+
+#[test]
+fn mean_lunar_points_accept_tdb_like_tt() {
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest};
+    let backend = PackagedDataBackend::new();
+    let jd = 2_461_041.5;
+    for body in MEAN_LUNAR_POINTS {
+        let lon = |scale| {
+            backend
+                .position(&EphemerisRequest::new(
+                    body.clone(),
+                    Instant::new(JulianDay::from_days(jd), scale),
+                ))
+                .expect("TT and TDB requests are accepted")
+                .ecliptic
+                .unwrap()
+                .longitude
+                .degrees()
+        };
+        assert_eq!(lon(TimeScale::Tt), lon(TimeScale::Tdb), "{body:?}");
+    }
+}
+
+#[test]
+fn mean_lunar_points_fail_closed_outside_window() {
+    use pleiades_backend::{EphemerisBackend, EphemerisErrorKind, EphemerisRequest};
+    let backend = PackagedDataBackend::new();
+    for body in MEAN_LUNAR_POINTS {
+        let err = backend
+            .position(&EphemerisRequest::new(
+                body.clone(),
+                Instant::new(JulianDay::from_days(2_400_000.5), TimeScale::Tt),
+            ))
+            .expect_err("1858 is outside the packaged window");
+        assert_eq!(err.kind, EphemerisErrorKind::OutOfRangeInstant, "{body:?}");
+    }
+}
+
+#[test]
+fn mean_lunar_point_motion_degrades_gracefully_at_coverage_boundary() {
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest};
+    let backend = PackagedDataBackend::new();
+    let boundary = Instant::new(JulianDay::from_days(2_415_020.5), TimeScale::Tt);
+    let result = backend
+        .position(&EphemerisRequest::new(CelestialBody::MeanNode, boundary))
+        .expect("position at coverage boundary must succeed");
+    assert!(result.ecliptic.unwrap().longitude.degrees().is_finite());
+    let motion = result.motion.expect("motion field present");
+    assert!(motion.longitude_deg_per_day.is_none());
+    assert!(motion.latitude_deg_per_day.is_none());
+    assert!(motion.distance_au_per_day.is_none());
+}
+
+#[test]
+fn mean_node_reports_the_mean_lunar_distance() {
+    // Swiss Ephemeris reports the mean distance for SE_MEAN_NODE.
+    let (_, _, dist) = mean_point_of_date(CelestialBody::MeanNode, 2_461_041.5);
+    assert_eq!(dist, pleiades_apsides::MOON_MEAN_SEMI_MAJOR_AU);
+}
