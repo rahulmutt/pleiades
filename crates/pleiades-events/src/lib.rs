@@ -120,6 +120,7 @@ mod pheno;
 mod rise_trans;
 mod root;
 mod semidiameter;
+mod state_vector;
 mod time_scale;
 
 #[allow(deprecated)]
