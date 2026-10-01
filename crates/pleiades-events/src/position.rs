@@ -1,6 +1,6 @@
 //! Ecliptic position and speed of a body in a [`CrossingFrame`].
 //!
-//! Both frames follow one pattern. A *base* place has a speed known from the
+//! Every frame follows one pattern. A *base* place has a speed known from the
 //! backend; the reported place is that base place moved by a small, smooth
 //! correction; and the reported speed is the base speed plus the rate of the
 //! correction, differenced over ±[`HALF_SPAN_DAYS`].
@@ -10,22 +10,21 @@
 //! | geocentric apparent of date | backend mean J2000 place and its motion | apparent place of date |
 //! | geocentric mean of date | backend mean J2000 place and its motion | precessed to the mean equinox of date |
 //! | heliocentric | planet minus Sun in J2000, rates from Cartesian velocities | true equinox of date |
+//! | any geocentric frame, sidereal zodiac | as the frame | the frame's place − Δψ (apparent only) − mean ayanamsa |
 //!
 //! The heliocentric place is geometric — no light-time, no aberration — in the
 //! true ecliptic and equinox of date, i.e. Swiss Ephemeris
 //! `SEFLG_HELCTR | SEFLG_TRUEPOS`. Plain `SEFLG_HELCTR` output is retarded by
 //! the heliocentric light-time and differs from it by up to ≈ 41″ (Mercury).
 
-use crate::crossings::{body_label, CrossingFrame, EventEngine};
-use crate::ephemeris::{
-    geocentric_apparent_ecliptic, geocentric_mean_of_date_ecliptic, heliocentric_j2000,
-    heliocentric_of_date, j2000_spherical, read_mean_ecliptic_with_motion,
-};
+use crate::crossings::{CrossingFrame, EventEngine};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
-use crate::state_vector::spherical_rates;
+use crate::reference::{check_supported, sampled_place, CrossingReference};
 use pleiades_apparent::motion::{apparent_motion, Correction, CorrectionSample, HALF_SPAN_DAYS};
 use pleiades_backend::EphemerisBackend;
-use pleiades_types::{CelestialBody, EclipticCoordinates, Instant, Latitude, Longitude, Motion};
+use pleiades_types::{
+    CelestialBody, EclipticCoordinates, Instant, Latitude, Longitude, Motion, ZodiacMode,
+};
 
 /// Ecliptic position and speed of a body at one instant.
 //
@@ -38,6 +37,8 @@ pub struct EclipticPosition {
     pub body: CelestialBody,
     /// The frame `ecliptic` and `motion` are expressed in.
     pub frame: CrossingFrame,
+    /// The zodiac `ecliptic.longitude` is read in.
+    pub zodiac: ZodiacMode,
     /// The instant as given; its Julian day is read as TDB.
     pub instant: Instant,
     /// Ecliptic longitude and latitude (degrees) and distance (AU, always
@@ -79,44 +80,15 @@ fn coordinates((lon_deg, lat_deg, distance_au): (f64, f64, f64)) -> EclipticCoor
 fn sample<B: EphemerisBackend>(
     backend: &B,
     body: &CelestialBody,
-    frame: CrossingFrame,
+    reference: &CrossingReference,
     julian_day: f64,
 ) -> Result<Sample, EventError> {
-    let label = body_label(body);
-    match frame {
-        CrossingFrame::GeocentricApparentOfDate => {
-            let (mean, base_motion) =
-                read_mean_ecliptic_with_motion(backend, body.clone(), label, julian_day)?;
-            let apparent = geocentric_apparent_ecliptic(backend, body.clone(), label, julian_day)?;
-            Ok(Sample {
-                base: coordinates(mean),
-                corrected: coordinates(apparent),
-                base_motion,
-            })
-        }
-        CrossingFrame::GeocentricMeanOfDate => {
-            let (mean, base_motion) =
-                read_mean_ecliptic_with_motion(backend, body.clone(), label, julian_day)?;
-            let of_date =
-                geocentric_mean_of_date_ecliptic(backend, body.clone(), label, julian_day)?;
-            Ok(Sample {
-                base: coordinates(mean),
-                corrected: coordinates(of_date),
-                base_motion,
-            })
-        }
-        CrossingFrame::Heliocentric => {
-            let helio = heliocentric_j2000(backend, body.clone(), label, julian_day)?;
-            let of_date = heliocentric_of_date(helio.position, julian_day)?;
-            Ok(Sample {
-                base: coordinates(j2000_spherical(helio.position)),
-                corrected: coordinates(of_date),
-                base_motion: helio
-                    .velocity
-                    .map(|velocity| spherical_rates(helio.position, velocity)),
-            })
-        }
-    }
+    let place = sampled_place(backend, body, reference, julian_day)?;
+    Ok(Sample {
+        base: coordinates(place.base),
+        corrected: coordinates(place.corrected),
+        base_motion: place.base_motion,
+    })
 }
 
 /// Speed of the corrected place at `julian_day`, whose sample is `centre`.
@@ -129,7 +101,7 @@ fn sample<B: EphemerisBackend>(
 fn motion<B: EphemerisBackend>(
     backend: &B,
     body: &CelestialBody,
-    frame: CrossingFrame,
+    reference: &CrossingReference,
     julian_day: f64,
     centre: &Sample,
 ) -> Motion {
@@ -140,7 +112,7 @@ fn motion<B: EphemerisBackend>(
         if !(WINDOW_START_JD..=WINDOW_END_JD).contains(&jd) {
             return None;
         }
-        sample(backend, body, frame, jd)
+        sample(backend, body, reference, jd)
             .ok()
             .map(|sample| sample.correction_at(jd))
     };
@@ -158,7 +130,7 @@ fn motion<B: EphemerisBackend>(
 }
 
 impl<B: EphemerisBackend> EventEngine<B> {
-    /// Ecliptic position and speed of `body` in `frame` at `instant` (TDB).
+    /// Ecliptic position and speed of `body` in `reference` at `instant` (TDB).
     ///
     /// The longitude is exactly the one [`EventEngine::longitude_at`] returns,
     /// so a position read here is consistent with the crossings the engine
@@ -176,6 +148,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///   i.e. Swiss Ephemeris `SEFLG_HELCTR | SEFLG_TRUEPOS`. Plain
     ///   `SEFLG_HELCTR` output is retarded by the heliocentric light-time and
     ///   differs from this place by up to ≈ 41″ (Mercury).
+    ///
+    /// With a sidereal [`CrossingReference`] the longitude is the frame's
+    /// longitude on the mean equinox of date minus the mean ayanamsa, and the
+    /// speed drops by the ayanamsa's rate. `# Errors` gains: a sidereal zodiac
+    /// in the heliocentric frame, and an ayanamsa with no offset data, are
+    /// [`EventError::UnsupportedFrame`].
     ///
     /// Longitude and latitude are degrees, distance is AU; speeds are per day.
     /// The speed is the backend's own speed plus the rate of the frame or
@@ -222,23 +200,19 @@ impl<B: EphemerisBackend> EventEngine<B> {
     pub fn position_at(
         &self,
         body: CelestialBody,
-        frame: CrossingFrame,
+        reference: impl Into<CrossingReference>,
         instant: Instant,
     ) -> Result<EclipticPosition, EventError> {
+        let reference = reference.into();
         let jd = instant.julian_day.days();
         self.check_window(jd)?;
-        if matches!(frame, CrossingFrame::Heliocentric)
-            && matches!(body, CelestialBody::Sun | CelestialBody::Moon)
-        {
-            return Err(EventError::UnsupportedFrame {
-                detail: format!("heliocentric position is undefined for {:?}", body),
-            });
-        }
-        let centre = sample(&self.backend, &body, frame, jd)?;
-        let motion = motion(&self.backend, &body, frame, jd, &centre);
+        check_supported(&body, &reference, jd, "position is")?;
+        let centre = sample(&self.backend, &body, &reference, jd)?;
+        let motion = motion(&self.backend, &body, &reference, jd, &centre);
         Ok(EclipticPosition {
             body,
-            frame,
+            frame: reference.frame,
+            zodiac: reference.zodiac,
             instant,
             ecliptic: centre.corrected,
             motion,

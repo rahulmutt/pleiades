@@ -1,12 +1,10 @@
 //! The public longitude-crossing engine.
 
-use crate::ephemeris::{
-    geocentric_apparent_longitude_deg, geocentric_mean_of_date_ecliptic, heliocentric_longitude_deg,
-};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
+use crate::reference::{check_supported, ecliptic_in, CrossingReference};
 use crate::root::{crossings_in_range, first_crossing_after, last_crossing_before, wrap180};
 use pleiades_backend::EphemerisBackend;
-use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale};
+use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale, ZodiacMode};
 
 /// The coordinate/center convention a crossing is computed in.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -35,12 +33,14 @@ pub enum CrossingFrame {
 pub struct Crossing {
     /// The body that crossed the target longitude.
     pub body: CelestialBody,
-    /// The ecliptic longitude that was crossed.
+    /// The ecliptic longitude that was crossed, in `zodiac`.
     pub target_longitude: Longitude,
     /// Instant of the crossing (TDB).
     pub instant: Instant,
     /// The frame the crossing was computed in.
     pub frame: CrossingFrame,
+    /// The zodiac `target_longitude` is read in.
+    pub zodiac: ZodiacMode,
 }
 
 /// Finds ephemeris events (longitude crossings today; rise/set/transit and
@@ -73,68 +73,59 @@ impl<B: EphemerisBackend> EventEngine<B> {
         Ok(())
     }
 
-    fn longitude_deg(
-        &self,
+    fn crossing(
         body: &CelestialBody,
-        frame: CrossingFrame,
+        target: Longitude,
+        reference: &CrossingReference,
         jd: f64,
-    ) -> Result<f64, EventError> {
-        match frame {
-            CrossingFrame::GeocentricApparentOfDate => {
-                geocentric_apparent_longitude_deg(&self.backend, body.clone(), body_label(body), jd)
-            }
-            CrossingFrame::Heliocentric => {
-                heliocentric_longitude_deg(&self.backend, body.clone(), body_label(body), jd)
-            }
-            CrossingFrame::GeocentricMeanOfDate => Ok(geocentric_mean_of_date_ecliptic(
-                &self.backend,
-                body.clone(),
-                body_label(body),
-                jd,
-            )?
-            .0),
+    ) -> Crossing {
+        Crossing {
+            body: body.clone(),
+            target_longitude: target,
+            instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
+            frame: reference.frame,
+            zodiac: reference.zodiac.clone(),
         }
     }
 
     /// All crossings of `target` by `body` in `[start, end]` (TDB), ascending.
+    ///
+    /// `reference` is a [`CrossingFrame`] (tropical zodiac) or a
+    /// [`CrossingReference`] carrying a sidereal zodiac; `target` is read in
+    /// that zodiac. A sidereal zodiac in the heliocentric frame, and an
+    /// ayanamsa with no offset data, are [`EventError::UnsupportedFrame`].
     pub fn longitude_crossings_in_range(
         &self,
         body: CelestialBody,
         target: Longitude,
-        frame: CrossingFrame,
+        reference: impl Into<CrossingReference>,
         start: Instant,
         end: Instant,
     ) -> Result<Vec<Crossing>, EventError> {
+        let reference = reference.into();
         let start_jd = start.julian_day.days();
         let end_jd = end.julian_day.days();
         self.check_window(start_jd)?;
         self.check_window(end_jd)?;
-        if matches!(frame, CrossingFrame::Heliocentric)
-            && matches!(body, CelestialBody::Sun | CelestialBody::Moon)
-        {
-            return Err(EventError::UnsupportedFrame {
-                detail: format!("heliocentric crossings are undefined for {:?}", body),
-            });
-        }
+        check_supported(&body, &reference, start_jd, "crossings are")?;
         let step = Self::step_days(&body);
         // Clamp like the eclipse engine: keep retarded/aberration queries in-window.
         let scan_start = start_jd.max(WINDOW_START_JD + step);
         let scan_end = end_jd.min(WINDOW_END_JD - step);
         let target_deg = target.degrees();
         let roots = crossings_in_range(
-            |jd| Ok(wrap180(self.longitude_deg(&body, frame, jd)? - target_deg)),
+            |jd| {
+                Ok(wrap180(
+                    ecliptic_in(&self.backend, &body, &reference, jd)?.0 - target_deg,
+                ))
+            },
             scan_start,
             scan_end,
             step,
         )?;
         Ok(roots
             .into_iter()
-            .map(|jd| Crossing {
-                body: body.clone(),
-                target_longitude: target,
-                instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
-                frame,
-            })
+            .map(|jd| Self::crossing(&body, target, &reference, jd))
             .collect())
     }
 
@@ -143,49 +134,68 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// Early-terminating: this brackets and bisects forward from `after` and
     /// returns as soon as the first root is found, instead of scanning to
     /// `WINDOW_END`. The result is identical to
-    /// `longitude_crossings_in_range(body, target, frame, after, WINDOW_END).first()`
+    /// `longitude_crossings_in_range(body, target, reference, after, WINDOW_END).first()`
     /// filtered to strictly-after `after` — same clamps, same step, same
     /// wrap-seam guard, same bisection tolerance.
     ///
     /// A returned [`Crossing::instant`] trails its crossing by less than the
     /// 0.5 s bisection tolerance and never precedes it, so handing it back as
     /// `after` returns the following crossing, not the same one again.
+    ///
+    /// `reference` is a [`CrossingFrame`] (tropical zodiac) or a
+    /// [`CrossingReference`] carrying a sidereal zodiac; `target` is read in
+    /// that zodiac. A sidereal zodiac in the heliocentric frame, and an
+    /// ayanamsa with no offset data, are [`EventError::UnsupportedFrame`].
+    ///
+    /// ```
+    /// use pleiades_data::packaged_backend;
+    /// use pleiades_events::{CrossingFrame, CrossingReference, EventEngine};
+    /// use pleiades_types::{Ayanamsa, CelestialBody, Instant, JulianDay, Longitude, TimeScale};
+    ///
+    /// // The Sun's next entry into sidereal Aries (Lahiri), after J2000.
+    /// let engine = EventEngine::new(packaged_backend());
+    /// let lahiri =
+    ///     CrossingReference::sidereal(CrossingFrame::GeocentricApparentOfDate, Ayanamsa::Lahiri);
+    /// let after = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+    /// let ingress = engine
+    ///     .next_longitude_crossing(CelestialBody::Sun, Longitude::from_degrees(0.0), lahiri, after)
+    ///     .unwrap()
+    ///     .expect("the Sun enters sidereal Aries every year");
+    /// // Mid-April, about 24 days after the tropical equinox.
+    /// let days = ingress.instant.julian_day.days() - 2_451_545.0;
+    /// assert!((100.0..110.0).contains(&days), "{days}");
+    /// ```
     pub fn next_longitude_crossing(
         &self,
         body: CelestialBody,
         target: Longitude,
-        frame: CrossingFrame,
+        reference: impl Into<CrossingReference>,
         after: Instant,
     ) -> Result<Option<Crossing>, EventError> {
+        let reference = reference.into();
         let after_jd = after.julian_day.days();
-        // Preserve the window-check and heliocentric Sun/Moon guard exactly as
-        // `longitude_crossings_in_range` applies them, before scanning.
+        // Same checks, in the same order, as `longitude_crossings_in_range`.
         self.check_window(after_jd)?;
         self.check_window(WINDOW_END_JD)?;
-        if matches!(frame, CrossingFrame::Heliocentric)
-            && matches!(body, CelestialBody::Sun | CelestialBody::Moon)
-        {
-            return Err(EventError::UnsupportedFrame {
-                detail: format!("heliocentric crossings are undefined for {:?}", body),
-            });
-        }
+        check_supported(&body, &reference, after_jd, "crossings are")?;
         let step = Self::step_days(&body);
         // Same clamps as `longitude_crossings_in_range` over `[after, WINDOW_END]`.
         let scan_start = after_jd.max(WINDOW_START_JD + step);
         let scan_end = WINDOW_END_JD.min(WINDOW_END_JD - step);
         let target_deg = target.degrees();
         let root = first_crossing_after(
-            |jd| Ok(wrap180(self.longitude_deg(&body, frame, jd)? - target_deg)),
+            |jd| {
+                Ok(wrap180(
+                    ecliptic_in(&self.backend, &body, &reference, jd)?.0 - target_deg,
+                ))
+            },
             scan_start,
             scan_end,
             step,
         )?;
-        Ok(root.filter(|&jd| jd > after_jd).map(|jd| Crossing {
-            body: body.clone(),
-            target_longitude: target,
-            instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
-            frame,
-        }))
+        Ok(root
+            .filter(|&jd| jd > after_jd)
+            .map(|jd| Self::crossing(&body, target, &reference, jd)))
     }
 
     /// The last crossing strictly before `before`, or `None`.
@@ -193,7 +203,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// Early-terminating: this brackets and bisects backward from `before` and
     /// returns as soon as the last (highest-JD) root is found, instead of
     /// scanning from `WINDOW_START`. The result is identical to
-    /// `longitude_crossings_in_range(body, target, frame, WINDOW_START, before).last()`
+    /// `longitude_crossings_in_range(body, target, reference, WINDOW_START, before).last()`
     /// filtered to strictly-before `before` — same clamps, same step, same
     /// wrap-seam guard, same bisection tolerance.
     ///
@@ -202,42 +212,42 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// either the crossing that instant describes or the one before it (see
     /// FU-13 in `docs/follow-ups.md`). Step `before` back by a second to
     /// skip the described crossing for certain.
+    ///
+    /// `reference` is a [`CrossingFrame`] (tropical zodiac) or a
+    /// [`CrossingReference`] carrying a sidereal zodiac; `target` is read in
+    /// that zodiac. A sidereal zodiac in the heliocentric frame, and an
+    /// ayanamsa with no offset data, are [`EventError::UnsupportedFrame`].
     pub fn previous_longitude_crossing(
         &self,
         body: CelestialBody,
         target: Longitude,
-        frame: CrossingFrame,
+        reference: impl Into<CrossingReference>,
         before: Instant,
     ) -> Result<Option<Crossing>, EventError> {
+        let reference = reference.into();
         let before_jd = before.julian_day.days();
-        // Preserve the window-check and heliocentric Sun/Moon guard exactly as
-        // `longitude_crossings_in_range` applies them, before scanning.
+        // Same checks, in the same order, as `longitude_crossings_in_range`.
         self.check_window(WINDOW_START_JD)?;
         self.check_window(before_jd)?;
-        if matches!(frame, CrossingFrame::Heliocentric)
-            && matches!(body, CelestialBody::Sun | CelestialBody::Moon)
-        {
-            return Err(EventError::UnsupportedFrame {
-                detail: format!("heliocentric crossings are undefined for {:?}", body),
-            });
-        }
+        check_supported(&body, &reference, before_jd, "crossings are")?;
         let step = Self::step_days(&body);
         // Same clamps as `longitude_crossings_in_range` over `[WINDOW_START, before]`.
         let scan_start = WINDOW_START_JD.max(WINDOW_START_JD + step);
         let scan_end = before_jd.min(WINDOW_END_JD - step);
         let target_deg = target.degrees();
         let root = last_crossing_before(
-            |jd| Ok(wrap180(self.longitude_deg(&body, frame, jd)? - target_deg)),
+            |jd| {
+                Ok(wrap180(
+                    ecliptic_in(&self.backend, &body, &reference, jd)?.0 - target_deg,
+                ))
+            },
             scan_start,
             scan_end,
             step,
         )?;
-        Ok(root.filter(|&jd| jd < before_jd).map(|jd| Crossing {
-            body: body.clone(),
-            target_longitude: target,
-            instant: Instant::new(JulianDay::from_days(jd), TimeScale::Tdb),
-            frame,
-        }))
+        Ok(root
+            .filter(|&jd| jd < before_jd)
+            .map(|jd| Self::crossing(&body, target, &reference, jd)))
     }
 
     /// `swe_solcross`: next geocentric apparent Sun crossing of `target`.
@@ -268,7 +278,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
         )
     }
 
-    /// Ecliptic longitude of `body` in `frame` at `instant` (TDB).
+    /// Ecliptic longitude of `body` in `reference` at `instant` (TDB).
+    ///
+    /// `reference` is a [`CrossingFrame`] (tropical zodiac) or a
+    /// [`CrossingReference`] carrying a sidereal zodiac. A sidereal zodiac in
+    /// the heliocentric frame, and an ayanamsa with no offset data, are
+    /// [`EventError::UnsupportedFrame`].
     ///
     /// Geocentric apparent tropical of date for
     /// [`CrossingFrame::GeocentricApparentOfDate`]; geocentric geometric, mean
@@ -294,19 +309,14 @@ impl<B: EphemerisBackend> EventEngine<B> {
     pub fn longitude_at(
         &self,
         body: CelestialBody,
-        frame: CrossingFrame,
+        reference: impl Into<CrossingReference>,
         instant: Instant,
     ) -> Result<Longitude, EventError> {
+        let reference = reference.into();
         let jd = instant.julian_day.days();
         self.check_window(jd)?;
-        if matches!(frame, CrossingFrame::Heliocentric)
-            && matches!(body, CelestialBody::Sun | CelestialBody::Moon)
-        {
-            return Err(EventError::UnsupportedFrame {
-                detail: format!("heliocentric longitude is undefined for {:?}", body),
-            });
-        }
-        let deg = self.longitude_deg(&body, frame, jd)?;
+        check_supported(&body, &reference, jd, "longitude is")?;
+        let (deg, _, _) = ecliptic_in(&self.backend, &body, &reference, jd)?;
         Ok(Longitude::from_degrees(deg))
     }
 }
@@ -335,6 +345,7 @@ pub(crate) fn body_label(body: &CelestialBody) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ephemeris::geocentric_apparent_longitude_deg;
     use pleiades_backend::test_backend::LinearSunMoon;
 
     fn tdb(jd: f64) -> Instant {

@@ -118,6 +118,7 @@ mod nod_aps;
 mod occult;
 mod pheno;
 mod position;
+mod reference;
 mod rise_trans;
 mod root;
 mod semidiameter;
@@ -136,4 +137,5 @@ pub use occult::{
 };
 pub use pheno::PhenoData;
 pub use position::EclipticPosition;
+pub use reference::CrossingReference;
 pub use rise_trans::{DiscMode, RiseSet, RiseSetEvent, RiseSetOptions, RiseSetTarget};

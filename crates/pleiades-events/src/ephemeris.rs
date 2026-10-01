@@ -1,5 +1,6 @@
 //! Reads body ecliptic positions from a backend and derives the longitudes the
-//! crossing engine root-finds on: geocentric apparent-of-date, geocentric mean-of-date, and heliocentric.
+//! crossing engine root-finds on: geocentric apparent-of-date, geocentric
+//! mean-of-date, and heliocentric.
 
 use crate::error::EventError;
 use crate::state_vector::cartesian_velocity;
@@ -261,6 +262,10 @@ pub(crate) fn heliocentric_of_date(
 /// Thin wrapper over [`heliocentric_j2000`] and [`heliocentric_of_date`]; its
 /// return value is byte-identical to before their extraction, which
 /// `validate-crossings` depends on.
+///
+/// Test-only since the reference module took over the crossing path; kept as
+/// the pinned-bits oracle.
+#[cfg(test)]
 pub(crate) fn heliocentric_longitude_deg<B: EphemerisBackend>(
     backend: &B,
     body: CelestialBody,
