@@ -643,6 +643,28 @@ mod tests {
     }
 
     #[test]
+    fn routed_chain_fails_closed_for_mean_lunar_points_outside_the_packaged_window() {
+        // The packaged backend claims the mean lunar points, and the router does
+        // not fall through on an out-of-range instant, so ElpBackend is not
+        // consulted: the same fail-closed behaviour as TrueNode.
+        let engine = ChartEngine::new(default_chart_backend());
+        for body in [CelestialBody::MeanNode, CelestialBody::MeanApogee] {
+            let request = ChartRequest::new(Instant::new(
+                JulianDay::from_days(2_400_000.5),
+                TimeScale::Tt,
+            ))
+            .with_bodies(vec![body.clone()])
+            .with_apparentness(Apparentness::Apparent);
+            let error = engine.chart(&request).unwrap_err();
+            assert_eq!(
+                error.kind,
+                pleiades_core::EphemerisErrorKind::OutOfRangeInstant,
+                "{body:?}: {error}"
+            );
+        }
+    }
+
+    #[test]
     fn default_chart_emits_apparent_provenance_line() {
         let out = render_chart(&["--jd", "2451545.0", "--body", "Sun"]).unwrap();
         // ApparentProvenance::summary_line() starts with "apparent-place light_time=..."

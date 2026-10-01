@@ -1,6 +1,6 @@
 # Mean lunar points on the packaged backend (issue #90) — design
 
-**Status:** design approved in conversation, awaiting written-spec review ·
+**Status:** implemented (2026-10-01) ·
 **Opened:** 2026-10-01 · **Issue:** #90 ·
 **Crates:** `pleiades-apsides`, `pleiades-events`, `pleiades-data`,
 `pleiades-elp`, `pleiades-core`, `pleiades-validate`, `pleiades-cli` ·
@@ -131,11 +131,11 @@ central-difference motion.
   packaged window: an instant outside it returns `OutOfRangeInstant`, like
   every other packaged body. A backend that answered outside its declared
   range for some bodies would break the range metadata.
-- Distance: each point reports the distance `points_from_elements` gives.
-  Swiss Ephemeris' `swe_calc` is expected to report `a(1+e)` for the apogee and
-  the mean distance `a` for the node; the corpus settles this. If the node's
-  convention differs from `points_from_elements`, the backend follows Swiss
-  Ephemeris and the spec is amended before the gate is written.
+- Distance: the corpus shows `SE_MEAN_NODE` distance is the constant mean
+  distance `a` (0.002569555290 AU) and `SE_MEAN_APOG` is `a(1+e)`
+  (0.002710625132 AU). The backend's `MeanNode` therefore reports
+  `MOON_MEAN_SEMI_MAJOR_AU`, not the `points_from_elements` orbit radius at the
+  node; apogee and perigee report the `points_from_elements` distances.
 - New public `mean_lunar_point_body_claims()` returns three
   `BodyClaim::release_grade(.., AccuracyClass::High, CorpusValidated { source:
   "Swiss Ephemeris 2.10.03 SE_MEAN_NODE / SE_MEAN_APOG
@@ -239,6 +239,17 @@ which closes issue #63.
 - Charted mean points no longer receive the general light-time treatment or a
   topocentric shift. For `MeanNode` this is expected to be far below 0.01″
   geocentric (it had no distance); the implementation measures and records it.
+- Apparent charts previously returned the ELP-served (constrained-tier) mean
+  lunar points un-rotated in the J2000 mean ecliptic, because the chart applies
+  apparent-place only to release-grade bodies; they are now in the true
+  ecliptic of date (`MeanNode` 341.806020° → 342.170759° at JD 2461041.5, about
+  +0.36°). The light-time removal itself moved the packaged points by at most
+  0.0063″.
+- In a routed chain with `PackagedDataBackend` first, the mean lunar points are
+  now served only inside the packaged window (1900–2100); a chart requesting
+  them outside it returns an out-of-range error instead of the `ElpBackend`
+  element it previously fell back to (the same fail-closed behaviour as
+  `TrueNode` and the packaged planets).
 - Direct `ElpBackend` consumers see no change.
 
 ## Out of scope
@@ -249,8 +260,8 @@ which closes issue #63.
 
 ## Risks
 
-- **Distance convention of `SE_MEAN_NODE`** is an expectation until the corpus
-  exists (section 3).
+- **Distance convention of `SE_MEAN_NODE`** — resolved: the corpus shows the
+  constant mean distance `a` (section 3).
 - **Reference tool build** needs `libclang` from `devenv shell`; if the
   environment cannot build it, the gate cannot be produced and the work stops
   there rather than shipping an ungated release-grade claim.

@@ -2199,10 +2199,14 @@ returned them un-rotated (J2000 mean ecliptic, no apparent provenance).
 `MeanNode` at JD 2461041.5 moved from 341.806020° to 342.170759° (about +0.36°,
 1313″, in 2026, growing with distance from J2000). Separately, removing the
 light-time path moved the packaged points by at most 0.0063″ (`MeanNode`
-−0.0028″).
+−0.0028″). In a routed chain with `PackagedDataBackend` first, the mean lunar points are
+now served only inside the packaged window (1900–2100); a chart requesting them
+outside it returns an out-of-range error instead of the `ElpBackend` element it
+previously fell back to (the same fail-closed behaviour as `TrueNode` and the
+packaged planets); direct `ElpBackend` consumers are unaffected.
 
 **Build-env note:** `tools/se-mean-lunar-reference` builds inside
 `devenv shell` (libclang), like the other `se-*-reference` tools; it is not
 needed to run the gate.
 
-**Severity:** feature gap (closed) · **Opened:** 2026-09-30
+**Severity:** feature gap (closed) · **Opened:** 2026-10-01

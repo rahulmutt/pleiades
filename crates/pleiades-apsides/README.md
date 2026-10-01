@@ -15,4 +15,6 @@ eccentricity and semi-major axis, assembled by `mean_lunar_elements_of_date`.
 Passing those elements to `points_from_elements` gives the mean node and the
 mean apogee/perigee as Swiss Ephemeris defines them (`SE_MEAN_NODE`,
 `SE_MEAN_APOG`); `pleiades-data` serves them that way, gated by
-`validate-mean-lunar-points`.
+`validate-mean-lunar-points`. Directions and the apsis distances match Swiss Ephemeris; for
+`SE_MEAN_NODE` Swiss Ephemeris reports the mean distance `a` rather than the
+orbit radius at the node, which `pleiades-data` follows.

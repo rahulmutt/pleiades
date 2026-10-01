@@ -3957,6 +3957,48 @@ fn chart_serves_mean_lunar_points_precession_nutation_only() {
 }
 
 #[test]
+fn chart_carries_mean_lunar_point_longitude_motion() {
+    use pleiades_backend::Apparentness;
+    use pleiades_data::PackagedDataBackend;
+    use pleiades_types::CelestialBody;
+
+    let instant = Instant::new(
+        pleiades_types::JulianDay::from_days(2_461_041.5),
+        TimeScale::Tt,
+    );
+    let request = ChartRequest::new(instant)
+        .with_bodies(vec![
+            CelestialBody::MeanNode,
+            CelestialBody::MeanApogee,
+            CelestialBody::MeanPerigee,
+        ])
+        .with_apparentness(Apparentness::Apparent);
+    let snapshot = ChartEngine::new(PackagedDataBackend::new())
+        .chart(&request)
+        .expect("apparent mean-lunar-point chart should succeed");
+
+    let speed = |body: CelestialBody| {
+        let speed = snapshot
+            .placement_for(&body)
+            .unwrap_or_else(|| panic!("{body:?} placement missing"))
+            .longitude_speed()
+            .unwrap_or_else(|| panic!("{body:?} must carry a finite longitude motion"));
+        assert!(speed.is_finite(), "{body:?} motion");
+        speed
+    };
+    // The mean node regresses (about -0.053 deg/day); the mean apogee advances
+    // (about 0.111 deg/day).
+    let node = speed(CelestialBody::MeanNode);
+    assert!((node - (-0.0530)).abs() < 0.001, "MeanNode motion {node}");
+    let apogee = speed(CelestialBody::MeanApogee);
+    assert!(
+        (0.110..0.113).contains(&apogee),
+        "MeanApogee motion {apogee}"
+    );
+    speed(CelestialBody::MeanPerigee);
+}
+
+#[test]
 fn topocentric_chart_leaves_mean_lunar_points_geocentric() {
     use pleiades_backend::Apparentness;
     use pleiades_data::PackagedDataBackend;
