@@ -79,6 +79,8 @@ pub use error::{ApparentLightTimeError, ApparentPlaceError};
 
 pub mod nutation;
 
+pub mod motion;
+
 pub use nutation::Nutation;
 
 pub mod equatorial;
