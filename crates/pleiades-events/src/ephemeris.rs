@@ -1,5 +1,5 @@
 //! Reads body ecliptic positions from a backend and derives the longitudes the
-//! crossing engine root-finds on: geocentric apparent-of-date, and heliocentric.
+//! crossing engine root-finds on: geocentric apparent-of-date, geocentric mean-of-date, and heliocentric.
 
 use crate::error::EventError;
 use crate::state_vector::cartesian_velocity;
@@ -150,6 +150,25 @@ pub(crate) fn geocentric_apparent_longitude_deg<B: EphemerisBackend>(
     julian_day: f64,
 ) -> Result<f64, EventError> {
     Ok(geocentric_apparent_ecliptic(backend, body, body_label, julian_day)?.0)
+}
+
+/// Geocentric geometric ecliptic `(longitude_deg, latitude_deg, distance_au)`
+/// in the mean ecliptic and equinox of date: the backend's J2000 place
+/// precessed to date. No light-time, no aberration, no nutation.
+pub(crate) fn geocentric_mean_of_date_ecliptic<B: EphemerisBackend>(
+    backend: &B,
+    body: CelestialBody,
+    body_label: &'static str,
+    julian_day: f64,
+) -> Result<EclipticTriple, EventError> {
+    let (lon, lat, dist) = read_mean_ecliptic(backend, body, body_label, julian_day)?;
+    let precessed = precess_ecliptic_j2000_to_date(lon, lat, julian_day)
+        .map_err(|e| EventError::Backend(format!("{body_label} precession failed: {e}")))?;
+    Ok((
+        precessed.longitude_deg.rem_euclid(360.0),
+        precessed.latitude_deg,
+        dist,
+    ))
 }
 
 /// Heliocentric J2000 ecliptic state of a body: `P_helio = P_geo − S_geo`,

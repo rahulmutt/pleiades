@@ -1,6 +1,8 @@
 //! The public longitude-crossing engine.
 
-use crate::ephemeris::{geocentric_apparent_longitude_deg, heliocentric_longitude_deg};
+use crate::ephemeris::{
+    geocentric_apparent_longitude_deg, geocentric_mean_of_date_ecliptic, heliocentric_longitude_deg,
+};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::root::{crossings_in_range, first_crossing_after, last_crossing_before, wrap180};
 use pleiades_backend::EphemerisBackend;
@@ -15,6 +17,12 @@ pub enum CrossingFrame {
     GeocentricApparentOfDate,
     /// Heliocentric ecliptic (SE `helio_cross`); planets only.
     Heliocentric,
+    /// Geocentric geometric place in the mean ecliptic and equinox of date:
+    /// the backend's J2000 place precessed to date, with no light-time, no
+    /// aberration and no nutation (SE `SEFLG_TRUEPOS | SEFLG_NOABERR |
+    /// SEFLG_NOGDEFL | SEFLG_NONUT`). This is not the J2000 longitude a
+    /// `pleiades-core` mean chart reports.
+    GeocentricMeanOfDate,
 }
 
 /// A single longitude crossing.
@@ -78,6 +86,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
             CrossingFrame::Heliocentric => {
                 heliocentric_longitude_deg(&self.backend, body.clone(), body_label(body), jd)
             }
+            CrossingFrame::GeocentricMeanOfDate => Ok(geocentric_mean_of_date_ecliptic(
+                &self.backend,
+                body.clone(),
+                body_label(body),
+                jd,
+            )?
+            .0),
         }
     }
 
@@ -256,11 +271,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// Ecliptic longitude of `body` in `frame` at `instant` (TDB).
     ///
     /// Geocentric apparent tropical of date for
-    /// [`CrossingFrame::GeocentricApparentOfDate`]; heliocentric of date for
-    /// [`CrossingFrame::Heliocentric`]. Fails closed outside the packaged
-    /// 1900–2100 window and for heliocentric Sun/Moon, matching the crossing
-    /// entry points. This is the evaluator the `validate-crossings` parity tier
-    /// uses to compare the engine's longitude against a reference crossing time.
+    /// [`CrossingFrame::GeocentricApparentOfDate`]; geocentric geometric, mean
+    /// equinox of date for [`CrossingFrame::GeocentricMeanOfDate`]; heliocentric
+    /// of date for [`CrossingFrame::Heliocentric`]. Fails closed outside the
+    /// packaged 1900–2100 window and for heliocentric Sun/Moon, matching the
+    /// crossing entry points. This is the evaluator the `validate-crossings`
+    /// parity tier uses to compare the engine's longitude against a reference
+    /// crossing time.
     ///
     /// ```
     /// use pleiades_data::packaged_backend;

@@ -8,6 +8,7 @@
 //! | Frame | Base place and speed | Corrected place |
 //! |---|---|---|
 //! | geocentric apparent of date | backend mean J2000 place and its motion | apparent place of date |
+//! | geocentric mean of date | backend mean J2000 place and its motion | precessed to the mean equinox of date |
 //! | heliocentric | planet minus Sun in J2000, rates from Cartesian velocities | true equinox of date |
 //!
 //! The heliocentric place is geometric — no light-time, no aberration — in the
@@ -17,8 +18,8 @@
 
 use crate::crossings::{body_label, CrossingFrame, EventEngine};
 use crate::ephemeris::{
-    geocentric_apparent_ecliptic, heliocentric_j2000, heliocentric_of_date, j2000_spherical,
-    read_mean_ecliptic_with_motion,
+    geocentric_apparent_ecliptic, geocentric_mean_of_date_ecliptic, heliocentric_j2000,
+    heliocentric_of_date, j2000_spherical, read_mean_ecliptic_with_motion,
 };
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::state_vector::spherical_rates;
@@ -93,6 +94,17 @@ fn sample<B: EphemerisBackend>(
                 base_motion,
             })
         }
+        CrossingFrame::GeocentricMeanOfDate => {
+            let (mean, base_motion) =
+                read_mean_ecliptic_with_motion(backend, body.clone(), label, julian_day)?;
+            let of_date =
+                geocentric_mean_of_date_ecliptic(backend, body.clone(), label, julian_day)?;
+            Ok(Sample {
+                base: coordinates(mean),
+                corrected: coordinates(of_date),
+                base_motion,
+            })
+        }
         CrossingFrame::Heliocentric => {
             let helio = heliocentric_j2000(backend, body.clone(), label, julian_day)?;
             let of_date = heliocentric_of_date(helio.position, julian_day)?;
@@ -156,6 +168,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///   (light-time with annual aberration, precession, nutation) in the true
     ///   ecliptic of date, from the Earth's centre. The speed is the one a
     ///   `pleiades-core` apparent chart reports.
+    /// - [`CrossingFrame::GeocentricMeanOfDate`]: the geometric place from the
+    ///   Earth's centre (no light-time, no aberration, no nutation) in the
+    ///   mean ecliptic and equinox of date.
     /// - [`CrossingFrame::Heliocentric`]: the geometric place from the Sun (no
     ///   light-time, no aberration) in the true ecliptic and equinox of date,
     ///   i.e. Swiss Ephemeris `SEFLG_HELCTR | SEFLG_TRUEPOS`. Plain
