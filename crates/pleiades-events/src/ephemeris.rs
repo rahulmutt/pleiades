@@ -1,10 +1,6 @@
 //! Reads body ecliptic positions from a backend and derives the longitudes the
 //! crossing engine root-finds on: geocentric apparent-of-date, and heliocentric.
 
-// Sampling helpers are pub(crate) for the crossing engine (Task 4); silence the
-// dead_code lint until those consumers land.
-#![allow(dead_code)]
-
 use crate::error::EventError;
 use crate::state_vector::cartesian_velocity;
 use pleiades_apparent::nutation::nutation;
@@ -67,7 +63,7 @@ pub(crate) fn read_mean_ecliptic<B: EphemerisBackend>(
     body: CelestialBody,
     body_label: &'static str,
     julian_day: f64,
-) -> Result<(f64, f64, f64), EventError> {
+) -> Result<EclipticTriple, EventError> {
     Ok(read_mean_ecliptic_with_motion(backend, body, body_label, julian_day)?.0)
 }
 
@@ -340,10 +336,9 @@ mod tests {
 
     #[test]
     fn partial_backend_motion_gives_no_heliocentric_velocity() {
-        // LinearSunMoon serves no planets; the Sun–Moon mock has no full
-        // planetary motion, so use the pure helper on a partial rate set.
-        use crate::state_vector::cartesian_velocity;
-        use pleiades_types::Motion;
+        // A planet whose backend motion lacks the latitude rate has no
+        // Cartesian velocity, so the heliocentric velocity is `None` even
+        // though the Sun's motion is complete.
         let planet = cartesian_velocity(
             10.0,
             0.0,

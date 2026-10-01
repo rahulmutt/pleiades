@@ -52,8 +52,12 @@ fn rates_match_a_central_difference_on_an_inclined_orbit() {
 #[test]
 fn missing_rate_channel_gives_no_velocity() {
     assert!(cartesian_velocity(10.0, 1.0, 1.0, None).is_none());
-    let partial = Some(Motion::new(Some(1.0), None, Some(0.0)));
-    assert!(cartesian_velocity(10.0, 1.0, 1.0, partial).is_none());
+    let no_latitude_rate = Some(Motion::new(Some(1.0), None, Some(0.0)));
+    assert!(cartesian_velocity(10.0, 1.0, 1.0, no_latitude_rate).is_none());
+    let no_longitude_rate = Some(Motion::new(None, Some(0.1), Some(0.0)));
+    assert!(cartesian_velocity(10.0, 1.0, 1.0, no_longitude_rate).is_none());
+    let no_distance_rate = Some(Motion::new(Some(1.0), Some(0.1), None));
+    assert!(cartesian_velocity(10.0, 1.0, 1.0, no_distance_rate).is_none());
 }
 
 #[test]

@@ -194,17 +194,11 @@ fn heliocentric_neptune_speed_is_in_its_orbital_range() {
 fn window_edges_use_a_one_sided_difference() {
     for jd in [WINDOW_START_JD, WINDOW_END_JD] {
         for (body, frame) in [(CelestialBody::Mars, HELIO), (CelestialBody::Sun, GEO)] {
-            let at_edge =
-                EventEngine::new(packaged_backend()).position_at(body.clone(), frame, tdb(jd));
-            let Ok(at_edge) = at_edge else {
-                // The backend itself may not serve the exact edge instant in the
-                // apparent path (light-time re-query leaves its range). That is
-                // longitude_at's behaviour too, checked here.
-                assert!(EventEngine::new(packaged_backend())
-                    .longitude_at(body.clone(), frame, tdb(jd))
-                    .is_err());
-                continue;
-            };
+            // Heliocentric Mars needs no light-time re-query and the
+            // geocentric Sun none either, so both are served at the exact edge.
+            let at_edge = EventEngine::new(packaged_backend())
+                .position_at(body.clone(), frame, tdb(jd))
+                .expect("a position at the window edge");
             let inside = if jd == WINDOW_START_JD {
                 jd + 1.0
             } else {
@@ -271,7 +265,9 @@ fn speed_is_continuous_across_the_zero_degree_wrap() {
 fn geocentric_position_and_speed_match_the_chart_layer() {
     // The chart's apparent tropical geocentric placement is gated against JPL
     // Horizons by validate-apparent; position_at must report the same place
-    // and the same speed.
+    // and the same speed. Both run the same computation, so they agree
+    // exactly: every channel's difference measured 0.0 at every body and
+    // epoch below (2026-10-01).
     let bodies = [
         CelestialBody::Sun,
         CelestialBody::Moon,
@@ -299,12 +295,20 @@ fn geocentric_position_and_speed_match_the_chart_layer() {
             let chart_ecl = placed.ecliptic.as_ref().expect("chart ecliptic");
             let chart_motion = placed.motion.expect("chart motion");
             let pos = engine.position_at(body.clone(), GEO, tdb(jd)).unwrap();
-            let d_lon = wrap(pos.ecliptic.longitude.degrees() - chart_ecl.longitude.degrees());
-            let d_lat = pos.ecliptic.latitude.degrees() - chart_ecl.latitude.degrees();
-            assert!(d_lon.abs() < 1e-9, "{body:?} {jd} lon diff {d_lon:e}");
-            assert!(d_lat.abs() < 1e-9, "{body:?} {jd} lat diff {d_lat:e}");
-            let d_dist = pos.ecliptic.distance_au.unwrap() - chart_ecl.distance_au.unwrap();
-            assert!(d_dist.abs() < 1e-12, "{body:?} {jd} dist diff {d_dist:e}");
+            assert_eq!(
+                pos.ecliptic.longitude.degrees(),
+                chart_ecl.longitude.degrees(),
+                "{body:?} {jd} lon"
+            );
+            assert_eq!(
+                pos.ecliptic.latitude.degrees(),
+                chart_ecl.latitude.degrees(),
+                "{body:?} {jd} lat"
+            );
+            assert_eq!(
+                pos.ecliptic.distance_au, chart_ecl.distance_au,
+                "{body:?} {jd} dist"
+            );
             for (name, got, want) in [
                 (
                     "lon",
@@ -323,10 +327,7 @@ fn geocentric_position_and_speed_match_the_chart_layer() {
                 ),
             ] {
                 let (got, want) = (got.expect(name), want.expect(name));
-                assert!(
-                    (got - want).abs() < 1e-9,
-                    "{body:?} {jd} {name} speed {got} vs {want}"
-                );
+                assert_eq!(got, want, "{body:?} {jd} {name} speed");
             }
         }
     }
