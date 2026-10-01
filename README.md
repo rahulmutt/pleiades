@@ -32,7 +32,7 @@ gate, and 48 ayanamsas pass theirs — of 25 and 59 catalogued respectively.
 | Backend frame consistency (J2000) | [`pleiades-core`](https://docs.rs/pleiades-core) | `release-gate` | invariant gate |
 | Eclipses (global) | [`pleiades-eclipse`](crates/pleiades-eclipse) | `validate-eclipses` | arcsecond-class; timing seconds-of-time |
 | Eclipses (local circumstances) | [`pleiades-eclipse`](crates/pleiades-eclipse) | `validate-eclipses-local` | arcsecond-class; timing seconds-of-time |
-| Longitude crossings | [`pleiades-events`](crates/pleiades-events) | `validate-crossings` | arcsecond-class |
+| Longitude crossings (geocentric apparent or mean of date, heliocentric; tropical or sidereal) | [`pleiades-events`](crates/pleiades-events) | `validate-crossings` | arcsecond-class |
 | Ecliptic position & speed (geocentric apparent, heliocentric) | [`pleiades-events`](crates/pleiades-events) | `validate-helio-position` (heliocentric), `validate-apparent` (geocentric) | arcsecond-class geocentric; arcsecond-class heliocentric |
 | Rise/set/transit & horizontal | [`pleiades-events`](crates/pleiades-events) | `validate-rise-trans` | sub-arcsecond (horizontal); timing seconds-of-time |
 | Fictitious bodies | [`pleiades-fict`](crates/pleiades-fict) | `validate-fictitious` | definitional (sub-arcsecond) |

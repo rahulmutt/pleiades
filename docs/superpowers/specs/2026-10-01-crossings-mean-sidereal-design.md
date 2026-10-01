@@ -1,6 +1,6 @@
 # Longitude crossings in a mean place or a sidereal zodiac (issue #88) — design
 
-**Status:** approved design, not yet implemented ·
+**Status:** implemented (2026-10-01) ·
 **Opened:** 2026-10-01 · **Issue:** #88 ·
 **Crates:** `pleiades-events`, `pleiades-validate`, `pleiades-core` (compatibility
 profile text only) ·
@@ -305,3 +305,23 @@ measurement before it is written:
 - Any change to the chart layer.
 - Aspect and station finders (#84, #85); they are expected to accept
   `CrossingReference`.
+
+## Amendments
+
+- **Final corpus.** The corpus has 169 rows (the 86 tropical rows plus 83 new
+  mean-of-date and sidereal rows, not "about 70") and four ayanamsas: Lahiri,
+  TrueCitra, GalacticCenter and DeLuce.
+- **Stop condition tripped for apparent-frame TrueCitra and GalacticCenter.**
+  The corpus rows disagreed with the engine by 20.615″ (TrueCitra) and 20.101″
+  (GalacticCenter). Cause, confirmed in the reference tool: for star-anchored
+  ayanamsas Swiss Ephemeris under plain `SEFLG_SIDEREAL` computes the ayanamsa
+  from the anchoring star's place under the same flags as the body, so with
+  apparent flags the ayanamsa carries the star's annual aberration (up to about
+  20″). Its apparent-minus-`TRUEPOS|NOABERR|NOGDEFL` ayanamsa was 20.451″
+  (TrueCitra, JD 2470276.058) and −19.737″ (GalacticCenter, JD 2480002.727).
+  Resolution: the engine is unchanged (decision 3: the mean ayanamsa in every
+  frame). The `geo`-frame TrueCitra and GalacticCenter reference rows are
+  Swiss Ephemeris's apparent mean-equinox longitude (`SEFLG_NONUT`) minus its
+  mean ayanamsa (`swe_get_ayanamsa_ex` with `TRUEPOS|NOABERR|NOGDEFL`);
+  Lahiri, DeLuce and all mean-of-date rows use `SEFLG_SIDEREAL` directly and
+  agree to under 0.5″. Recorded as FU-18(c).

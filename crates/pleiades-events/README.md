@@ -14,5 +14,32 @@ so a position is consistent with the crossings found in the same frame.
   `SEFLG_HELCTR | SEFLG_TRUEPOS` — gated by `validate-helio-position`. Plain
   `SEFLG_HELCTR` output is retarded by the heliocentric light-time and differs
   by up to ≈ 41″ (Mercury). The Sun and Moon are an error in this frame.
+- `GeocentricMeanOfDate`: the geometric place from the Earth's centre (no
+  light-time, no aberration, no nutation) in the mean ecliptic and equinox of
+  date. This is not the J2000 longitude a `pleiades-core` mean chart reports.
 
 A speed channel is `None` when the backend reports no speed to derive it from.
+
+Every crossing and position method takes a `CrossingFrame` (tropical zodiac) or
+a `CrossingReference`, which adds a zodiac:
+
+    let lahiri = CrossingReference::sidereal(
+        CrossingFrame::GeocentricApparentOfDate,
+        Ayanamsa::Lahiri,
+    );
+    let ingress = engine.next_longitude_crossing(
+        CelestialBody::Sun,
+        Longitude::from_degrees(0.0),
+        lahiri,
+        after,
+    )?;
+
+A sidereal longitude is the longitude on the mean equinox of date minus the
+mean ayanamsa, the Swiss Ephemeris `SEFLG_SIDEREAL` convention: nutation does
+not move a body through a sidereal zodiac. The ayanamsa is evaluated at every
+trial instant of the search. The heliocentric frame is tropical only, and an
+ayanamsa without offset data is an error, never a silent tropical result. For
+star-anchored ayanamsas (True Citra, Galactic Center) the mean ayanamsa is used
+in every frame, whereas Swiss Ephemeris's apparent sidereal positions add the
+anchoring star's annual aberration (up to about 20″) to the ayanamsa.
+Mean-of-date and sidereal crossings are gated by `validate-crossings`.

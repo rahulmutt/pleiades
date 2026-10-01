@@ -45,6 +45,12 @@ type EclipticTriple = (f64, f64, f64);
 /// `SEFLG_SIDEREAL` convention. A sidereal `pleiades-core` apparent chart
 /// keeps nutation and can differ from it by up to about 17″.
 ///
+/// The mean ayanamsa is used in every frame. For star-anchored ayanamsas
+/// (True Citra, Galactic Center) Swiss Ephemeris's apparent sidereal positions
+/// additionally fold the anchoring star's annual aberration (up to about 20″)
+/// into the ayanamsa, so they differ from pleiades by that amount in the
+/// apparent frame.
+///
 /// The heliocentric frame is tropical only.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]

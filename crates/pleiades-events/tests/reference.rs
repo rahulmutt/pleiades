@@ -3,12 +3,14 @@
 
 use pleiades_apparent::nutation::nutation;
 use pleiades_ayanamsa::sidereal_offset;
+use pleiades_core::{ChartEngine, ChartRequest};
 use pleiades_data::packaged_backend;
 use pleiades_events::{
     CrossingFrame, CrossingReference, EventEngine, EventError, WINDOW_END_JD, WINDOW_START_JD,
 };
 use pleiades_types::{
-    Ayanamsa, CelestialBody, CustomAyanamsa, Instant, JulianDay, Longitude, TimeScale, ZodiacMode,
+    Apparentness, Ayanamsa, CelestialBody, CustomAyanamsa, Instant, JulianDay, Longitude,
+    TimeScale, ZodiacMode,
 };
 
 const APPARENT: CrossingFrame = CrossingFrame::GeocentricApparentOfDate;
@@ -490,4 +492,48 @@ fn one_reference_serves_many_calls_by_borrow() {
         })
         .count();
     assert_eq!(count, 4);
+}
+
+/// Diagnostic for FU-18: how a sidereal chart differs from a sidereal
+/// crossing reference. Run with
+/// `cargo test -p pleiades-events --test reference measure_chart_sidereal_conventions -- --nocapture --ignored`
+#[test]
+#[ignore]
+fn measure_chart_sidereal_conventions() {
+    let engine = EventEngine::new(packaged_backend());
+    let zodiac = ZodiacMode::Sidereal {
+        ayanamsa: Ayanamsa::Lahiri,
+    };
+    for jd in [2_420_000.5, 2_451_545.0, 2_460_000.5, 2_480_000.5] {
+        for (label, apparentness, frame) in [
+            ("apparent", Apparentness::Apparent, APPARENT),
+            ("mean", Apparentness::Mean, MEAN),
+        ] {
+            let request = ChartRequest::new(tdb(jd))
+                .with_bodies(vec![CelestialBody::Sun])
+                .with_apparentness(apparentness)
+                .with_zodiac_mode(zodiac.clone());
+            let chart = ChartEngine::new(packaged_backend())
+                .chart(&request)
+                .expect("chart");
+            let chart_lon = chart
+                .placement_for(&CelestialBody::Sun)
+                .expect("placed")
+                .position
+                .ecliptic
+                .as_ref()
+                .expect("ecliptic")
+                .longitude
+                .degrees();
+            let engine_lon = engine
+                .longitude_at(CelestialBody::Sun, lahiri(frame), tdb(jd))
+                .unwrap()
+                .degrees();
+            let delta_psi = nutation(jd).unwrap().delta_psi_arcsec;
+            eprintln!(
+                "jd {jd} {label}: chart - crossing = {:.3}\" (Δψ = {delta_psi:.3}\")",
+                wrap(chart_lon - engine_lon) * 3600.0
+            );
+        }
+    }
 }

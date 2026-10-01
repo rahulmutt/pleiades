@@ -2280,3 +2280,51 @@ Three items the final review of issue #89 found outside that change's scope:
 
 **Severity:** (a) validation accuracy, (b) API correctness, (c) edge-case
 availability
+
+---
+
+## FU-18: Sidereal conventions differ from Swiss Ephemeris and the chart layer (issue #88)
+
+**Status:** open · **Opened:** 2026-10-01
+
+Issue #88 gave `pleiades-events` sidereal crossings: the longitude on the mean
+equinox of date minus the mean ayanamsa. The chart layer (`pleiades-core`
+`src/chart/sidereal.rs`) subtracts the same mean ayanamsa from whatever
+longitude the chart holds, which gives two chart-layer differences, (a) and
+(b). Both were measured for the Sun with Lahiri by
+`measure_chart_sidereal_conventions` in
+`crates/pleiades-events/tests/reference.rs`. A third difference, (c), is with
+Swiss Ephemeris itself.
+
+- **(a) A sidereal apparent chart keeps nutation.** The chart longitude is on
+  the true equinox, so it exceeds the crossing engine's sidereal longitude by
+  Δψ: measured 2.240″ (JD 2420000.5), −13.924″ (JD 2451545.0), −9.279″
+  (JD 2460000.5) and −15.740″ (JD 2480000.5), equal to Δψ at each epoch.
+  Swiss Ephemeris drops nutation from sidereal positions.
+- **(b) A sidereal mean chart mixes frames.** A mean chart's longitude is the
+  backend's J2000 place, and the of-date ayanamsa is subtracted from it:
+  measured 4342.509″ (JD 2420000.5), 0.000″ (JD 2451545.0), −1164.290″
+  (JD 2460000.5) and −3918.689″ (JD 2480000.5) against the mean-of-date
+  sidereal longitude, which is the precession accumulated since J2000.
+- **(c) Star-anchored ayanamsas in the apparent frame differ from Swiss
+  Ephemeris's default.** For True Citra (anchored on Spica) and Galactic
+  Center (anchored on Sgr A*), Swiss Ephemeris under plain `SEFLG_SIDEREAL`
+  computes the ayanamsa from the anchoring star's place under the same flags
+  as the body. With apparent flags the ayanamsa therefore carries the star's
+  annual aberration, up to about 20″ and varying through the year. pleiades
+  subtracts the mean ayanamsa (`pleiades_ayanamsa::sidereal_offset`) in every
+  frame. Measured in the reference tool, Swiss Ephemeris's ayanamsa under
+  apparent flags minus under `TRUEPOS|NOABERR|NOGDEFL` was 20.451″
+  (TrueCitra, JD 2470276.058) and −19.737″ (GalacticCenter, JD 2480002.727);
+  before the corpus reference was changed, the corresponding rows disagreed
+  by 20.615″ and 20.101″. The corpus's `geo`-frame TrueCitra and
+  GalacticCenter rows therefore use Swiss Ephemeris's mean ayanamsa. Matching
+  its default would need an apparent-star ayanamsa in `pleiades-ayanamsa`.
+
+Fixing (a) or (b) changes chart output and needs its own decision, a
+regenerated chart golden and a gate against a Swiss Ephemeris sidereal
+position corpus.
+
+**Severity:** (a) convention, up to about 17″; (b) frame correctness, growing
+with distance from J2000; (c) convention, up to about 20″, star-anchored
+ayanamsas only
