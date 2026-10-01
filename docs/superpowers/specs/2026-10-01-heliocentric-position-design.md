@@ -103,9 +103,13 @@ Behaviour:
 
 Move the contents of `pleiades-core` `src/chart/apparent_motion.rs`
 (`Correction`, `CorrectionSample`, `apparent_motion`, `HALF_SPAN_DAYS`, the
-signed wrap) into a new public module `pleiades_apparent::motion`, with its
-unit tests alongside as `motion/tests.rs`. `pleiades-core` imports the module;
-its chart behaviour and chart-level tests are unchanged.
+signed wrap) into a new public module `pleiades_apparent::motion`, with new
+unit tests of the pure helper as `motion/tests.rs`. `pleiades-core` imports the
+module; its chart behaviour is unchanged, and the existing chart-level tests
+(`chart/apparent_motion/tests.rs`, which drive `ChartEngine`) stay in core.
+Because the helper becomes public, a zero or non-finite span between the two
+samples returns a `Motion` with every channel `None` instead of a non-finite
+speed.
 
 The item names do not change. The helper adds the rate of *any* small smooth
 correction between two places to a base `Motion`, so its rustdoc is reworded in
@@ -153,9 +157,9 @@ The spherical ↔ Cartesian state conversions are pure functions in a new
 heliocentric pole (`x² + y² = 0`) the longitude rate is undefined; the
 conversion returns `None` for that channel rather than a non-finite value.
 
-`src/ephemeris.rs` is 237 lines today. The heliocentric reconstruction moves
-with its tests into `src/ephemeris/heliocentric.rs` if the file would pass
-roughly 400 lines; the plan decides on the measured size.
+`src/ephemeris.rs` keeps evaluating places and grows only by the heliocentric
+refactor. `EclipticPosition`, `position_at` and the speed sampling live in a
+new `src/position.rs`, so no file needs splitting.
 
 ## Errors
 
@@ -182,11 +186,16 @@ as in `longitude_at`. Missing speeds are not errors (see above).
   are set per channel from the measured maxima with headroom, recorded with
   the measured values, and wired into the release posture alongside the other
   SE gates. The gate enforces a validated-row floor on the release path.
-- **Expected residual class.** The heliocentric longitude already matches SE
-  to the arcsecond class under `validate-crossings`. The latitude, distance
-  and speed residuals are measured, not assumed; a residual that is not
-  explained by the Moshier-versus-DE440 difference is investigated before a
-  ceiling is set over it.
+- **Expected residual class.** `validate-crossings` already measures the
+  heliocentric longitude against SE: 35.09″ maximum for Mercury–Neptune and
+  3.53″ for Pluto (ceilings 50″ and 5″). The larger figure is the known
+  light-time signature of reconstructing the heliocentric vector from the
+  backend's geocentric vectors (see `tests/heliocentric.rs`); removing it is
+  not part of this change. The new gate's longitude maximum is expected in the
+  same class. The latitude, distance and speed residuals are measured, not
+  assumed; a longitude residual above 50″, or any residual that neither the
+  light-time signature nor the Moshier-versus-DE440 difference explains, is
+  investigated before a ceiling is set over it.
 
 ### Geocentric: agreement with the chart layer
 
@@ -237,6 +246,9 @@ Consumer-visible effect: crates released after this change require Rust
 - `crates/pleiades-events/README.md` and the workspace `README.md` capability
   table gain the new surface and its gate.
 - `docs/follow-ups.md`: a resolved entry (FU-16) with the measured gate maxima.
+- The compatibility profile (`pleiades-core` `src/compatibility/mod.rs`) gains
+  an entry for the new surface and moves to 0.7.17, with its pinned checksum
+  and the two tests that pin the identifier.
 - `spec/*.md`: updated only where a document enumerates the events surface or
   the validation gates.
 
