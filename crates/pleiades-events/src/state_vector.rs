@@ -4,8 +4,6 @@
 //! astronomical units and AU per day. The frame is whatever frame the
 //! spherical coordinates are in; these are pure geometry.
 
-#![allow(dead_code)] // Consumed by position.rs (next task).
-
 use pleiades_types::Motion;
 
 /// Cartesian velocity (AU/day) of a point at spherical `(lon, lat, r)` moving

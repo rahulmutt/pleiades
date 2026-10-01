@@ -117,6 +117,7 @@ mod mean_elements;
 mod nod_aps;
 mod occult;
 mod pheno;
+mod position;
 mod rise_trans;
 mod root;
 mod semidiameter;
@@ -134,4 +135,5 @@ pub use occult::{
     OccultationType,
 };
 pub use pheno::PhenoData;
+pub use position::EclipticPosition;
 pub use rise_trans::{DiscMode, RiseSet, RiseSetEvent, RiseSetOptions, RiseSetTarget};

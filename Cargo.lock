@@ -251,6 +251,7 @@ dependencies = [
  "pleiades-apparent",
  "pleiades-apsides",
  "pleiades-backend",
+ "pleiades-core",
  "pleiades-data",
  "pleiades-elp",
  "pleiades-fict",
