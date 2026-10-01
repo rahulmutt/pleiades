@@ -30,6 +30,9 @@ pub struct ElpBackend;
 /// backend in the composite routing chain, so the ELP-local `Unsupported` apsis claims are not a
 /// global gap, and this backend's `TrueNode` (Meeus's periodic-term-corrected mean node, ±0.14°
 /// from Swiss Ephemeris' osculating node — issue #58) is reached only by direct ELP consumers.
+/// Likewise `MeanApogee`/`MeanPerigee` here are the raw mean longitude-of-perigee element with
+/// latitude 0, up to about 7′ in longitude and 5.1° in latitude from Swiss Ephemeris'
+/// `SE_MEAN_APOG` point; routed charts get the Swiss Ephemeris point from `pleiades-data` (#90).
 pub fn elp_body_claims() -> Vec<BodyClaim> {
     let mut claims: Vec<BodyClaim> = lunar_theory_supported_bodies()
         .iter()

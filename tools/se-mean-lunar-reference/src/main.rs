@@ -7,6 +7,11 @@
 //! needed; both bodies are analytic mean elements in Swiss Ephemeris.
 //! Same deterministic grid as `tools/se-true-node-reference`.
 //!
+//! Two build/run caveats: under devenv's gcc the build needs `CFLAGS=-std=gnu17`
+//! (libswisseph-sys otherwise fails with a conflicting `getenv` declaration), and
+//! `devenv shell` prints a banner line to stdout that must be removed from the
+//! top of the CSV (the file must start with the `# Source:` line).
+//!
 //! Build inside `devenv shell` (provides clang/libclang/LIBCLANG_PATH):
 //! `devenv shell -- cargo run --release --manifest-path tools/se-mean-lunar-reference/Cargo.toml \
 //!    > crates/pleiades-validate/data/mean-lunar-corpus/mean-lunar.csv`

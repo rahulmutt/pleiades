@@ -99,8 +99,8 @@ fn moon_osculating_node_is_near_the_true_node() {
 fn moon_mean_node_matches_swiss_ephemeris_a_century_from_j2000() {
     // Swiss Ephemeris 2.10.03 swe_nod_aps(Moon, mean, MOSEPH) at JD 2415100.5 TT
     // (row 12 of the committed nod-aps corpus): ascending node 254.924769366°,
-    // true equinox of date. One century from J2000 a frame slip between the
-    // ELP node channel and this engine (J2000 read as of-date, or the reverse)
+    // true equinox of date. One century from J2000 a frame slip in the
+    // analytic mean-element frame (of date read as J2000, or the reverse)
     // shows up as a ~1.4° error, far above the gate's sub-arcsecond MEAN_MOON
     // ceiling.
     let engine = engine();

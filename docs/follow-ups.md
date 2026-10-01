@@ -2171,3 +2171,38 @@ prediction's uncertainty at about 0.2″ of longitude per second of ΔT (see FU-
 item 2); geocentric places do not.
 
 **Origin:** issue #93, `docs/superpowers/specs/2026-09-30-apparent-aberration-double-count-design.md` section 4.
+
+---
+
+## FU-15: Mean lunar points on the packaged backend (issue #90)
+
+**Status:** resolved (2026-10-01) · Spec
+`docs/superpowers/specs/2026-10-01-mean-lunar-points-packaged-design.md`, plan
+`docs/superpowers/plans/2026-10-01-mean-lunar-points-packaged.md`.
+
+**What:** `PackagedDataBackend` did not serve `MeanNode`/`MeanPerigee`, so
+`EventEngine::nod_aps(Moon, NodApsMethod::Mean)` failed on
+`packaged_backend()`. Resolved by single-sourcing the mean lunar elements in
+`pleiades-apsides`, having `nod_aps` use them directly, and serving
+`MeanNode`/`MeanApogee`/`MeanPerigee` release-grade from the packaged backend
+behind `validate-mean-lunar-points` (3177-row `SE_MEAN_NODE` / `SE_MEAN_APOG`
+corpus, 1900–2100; measured maxima: 3177 rows validated (0 oor-skipped) vs Swiss Ephemeris SE_MEAN_NODE/SE_MEAN_APOG, node max lon 0.1337" lat 0.0000" dist 7.78e-11 rel; apogee max lon 0.5705" lat 0.0395" dist 1.02e-10 rel; perigee max lon 0.5705" lat 0.0395" dist 1.02e-10 rel).
+
+**Behaviour change:** routed charts' `MeanApogee`/`MeanPerigee` moved from the
+ELP element (latitude 0) to the Swiss Ephemeris point (up to about 7′ in
+longitude, latitude up to 5.15°). The chart now treats all six lunar points as
+geometric directions, which also closes #63. Because the mean lunar points are
+now release-grade, an Apparent chart reports them in the true ecliptic of date
+(precession plus nutation in longitude), as Swiss Ephemeris does; previously
+`ElpBackend` served them under a `constrained` claim and an Apparent chart
+returned them un-rotated (J2000 mean ecliptic, no apparent provenance).
+`MeanNode` at JD 2461041.5 moved from 341.806020° to 342.170759° (about +0.36°,
+1313″, in 2026, growing with distance from J2000). Separately, removing the
+light-time path moved the packaged points by at most 0.0063″ (`MeanNode`
+−0.0028″).
+
+**Build-env note:** `tools/se-mean-lunar-reference` builds inside
+`devenv shell` (libclang), like the other `se-*-reference` tools; it is not
+needed to run the gate.
+
+**Severity:** feature gap (closed) · **Opened:** 2026-09-30
