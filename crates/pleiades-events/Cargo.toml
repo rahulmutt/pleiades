@@ -29,6 +29,7 @@ pleiades-vsop87 = { path = "../pleiades-vsop87" }
 pleiades-elp = { path = "../pleiades-elp" }
 pleiades-jpl = { path = "../pleiades-jpl" }
 pleiades-fict = { path = "../pleiades-fict" }
+pleiades-core = { path = "../pleiades-core" }
 
 [package.metadata.docs.rs]
 all-features = true

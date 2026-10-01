@@ -804,6 +804,7 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("validate-mean-lunar-points") | Some("mean-lunar-points-gate") => {
             validate_render_cli(args)
         }
+        Some("validate-helio-position") | Some("helio-position-gate") => validate_render_cli(args),
         Some("eclipses") => validate_render_cli(args),
         Some("validate-crossings") | Some("crossings-gate") => validate_render_cli(args),
         Some("crossings") => {

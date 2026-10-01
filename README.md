@@ -33,6 +33,7 @@ gate, and 48 ayanamsas pass theirs — of 25 and 59 catalogued respectively.
 | Eclipses (global) | [`pleiades-eclipse`](crates/pleiades-eclipse) | `validate-eclipses` | arcsecond-class; timing seconds-of-time |
 | Eclipses (local circumstances) | [`pleiades-eclipse`](crates/pleiades-eclipse) | `validate-eclipses-local` | arcsecond-class; timing seconds-of-time |
 | Longitude crossings | [`pleiades-events`](crates/pleiades-events) | `validate-crossings` | arcsecond-class |
+| Ecliptic position & speed (geocentric apparent, heliocentric) | [`pleiades-events`](crates/pleiades-events) | `validate-helio-position` (heliocentric), `validate-apparent` (geocentric) | arcsecond-class geocentric; arcsecond-class heliocentric |
 | Rise/set/transit & horizontal | [`pleiades-events`](crates/pleiades-events) | `validate-rise-trans` | sub-arcsecond (horizontal); timing seconds-of-time |
 | Fictitious bodies | [`pleiades-fict`](crates/pleiades-fict) | `validate-fictitious` | definitional (sub-arcsecond) |
 | Nodes & apsides | [`pleiades-events`](crates/pleiades-events) | `validate-nod-aps` | sub-arcsecond (mean) / arcminute-class (osculating) |
@@ -76,7 +77,7 @@ in [PLAN.md](PLAN.md). `pleiades-cli`, `pleiades-data`, and `pleiades-validate`
 are contributor tooling and stay unpublished. The release procedure is
 documented in [docs/release-process.md](docs/release-process.md).
 
-**Minimum supported Rust version: 1.98.1.** The MSRV is declared as
+**Minimum supported Rust version: 1.99.0.** The MSRV is declared as
 `rust-version` in the workspace `Cargo.toml` and must match the toolchain
 pinned in [`mise.toml`](mise.toml); `mise run audit` enforces that the two
 agree. Raising it is a breaking change for consumers and is released as such.

@@ -19,7 +19,7 @@
 FUZZ_NIGHTLY = "nightly-2026-07-01"
 
 [tools]
-rust = { version = "1.98.1", components = "rustfmt,clippy" }
+rust = { version = "1.99.0", components = "rustfmt,clippy" }
 "cargo:cargo-fuzz" = "0.13.2"
 # Mutation testing (report-only, weekly tier — see .github/workflows/mutants.yml).
 # Source build: no aqua/prebuilt backend for cargo-mutants, compiled once then

@@ -10,7 +10,8 @@
 //! explicitly for chart-aware consumers, which keeps the workflow practical
 //! without hardwiring more chart logic than the façade needs.
 
-mod apparent_motion;
+#[cfg(test)]
+mod apparent_motion_tests;
 mod aspects;
 mod errors;
 mod houses;
@@ -53,8 +54,8 @@ use pleiades_types::{
     CelestialBody, CoordinateFrame, Instant, JulianDay, Motion, ObserverLocation, ZodiacMode,
 };
 
-use apparent_motion::{apparent_motion, Correction, CorrectionSample, HALF_SPAN_DAYS};
 use errors::map_house_error;
+use pleiades_apparent::motion::{apparent_motion, Correction, CorrectionSample, HALF_SPAN_DAYS};
 
 fn map_apparent_error(error: ApparentLightTimeError<EphemerisError>) -> EphemerisError {
     match error {
