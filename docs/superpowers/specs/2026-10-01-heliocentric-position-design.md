@@ -107,11 +107,10 @@ signed wrap) into a new public module `pleiades_apparent::motion`, with its
 unit tests alongside as `motion/tests.rs`. `pleiades-core` imports the module;
 its chart behaviour and chart-level tests are unchanged.
 
-The names generalise slightly: the helper adds the rate of *any* small smooth
-correction between two places to a base `Motion`, so the function is documented
-in those terms ("base" and "corrected" place) while keeping the name
-`apparent_motion` for the chart's use if a rename would only add churn. The
-implementation plan settles the final name; behaviour does not change.
+The item names do not change. The helper adds the rate of *any* small smooth
+correction between two places to a base `Motion`, so its rustdoc is reworded in
+those terms ("base" and "corrected" place); the heliocentric path uses it with
+the J2000 place as base and the of-date place as corrected.
 
 This is the only refactor in the change. It is required so that the chart and
 the event engine share one implementation and cannot drift.
