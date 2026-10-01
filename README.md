@@ -76,7 +76,7 @@ in [PLAN.md](PLAN.md). `pleiades-cli`, `pleiades-data`, and `pleiades-validate`
 are contributor tooling and stay unpublished. The release procedure is
 documented in [docs/release-process.md](docs/release-process.md).
 
-**Minimum supported Rust version: 1.98.1.** The MSRV is declared as
+**Minimum supported Rust version: 1.99.0.** The MSRV is declared as
 `rust-version` in the workspace `Cargo.toml` and must match the toolchain
 pinned in [`mise.toml`](mise.toml); `mise run audit` enforces that the two
 agree. Raising it is a breaking change for consumers and is released as such.
