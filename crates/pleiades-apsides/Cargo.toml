@@ -1,6 +1,6 @@
 [package]
 name = "pleiades-apsides"
-description = "Osculating lunar apsides (true apogee/perigee) for the pleiades astrology workspace"
+description = "Lunar orbit points (mean and osculating nodes and apsides) for the pleiades astrology workspace"
 version = "0.5.3"
 edition.workspace = true
 license.workspace = true
@@ -12,3 +12,5 @@ categories.workspace = true
 readme = "README.md"
 
 [dependencies]
+[dev-dependencies]
+proptest = { workspace = true }

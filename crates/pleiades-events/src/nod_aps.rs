@@ -7,6 +7,7 @@ use crate::error::EventError;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NodApsMethod {
     /// Mean orbital elements (`SE_NODBIT_MEAN`). Moon + Sun + Mercury–Neptune.
+    /// The Moon's mean elements are analytic and need no backend channel.
     Mean,
     /// Osculating ellipse from the instantaneous state (`SE_NODBIT_OSCU`).
     Osculating,
@@ -71,6 +72,22 @@ mod tests {
 
     fn tdb(jd: f64) -> Instant {
         Instant::new(JulianDay::from_days(jd), TimeScale::Tdb)
+    }
+
+    #[test]
+    fn moon_mean_method_reads_no_lunar_point_channel() {
+        // LinearSunMoon serves only the Sun and Moon. Before #90 the Mean
+        // method read MeanNode/MeanPerigee from the backend and failed here.
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_545.0));
+        let r = engine
+            .nod_aps(
+                CelestialBody::Moon,
+                tdb(2_451_545.0),
+                NodApsMethod::Mean,
+                ApsisConvention::Aphelion,
+            )
+            .expect("mean lunar elements are analytic");
+        assert!((r.ascending.latitude_deg).abs() < 1e-9);
     }
 
     #[test]
@@ -185,14 +202,11 @@ mod tests {
 }
 
 use crate::crossings::EventEngine;
-use crate::ephemeris::{read_mean_ecliptic, read_mean_longitude_of_date, spherical_to_cartesian};
-use crate::mean_elements::{
-    elem_index, mean_elements_of_date, mu_au3_day2, EARTH_MOON_MASS_RATIO, MOON_MEAN_ECC,
-    MOON_MEAN_INCL_DEG, MOON_MEAN_SEMA_AU,
-};
+use crate::ephemeris::{read_mean_ecliptic, spherical_to_cartesian};
+use crate::mean_elements::{elem_index, mean_elements_of_date, mu_au3_day2, EARTH_MOON_MASS_RATIO};
 use pleiades_apparent::nutation::nutation;
 use pleiades_apparent::precess_ecliptic_j2000_to_date;
-use pleiades_apsides::{points_from_elements, ApsisPoint, KeplerianElements};
+use pleiades_apsides::{mean_lunar_elements_of_date, points_from_elements, ApsisPoint};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{CelestialBody, Instant};
 
@@ -391,30 +405,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ) -> Result<[RawPoint; 4], EventError> {
         let second_focus = convention == ApsisConvention::SecondFocus;
         let elements = if *body == CelestialBody::Moon {
-            // The ELP backend's MeanNode/MeanPerigee channels are Meeus-style
-            // mean-lunar-element polynomials (mean equinox of date by
-            // construction) emitted in the J2000 boundary frame, like every
-            // other first-party channel. Precess them forward once so the
-            // elements are of date, as SE's mean lunar elements are.
-            let node = read_mean_longitude_of_date(
-                &self.backend,
-                CelestialBody::MeanNode,
-                "MeanNode",
-                jd,
-            )?;
-            let peri = read_mean_longitude_of_date(
-                &self.backend,
-                CelestialBody::MeanPerigee,
-                "MeanPerigee",
-                jd,
-            )?;
-            KeplerianElements {
-                node_deg: node,
-                peri_lon_deg: peri,
-                incl_deg: MOON_MEAN_INCL_DEG,
-                eccentricity: MOON_MEAN_ECC,
-                semi_major_au: MOON_MEAN_SEMA_AU,
-            }
+            // The Moon's mean elements are analytic (Meeus mean node and
+            // perigee, SE's mean inclination/eccentricity/distance), already
+            // in the mean ecliptic of date like SE's mean lunar elements.
+            mean_lunar_elements_of_date(jd)
         } else {
             let idx = elem_index(body).ok_or_else(|| EventError::UnsupportedNodAps {
                 detail: format!("no SE mean elements for {body}; use Osculating"),

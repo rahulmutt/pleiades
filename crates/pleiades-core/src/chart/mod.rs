@@ -73,6 +73,19 @@ fn map_apparent_place_error(error: ApparentPlaceError) -> EphemerisError {
     )
 }
 
+/// Whether `body` is a lunar orbit point (mean or true node, apogee, perigee).
+///
+/// These are geometric directions of the lunar orbit, not bodies. The chart
+/// rotates them to the true ecliptic of date with precession + nutation in
+/// longitude only: no light-time re-query and no annual aberration, and — in a
+/// topocentric chart — no diurnal parallax or diurnal aberration, so they stay
+/// geocentric. Swiss Ephemeris does the same. Without this exemption a point
+/// carrying a lunar-scale distance would be shifted by up to about 1° of
+/// parallax (issues #58, #63, #90).
+fn is_lunar_point(body: &CelestialBody) -> bool {
+    body.class() == pleiades_types::CelestialBodyClass::LunarPoint
+}
+
 /// An instant of the apparent-speed difference and the Sun's true geometric
 /// longitude of date there, in degrees.
 #[derive(Clone, Copy)]
@@ -473,14 +486,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 // Operates on the tropical apparent ecliptic produced above; the sidereal
                 // ayanamsa re-apply (when requested) happens once below, after this block.
                 let mut apparent = apparent;
-                let topocentric_prov = if request.topocentric
-                    && !matches!(
-                        body,
-                        pleiades_types::CelestialBody::TrueApogee
-                            | pleiades_types::CelestialBody::TruePerigee
-                            | pleiades_types::CelestialBody::TrueNode
-                    )
-                {
+                let topocentric_prov = if request.topocentric && !is_lunar_point(&body) {
                     let observer = request.observer.as_ref().ok_or_else(|| {
                         EphemerisError::new(
                             EphemerisErrorKind::InvalidRequest,
@@ -612,16 +618,13 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 .and_then(|sun_j2000| {
                     apparent_sun_position(instant, sun_j2000).map_err(map_apparent_place_error)
                 }),
-            // Osculating apsis or node: a geometric direction. Apply precession +
-            // nutation only (no light-time re-query, no annual aberration).
+            // Lunar orbit point: a geometric direction (see `is_lunar_point`).
             // observer = None keeps it geocentric.
-            CelestialBody::TrueApogee | CelestialBody::TruePerigee | CelestialBody::TrueNode => {
-                self.query_mean_ecliptic(body, instant, zodiac_mode, None)
-                    .and_then(|apsis_j2000| {
-                        apparent_apsis_position(instant, apsis_j2000)
-                            .map_err(map_apparent_place_error)
-                    })
-            }
+            body if is_lunar_point(body) => self
+                .query_mean_ecliptic(body, instant, zodiac_mode, None)
+                .and_then(|point_j2000| {
+                    apparent_apsis_position(instant, point_j2000).map_err(map_apparent_place_error)
+                }),
             _ => apparent_position::<_, EphemerisError>(
                 instant,
                 sun_longitude_of_date,

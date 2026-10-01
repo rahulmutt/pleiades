@@ -30,6 +30,9 @@ pub struct ElpBackend;
 /// backend in the composite routing chain, so the ELP-local `Unsupported` apsis claims are not a
 /// global gap, and this backend's `TrueNode` (Meeus's periodic-term-corrected mean node, ±0.14°
 /// from Swiss Ephemeris' osculating node — issue #58) is reached only by direct ELP consumers.
+/// Likewise `MeanApogee`/`MeanPerigee` here are the raw mean longitude-of-perigee element with
+/// latitude 0, up to about 7′ in longitude and 5.1° in latitude from Swiss Ephemeris'
+/// `SE_MEAN_APOG` point; routed charts get the Swiss Ephemeris point from `pleiades-data` (#90).
 pub fn elp_body_claims() -> Vec<BodyClaim> {
     let mut claims: Vec<BodyClaim> = lunar_theory_supported_bodies()
         .iter()
@@ -127,23 +130,19 @@ impl ElpBackend {
     }
 
     fn mean_node_longitude(days: f64) -> f64 {
-        let t = days / 36_525.0;
-        series::normalize_degrees(
-            125.044_547_9
-                + (-1_934.136_289_1 + (0.002_075_4 + (1.0 / 476_441.0 - t / 60_616_000.0) * t) * t)
-                    * t,
-        )
+        pleiades_apsides::mean_lunar_node_longitude_of_date(crate::J2000 + days)
     }
 
     fn mean_perigee_longitude(days: f64) -> f64 {
-        let t = days / 36_525.0;
-        series::normalize_degrees(
-            83.353_246_5
-                + (4_069.013_728_7 + (-0.010_32 + (-1.0 / 80_053.0 + t / 18_999_000.0) * t) * t)
-                    * t,
-        )
+        pleiades_apsides::mean_lunar_perigee_longitude_of_date(crate::J2000 + days)
     }
 
+    /// The mean apogee *element*: mean perigee longitude + 180°, emitted with
+    /// latitude 0. This is **not** the point Swiss Ephemeris reports as
+    /// `SE_MEAN_APOG`, which lies on the inclined mean orbit (up to about 7′
+    /// in longitude and 5.1° in latitude away). The routed chart chain serves
+    /// the Swiss Ephemeris point from `PackagedDataBackend`; this channel
+    /// remains for direct ELP consumers as a documented approximation (#90).
     fn mean_apogee_longitude(days: f64) -> f64 {
         series::normalize_degrees(Self::mean_perigee_longitude(days) + 180.0)
     }

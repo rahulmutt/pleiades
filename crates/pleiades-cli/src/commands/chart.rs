@@ -259,6 +259,20 @@ fn parse_civil(value: Option<&str>) -> Result<CivilDateTime, String> {
     Ok(CivilDateTime::new(year, month, day, hour, minute, second))
 }
 
+/// The routed backend chain behind `chart`: packaged data first, so release-grade
+/// derived points (lunar nodes and apsides) win over the lower-tier ELP channels.
+fn default_chart_backend() -> RoutingBackend {
+    RoutingBackend::new(vec![
+        Box::new(PackagedDataBackend::new()),
+        Box::new(CompositeBackend::new(
+            Vsop87Backend::new(),
+            ElpBackend::new(),
+        )),
+        Box::new(JplSnapshotBackend::new()),
+        Box::new(FictitiousBackend::new(PackagedDataBackend::new())),
+    ])
+}
+
 pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut jd: Option<f64> = None;
     let mut lat: Option<f64> = None;
@@ -557,16 +571,7 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
         bodies = default_chart_bodies().to_vec();
     }
 
-    let backend = RoutingBackend::new(vec![
-        Box::new(PackagedDataBackend::new()),
-        Box::new(CompositeBackend::new(
-            Vsop87Backend::new(),
-            ElpBackend::new(),
-        )),
-        Box::new(JplSnapshotBackend::new()),
-        Box::new(FictitiousBackend::new(PackagedDataBackend::new())),
-    ]);
-    let engine = ChartEngine::new(backend);
+    let engine = ChartEngine::new(default_chart_backend());
     let mut request = ChartRequest::new(instant)
         .with_bodies(bodies)
         .with_zodiac_mode(zodiac_mode)
@@ -612,6 +617,52 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn routed_chain_serves_the_swiss_ephemeris_mean_apogee() {
+        // Values measured on the bare packaged backend at JD 2461041.5 TT; the
+        // ELP element would give latitude 0 and a longitude about 7' away.
+        let engine = ChartEngine::new(default_chart_backend());
+        let request = ChartRequest::new(Instant::new(
+            JulianDay::from_days(2_461_041.5),
+            TimeScale::Tt,
+        ))
+        .with_bodies(vec![CelestialBody::MeanApogee])
+        .with_apparentness(Apparentness::Apparent);
+        let snapshot = engine.chart(&request).unwrap();
+        let placement = &snapshot.placements[0];
+        assert!(
+            (placement.position.ecliptic.unwrap().latitude.degrees() - (-5.052_780_051)).abs()
+                < 1e-6
+        );
+        assert!(
+            (placement.position.ecliptic.unwrap().longitude.degrees() - 241.254_686_706).abs()
+                < 1e-6
+        );
+        assert!(placement.apparent.is_some());
+    }
+
+    #[test]
+    fn routed_chain_fails_closed_for_mean_lunar_points_outside_the_packaged_window() {
+        // The packaged backend claims the mean lunar points, and the router does
+        // not fall through on an out-of-range instant, so ElpBackend is not
+        // consulted: the same fail-closed behaviour as TrueNode.
+        let engine = ChartEngine::new(default_chart_backend());
+        for body in [CelestialBody::MeanNode, CelestialBody::MeanApogee] {
+            let request = ChartRequest::new(Instant::new(
+                JulianDay::from_days(2_400_000.5),
+                TimeScale::Tt,
+            ))
+            .with_bodies(vec![body.clone()])
+            .with_apparentness(Apparentness::Apparent);
+            let error = engine.chart(&request).unwrap_err();
+            assert_eq!(
+                error.kind,
+                pleiades_core::EphemerisErrorKind::OutOfRangeInstant,
+                "{body:?}: {error}"
+            );
+        }
+    }
 
     #[test]
     fn default_chart_emits_apparent_provenance_line() {

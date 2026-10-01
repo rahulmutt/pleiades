@@ -31,6 +31,7 @@ pub mod fictitious_validation;
 mod frame_consistency_validation;
 mod house_validation;
 mod lilith_validation;
+mod mean_lunar_validation;
 mod nod_aps_thresholds;
 pub mod nod_aps_validation;
 mod occult_thresholds;
@@ -229,6 +230,9 @@ pub use house_validation::{
 };
 pub use house_validation::{validate_house_corpus, HouseCorpusError, HouseCorpusReport};
 pub use lilith_validation::{validate_lilith_corpus, LilithCorpusError, LilithCorpusReport};
+pub use mean_lunar_validation::{
+    validate_mean_lunar_points_corpus, ChannelMaxima, MeanLunarCorpusError, MeanLunarCorpusReport,
+};
 pub use nod_aps_validation::{validate_nod_aps_corpus, NodApsError, NodApsReport};
 pub use occult_validation::{validate_occultations_corpus, OccultError, OccultReport};
 pub use pheno_validation::{validate_pheno_corpus, PhenoError, PhenoReport};

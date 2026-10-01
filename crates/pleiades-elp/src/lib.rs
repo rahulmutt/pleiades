@@ -16,6 +16,10 @@
 //! apogee/perigee (True Lilith) are now served release-grade by
 //! `PackagedDataBackend` ahead of this backend in the routing chain, so the
 //! ELP-local `Unsupported` claim for those bodies is no longer a global gap.
+//! Likewise this crate's `MeanApogee`/`MeanPerigee` channels are the raw mean
+//! longitude-of-perigee element with latitude 0, up to about 7′ in longitude
+//! and 5.1° in latitude from Swiss Ephemeris' `SE_MEAN_APOG` point; routed
+//! charts get the Swiss Ephemeris point from `pleiades-data` (issue #90).
 //!
 //! The current catalog also has
 //! typed lookup helpers by source identifier, model name, structured source

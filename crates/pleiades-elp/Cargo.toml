@@ -13,5 +13,6 @@ readme = "README.md"
 
 [dependencies]
 pleiades-apparent = { workspace = true }
+pleiades-apsides = { workspace = true }
 pleiades-backend = { workspace = true }
 pleiades-types = { workspace = true }

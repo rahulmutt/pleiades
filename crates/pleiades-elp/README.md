@@ -6,7 +6,12 @@
 
 Compact Meeus-style lunar baseline backend for the [pleiades](https://github.com/rahulmutt/pleiades) astrology workspace: Moon, mean/true node, and mean apogee/perigee channels.
 
-Depends on `pleiades-types` and `pleiades-backend`. This is a compact baseline, not a full ELP coefficient implementation.
+Depends on `pleiades-apparent`, `pleiades-apsides`, `pleiades-backend` and `pleiades-types`. This is a compact baseline, not a full ELP coefficient implementation.
+
+The `MeanApogee`/`MeanPerigee` channels are the raw mean longitude-of-perigee
+element with latitude 0; they differ from Swiss Ephemeris' `SE_MEAN_APOG` point
+by up to about 7′ in longitude and 5.1° in latitude. The routed chart chain
+serves the Swiss Ephemeris point from `pleiades-data` instead.
 
 ## Status
 

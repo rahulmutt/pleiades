@@ -3889,3 +3889,162 @@ fn chart_houses_for_a_tt_instant_are_taken_at_ut1() {
     // The snapshot still reports the instant the caller asked for.
     assert_eq!(chart.houses.as_ref().unwrap().instant, tt);
 }
+
+#[test]
+fn chart_serves_mean_lunar_points_precession_nutation_only() {
+    use pleiades_backend::{Apparentness, EphemerisBackend, EphemerisRequest};
+    use pleiades_data::PackagedDataBackend;
+    use pleiades_types::CelestialBody;
+
+    let instant = Instant::new(
+        pleiades_types::JulianDay::from_days(2_461_041.5),
+        TimeScale::Tt,
+    );
+    let bodies = vec![
+        CelestialBody::MeanNode,
+        CelestialBody::MeanApogee,
+        CelestialBody::MeanPerigee,
+    ];
+    let request = ChartRequest::new(instant)
+        .with_bodies(bodies.clone())
+        .with_apparentness(Apparentness::Apparent);
+    let backend = PackagedDataBackend::new();
+    let snapshot = ChartEngine::new(backend.clone())
+        .chart(&request)
+        .expect("apparent mean-lunar-point chart should succeed");
+
+    for body in bodies {
+        let placement = snapshot
+            .placement_for(&body)
+            .unwrap_or_else(|| panic!("{body:?} placement missing"));
+        let prov = placement
+            .apparent
+            .as_ref()
+            .unwrap_or_else(|| panic!("{body:?} must carry apparent provenance"));
+        assert!(!prov.corrections.light_time, "{body:?}: no light-time");
+        assert!(
+            !prov.corrections.annual_aberration,
+            "{body:?}: no annual aberration"
+        );
+
+        let mean = backend
+            .position(&EphemerisRequest::new(body.clone(), instant))
+            .unwrap()
+            .ecliptic
+            .unwrap();
+        let expected = pleiades_apparent::apparent_apsis_position(instant, mean).unwrap();
+        let got = placement.position.ecliptic.unwrap();
+        assert!(
+            (got.longitude.degrees() - expected.ecliptic.longitude.degrees()).abs() < 1e-9,
+            "{body:?} longitude"
+        );
+        assert!(
+            (got.latitude.degrees() - expected.ecliptic.latitude.degrees()).abs() < 1e-9,
+            "{body:?} latitude"
+        );
+    }
+
+    // Mean Lilith carries the orbit's latitude (Swiss Ephemeris SE_MEAN_APOG),
+    // not the latitude-0 element.
+    let apogee = snapshot
+        .placement_for(&CelestialBody::MeanApogee)
+        .unwrap()
+        .position
+        .ecliptic
+        .unwrap();
+    assert!(apogee.latitude.degrees().abs() <= 5.146);
+    assert!(apogee.latitude.degrees().abs() > 0.01);
+}
+
+#[test]
+fn chart_carries_mean_lunar_point_longitude_motion() {
+    use pleiades_backend::Apparentness;
+    use pleiades_data::PackagedDataBackend;
+    use pleiades_types::CelestialBody;
+
+    let instant = Instant::new(
+        pleiades_types::JulianDay::from_days(2_461_041.5),
+        TimeScale::Tt,
+    );
+    let request = ChartRequest::new(instant)
+        .with_bodies(vec![
+            CelestialBody::MeanNode,
+            CelestialBody::MeanApogee,
+            CelestialBody::MeanPerigee,
+        ])
+        .with_apparentness(Apparentness::Apparent);
+    let snapshot = ChartEngine::new(PackagedDataBackend::new())
+        .chart(&request)
+        .expect("apparent mean-lunar-point chart should succeed");
+
+    let speed = |body: CelestialBody| {
+        let speed = snapshot
+            .placement_for(&body)
+            .unwrap_or_else(|| panic!("{body:?} placement missing"))
+            .longitude_speed()
+            .unwrap_or_else(|| panic!("{body:?} must carry a finite longitude motion"));
+        assert!(speed.is_finite(), "{body:?} motion");
+        speed
+    };
+    // The mean node regresses (about -0.053 deg/day); the mean apogee advances
+    // (about 0.111 deg/day).
+    let node = speed(CelestialBody::MeanNode);
+    assert!((node - (-0.0530)).abs() < 0.001, "MeanNode motion {node}");
+    let apogee = speed(CelestialBody::MeanApogee);
+    assert!(
+        (0.110..0.113).contains(&apogee),
+        "MeanApogee motion {apogee}"
+    );
+    speed(CelestialBody::MeanPerigee);
+}
+
+#[test]
+fn topocentric_chart_leaves_mean_lunar_points_geocentric() {
+    use pleiades_backend::Apparentness;
+    use pleiades_data::PackagedDataBackend;
+    use pleiades_types::CelestialBody;
+
+    let instant = Instant::new(
+        pleiades_types::JulianDay::from_days(2_461_041.5),
+        TimeScale::Tt,
+    );
+    let observer = pleiades_types::ObserverLocation::new(
+        pleiades_types::Latitude::from_degrees(51.5),
+        pleiades_types::Longitude::from_degrees(0.0),
+        None,
+    );
+    let bodies = vec![
+        CelestialBody::MeanNode,
+        CelestialBody::MeanApogee,
+        CelestialBody::MeanPerigee,
+    ];
+    let chart = |topocentric: bool| {
+        ChartEngine::new(PackagedDataBackend::new())
+            .chart(
+                &ChartRequest::new(instant)
+                    .with_bodies(bodies.clone())
+                    .with_apparentness(Apparentness::Apparent)
+                    .with_observer(observer.clone())
+                    .with_topocentric(topocentric),
+            )
+            .expect("chart should succeed")
+    };
+    let (geo, topo) = (chart(false), chart(true));
+    for body in &bodies {
+        let g = geo.placement_for(body).unwrap().position.ecliptic.unwrap();
+        let t = topo.placement_for(body).unwrap();
+        let te = t.position.ecliptic.unwrap();
+        assert!(
+            (g.longitude.degrees() - te.longitude.degrees()).abs() < 1e-9,
+            "{body:?} longitude moved under the topocentric flag"
+        );
+        assert!(
+            (g.latitude.degrees() - te.latitude.degrees()).abs() < 1e-9,
+            "{body:?} latitude moved under the topocentric flag"
+        );
+        assert!(
+            !t.apparent.as_ref().unwrap().corrections.diurnal_parallax,
+            "{body:?}: no diurnal parallax"
+        );
+    }
+}

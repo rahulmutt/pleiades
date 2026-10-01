@@ -86,9 +86,6 @@ pub(crate) const EARTH_MOON_MASS_RATIO: f64 = 81.300_569_074_190_62;
 const AUNIT_M: f64 = 1.495_978_707_00e11;
 const HELGRAVCONST_M3_S2: f64 = 1.327_124_400_179_87e20;
 const GEOGCONST_M3_S2: f64 = 3.986_004_48e14;
-pub(crate) const MOON_MEAN_INCL_DEG: f64 = 5.145_396_4;
-pub(crate) const MOON_MEAN_ECC: f64 = 0.054_900_489;
-pub(crate) const MOON_MEAN_SEMA_AU: f64 = 384_400_000.0 / AUNIT_M;
 
 /// Solar GM in AU³/day², from SE's HELGRAVCONST.
 pub(crate) const SUN_GM_AU3_DAY2: f64 =

@@ -22,6 +22,13 @@ The backend currently covers:
 
 **Note (true node):** the osculating true ascending node is likewise served release-grade by `PackagedDataBackend` (`crates/pleiades-data` osculating path + `crates/pleiades-apsides` Kepler helpers), formed in the mean ecliptic of date from the packaged Moon state and emitted in J2000. It is gated against the Swiss Ephemeris `SE_TRUE_NODE` corpus by `validate-true-node` (measured max longitude residual 52.851″ vs ceiling 80″). This ELP backend's own `true node` channel is Meeus's periodic-term-corrected mean node, an analytic approximation that differs from the osculating node by up to ±0.14° (issue #58); it is reached only by direct ELP consumers and is documented, not gated.
 
+**Note (mean lunar points):** the mean node, mean apogee and mean perigee are
+served release-grade by `PackagedDataBackend` from the mean lunar elements
+single-sourced in `crates/pleiades-apsides`, gated by
+`validate-mean-lunar-points` against Swiss Ephemeris `SE_MEAN_NODE` /
+`SE_MEAN_APOG` (issue #90). `ElpBackend`'s mean-element channels remain a
+documented lower-tier fallback for direct ELP consumers.
+
 **Frame:** every ecliptic channel above — the Moon and the four lunar point channels alike — is emitted in the **J2000 mean ecliptic** at the backend boundary, consistent with every other first-party backend (see `docs/time-observer-policy.md`). The Meeus Ch. 47 series and node/perigee polynomials are referred to the mean equinox of date, so the backend precesses them back to J2000 (`pleiades_apparent::precess_ecliptic_date_to_j2000`); consumers apply the forward J2000→date precession exactly once. Expressed in J2000 a node or apsis carries a small non-zero latitude (≈±0.003° in 2026, the tilt between the two ecliptics) that the forward precession removes. The backend's own `equatorial` channel is derived from the of-date position with the mean obliquity of date (see `docs/follow-ups.md`). Issue #57 tracked the earlier mixed-frame state in which the point channels were emitted of-date.
 
 The backend currently rejects:

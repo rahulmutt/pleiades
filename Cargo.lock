@@ -154,6 +154,9 @@ dependencies = [
 [[package]]
 name = "pleiades-apsides"
 version = "0.5.3"
+dependencies = [
+ "proptest",
+]
 
 [[package]]
 name = "pleiades-ayanamsa"
@@ -236,6 +239,7 @@ name = "pleiades-elp"
 version = "0.5.3"
 dependencies = [
  "pleiades-apparent",
+ "pleiades-apsides",
  "pleiades-backend",
  "pleiades-types",
 ]

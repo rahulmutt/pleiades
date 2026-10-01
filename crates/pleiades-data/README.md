@@ -29,6 +29,13 @@ let sun = packaged_lookup(&CelestialBody::Sun, instant)
 assert!(sun.distance_au.is_some());
 ```
 
+Besides the packaged bodies, the backend serves six derived lunar points: the
+osculating `TrueNode`, `TrueApogee` and `TruePerigee` (from the packaged Moon
+state) and the mean `MeanNode`, `MeanApogee` and `MeanPerigee` (from the mean
+lunar elements in `pleiades-apsides`). The mean apogee and perigee are the
+points on the inclined mean orbit, as Swiss Ephemeris reports `SE_MEAN_APOG`.
+All six are served only inside the packaged window.
+
 ## Status
 
 Experimental `0.2.x`. First-party backends expose mean geometric coordinates

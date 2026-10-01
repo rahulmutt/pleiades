@@ -244,6 +244,34 @@ pub fn true_node_body_claims() -> Vec<pleiades_backend::BodyClaim> {
     )]
 }
 
+/// Release claims for the mean lunar points (`MeanNode`, `MeanApogee`,
+/// `MeanPerigee`). Formed at lookup from the mean lunar elements in the mean
+/// ecliptic of date (the apsides on the inclined mean orbit, as Swiss
+/// Ephemeris' `SE_MEAN_APOG` is), emitted in J2000, and validated against the
+/// Swiss Ephemeris `SE_MEAN_NODE` / `SE_MEAN_APOG` corpus by the
+/// `validate-mean-lunar-points` gate. Supersede, in the routed chart chain,
+/// the `pleiades-elp` mean-element channels (issue #90).
+pub fn mean_lunar_point_body_claims() -> Vec<pleiades_backend::BodyClaim> {
+    use pleiades_backend::{AccuracyClass, BodyClaim, ClaimEvidence};
+    let source = "Swiss Ephemeris 2.10.03 SE_MEAN_NODE / SE_MEAN_APOG (validate-mean-lunar-points)";
+    [
+        CelestialBody::MeanNode,
+        CelestialBody::MeanApogee,
+        CelestialBody::MeanPerigee,
+    ]
+    .into_iter()
+    .map(|body| {
+        BodyClaim::release_grade(
+            body,
+            AccuracyClass::High,
+            ClaimEvidence::CorpusValidated {
+                source: source.to_string(),
+            },
+        )
+    })
+    .collect()
+}
+
 pub(crate) fn packaged_reference_entry_for_body(
     snapshot: &[SnapshotEntry],
     body: &CelestialBody,
