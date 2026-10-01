@@ -1,1 +1,1 @@
-slice helio-position file=helio-position.csv role=helio-position rows=25424 checksum=18325840832686617264
+slice helio-position file=helio-position.csv role=helio-position rows=25424 checksum=15269656954160254535

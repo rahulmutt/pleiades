@@ -1,4 +1,4 @@
-# License notes — `se-crossings-reference`
+# License notes — `se-helio-reference`
 
 This crate is a **build-time verification harness only**. It is **not shipped**
 and is deliberately kept **outside the Cargo workspace** (its own `Cargo.lock`,
@@ -7,8 +7,9 @@ shipped `pleiades-*` crates depends on it, and the workspace lockfile therefore
 stays pure-Rust (no `-sys`/FFI), which the `workspace-audit` gate enforces.
 
 Its sole purpose is to link Swiss Ephemeris (via `swisseph` / `libswisseph-sys`)
-to **generate a reference corpus of longitude crossings** used to validate the
-pure-Rust engine. It runs the Moshier ephemeris (`SEFLG_MOSEPH`), so no Swiss
+to **generate a heliocentric position and speed reference corpus** (Mercury–Pluto
+longitude, latitude, distance and their rates) used to validate the pure-Rust
+engine's `EventEngine::position_at`. It runs the Moshier ephemeris (`SEFLG_MOSEPH`), so no Swiss
 Ephemeris data files are bundled or distributed.
 
 ## Swiss Ephemeris licensing

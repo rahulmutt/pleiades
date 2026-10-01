@@ -1,11 +1,16 @@
 //! Emits a Swiss Ephemeris heliocentric reference corpus (Mercury–Pluto) to
 //! STDOUT as CSV: position and speed from
-//! `swe_calc(jd_et, body, SEFLG_MOSEPH | SEFLG_HELCTR | SEFLG_SPEED)`.
+//! `swe_calc(jd_tt, body, SEFLG_MOSEPH | SEFLG_HELCTR | SEFLG_TRUEPOS | SEFLG_SPEED)`
+//! (Swiss Ephemeris' "ET" argument is TT).
+//!
+//! Place: the geometric (true) heliocentric place. `SEFLG_TRUEPOS` is required
+//! for that — without it Swiss Ephemeris retards the planet by the heliocentric
+//! light-time r/c even under `SEFLG_HELCTR`, which differs from the geometric
+//! place by up to ≈ 41″ (Mercury). No aberration is applied to heliocentric places.
 //!
 //! Frame: true ecliptic and equinox of date, nutation on (SE default — no
-//! SEFLG_NONUT, no SEFLG_J2000). Heliocentric places are geometric: SE applies
-//! no light-time or aberration under SEFLG_HELCTR. Ephemeris: Moshier
-//! (SEFLG_MOSEPH), no data files needed.
+//! SEFLG_NONUT, no SEFLG_J2000). Ephemeris: Moshier (SEFLG_MOSEPH), no data
+//! files needed.
 //!
 //! Grid: every 23 days from 1900-01-01 across the packaged window, plus the
 //! window's last instant, so the corpus has rows on both window edges.
@@ -27,6 +32,7 @@ use libswisseph_sys::raw::swe_calc;
 
 const SEFLG_MOSEPH: c_int = 4;
 const SEFLG_HELCTR: c_int = 8;
+const SEFLG_TRUEPOS: c_int = 16; // true (geometric) position, no light-time
 const SEFLG_SPEED: c_int = 256;
 
 /// (Swiss Ephemeris body id, name as written to the CSV).
@@ -52,7 +58,7 @@ fn se_state(jd_tt: f64, body: c_int, name: &str) -> [f64; 6] {
         swe_calc(
             jd_tt,
             body,
-            SEFLG_MOSEPH | SEFLG_HELCTR | SEFLG_SPEED,
+            SEFLG_MOSEPH | SEFLG_HELCTR | SEFLG_TRUEPOS | SEFLG_SPEED,
             xx.as_mut_ptr(),
             serr.as_mut_ptr() as *mut c_char,
         )
@@ -85,10 +91,13 @@ fn main() {
         "# Source: Swiss Ephemeris 2.10.03 (libswisseph-sys 0.1.2), swe_calc bodies 2..=9 (Mercury..Pluto),"
     );
     println!(
-        "# iflag=SEFLG_MOSEPH|SEFLG_HELCTR|SEFLG_SPEED (Moshier, no data files). Frame: heliocentric,"
+        "# iflag=SEFLG_MOSEPH|SEFLG_HELCTR|SEFLG_TRUEPOS|SEFLG_SPEED (Moshier, no data files)."
     );
     println!(
-        "# true ecliptic and equinox of date, nutation on, geometric (no light-time, no aberration)."
+        "# Place: geometric (true) heliocentric; without SEFLG_TRUEPOS SE retards the planet by the"
+    );
+    println!(
+        "# heliocentric light-time. Frame: true ecliptic and equinox of date, nutation on. jd_tt is TT."
     );
     println!(
         "# Columns: longitude/latitude (deg), distance (AU), then their speeds (deg/day, deg/day, AU/day)."
