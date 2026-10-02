@@ -130,7 +130,10 @@ pub use pleiades_houses::{
     descriptor as house_system_descriptor, house_for_longitude, resolve_house_system, AscMc,
     HouseAngles, HouseError, HouseErrorKind, HouseRequest, HouseSnapshot, HouseSystemDescriptor,
 };
-pub use pleiades_time::{CivilDateTime, CivilInstant, CivilTimeError, ConversionProvenance};
+pub use pleiades_time::{
+    from_terrestrial, CivilConversion, CivilDateTime, CivilInstant, CivilTimeError,
+    ConversionProvenance,
+};
 pub use pleiades_types::{
     Angle, Ayanamsa, CelestialBody, CelestialBodyClass, CoordinateFrame, CustomAyanamsa,
     CustomBodyId, CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates, HouseSystem,

@@ -1,6 +1,6 @@
 # Convert a TT or TDB instant back to civil UTC/UT1 (issue #87) — design
 
-**Status:** approved design, not yet implemented ·
+**Status:** implemented (2026-10-02) ·
 **Opened:** 2026-10-02 · **Issue:** #87 ·
 **Crates:** `pleiades-time`, `pleiades-core` (re-export only)
 
