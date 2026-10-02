@@ -10,6 +10,13 @@ use crate::error::CivilTimeError;
 use crate::leap;
 use crate::tdb;
 
+mod inverse;
+
+pub use inverse::{
+    from_terrestrial, ut1_civil_from_tdb, ut1_civil_from_tt, utc_civil_from_tdb, utc_civil_from_tt,
+    CivilConversion,
+};
+
 /// Start of the supported civil window (1900-01-01 00:00).
 pub const SUPPORT_START_JD: f64 = 2415020.5;
 /// End of the supported civil window: an exclusive upper bound at the start of
@@ -200,7 +207,63 @@ fn to_tt(
     }
 }
 
+/// Anchors the last two seconds of a leap-second day at `23:59:59.0`.
+///
+/// A Julian day cannot express the 86,401st second of a day: `23:59:60.x`
+/// aliases the next day's `00:00:00.x`. Near 2.46e6 it also resolves only
+/// about 40 µs, so `23:59:59.99998` and later round to the next midnight's
+/// Julian day and would pick up the new `TAI − UTC`. For a UTC input at
+/// `23:59` with `second` in `[59, 61)` on a day that ends with an inserted
+/// leap second, this returns `23:59:59.0` plus `second − 59` seconds, so the
+/// caller looks up the offset at an instant that cannot round across
+/// midnight and then adds the seconds back. Any other `second` in `[60, 61)`
+/// is invalid; every other input is returned unchanged with nothing to add.
+fn anchor_leap_second_day(
+    civil: CivilDateTime,
+    source: TimeScale,
+) -> Result<(CivilDateTime, f64), CivilTimeError> {
+    if !(59.0..61.0).contains(&civil.second) {
+        return Ok((civil, 0.0));
+    }
+    let in_leap_second = civil.second >= 60.0;
+    let invalid = CivilTimeError::InvalidCivilDate { field: "second" };
+    if source != TimeScale::Utc || civil.hour != 23 || civil.minute != 59 {
+        return if in_leap_second {
+            Err(invalid)
+        } else {
+            Ok((civil, 0.0))
+        };
+    }
+    let midnight = CivilDateTime::new(civil.year, civil.month, civil.day, 0, 0, 0.0);
+    let next_midnight_jd = midnight.to_julian_day()?.days() + 1.0;
+    if !leap::is_insertion_day_end(next_midnight_jd)? {
+        return if in_leap_second {
+            Err(invalid)
+        } else {
+            Ok((civil, 0.0))
+        };
+    }
+    Ok((
+        CivilDateTime {
+            second: 59.0,
+            ..civil
+        },
+        civil.second - 59.0,
+    ))
+}
+
 /// Converts a civil datetime tagged `source` (UTC or UT1) to `target` (TT or TDB).
+///
+/// # Leap seconds
+///
+/// A UTC `second` in `[60, 61)` is accepted only at `23:59` on a day that
+/// ends with an inserted leap second. On such a day, any UTC `second` in
+/// `[59, 61)` at `23:59` converts as `23:59:59.0` under the `TAI − UTC` in
+/// force before the insertion, plus `second − 59` seconds; the Julian day
+/// cannot resolve the last ~20 µs before midnight, so a lookup at the input
+/// itself could pick up the new offset. A `second` in `[60, 61)` on any other
+/// day or minute, and for UT1 input, is [`CivilTimeError::InvalidCivilDate`]
+/// with `field: "second"`.
 ///
 /// # Examples
 ///
@@ -224,8 +287,10 @@ pub fn to_terrestrial(
     if !matches!(target, TimeScale::Tt | TimeScale::Tdb) {
         return Err(CivilTimeError::UnsupportedScale { source, target });
     }
+    let (civil, seconds_after) = anchor_leap_second_day(civil, source)?;
     let jd_civil = civil.to_julian_day()?.days();
     let (jd_tt, provenance) = to_tt(jd_civil, source, target)?;
+    let jd_tt = jd_tt + seconds_after / SECONDS_PER_DAY;
     let (jd_out, scale) = match target {
         TimeScale::Tt => (jd_tt, TimeScale::Tt),
         TimeScale::Tdb => {
@@ -267,5 +332,7 @@ pub fn ut1_jd_from_tt(jd_tt: f64) -> Result<f64, crate::error::CivilTimeError> {
     Ok(jd_tt - delta_t_seconds / 86_400.0)
 }
 
+#[cfg(test)]
+mod test_support;
 #[cfg(test)]
 mod tests;

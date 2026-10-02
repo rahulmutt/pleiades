@@ -56,6 +56,11 @@ impl CivilDateTime {
     }
 
     /// Converts to a Julian Day using the proleptic-Gregorian Meeus formula.
+    ///
+    /// The conversion is scale-agnostic and does not consult the leap-second
+    /// table: a `second` in `[60, 61)` yields the same Julian day as the first
+    /// second of the following minute. Use [`crate::to_terrestrial`] for a UTC
+    /// datetime that may fall in an inserted leap second.
     pub fn to_julian_day(&self) -> Result<JulianDay, CivilTimeError> {
         self.validate()?;
         let day_frac = self.day as f64

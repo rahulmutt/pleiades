@@ -52,7 +52,9 @@ fn parse_table() -> Result<Vec<(f64, i32)>, CivilTimeError> {
     Ok(rows)
 }
 
-fn table() -> Result<&'static [(f64, i32)], CivilTimeError> {
+/// The parsed leap-second rows `(effective_jd_utc, tai_minus_utc)`, ascending.
+/// The first row is the 1972 epoch; every later row is an inserted leap second.
+pub(crate) fn table() -> Result<&'static [(f64, i32)], CivilTimeError> {
     LEAP_ROWS
         .get_or_init(parse_table)
         .as_deref()
@@ -73,6 +75,16 @@ pub fn tai_minus_utc(jd_utc: f64) -> Result<Option<i32>, CivilTimeError> {
         }
     }
     Ok(current)
+}
+
+/// Whether the UTC midnight `jd_next_midnight` immediately follows an
+/// inserted leap second. Effective days are exact `x.5` Julian days, so the
+/// comparison is exact for a midnight built by `CivilDateTime::to_julian_day`.
+pub(crate) fn is_insertion_day_end(jd_next_midnight: f64) -> Result<bool, CivilTimeError> {
+    Ok(table()?
+        .iter()
+        .skip(1)
+        .any(|&(effective, _)| effective == jd_next_midnight))
 }
 
 #[cfg(test)]
@@ -114,5 +126,30 @@ mod tests {
     fn returns_none_outside_window() {
         assert_eq!(tai_minus_utc(2441317.4).unwrap(), None); // before 1972
         assert_eq!(tai_minus_utc(VALID_THROUGH_JD + 1.0).unwrap(), None); // past horizon
+    }
+
+    #[test]
+    fn every_row_after_the_first_inserts_exactly_one_second() {
+        // The inverse conversion assumes each insertion is a single positive
+        // leap second. A negative or multi-second step must fail here before
+        // it can be mis-converted.
+        let rows = table().unwrap();
+        assert_eq!(rows.len(), 28);
+        for pair in rows.windows(2) {
+            assert!(pair[1].0 > pair[0].0, "rows must ascend: {pair:?}");
+            assert_eq!(pair[1].1 - pair[0].1, 1, "not a +1 s step: {pair:?}");
+        }
+    }
+
+    #[test]
+    fn insertion_day_end_matches_only_real_insertions() {
+        // 2017-01-01 00:00 UTC: the day after the 2016-12-31 leap second.
+        assert!(is_insertion_day_end(2_457_754.5).unwrap());
+        // 1972-07-01 00:00 UTC: the first insertion.
+        assert!(is_insertion_day_end(2_441_499.5).unwrap());
+        // 1972-01-01 00:00 UTC is the table's epoch, not an insertion.
+        assert!(!is_insertion_day_end(2_441_317.5).unwrap());
+        // An ordinary midnight.
+        assert!(!is_insertion_day_end(2_457_755.5).unwrap());
     }
 }

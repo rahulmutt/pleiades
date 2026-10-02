@@ -298,6 +298,7 @@ name = "pleiades-time"
 version = "0.6.0"
 dependencies = [
  "pleiades-types",
+ "proptest",
  "serde",
 ]
 

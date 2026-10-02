@@ -2341,3 +2341,31 @@ position corpus.
 **Severity:** (a) convention, up to about 17″; (b) frame correctness, growing
 with distance from J2000; (c) convention, up to about 20″, star-anchored
 ayanamsas only
+
+## FU-19: Civil datetime from a TT or TDB instant (issue #87)
+
+**Status:** resolved (2026-10-02) · Spec
+`docs/superpowers/specs/2026-10-02-civil-from-terrestrial-design.md`, plan
+`docs/superpowers/plans/2026-10-02-civil-from-terrestrial.md`.
+
+**What:** `pleiades-time` converted civil UTC/UT1 to TT/TDB but not back, so
+callers of the event finders had to re-implement the leap-second table and
+Delta-T. Resolved by `from_terrestrial` (and four scale-checked conveniences),
+which quantizes to the millisecond and looks up leap seconds on the TAI axis.
+The same change fixed the forward conversion of an inserted leap second:
+`23:59:60.x` aliased the next day's `00:00:00.x` in the Julian day and landed
+one second late in TT. `:60` is now accepted only at a real insertion.
+
+**Deferred:**
+
+- A civil-time convenience on `pleiades-events` results and CLI output of
+  civil times for events. Callers pass the returned `Instant` to
+  `from_terrestrial`.
+- The 0.216 s Delta-T step at the 2020 node is unchanged; the UT1 inverse
+  picks the post-node branch there.
+- Sub-millisecond precision would need a (day, seconds-of-day) representation
+  in both directions; a Julian day near 2.46e6 resolves about 40 µs.
+- Known edge, kept: the forward accepts `2100-12-31T23:59:59.9996` (UTC or
+  UT1), but its TT rounds to the millisecond of `2101-01-01T00:00:00.000`, so
+  `from_terrestrial` returns `BeyondHorizon` for it. The window check applies
+  after rounding and is not clamped.

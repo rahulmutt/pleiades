@@ -1,5 +1,7 @@
 use super::*;
 
+use super::test_support::{at, insertions};
+
 #[test]
 fn utc_modern_is_exact() {
     // 2017-01-01 00:00 UTC -> TT. Offset = 37 + 32.184 = 69.184 s.
@@ -241,4 +243,178 @@ fn tdb_target_applies_positive_periodic_term() {
         (diff_s - 0.001_656_892_188_342_611_6).abs() < 5e-5,
         "TDB-TT {diff_s}s"
     );
+}
+
+fn seconds_between(earlier: &CivilInstant, later: &CivilInstant) -> f64 {
+    (later.instant.julian_day.days() - earlier.instant.julian_day.days()) * SECONDS_PER_DAY
+}
+
+#[test]
+fn insertion_helper_matches_known_dates() {
+    // Anchors the table-derived helper to dates known independently.
+    let all = insertions();
+    assert_eq!(all.len(), 27);
+    let first = &all[0];
+    assert_eq!(
+        (
+            first.last_day.year,
+            first.last_day.month,
+            first.last_day.day
+        ),
+        (1972, 6, 30)
+    );
+    assert_eq!(first.offset_before, 10);
+    let last = &all[26];
+    assert_eq!(
+        (last.last_day.year, last.last_day.month, last.last_day.day),
+        (2016, 12, 31)
+    );
+    assert_eq!(
+        (last.next_day.year, last.next_day.month, last.next_day.day),
+        (2017, 1, 1)
+    );
+    assert_eq!(last.offset_before, 36);
+}
+
+#[test]
+fn utc_leap_second_sits_between_its_neighbours() {
+    // 2016-12-31T23:59:60.5 is one second after 23:59:59.5 and one second
+    // before 2017-01-01T00:00:00.5. Before the fix it aliased the latter.
+    let before = tt_from_utc_civil(CivilDateTime::new(2016, 12, 31, 23, 59, 59.5)).unwrap();
+    let inside = tt_from_utc_civil(CivilDateTime::new(2016, 12, 31, 23, 59, 60.5)).unwrap();
+    let after = tt_from_utc_civil(CivilDateTime::new(2017, 1, 1, 0, 0, 0.5)).unwrap();
+    // A Julian day near 2.46e6 resolves ~40 µs; 2e-4 s clears the noise.
+    assert!((seconds_between(&before, &inside) - 1.0).abs() < 2e-4);
+    assert!((seconds_between(&inside, &after) - 1.0).abs() < 2e-4);
+    assert_eq!(inside.provenance.tai_minus_utc, Some(36));
+    assert_eq!(inside.provenance.quality, ConversionQuality::Exact);
+    assert_eq!(after.provenance.tai_minus_utc, Some(37));
+}
+
+#[test]
+fn every_inserted_leap_second_is_one_second_long() {
+    for insertion in insertions() {
+        let last_ordinary = tt_from_utc_civil(at(insertion.last_day, 23, 59, 59.0)).unwrap();
+        let leap = tt_from_utc_civil(at(insertion.last_day, 23, 59, 60.0)).unwrap();
+        let midnight = tt_from_utc_civil(at(insertion.next_day, 0, 0, 0.0)).unwrap();
+        assert!((seconds_between(&last_ordinary, &leap) - 1.0).abs() < 2e-4);
+        assert!((seconds_between(&leap, &midnight) - 1.0).abs() < 2e-4);
+        assert_eq!(leap.provenance.tai_minus_utc, Some(insertion.offset_before));
+        assert_eq!(
+            midnight.provenance.tai_minus_utc,
+            Some(insertion.offset_before + 1)
+        );
+    }
+}
+
+#[test]
+fn leap_second_converts_to_tdb_too() {
+    let tt = tt_from_utc_civil(CivilDateTime::new(2016, 12, 31, 23, 59, 60.5)).unwrap();
+    let tdb = tdb_from_utc_civil(CivilDateTime::new(2016, 12, 31, 23, 59, 60.5)).unwrap();
+    assert_eq!(tdb.instant.scale, TimeScale::Tdb);
+    let gap = seconds_between(&tt, &tdb);
+    assert!(gap.abs() < 2e-3, "TDB − TT is bounded by 2 ms, got {gap}");
+}
+
+#[test]
+fn second_sixty_is_rejected_where_no_leap_second_was_inserted() {
+    let invalid = Err(CivilTimeError::InvalidCivilDate { field: "second" });
+    // A day with no insertion.
+    assert_eq!(
+        tt_from_utc_civil(CivilDateTime::new(2016, 12, 30, 23, 59, 60.0)),
+        invalid
+    );
+    // The right day, the wrong minute.
+    assert_eq!(
+        tt_from_utc_civil(CivilDateTime::new(2016, 12, 31, 12, 0, 60.0)),
+        invalid
+    );
+    // 1972-01-01 is the table's epoch, not an insertion.
+    assert_eq!(
+        tt_from_utc_civil(CivilDateTime::new(1971, 12, 31, 23, 59, 60.0)),
+        invalid
+    );
+    // UT1 has no leap seconds.
+    assert_eq!(
+        tt_from_ut1_civil(CivilDateTime::new(2016, 12, 31, 23, 59, 60.5)),
+        invalid
+    );
+}
+
+#[test]
+fn out_of_range_seconds_are_still_rejected() {
+    let invalid = Err(CivilTimeError::InvalidCivilDate { field: "second" });
+    assert_eq!(
+        tt_from_utc_civil(CivilDateTime::new(2016, 12, 31, 23, 59, 61.0)),
+        invalid
+    );
+    assert_eq!(
+        tt_from_utc_civil(CivilDateTime::new(2016, 12, 31, 23, 59, f64::NAN)),
+        invalid
+    );
+}
+
+/// The sub-millisecond seconds at the end of an insertion day's `23:59`
+/// that the Julian day cannot keep apart from the next midnight.
+const LAST_MICROSECONDS: [f64; 4] = [59.999_98, 59.999_999_99, 60.999_98, 60.999_999_99];
+
+#[test]
+fn last_microseconds_of_a_leap_day_keep_the_old_offset() {
+    // A Julian day near 2.46e6 resolves ~40 µs, so these seconds once
+    // rounded to the next midnight and picked up the new offset (1 s late).
+    for insertion in insertions() {
+        let anchor = tt_from_utc_civil(at(insertion.last_day, 23, 59, 59.0)).unwrap();
+        for second in LAST_MICROSECONDS {
+            let out = tt_from_utc_civil(at(insertion.last_day, 23, 59, second)).unwrap();
+            let elapsed = seconds_between(&anchor, &out);
+            assert!(
+                (elapsed - (second - 59.0)).abs() < 2e-4,
+                "{:?} second {second}: elapsed {elapsed}",
+                insertion.last_day
+            );
+            assert_eq!(out.provenance.tai_minus_utc, Some(insertion.offset_before));
+        }
+    }
+}
+
+#[test]
+fn last_microseconds_of_an_ordinary_day_still_convert() {
+    // 2016-12-30 ends without an insertion: `:59.x` converts as before and
+    // `:60.x` stays invalid.
+    let day = CivilDateTime::new(2016, 12, 30, 0, 0, 0.0);
+    for second in LAST_MICROSECONDS {
+        let result = tt_from_utc_civil(at(day, 23, 59, second));
+        if second < 60.0 {
+            assert_eq!(result.unwrap().provenance.tai_minus_utc, Some(36));
+        } else {
+            assert_eq!(
+                result,
+                Err(CivilTimeError::InvalidCivilDate { field: "second" })
+            );
+        }
+    }
+}
+
+mod properties {
+    use proptest::prelude::*;
+
+    use super::*;
+
+    proptest! {
+        #[test]
+        fn last_two_seconds_of_a_leap_day_keep_the_old_offset(
+            index in 0..insertions().len(),
+            second in 59.0f64..61.0,
+        ) {
+            let insertion = &insertions()[index];
+            let anchor = tt_from_utc_civil(at(insertion.last_day, 23, 59, 59.0)).unwrap();
+            let out = tt_from_utc_civil(at(insertion.last_day, 23, 59, second)).unwrap();
+            let elapsed = seconds_between(&anchor, &out);
+            prop_assert!(
+                (elapsed - (second - 59.0)).abs() < 2e-4,
+                "second {second}: elapsed {elapsed}"
+            );
+            prop_assert_eq!(out.provenance.tai_minus_utc, Some(insertion.offset_before));
+        }
+    }
 }

@@ -32,6 +32,19 @@
 //! let gmst = gmst_degrees(jd_ut1);
 //! assert!((0.0..360.0).contains(&gmst));
 //! ```
+//!
+//! The inverse, [`from_terrestrial`], turns a TT or TDB instant (for example
+//! one returned by an event finder) back into a civil UTC or UT1 datetime
+//! with the same provenance:
+//!
+//! ```
+//! use pleiades_time::{tdb_from_utc_civil, utc_civil_from_tdb, CivilDateTime};
+//!
+//! let civil = CivilDateTime::new(2024, 3, 20, 3, 6, 21.0);
+//! let tdb = tdb_from_utc_civil(civil).expect("inside the 1900-2100 support window");
+//! let back = utc_civil_from_tdb(tdb.instant).expect("UTC is defined from 1972");
+//! assert_eq!(back.civil, civil);
+//! ```
 #![deny(missing_docs)]
 
 mod calendar;
@@ -44,9 +57,10 @@ pub mod tdb;
 
 pub use calendar::CivilDateTime;
 pub use convert::{
-    tdb_from_ut1_civil, tdb_from_utc_civil, to_terrestrial, tt_from_ut1_civil, tt_from_utc_civil,
-    ut1_jd_from_tt, CivilInstant, ConversionPath, ConversionProvenance, ConversionQuality,
-    SUPPORT_END_JD, SUPPORT_START_JD,
+    from_terrestrial, tdb_from_ut1_civil, tdb_from_utc_civil, to_terrestrial, tt_from_ut1_civil,
+    tt_from_utc_civil, ut1_civil_from_tdb, ut1_civil_from_tt, ut1_jd_from_tt, utc_civil_from_tdb,
+    utc_civil_from_tt, CivilConversion, CivilInstant, ConversionPath, ConversionProvenance,
+    ConversionQuality, SUPPORT_END_JD, SUPPORT_START_JD,
 };
 pub use deltat::DeltaTQuality;
 pub use error::CivilTimeError;
