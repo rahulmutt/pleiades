@@ -323,5 +323,9 @@ measurement before it is written:
   frame). The `geo`-frame TrueCitra and GalacticCenter reference rows are
   Swiss Ephemeris's apparent mean-equinox longitude (`SEFLG_NONUT`) minus its
   mean ayanamsa (`swe_get_ayanamsa_ex` with `TRUEPOS|NOABERR|NOGDEFL`);
-  Lahiri, DeLuce and all mean-of-date rows use `SEFLG_SIDEREAL` directly and
-  agree to under 0.5″. Recorded as FU-18(c).
+  Lahiri, DeLuce and all mean-of-date rows use `SEFLG_SIDEREAL` directly.
+  After the reference change every sidereal group (both geocentric places,
+  all four ayanamsas) measures at most 0.456″. The tropical mean-of-date
+  groups measure Sun 0.309″, Moon 2.638″ and planets 0.342″; the Moon is in
+  line with the existing tropical apparent Moon group (2.606″). Recorded as
+  FU-18(c).
