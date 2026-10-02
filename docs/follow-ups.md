@@ -2453,8 +2453,12 @@ The gate runs in two tiers (2026-10-02):
   neighbours. The separation was raised from the design's 2 days to 3 days by
   measurement, and the true-node comparison is an existence-and-kind check
   with a window of about three days; a tighter true-node comparison needs a
-  different metric. A caller who needs every graze has no way to ask for a
-  finer step.
+  different metric. A concrete one: a distribution check on the compared
+  stations, e.g. "at least 90 % of compared true-node stations within 0.5 d
+  of their counterpart" (measured 2026-10-02: 1130 of 1166, 96.9 %). It would
+  catch a regression that moves every true-node station by a day, which the
+  present three-day existence window does not. Not implemented. A caller who
+  needs every graze has no way to ask for a finer step.
 - **(b) `previous_station`** is not provided; it would inherit FU-13's
   backward-search caveat.
 - **(c) No user-facing CLI stations command.**
@@ -2465,10 +2469,14 @@ The gate runs in two tiers (2026-10-02):
   of the window before returning `None` (about 0.3 ms per step).
 - **(f) Swiss Ephemeris speed convention.** Moshier planet speed is a
   backward difference over `PLAN_SPEED_INTV` = 0.0001 day (`swemplan.c`), so
-  its speed zero lands 4.32 s late; the engine-minus-corpus mean is about
-  -4.2 s for Mercury (99.5 % of stations negative, both kinds) and is buried
-  in scatter for slower planets. It is included in the measured maxima; not
-  an engine defect.
+  its speed zero lands 4.32 s late. That convention explains Mercury's
+  engine-minus-corpus mean of about -4.2 s (99.5 % of stations negative, both
+  kinds); it is included in the measured maxima and is not an engine defect.
+  For the slower planets the mean is dominated by scatter. **Open
+  observation:** Pluto's mean is -56.6 s (turning retrograde about -65 s,
+  turning direct about -48 s in the probe), which the 4.32 s convention does
+  not explain. It is well inside Pluto's 2000 s time ceiling and has not been
+  investigated.
 - **(g) Reference-tool NaN.** Swiss Ephemeris Moshier returns a NaN true-node
   longitude speed at isolated grid instants (jd_tt 2451544.9 and 2451545.1);
   `tools/se-stations-reference` skips an isolated non-finite grid sample

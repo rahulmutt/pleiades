@@ -17,14 +17,18 @@
 //!
 //! The planets' mean signed time (engine minus corpus) is clearest for
 //! Mercury: -4.2 s, with 99.5 % of its stations negative and both station
-//! kinds alike. For the other planets it is consistent with the data but
-//! buried in scatter (Venus -1.3 s, Saturn -2.8 s, Neptune +11.0 s, Pluto
-//! -56.6 s). It is a reference convention, not an engine defect: Swiss Ephemeris' Moshier planet speed is a backward
-//! difference over `PLAN_SPEED_INTV` = 0.0001 d (8.64 s) (`swemplan.c`,
+//! kinds alike. That offset is a reference convention, not an engine defect:
+//! Swiss Ephemeris' Moshier planet speed is a backward difference over
+//! `PLAN_SPEED_INTV` = 0.0001 d (8.64 s) (`swemplan.c`,
 //! `dx[i] = (xp[i] - x2[i]) / dt` with `x2` at `tjd - dt`), so its reported
 //! speed is the speed 4.32 s earlier and its zero lands 4.32 s late. The
 //! shift is included in the measured maxima; the gate does not compensate
-//! for it.
+//! for it. For the slower planets the mean is dominated by scatter (Venus
+//! -1.3 s, Saturn -2.8 s, Neptune +11.0 s), and Pluto's -56.6 s mean
+//! (turning retrograde about -65 s, turning direct about -48 s in the
+//! probe) is not explained by the 4.32 s convention. It is well inside
+//! Pluto's 2000 s ceiling and is recorded as an open observation (FU-21
+//! item (f) in `docs/follow-ups.md`).
 //!
 //! True node. Its speed hovers near zero for days, so a station instant is
 //! ill-conditioned, and whether a graze crosses zero depends on the

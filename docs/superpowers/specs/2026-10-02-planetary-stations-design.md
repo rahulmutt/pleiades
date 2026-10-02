@@ -414,10 +414,12 @@ missing and returns `MissingSpeed`; it is never compared against zero.
   metric.
 - **Swiss Ephemeris speed convention.** Moshier planet speed is a backward
   difference over `PLAN_SPEED_INTV` = 0.0001 day (`swemplan.c`), so its speed
-  zero lands 4.32 s late. The engine-minus-corpus mean is about -4.2 s for
-  Mercury (99.5 % of stations negative, both kinds) and is buried in scatter
-  for slower planets. It is included in the measured maxima and is not an
-  engine defect.
+  zero lands 4.32 s late. That explains Mercury's engine-minus-corpus mean
+  of about -4.2 s (99.5 % of stations negative, both kinds); it is included
+  in the measured maxima and is not an engine defect. For the slower planets
+  the mean is dominated by scatter; Pluto's -56.6 s mean is not explained by
+  the convention, is well inside its 2000 s ceiling, and is recorded as an
+  open observation in FU-21 item (f).
 - **Reference-tool NaN.** Swiss Ephemeris Moshier returns a NaN true-node
   longitude speed at isolated grid instants (jd_tt 2451544.9 and 2451545.1).
   `tools/se-stations-reference` skips an isolated non-finite grid sample
