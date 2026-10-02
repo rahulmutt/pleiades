@@ -1,6 +1,6 @@
 # Event finder for exact aspects between two bodies (issue #84) — design
 
-**Status:** design, awaiting review ·
+**Status:** approved (2026-10-02), amended after the pre-plan probe ·
 **Opened:** 2026-10-02 · **Issue:** #84 ·
 **Crates:** `pleiades-events`, `pleiades-validate`, `pleiades-cli` (gate
 command routing only), `pleiades-core` (compatibility profile entry only) ·
@@ -217,7 +217,7 @@ existing variants as in `longitude_at`: `OutOfWindow`, `UnsupportedFrame`,
 - **Cost.** Two place samples per step, plus a few dozen at each turning
   point, which are rare. Measured in the pre-plan probe and recorded.
 
-### To verify first
+### To verify first *(resolved — see the amendment at the end)*
 
 A scratch probe on the packaged backend, before the plan is written,
 measures:
@@ -243,7 +243,8 @@ it scans on a fine grid (0.05 day; 0.01 day for a pair with the Moon), splits
 at the zeros of Swiss Ephemeris's own relative longitude speed
 (`SEFLG_SPEED`), and bisects each sign change to 1e-7 day.
 
-It writes two kinds of row to one CSV:
+It writes two kinds of row to one CSV *(superseded: no `graze` rows — see
+the amendment at the end)*:
 
 - **`event`**: group, first, second, angle, TT Julian day, both longitudes,
   and the relative longitude speed at the event.
@@ -281,7 +282,8 @@ For each group, pair and angle it calls
 `EventEngine::new(packaged_backend()).aspects_in_range(..)` over the corpus
 span and applies:
 
-1. **Graze zones are unconstrained.** Engine events and corpus events that
+1. *(Superseded — see the amendment at the end: the gate is strictly event
+   for event.)* **Graze zones are unconstrained.** Engine events and corpus events that
    fall inside a `graze` interval for that pair and angle are set aside.
    Whether a near-tangent pair of events exists depends on the ephemeris, so
    neither side is required to have them.
@@ -372,7 +374,7 @@ diff in any of them is a defect.
 
 ## Risks
 
-- **Grazes.** The graze margin must be large enough that no event outside a
+- **Grazes** *(superseded — see the amendment at the end)*. The graze margin must be large enough that no event outside a
   zone is model-dependent, and small enough that the zones do not swallow
   the retrograde-loop cases the gate exists to check. The probe measures
   both; the count of events set aside is reported in the gate's summary.
@@ -387,3 +389,54 @@ diff in any of them is a defect.
   gate does not fit the nightly budget, the scan is shared across the five
   angles of a pair inside the gate (one pass, five level sets) before any
   span is cut.
+
+## Amendment (2026-10-02, pre-plan probe)
+
+A scratch probe on the packaged backend (geocentric apparent, optimised
+build) ran a prototype of the scanner over the eight `geo` pairs at the five
+angles, with the spans in the table above.
+
+**Cost.** 0.12 to 0.22 ms per separation sample (two place samples). One
+full-window pass over a pair, serving all five angles, took 1.3 s
+(Mars–Jupiter) to 14 s (Mercury–Venus). Each turning point costs about 64
+further samples, which roughly doubles the samples for a pair with Mercury
+(1260 turning points against 73 000 grid points).
+
+**No false turning points.** The three-sample test fired 0 times for
+Sun–Moon, and for every other pair exactly as often as the faster-stationing
+member stations (Sun–Mercury 1260, Mercury–Venus 1252, Venus–Mars 250,
+Mars–Jupiter and Mars–Saturn 188, Jupiter–Saturn 366, Saturn–Pluto 386).
+
+**The split found no extra events in this corpus.** For all 40 pair–angle
+cases the plain sign-change scan, the turning-point scan and a turning-point
+scan at a quarter of the step returned the same number of events, and the
+same instants. The closest two events were 1.59 days apart (Mercury–Venus
+conjunctions) against a 1-day step. The split stays, as decided: the margin
+is thin, and the scanner's close-pair behaviour is covered by the synthetic
+`root.rs` tests, not by the corpus.
+
+**No turning point comes near an angle.** The closest was 0.028° (102″,
+Venus–Mars at 60°), then 0.047° (Mercury–Venus at 0°). The pleiades and
+Swiss Ephemeris planet longitudes differ by a few arcseconds (the stations
+gate's largest is 2.314″), so no event in the corpus is model-dependent.
+The separation difference itself is measured once the reference tool
+exists, before any ceiling is set.
+
+Decision (user, 2026-10-02): **no graze zones.**
+
+- The reference tool writes `event` rows only. If any turning point of a
+  corpus pair's separation comes within the graze margin (30″) of one of its
+  levels, the tool fails without writing a corpus and names the pair, angle
+  and instant. A future corpus change that would introduce a
+  model-dependent event is then caught at generation time and returns as a
+  design question.
+- The gate has no rule 1. For every group, pair and angle the engine and
+  corpus lists must have the same length and, in order, the same side; the
+  separation and longitude residuals and the validated-row floor apply as
+  written.
+- Expected `geo` event counts, for the plan's cross-check against the
+  corpus (0°, 60°, 90°, 120°, 180°): Sun–Moon 494, 990, 990, 990, 495;
+  Sun–Mercury 1261, 0, 0, 0, 0; Mercury–Venus 496, 476, 0, 0, 0; Venus–Mars
+  167, 281, 268, 236, 94; Mars–Jupiter 91, 209, 209, 201, 132; Mars–Saturn
+  101, 213, 219, 223, 116; Jupiter–Saturn 14, 42, 52, 66, 36; Saturn–Pluto
+  10, 28, 26, 30, 15.
