@@ -1,1 +1,1 @@
-slice aspects file=aspects.csv role=aspects rows=10359 checksum=0
+slice aspects file=aspects.csv role=aspects rows=10359 checksum=4506302360407709888

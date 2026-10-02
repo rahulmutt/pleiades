@@ -207,6 +207,9 @@ pub use artifact::{
     ArtifactInspectionReport, ArtifactLookupBenchmarkReport,
     ArtifactLookupBenchmarkReportValidationError,
 };
+pub use aspects_validation::{
+    validate_aspects_corpus, validate_aspects_corpus_subset, AspectsError, AspectsReport,
+};
 pub use ayanamsa_validation::{
     validate_ayanamsa_corpus, AyanamsaCorpusError, AyanamsaCorpusReport,
 };

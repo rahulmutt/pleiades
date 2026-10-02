@@ -332,3 +332,137 @@ fn the_corpus_plan_matches_the_reference_tool() {
     assert!(!Scope::MeanSubset.includes(Group::Geo));
     assert!(!Scope::MeanSubset.includes(Group::Helio));
 }
+
+/// A manifest that matches `csv`, so a test can change the corpus and get
+/// past the checksum to the rule it is testing.
+fn manifest_for(csv: &str) -> String {
+    let rows = csv
+        .lines()
+        .filter(|line| {
+            ["geo,", "mean,", "helio,"]
+                .iter()
+                .any(|g| line.starts_with(g))
+        })
+        .count();
+    format!(
+        "slice aspects file=aspects.csv role=aspects rows={rows} checksum={}",
+        fnv1a64(csv)
+    )
+}
+
+/// The first corpus line of the mean Mars–Saturn conjunction series.
+fn first_mean_mars_saturn_conjunction() -> &'static str {
+    CORPUS_CSV
+        .lines()
+        .find(|line| line.starts_with("mean,Mars,Saturn,0,"))
+        .expect("the corpus has a mean Mars-Saturn conjunction")
+}
+
+// Opt-in: the full gate measured 18.5 minutes on 2026-10-02, which nightly
+// `test-full` cannot afford. `mise run gate-aspects` runs it (its own nightly
+// job and a `release-gate` dependency).
+#[test]
+fn aspects_gate_passes_within_ceilings() {
+    if std::env::var("PLEIADES_FULL_ASPECTS_GATE").as_deref() != Ok("1") {
+        eprintln!(
+            "aspects_gate_passes_within_ceilings: skipped; set PLEIADES_FULL_ASPECTS_GATE=1 to run the 18-minute full gate"
+        );
+        return;
+    }
+    let started = std::time::Instant::now();
+    let report = validate_aspects_corpus().expect("aspects gate passes");
+    eprintln!("{}", report.summary_line());
+    for line in report.pair_lines() {
+        eprintln!("{line}");
+    }
+    eprintln!("full gate: {:.1} s", started.elapsed().as_secs_f64());
+    assert!(report.rows_validated >= MIN_ROWS_VALIDATED);
+    assert_eq!(report.pair_lines().len(), 11);
+}
+
+#[test]
+fn mean_subset_passes_and_compares_only_the_mean_group() {
+    let started = std::time::Instant::now();
+    let report = validate_aspects_corpus_subset().expect("aspects subset passes");
+    eprintln!("{}", report.summary_line());
+    for line in report.pair_lines() {
+        eprintln!("{line}");
+    }
+    eprintln!("mean subset: {:.1} s", started.elapsed().as_secs_f64());
+    assert_eq!(report.rows_validated, MIN_ROWS_VALIDATED_MEAN_SUBSET);
+    assert!(
+        report
+            .summary_line()
+            .starts_with("Aspects gate (mean subset): "),
+        "{}",
+        report.summary_line()
+    );
+    let lines = report.pair_lines();
+    assert_eq!(lines.len(), 2, "{lines:?}");
+    assert!(
+        lines.iter().all(|line| line.starts_with("mean ")),
+        "{lines:?}"
+    );
+}
+
+#[test]
+fn a_tampered_corpus_fails_the_checksum_in_either_scope() {
+    // A geo row, which the subset does not compare: the whole-corpus
+    // checksum must still catch it.
+    let tampered = CORPUS_CSV.replacen("geo,Sun,Moon,", "geo,Sun,Moon, ", 1);
+    assert_ne!(tampered, CORPUS_CSV);
+    assert!(matches!(
+        validate(&tampered, MANIFEST),
+        Err(AspectsError::ChecksumMismatch { .. })
+    ));
+    assert!(matches!(
+        validate_scoped(&tampered, MANIFEST, Scope::MeanSubset),
+        Err(AspectsError::ChecksumMismatch { .. })
+    ));
+}
+
+#[test]
+fn manifest_row_count_drift_fails_closed() {
+    let (rows, checksum) = parse_manifest(MANIFEST).unwrap();
+    let manifest = format!(
+        "slice aspects file=aspects.csv role=aspects rows={} checksum={checksum}",
+        rows + 1
+    );
+    assert!(matches!(
+        validate_scoped(CORPUS_CSV, &manifest, Scope::MeanSubset),
+        Err(AspectsError::ManifestDrift { .. })
+    ));
+}
+
+#[test]
+fn a_corpus_missing_an_event_fails_the_count() {
+    let line = first_mean_mars_saturn_conjunction();
+    let without = CORPUS_CSV.replacen(&format!("{line}\n"), "", 1);
+    assert_ne!(without, CORPUS_CSV);
+    match validate_scoped(&without, &manifest_for(&without), Scope::MeanSubset) {
+        Err(AspectsError::CountMismatch { series, got, want }) => {
+            assert_eq!(series, "mean Mars-Saturn 0");
+            assert_eq!(got, want + 1);
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+// 0.05 day at Mars–Saturn's relative speed is tens of arcseconds, far over
+// the measured ceiling.
+#[test]
+fn a_shifted_reference_instant_exceeds_the_separation_ceiling() {
+    let line = first_mean_mars_saturn_conjunction();
+    let mut fields: Vec<String> = line.split(',').map(str::to_string).collect();
+    let jd: f64 = fields[4].parse().unwrap();
+    fields[4] = format!("{:.7}", jd + 0.05);
+    let shifted = CORPUS_CSV.replacen(line, &fields.join(","), 1);
+    assert_ne!(shifted, CORPUS_CSV);
+    match validate_scoped(&shifted, &manifest_for(&shifted), Scope::MeanSubset) {
+        Err(AspectsError::CeilingExceeded { series, kind, .. }) => {
+            assert_eq!(series, "mean Mars-Saturn 0");
+            assert_eq!(kind, "separation_arcsec");
+        }
+        other => panic!("{other:?}"),
+    }
+}

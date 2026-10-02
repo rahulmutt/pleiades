@@ -8,6 +8,10 @@
 //! an event. The reference tool refuses to write a corpus in which a
 //! separation turns within 30 arcseconds of an angle, so no corpus event
 //! depends on the ephemeris. See `aspects_thresholds` for the ceilings.
+//!
+//! Tiers: the full gate (about 18.5 minutes) runs as `mise run gate-aspects`
+//! in its own nightly job and in `release-gate`; the `mean` subset (about
+//! 16 s) runs in the release battery (`release-smoke`).
 
 use crate::aspects_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_MEAN_SUBSET,
@@ -17,12 +21,10 @@ use pleiades_data::packaged_backend;
 use pleiades_events::{CrossingFrame, CrossingReference, EventEngine};
 use pleiades_types::{Angle, CelestialBody, Instant, JulianDay, TimeScale};
 
-#[allow(dead_code)] // wired in the next commit (#84)
 const CORPUS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/aspects-corpus/aspects.csv"
 ));
-#[allow(dead_code)] // wired in the next commit (#84)
 const MANIFEST: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/aspects-corpus/manifest.txt"
@@ -31,27 +33,21 @@ const MANIFEST: &str = include_str!(concat!(
 /// The spans `tools/se-aspects-reference` scanned (Julian days, TT). The
 /// full span is the engine's window less five days at each end, so neither
 /// side of the comparison meets the engine's edge clamp.
-#[allow(dead_code)] // wired in the next commit (#84)
 const FULL_SPAN: (f64, f64) = (2_415_025.5, 2_488_064.5);
 /// 1990-01-01 to 2030-01-01.
-#[allow(dead_code)] // wired in the next commit (#84)
 const SHORT_SPAN: (f64, f64) = (2_447_892.5, 2_462_502.5);
 
 /// The angles the reference tool scanned for every pair.
-#[allow(dead_code)] // wired in the next commit (#84)
 const ANGLES_DEG: [f64; 5] = [0.0, 60.0, 90.0, 120.0, 180.0];
 
-#[allow(dead_code)] // wired in the next commit (#84)
 const SECONDS_PER_DAY: f64 = 86_400.0;
-#[allow(dead_code)] // wired in the next commit (#84)
 const ARCSEC_PER_DEG: f64 = 3600.0;
 
 /// Which corpus groups a run compares. The checksum and the manifest row
 /// count are always verified against the whole corpus.
-#[allow(dead_code)] // wired in the next commit (#84)
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Scope {
-    /// Every pair: `validate-aspects` and the gate test (nightly `test-full`).
+    /// Every pair: `validate-aspects` and the opt-in gate test.
     Full,
     /// The `mean` group only, for the release battery
     /// (`run_all_numeric_gates`), where the full 1900–2100 scans are too slow.
@@ -83,7 +79,6 @@ impl Scope {
 }
 
 /// The frame a corpus group was generated in.
-#[allow(dead_code)] // wired in the next commit (#84)
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Group {
     /// Geocentric apparent, tropical.
@@ -122,7 +117,6 @@ impl Group {
 }
 
 /// One pair the reference tool scanned, at every angle in [`ANGLES_DEG`].
-#[allow(dead_code)] // wired in the next commit (#84)
 #[derive(Clone, Copy, Debug)]
 struct Pair {
     group: Group,
@@ -131,7 +125,6 @@ struct Pair {
     span: (f64, f64),
 }
 
-#[allow(dead_code)] // wired in the next commit (#84)
 const fn pair(group: Group, first: &'static str, second: &'static str, span: (f64, f64)) -> Pair {
     Pair {
         group,
@@ -144,7 +137,6 @@ const fn pair(group: Group, first: &'static str, second: &'static str, span: (f6
 /// The corpus plan, mirroring `main` of `tools/se-aspects-reference`. A
 /// pair-and-angle series with no corpus rows is still compared: the engine
 /// must find nothing there either.
-#[allow(dead_code)] // wired in the next commit (#84)
 const PAIRS: [Pair; 11] = [
     pair(Group::Geo, "Sun", "Moon", SHORT_SPAN),
     pair(Group::Geo, "Sun", "Mercury", FULL_SPAN),
@@ -159,7 +151,6 @@ const PAIRS: [Pair; 11] = [
     pair(Group::Helio, "Mars", "Jupiter", FULL_SPAN),
 ];
 
-#[allow(dead_code)] // wired in the next commit (#84)
 fn body_from_name(name: &str) -> Option<CelestialBody> {
     Some(match name {
         "Sun" => CelestialBody::Sun,
@@ -175,7 +166,6 @@ fn body_from_name(name: &str) -> Option<CelestialBody> {
 }
 
 /// One exact aspect, from either side of the comparison.
-#[allow(dead_code)] // wired in the next commit (#84)
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Found {
     jd: f64,
@@ -185,7 +175,6 @@ struct Found {
 
 /// A corpus event: the reference instant and longitudes, and the pair's
 /// relative longitude speed there.
-#[allow(dead_code)] // wired in the next commit (#84)
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Expected {
     found: Found,
@@ -194,7 +183,6 @@ struct Expected {
 
 /// One corpus row, with its pair and angle as indices into [`PAIRS`] and
 /// [`ANGLES_DEG`].
-#[allow(dead_code)] // wired in the next commit (#84)
 #[derive(Clone, Copy, Debug)]
 struct Row {
     pair: usize,
@@ -202,7 +190,6 @@ struct Row {
     expected: Expected,
 }
 
-#[allow(dead_code)] // wired in the next commit (#84)
 #[derive(Debug)]
 pub enum AspectsError {
     MalformedRow(String),
@@ -293,7 +280,6 @@ impl std::fmt::Display for AspectsError {
 
 impl std::error::Error for AspectsError {}
 
-#[allow(dead_code)] // wired in the next commit (#84)
 fn parse_corpus(csv: &str) -> Result<Vec<Row>, AspectsError> {
     let malformed = |what: String| AspectsError::MalformedRow(what);
     let mut rows = Vec::new();
@@ -359,7 +345,6 @@ fn parse_corpus(csv: &str) -> Result<Vec<Row>, AspectsError> {
     Ok(rows)
 }
 
-#[allow(dead_code)] // wired in the next commit (#84)
 fn parse_manifest(manifest: &str) -> Result<(usize, u64), AspectsError> {
     let malformed = |what: String| AspectsError::MalformedManifest(what);
     let line = manifest
@@ -388,7 +373,6 @@ fn parse_manifest(manifest: &str) -> Result<(usize, u64), AspectsError> {
 }
 
 /// What a comparison measured.
-#[allow(dead_code)] // wired in the next commit (#84)
 #[derive(Clone, Copy, Debug, Default)]
 struct Residuals {
     /// Events compared.
@@ -418,18 +402,15 @@ impl Residuals {
     }
 }
 
-#[allow(dead_code)] // wired in the next commit (#84)
 fn wrap180(degrees: f64) -> f64 {
     (degrees + 180.0).rem_euclid(360.0) - 180.0
 }
 
-#[allow(dead_code)] // wired in the next commit (#84)
 fn lon_residual_arcsec(got_deg: f64, want_deg: f64) -> f64 {
     wrap180(got_deg - want_deg).abs() * ARCSEC_PER_DEG
 }
 
 /// Whether the first body is ahead of the second.
-#[allow(dead_code)] // wired in the next commit (#84)
 fn first_is_ahead(found: &Found) -> bool {
     wrap180(found.first_lon_deg - found.second_lon_deg) > 0.0
 }
@@ -437,7 +418,6 @@ fn first_is_ahead(found: &Found) -> bool {
 /// The two lists must agree event for event: the same length and, for an
 /// angle strictly between 0 and 180 degrees, the same side in order; then
 /// every residual within its ceiling. A NaN residual fails closed.
-#[allow(dead_code)] // wired in the next commit (#84)
 fn compare_exact(
     label: &str,
     angle_deg: f64,
@@ -498,7 +478,6 @@ fn compare_exact(
     Ok(residuals)
 }
 
-#[allow(dead_code)] // wired in the next commit (#84)
 fn check_floor(validated: usize, floor: usize) -> Result<(), AspectsError> {
     let floor = floor.max(1);
     if validated < floor {
@@ -507,7 +486,6 @@ fn check_floor(validated: usize, floor: usize) -> Result<(), AspectsError> {
     Ok(())
 }
 
-#[allow(dead_code)] // wired in the next commit (#84)
 #[derive(Debug)]
 pub struct AspectsReport {
     /// Exact aspects compared against the corpus.
@@ -517,25 +495,21 @@ pub struct AspectsReport {
 }
 
 impl AspectsReport {
-    #[allow(dead_code)] // wired in the next commit (#84)
     pub fn summary_line(&self) -> &str {
         &self.summary_line
     }
 
     /// One line per corpus pair with its counts per angle and its measured
     /// maxima; the basis for the ceilings in `aspects_thresholds`.
-    #[allow(dead_code)] // wired in the next commit (#84)
     pub fn pair_lines(&self) -> &[String] {
         &self.pair_lines
     }
 }
 
-#[allow(dead_code)] // wired in the next commit (#84)
 fn validate(csv: &str, manifest: &str) -> Result<AspectsReport, AspectsError> {
     validate_scoped(csv, manifest, Scope::Full)
 }
 
-#[allow(dead_code)] // wired in the next commit (#84)
 fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsReport, AspectsError> {
     let (manifest_rows, manifest_checksum) = parse_manifest(manifest)?;
     let got_checksum = fnv1a64(csv);
@@ -637,9 +611,11 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
 }
 
 /// The full gate: every corpus pair at every angle, floor
-/// `MIN_ROWS_VALIDATED`. Run by `validate-aspects` and by the nightly
-/// `test-full` tier.
-#[allow(dead_code)] // wired in the next commit (#84)
+/// `MIN_ROWS_VALIDATED` (10359 events). Run by `validate-aspects` /
+/// `mise run gate-aspects` (its own nightly job and a `release-gate`
+/// dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test. About
+/// 1111 s (18.5 min) in the dev/test profile (2026-10-02), too slow for
+/// nightly `test-full`.
 pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
     validate(CORPUS_CSV, MANIFEST)
 }
@@ -647,8 +623,8 @@ pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
 /// The release-battery subset: verifies the checksum and row count of the
 /// whole corpus, then compares only the `mean` group (Mercury–Venus and
 /// Mars–Saturn over 1990–2030), floor `MIN_ROWS_VALIDATED_MEAN_SUBSET`.
-/// Fail-closed like the full gate.
-#[allow(dead_code)] // wired in the next commit (#84)
+/// Fail-closed like the full gate. 372 events, about 16 s in the dev/test
+/// profile (2026-10-02).
 pub fn validate_aspects_corpus_subset() -> Result<AspectsReport, AspectsError> {
     validate_scoped(CORPUS_CSV, MANIFEST, Scope::MeanSubset)
 }

@@ -152,7 +152,7 @@ run = "cargo mutants --test-tool nextest --test-workspace=false --baseline run -
 run = "cargo run -q -p pleiades-validate -- release-smoke"
 
 [tasks.release-gate]
-depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "release-smoke", "claims-audit"]
+depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "release-smoke", "claims-audit", "gate-aspects"]
 run = "cargo run -q -p pleiades-validate -- release-gate"
 
 [tasks.ci]
@@ -176,6 +176,13 @@ run = "cargo run -q -p pleiades-validate -- validate-topocentric"
 
 [tasks.gate-corpus]
 run = "cargo run -q -p pleiades-validate -- validate-corpus"
+
+[tasks.gate-aspects]
+# Full exact-aspect gate (all 11 corpus pairs, ~18 min): too slow for
+# nightly `test-full`, so it has its own nightly job (.github/workflows/
+# nightly.yml `aspects-gate`) and is a `release-gate` dependency. The mean
+# subset runs in the release battery (`release-smoke`).
+run = "cargo run -q -p pleiades-validate -- validate-aspects"
 
 [tasks.compat-claims-audit]
 run = "cargo run -q -p pleiades-validate -- compat-claims-audit"
