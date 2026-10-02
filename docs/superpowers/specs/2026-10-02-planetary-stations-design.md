@@ -192,7 +192,7 @@ run in the order `longitude_crossings_in_range` uses (window, then
   | Body | Step (days) |
   |---|---|
   | Mercury, Venus, Sun | 1.0 |
-  | Moon, lunar nodes and apsides (`MeanNode`, `TrueNode`, `MeanApogee`, `TrueApogee`, and their perigee/south counterparts) | 0.25 |
+  | Moon, `MeanNode`, `TrueNode`, `MeanApogee`, `TrueApogee`, `MeanPerigee`, `TruePerigee` | 0.25 |
   | everything else | 2.0 |
 
   The shortest planetary retrograde (Mercury) lasts about three weeks, so the
@@ -200,7 +200,8 @@ run in the order `longitude_crossings_in_range` uses (window, then
 - **Window clamp.** The scan runs over
   `[max(start, WINDOW_START + step), min(end, WINDOW_END − step)]`, as
   crossings do, so neighbouring samples stay in the window.
-- **Known limit.** Two stations closer together than the step are missed as a
+- **Known limit** *(superseded for the true node — see the amendment at the
+  end)*. Two stations closer together than the step are missed as a
   pair. This can matter only for the true node and the osculating apogee,
   whose speeds oscillate. The reference tool scans far finer than the engine
   (see below), so the gate's count comparison measures whether 0.25 day is
@@ -211,7 +212,7 @@ run in the order `longitude_crossings_in_range` uses (window, then
   scan is about 73 000 evaluations; measured in the plan and recorded, not
   optimised unless it is a problem for the gate's runtime.
 
-### To verify first
+### To verify first *(resolved — see the amendment at the end)*
 
 Whether `packaged_backend()` reports a longitude speed for `TrueNode` in the
 geocentric frames has not been checked. It is the first task of the plan. If
@@ -226,7 +227,7 @@ case is not met, and the design returns to the user before further work.
 (vendored Swiss Ephemeris through `libswisseph-sys`, Moshier mode, built only
 under `devenv shell` with the same `CFLAGS=-std=gnu17` caveat, never by the
 workspace build). For each body and group it scans the `swe_calc` longitude
-speed on a 0.01-day grid (0.001 day for the true node), bisects each sign
+speed on a 0.25-day grid (0.005 day for the true node), bisects each sign
 change to 1e-7 day, and writes one CSV row per station: group, body, TT
 Julian day, longitude, kind.
 
@@ -234,7 +235,8 @@ Groups and Swiss Ephemeris flags (all with `SEFLG_MOSEPH | SEFLG_SPEED`):
 
 | Group | Bodies | Span | Extra flags |
 |---|---|---|---|
-| `geo` (geocentric apparent, tropical) | Mercury–Pluto, true node | 1900–2100 | none |
+| `geo` (geocentric apparent, tropical) | Mercury–Pluto | 1900–2100 | none |
+| `geo` | true node | 1990–2030 | none |
 | `mean` (geocentric mean of date) | Mercury, Mars, Saturn | 1990–2030 | `TRUEPOS \| NOABERR \| NOGDEFL \| NONUT` |
 | `sid` (geocentric apparent, Lahiri) | Mercury, Mars, Saturn | 1990–2030 | `SIDEREAL`, `swe_set_sid_mode(SE_SIDM_LAHIRI)` |
 
@@ -253,8 +255,10 @@ For each group and body it calls
 `EventEngine::new(packaged_backend()).stations_in_range(..)` over the
 corpus span and requires:
 
-1. **Same count and same kind sequence** as the corpus. A missed or extra
-   station fails the gate; nothing is matched by nearest neighbour.
+1. **Same count and same kind sequence** as the corpus, for the planets. A
+   missed or extra station fails the gate; nothing is matched by nearest
+   neighbour. The true node uses the separated-station rule in the amendment
+   at the end.
 2. **Time residual** within a per-body ceiling.
 3. **Longitude residual** within a per-body ceiling.
 4. **Validated-row floor** enforced on the release path.
@@ -263,13 +267,13 @@ Ceilings are set from the measured maxima with headroom and recorded with
 the measured values in the thresholds module and in `docs/follow-ups.md`.
 A residual that neither the Moshier-versus-DE440 difference nor the
 soft-instant argument above explains is investigated before a ceiling is set
-over it. Stations within one step of a window edge are excluded from the
-corpus comparison on both sides by the same rule, stated in the gate.
+over it. The tool and the gate use the same spans, which start and end five
+days inside the window, so neither side meets the engine's edge clamp.
 
 ### Unit and regression tests (`src/stations/tests.rs`)
 
-Against a synthetic backend whose longitude is a known function with an
-analytic speed (shared through a test-support helper, not copy-pasted):
+*(Backends amended — see the end: these run on the packaged backend, and the
+missing-speed case on `LinearSunMoon`.)*
 
 - one known station: instant within tolerance, never before the true zero,
   correct kind and longitude;
@@ -299,9 +303,10 @@ Against `packaged_backend()` (integration test):
   packaged backend (Mercury's next station after J2000), stating units,
   frame, the settled-instant contract, the step limit, the measured accuracy
   and the failure modes.
-- `crates/pleiades-events/README.md` and `CHANGELOG.md` (breaking:
-  `MissingSpeed`, `#[non_exhaustive]` on `EventError`); the workspace
-  `README.md` capability table.
+- `crates/pleiades-events/README.md` and the workspace `README.md`
+  capability table. `CHANGELOG.md` is written by release-plz from the
+  `feat(events)!` commit (breaking: `MissingSpeed`, `#[non_exhaustive]` on
+  `EventError`); it is not edited by hand.
 - `docs/follow-ups.md`: a resolved FU-21 entry with the measured gate maxima
   and the deferred items below.
 - `spec/astrology-domain.md` ("retrograde and stationary classification") and
@@ -337,3 +342,60 @@ Against `packaged_backend()` (integration test):
   evaluation run in the blocking tier's validate budget only if measured to
   fit; otherwise the full span moves to the nightly tier and the blocking
   tier keeps a subset, as other gates do.
+
+## Amendment (2026-10-02, pre-plan probe)
+
+A scratch probe on the packaged backend (geocentric apparent, optimised
+build) measured the following before the plan was written.
+
+**Resolved: the true node has a speed.** `position_at` reports a longitude
+speed for `TrueNode`, `MeanNode` and `TrueApogee`. `MissingSpeed` does not
+apply to them.
+
+**Planet steps hold.** Over 1980–2020 the shortest interval between
+consecutive stations was 19 days (Mercury, step 1), 41 days (Venus, step 1),
+60 days (Mars, step 2) and 116–158 days (Jupiter–Pluto, step 2). The Sun, the
+Moon and the mean node gave no stations; heliocentric Pluto's speed never
+fell below 0.005 °/day.
+
+**Cost.** About 0.3 ms per speed evaluation for a planet and 0.9 ms for the
+true node. The gate as specified below is about 70 s for the eight planets
+over the full window, about 55 s for the true node over 1990–2030, and a few
+seconds for the `mean` and `sid` groups.
+
+**Finding: the true node grazes zero.** The true node is retrograde on
+average, and its speed rises to touch zero about every two weeks. Each touch
+either just crosses, giving a pair of stations hours apart, or just misses.
+Over two years the count was 96, 98, 98 and 102 at steps of 0.5, 0.25, 0.1
+and 0.02 day. The speed is smooth; the pairs that appear only at fine steps
+have a peak direct speed of 1e-7 to 4e-5 °/day, far below the difference
+between pleiades and Swiss Ephemeris for this body. Whether such a pair
+exists is model-dependent, so an exact count match cannot hold for the true
+node at any step.
+
+Decision (user, 2026-10-02): **match only well-separated true-node
+stations.**
+
+- A station is *separated* when its nearest neighbouring station in its own
+  list is at least 2 days away.
+- Every separated corpus station must have an engine station of the same
+  kind within the true node's time ceiling, and its longitude residual must
+  be within the longitude ceiling.
+- Every separated engine station must have a corpus station of the same kind
+  within the time ceiling.
+- Stations in closer pairs are unconstrained on both sides.
+- The engine's 0.25-day step for the true node stays. Both finders document
+  that a pair of stations closer together than the step is not reported, and
+  that for the true node such pairs are grazes whose existence depends on the
+  ephemeris.
+- The true node's corpus span is 1990–2030, not the full window.
+- Planets keep the exact count-and-kind-sequence rule.
+
+**Test backends.** No test backend in the workspace reports a speed
+(`LinearSunMoon` does not), so the engine tests run on `packaged_backend()`
+over short spans, and `LinearSunMoon` provides the `MissingSpeed` case. The
+gate's comparison rules are pure functions over two station lists and are
+unit-tested with synthetic lists.
+
+**Non-finite speed.** A NaN or infinite longitude speed is treated as
+missing and returns `MissingSpeed`; it is never compared against zero.
