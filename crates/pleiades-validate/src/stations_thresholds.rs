@@ -15,9 +15,11 @@
 //! ceilings (Pluto about half an hour) while the longitude residual, which
 //! is the position difference at the station, stays within a few arcseconds.
 //!
-//! The planets' mean signed time (engine minus corpus) is about -4 s for
-//! every planet, in both station kinds. That is a reference convention, not
-//! an engine defect: Swiss Ephemeris' Moshier planet speed is a backward
+//! The planets' mean signed time (engine minus corpus) is clearest for
+//! Mercury: -4.2 s, with 99.5 % of its stations negative and both station
+//! kinds alike. For the other planets it is consistent with the data but
+//! buried in scatter (Venus -1.3 s, Saturn -2.8 s, Neptune +11.0 s, Pluto
+//! -56.6 s). It is a reference convention, not an engine defect: Swiss Ephemeris' Moshier planet speed is a backward
 //! difference over `PLAN_SPEED_INTV` = 0.0001 d (8.64 s) (`swemplan.c`,
 //! `dx[i] = (xp[i] - x2[i]) / dt` with `x2` at `tjd - dt`), so its reported
 //! speed is the speed 4.32 s earlier and its zero lands 4.32 s late. The
@@ -26,9 +28,9 @@
 //!
 //! True node. Its speed hovers near zero for days, so a station instant is
 //! ill-conditioned, and whether a graze crosses zero depends on the
-//! ephemeris. The true-node ceilings (about two days in time, tens of
+//! ephemeris. The true-node ceilings (about three days in time, tens of
 //! arcseconds in longitude) therefore make its comparison a coarse
-//! existence-and-kind check, a station of the same kind within about two
+//! existence-and-kind check, a station of the same kind within about three
 //! days, and not a timing check. See `SEPARATION_DAYS` and the true-node arm
 //! of `ceilings_for`.
 
@@ -86,7 +88,7 @@ pub(crate) fn ceilings_for(body_name: &str) -> Option<Ceilings> {
         }),
         // measured max 318.7 s (geo), 0.505" (geo)
         "Uranus" => Some(Ceilings {
-            time_s: 490.0,
+            time_s: 480.0,
             lon_arcsec: 0.76,
         }),
         // measured max 495.4 s (geo), 2.314" (geo)
@@ -100,12 +102,17 @@ pub(crate) fn ceilings_for(body_name: &str) -> Option<Ceilings> {
             lon_arcsec: 1.9,
         }),
         // Coarse existence-and-kind check, not a timing check (see the module
-        // comment). Measured at SEPARATION_DAYS = 3.0: max 117467.6 s (geo),
-        // 51.338" (geo). Of the 1166 compared corpus stations, 724 are within
+        // comment). Measured at SEPARATION_DAYS = 3.0. The time ceiling is the
+        // existence window on both sides, so it is taken from the larger of
+        // two measurements: the corpus-side max residual 117467.6 s (1.36 d,
+        // geo) and the engine-side largest distance to a same-kind corpus
+        // station 2.048 d = 176947 s (geo, jd 2453126.80); 176947 s x 1.5 =
+        // 265420 s, rounded up to 270000 s. Longitude: max 51.338" (geo),
+        // x 1.5 -> 78". Of the 1166 compared corpus stations, 724 are within
         // 0.05 d of their counterpart, 1130 within 0.5 d, 1158 within 1 d, all
-        // within 2 d; the largest distance is 1.36 d.
+        // within 2 d.
         "TrueNode" => Some(Ceilings {
-            time_s: 180_000.0,
+            time_s: 270_000.0,
             lon_arcsec: 78.0,
         }),
         _ => None,
