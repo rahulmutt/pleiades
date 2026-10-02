@@ -2320,6 +2320,19 @@ Swiss Ephemeris itself.
   by 20.615″ and 20.101″. The corpus's `geo`-frame TrueCitra and
   GalacticCenter rows therefore use Swiss Ephemeris's mean ayanamsa. Matching
   its default would need an apparent-star ayanamsa in `pleiades-ayanamsa`.
+  The affected set is every ayanamsa in the `TrueStar` and `Galactic`
+  computation classes, not only these two; True Citra and Galactic Center are
+  the ones measured, the rest follow from the same mechanism. About 20″ is
+  roughly 8 minutes of crossing time for the Sun and hours for a slow planet
+  such as Saturn, more near a station. Open work: measure the remaining
+  `TrueStar` and `Galactic` ayanamsas with the reference tool, and decide
+  whether to offer an opt-in apparent-star ayanamsa for Swiss Ephemeris
+  default parity.
+- **(d) Sidereal corpus coverage is thin.** The sidereal corpus groups use two
+  start epochs for Sun and Moon and one for Jupiter (the spec asked for
+  three). The sidereal Moon ceiling (1″) rests on 16 rows (2 per ayanamsa and
+  frame), while the tropical Moon groups measure 2.6″, so a regeneration
+  with more Moon rows should expect a ceiling near 4″.
 
 Fixing (a) or (b) changes chart output and needs its own decision, a
 regenerated chart golden and a gate against a Swiss Ephemeris sidereal

@@ -45,11 +45,14 @@ type EclipticTriple = (f64, f64, f64);
 /// `SEFLG_SIDEREAL` convention. A sidereal `pleiades-core` apparent chart
 /// keeps nutation and can differ from it by up to about 17″.
 ///
-/// The mean ayanamsa is used in every frame. For star-anchored ayanamsas
-/// (True Citra, Galactic Center) Swiss Ephemeris's apparent sidereal positions
-/// additionally fold the anchoring star's annual aberration (up to about 20″)
-/// into the ayanamsa, so they differ from pleiades by that amount in the
-/// apparent frame.
+/// The mean ayanamsa is used in every frame. For the star-anchored ayanamsa
+/// classes (`TrueStar` and `Galactic`) Swiss Ephemeris's apparent sidereal
+/// positions additionally fold the anchoring star's annual aberration (up to
+/// about 20″) into the ayanamsa, so they differ from pleiades by that amount in
+/// the apparent frame. True Citra and Galactic Center were measured; the other
+/// ayanamsas in those classes follow from the same mechanism and were not. Such
+/// an offset moves a crossing time by about 8 minutes for the Sun and by hours
+/// for a slow planet such as Saturn, more near a station.
 ///
 /// The heliocentric frame is tropical only.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -103,9 +106,24 @@ fn ayanamsa_deg(ayanamsa: &Ayanamsa, julian_day: f64) -> Result<f64, EventError>
     // `sidereal_offset` reads the day as TT; the engine's day is TDB. The two
     // differ by under 2 ms, which moves the ayanamsa by less than 1e-9″.
     let instant = Instant::new(JulianDay::from_days(julian_day), TimeScale::Tt);
-    sidereal_offset(ayanamsa, instant)
+    let degrees = sidereal_offset(ayanamsa, instant)
         .map(|offset| offset.degrees())
-        .ok_or_else(|| unsupported(format!("ayanamsa {ayanamsa} has no sidereal offset data")))
+        .ok_or_else(|| unsupported(format!("ayanamsa {ayanamsa} has no sidereal offset data")))?;
+    // A custom ayanamsa can carry a NaN or infinite offset; reading it as a
+    // zodiac would turn every longitude into NaN.
+    if degrees.is_finite() {
+        Ok(degrees)
+    } else {
+        Err(unsupported(format!(
+            "ayanamsa {ayanamsa} has a non-finite sidereal offset"
+        )))
+    }
+}
+
+/// The zodiac of data serialized before the `zodiac` field existed: tropical.
+#[cfg(feature = "serde")]
+pub(crate) fn tropical_zodiac() -> ZodiacMode {
+    ZodiacMode::Tropical
 }
 
 /// Fails for a body/frame/zodiac combination that is not defined. `what`

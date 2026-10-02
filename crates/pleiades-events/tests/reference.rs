@@ -279,12 +279,46 @@ fn an_ayanamsa_without_offset_data_is_unsupported() {
                 t,
             )
             .unwrap_err(),
+        engine
+            .previous_longitude_crossing(
+                CelestialBody::Sun,
+                Longitude::from_degrees(0.0),
+                &reference,
+                t,
+            )
+            .unwrap_err(),
+        engine
+            .longitude_crossings_in_range(
+                CelestialBody::Sun,
+                Longitude::from_degrees(0.0),
+                &reference,
+                t,
+                tdb(2_451_645.0),
+            )
+            .unwrap_err(),
     ] {
         assert!(
             matches!(err, EventError::UnsupportedFrame { .. }),
             "{err:?}"
         );
     }
+}
+
+#[test]
+fn a_non_finite_custom_ayanamsa_offset_is_unsupported() {
+    // A NaN offset would otherwise surface as `Ok(NaN)`.
+    let engine = EventEngine::new(packaged_backend());
+    let mut custom = CustomAyanamsa::new("nan offset");
+    custom.epoch = Some(JulianDay::from_days(2_451_545.0));
+    custom.offset_degrees = Some(pleiades_types::Angle::from_degrees(f64::NAN));
+    let reference = CrossingReference::sidereal(MEAN, Ayanamsa::Custom(custom));
+    let err = engine
+        .longitude_at(CelestialBody::Sun, &reference, tdb(2_451_545.0))
+        .unwrap_err();
+    assert!(
+        matches!(err, EventError::UnsupportedFrame { .. }),
+        "{err:?}"
+    );
 }
 
 #[test]
@@ -438,7 +472,8 @@ fn position_longitude_is_bit_identical_to_longitude_at_in_every_new_reference() 
 #[test]
 fn sidereal_speed_is_the_tropical_speed_minus_the_ayanamsa_rate() {
     // Lahiri drifts with general precession, 3.82e-5 deg/day. In the apparent
-    // frame the removed nutation adds a rate bounded by 6.0e-5 deg/day.
+    // frame the removed nutation also changes the speed by the Δψ rate,
+    // differenced over the same ±0.5 day as the engine's speed.
     const PRECESSION_DEG_PER_DAY: f64 = 3.82e-5;
     let engine = EventEngine::new(packaged_backend());
     let speed = |reference: CrossingReference, jd: f64| {
@@ -456,9 +491,13 @@ fn sidereal_speed_is_the_tropical_speed_minus_the_ayanamsa_rate() {
             "jd {jd}: mean drop {mean_drop:e}"
         );
         let apparent_drop = speed(APPARENT.into(), jd) - speed(lahiri(APPARENT), jd);
+        let delta_psi_rate = (nutation(jd + 0.5).unwrap().delta_psi_arcsec
+            - nutation(jd - 0.5).unwrap().delta_psi_arcsec)
+            / 3600.0;
+        let expected = PRECESSION_DEG_PER_DAY + delta_psi_rate;
         assert!(
-            (apparent_drop - PRECESSION_DEG_PER_DAY).abs() < 6.0e-5,
-            "jd {jd}: apparent drop {apparent_drop:e}"
+            (apparent_drop - expected).abs() < 2.0e-6,
+            "jd {jd}: apparent drop {apparent_drop:e} vs expected {expected:e}"
         );
     }
 }

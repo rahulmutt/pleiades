@@ -40,6 +40,10 @@ pub struct Crossing {
     /// The frame the crossing was computed in.
     pub frame: CrossingFrame,
     /// The zodiac `target_longitude` is read in.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default = "crate::reference::tropical_zodiac")
+    )]
     pub zodiac: ZodiacMode,
 }
 

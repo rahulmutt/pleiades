@@ -329,3 +329,13 @@ measurement before it is written:
   groups measure Sun 0.309″, Moon 2.638″ and planets 0.342″; the Moon is in
   line with the existing tropical apparent Moon group (2.606″). Recorded as
   FU-18(c).
+  The affected set is every ayanamsa in the `TrueStar` and `Galactic`
+  computation classes of `pleiades-ayanamsa`; True Citra and Galactic Center
+  are the two that were measured, the rest follow from the same mechanism and
+  are not measured. About 20″ is roughly 8 minutes of crossing time for the
+  Sun and hours for a slow planet such as Saturn, more near a station.
+- **Corpus coverage.** The sidereal groups use two epochs for Sun and Moon and
+  one for Jupiter (the spec asked for three). The sidereal Moon ceiling (1″)
+  rests on 16 rows, while the tropical Moon groups measure 2.6″; a
+  regeneration with more Moon rows should expect a ceiling near 4″. Recorded
+  as FU-18(d).

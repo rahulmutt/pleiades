@@ -39,7 +39,11 @@ mean ayanamsa, the Swiss Ephemeris `SEFLG_SIDEREAL` convention: nutation does
 not move a body through a sidereal zodiac. The ayanamsa is evaluated at every
 trial instant of the search. The heliocentric frame is tropical only, and an
 ayanamsa without offset data is an error, never a silent tropical result. For
-star-anchored ayanamsas (True Citra, Galactic Center) the mean ayanamsa is used
-in every frame, whereas Swiss Ephemeris's apparent sidereal positions add the
-anchoring star's annual aberration (up to about 20″) to the ayanamsa.
+the star-anchored ayanamsa classes (`TrueStar` and `Galactic`) the mean
+ayanamsa is used in every frame, whereas Swiss Ephemeris's apparent sidereal
+positions add the anchoring star's annual aberration (up to about 20″) to the
+ayanamsa. That is about 8 minutes of crossing time for the Sun and hours for a
+slow planet such as Saturn, more near a station. True Citra and Galactic Center
+were measured; the other ayanamsas in those classes follow from the same
+mechanism and were not.
 Mean-of-date and sidereal crossings are gated by `validate-crossings`.

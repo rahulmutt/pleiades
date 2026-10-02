@@ -261,6 +261,7 @@ dependencies = [
  "pleiades-types",
  "pleiades-vsop87",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

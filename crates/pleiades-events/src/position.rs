@@ -38,12 +38,19 @@ pub struct EclipticPosition {
     /// The frame `ecliptic` and `motion` are expressed in.
     pub frame: CrossingFrame,
     /// The zodiac `ecliptic.longitude` is read in.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default = "crate::reference::tropical_zodiac")
+    )]
     pub zodiac: ZodiacMode,
     /// The instant as given; its Julian day is read as TDB.
     pub instant: Instant,
     /// Ecliptic longitude and latitude (degrees) and distance (AU, always
-    /// `Some`): from the Earth's centre for the geocentric frame, from the Sun
-    /// for the heliocentric frame.
+    /// `Some`): from the Earth's centre for the geocentric frames
+    /// ([`CrossingFrame::GeocentricApparentOfDate`] and
+    /// [`CrossingFrame::GeocentricMeanOfDate`]), from the Sun for
+    /// [`CrossingFrame::Heliocentric`]. Only the apparent frame can fail within
+    /// a light-time of the start of the packaged range (see `position_at`).
     pub ecliptic: EclipticCoordinates,
     /// Speed of `ecliptic`: longitude and latitude in degrees per day,
     /// distance in AU per day. A channel is `None` when the backend reports no
@@ -150,10 +157,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///   differs from this place by up to ≈ 41″ (Mercury).
     ///
     /// With a sidereal [`CrossingReference`] the longitude is the frame's
-    /// longitude on the mean equinox of date minus the mean ayanamsa, and the
-    /// speed drops by the ayanamsa's rate. `# Errors` gains: a sidereal zodiac
-    /// in the heliocentric frame, and an ayanamsa with no offset data, are
-    /// [`EventError::UnsupportedFrame`].
+    /// longitude on the mean equinox of date minus the mean ayanamsa. The
+    /// speed drops by the ayanamsa's rate, and in the apparent frame it also
+    /// changes by the rate of the removed nutation in longitude.
     ///
     /// Longitude and latitude are degrees, distance is AU; speeds are per day.
     /// The speed is the backend's own speed plus the rate of the frame or
@@ -166,10 +172,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///
     /// The same as [`EventEngine::longitude_at`]:
     /// [`EventError::OutOfWindow`] outside the packaged 1900–2100 window,
-    /// [`EventError::UnsupportedFrame`] for a heliocentric Sun or Moon,
+    /// [`EventError::UnsupportedFrame`] for a heliocentric Sun or Moon, for a
+    /// sidereal zodiac in the heliocentric frame, and for a sidereal ayanamsa
+    /// with no finite offset data,
     /// [`EventError::MissingCoordinates`] when the backend returns no ecliptic
     /// place or no distance, and [`EventError::Backend`] for a backend failure.
-    /// In the geocentric frame an instant within a light-time of the start of
+    /// In [`CrossingFrame::GeocentricApparentOfDate`] an instant within a light-time of the start of
     /// the packaged range can fail with [`EventError::Backend`], exactly as
     /// `longitude_at` does there, because the light-time re-query leaves the
     /// backend's range (for example Mars or the Moon at JD 2415020.5).
