@@ -423,3 +423,14 @@ missing and returns `MissingSpeed`; it is never compared against zero.
   `tools/se-stations-reference` skips an isolated non-finite grid sample
   (logged to stderr) and aborts on anything else non-finite. No station lies
   near them.
+- **Gate runtime: the Risks-section fallback was taken.** The full gate takes
+  173 s in release but 339 s in the dev profile (opt-level 2) that
+  `release-smoke` uses, above the plan's 300 s limit; it made up most of
+  `release-smoke`'s 553 s against blocking CI's 10-minute target. The release
+  battery (`run_all_numeric_gates`, so `release-smoke` and the battery tests)
+  now runs `validate_stations_corpus_subset`: the whole-corpus checksum and
+  row count, then the `mean` and `sid` series only (734 stations, floor 734,
+  about 24 s in the dev profile). `release-smoke` fell to 150 s. The full gate
+  (5542 stations) is unchanged and runs as `validate-stations` and as the
+  `stations_gate_passes_within_ceilings` test in nightly `test-full`, which
+  `release-gate` depends on.

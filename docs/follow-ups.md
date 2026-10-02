@@ -2430,7 +2430,19 @@ sid Mars: 38 compared (engine 38, corpus 38), max time 28.9 s, mean signed time 
 sid Saturn: 77 compared (engine 77, corpus 77), max time 30.4 s, mean signed time -3.5 s, max lon 0.679"
 ```
 
-Gate wall time: 173 s.
+The gate runs in two tiers (2026-10-02):
+
+- **Release battery** (`run_all_numeric_gates`: blocking `release-smoke`, and
+  the battery tests in nightly `test-full`): `validate_stations_corpus_subset`
+  verifies the whole corpus's checksum and row count, then compares the
+  `mean` and `sid` series only (Mercury, Mars, Saturn over 1990–2030; 734
+  stations, floor 734), about 24 s in the dev profile. Its summary line reads
+  `Stations gate (mean/sid subset): 734 stations validated across 6 series`.
+  `release-smoke` went from 553 s to 150 s with this change.
+- **Full gate** (`validate-stations`, and the
+  `stations_gate_passes_within_ceilings` test in nightly `test-full`, which
+  `release-gate` depends on): all 15 series, 5542 stations, 173 s in release
+  and 339 s in the dev profile.
 
 **Open items:**
 

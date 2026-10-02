@@ -8,7 +8,9 @@
 //! whether a touch crosses zero for a few hours depends on the ephemeris.
 //! See `stations_thresholds` for the basis of the ceilings.
 
-use crate::stations_thresholds::{ceilings_for, Ceilings, MIN_ROWS_VALIDATED, SEPARATION_DAYS};
+use crate::stations_thresholds::{
+    ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_MEAN_SID_SUBSET, SEPARATION_DAYS,
+};
 use pleiades_apparent::fnv1a64;
 use pleiades_data::packaged_backend;
 use pleiades_events::{CrossingFrame, CrossingReference, EventEngine, StationKind};
@@ -31,6 +33,42 @@ const FULL_SPAN: (f64, f64) = (2_415_025.5, 2_488_064.5);
 const SHORT_SPAN: (f64, f64) = (2_447_892.5, 2_462_502.5);
 
 const SECONDS_PER_DAY: f64 = 86_400.0;
+
+/// Which corpus series a run compares. The checksum and the manifest row
+/// count are always verified against the whole corpus.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Scope {
+    /// Every series: `validate-stations` and the gate test (nightly
+    /// `test-full`).
+    Full,
+    /// The `mean` and `sid` series only, for the release battery
+    /// (`run_all_numeric_gates`), where the full 1900–2100 scan is too slow.
+    MeanSidSubset,
+}
+
+impl Scope {
+    fn includes(self, group: Group) -> bool {
+        match self {
+            Self::Full => true,
+            Self::MeanSidSubset => group != Group::Geo,
+        }
+    }
+
+    fn floor(self) -> usize {
+        match self {
+            Self::Full => MIN_ROWS_VALIDATED,
+            Self::MeanSidSubset => MIN_ROWS_VALIDATED_MEAN_SID_SUBSET,
+        }
+    }
+
+    /// How the summary line names the run.
+    fn title(self) -> &'static str {
+        match self {
+            Self::Full => "Stations gate",
+            Self::MeanSidSubset => "Stations gate (mean/sid subset)",
+        }
+    }
+}
 
 /// The frame and zodiac a corpus group was generated in.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -459,6 +497,14 @@ fn span(series: &Series) -> (f64, f64) {
 }
 
 fn validate(csv: &str, manifest: &str) -> Result<StationsReport, StationsError> {
+    validate_scoped(csv, manifest, Scope::Full)
+}
+
+fn validate_scoped(
+    csv: &str,
+    manifest: &str,
+    scope: Scope,
+) -> Result<StationsReport, StationsError> {
     let (manifest_rows, manifest_checksum) = parse_manifest(manifest)?;
     let got_checksum = fnv1a64(csv);
     if got_checksum != manifest_checksum {
@@ -483,7 +529,7 @@ fn validate(csv: &str, manifest: &str) -> Result<StationsReport, StationsError> 
     let mut validated = 0usize;
     let mut series_lines = Vec::new();
     let (mut max_time_s, mut max_lon_arcsec) = (0.0_f64, 0.0_f64);
-    for series in &all {
+    for series in all.iter().filter(|series| scope.includes(series.group)) {
         let label = format!("{} {}", series.group.name(), series.body_name);
         let failed = |reason: String| StationsError::CalculationFailed {
             series: label.clone(),
@@ -530,15 +576,16 @@ fn validate(csv: &str, manifest: &str) -> Result<StationsReport, StationsError> 
             residuals.max_lon_arcsec,
         ));
     }
-    let floor = MIN_ROWS_VALIDATED.max(1);
+    let floor = scope.floor().max(1);
     if validated < floor {
         return Err(StationsError::TooFewRowsValidated { validated, floor });
     }
     let summary_line = format!(
-        "Stations gate: {validated} stations validated across {} series vs Swiss Ephemeris speed-zero corpus \
+        "{}: {validated} stations validated across {} series vs Swiss Ephemeris speed-zero corpus \
          (planets station-for-station; true node on stations separated by >= {SEPARATION_DAYS} d), \
          max time {max_time_s:.1} s, max lon {max_lon_arcsec:.3}\"",
-        all.len(),
+        scope.title(),
+        series_lines.len(),
     );
     Ok(StationsReport {
         rows_validated: validated,
@@ -547,8 +594,21 @@ fn validate(csv: &str, manifest: &str) -> Result<StationsReport, StationsError> 
     })
 }
 
+/// The full gate: every corpus series (planets over 1900–2100 and the
+/// 1990–2030 series), floor `MIN_ROWS_VALIDATED` (5542 stations). About
+/// 3 minutes in release, 6 in the dev profile (2026-10-02); run by
+/// `validate-stations` and by the nightly `test-full` tier.
 pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {
     validate(CORPUS_CSV, MANIFEST)
+}
+
+/// The release-battery subset: verifies the checksum and row count of the
+/// whole corpus, then compares only the `mean` and `sid` series (Mercury,
+/// Mars, Saturn over 1990–2030), floor `MIN_ROWS_VALIDATED_MEAN_SID_SUBSET`
+/// (734 stations). Fail-closed like the full gate, in about 24 s in the dev
+/// profile (2026-10-02).
+pub fn validate_stations_corpus_subset() -> Result<StationsReport, StationsError> {
+    validate_scoped(CORPUS_CSV, MANIFEST, Scope::MeanSidSubset)
 }
 
 #[cfg(test)]

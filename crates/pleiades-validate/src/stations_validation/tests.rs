@@ -252,6 +252,39 @@ fn stations_gate_passes_within_ceilings() {
 }
 
 #[test]
+fn mean_sid_subset_passes_and_compares_only_the_mean_and_sid_series() {
+    let report = validate_stations_corpus_subset().expect("stations subset passes");
+    eprintln!("{}", report.summary_line());
+    assert_eq!(report.rows_validated, MIN_ROWS_VALIDATED_MEAN_SID_SUBSET);
+    assert!(
+        report
+            .summary_line()
+            .starts_with("Stations gate (mean/sid subset): "),
+        "{}",
+        report.summary_line()
+    );
+    let lines = report.series_lines();
+    assert_eq!(lines.len(), 6, "{lines:?}");
+    assert!(
+        lines
+            .iter()
+            .all(|line| line.starts_with("mean ") || line.starts_with("sid ")),
+        "{lines:?}"
+    );
+}
+
+#[test]
+fn mean_sid_subset_still_fails_a_tampered_corpus_checksum() {
+    // Tamper a geo row, which the subset does not compare: the whole-corpus
+    // checksum must still catch it.
+    let tampered = CORPUS_CSV.replacen("geo,Mercury,", "geo,Mercury, ", 1);
+    assert!(matches!(
+        validate_scoped(&tampered, MANIFEST, Scope::MeanSidSubset),
+        Err(StationsError::ChecksumMismatch { .. })
+    ));
+}
+
+#[test]
 fn tampered_corpus_fails_the_checksum() {
     let tampered = CORPUS_CSV.replacen("geo,Mercury,", "geo,Mercury, ", 1);
     assert!(matches!(

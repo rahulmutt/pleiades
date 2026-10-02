@@ -106,7 +106,10 @@ fn run_all_numeric_gates() -> Result<(), String> {
         .map_err(|e| format!("mean-lunar-points gate failed: {e}"))?;
     crate::validate_helio_position_corpus()
         .map_err(|e| format!("helio-position gate failed: {e}"))?;
-    crate::validate_stations_corpus().map_err(|e| format!("stations gate failed: {e}"))?;
+    // The full stations gate takes minutes; it runs as `validate-stations`
+    // and in nightly `test-full`. The battery compares the mean/sid subset.
+    crate::validate_stations_corpus_subset()
+        .map_err(|e| format!("stations gate (mean/sid subset) failed: {e}"))?;
     crate::validate_equatorial_goldens().map_err(|e| format!("equatorial gate failed: {e}"))?;
     crate::validate_equatorial_se_corpus()
         .map_err(|e| format!("equatorial-se gate failed: {e}"))?;

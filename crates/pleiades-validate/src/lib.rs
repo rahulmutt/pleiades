@@ -246,7 +246,9 @@ pub use nod_aps_validation::{validate_nod_aps_corpus, NodApsError, NodApsReport}
 pub use occult_validation::{validate_occultations_corpus, OccultError, OccultReport};
 pub use pheno_validation::{validate_pheno_corpus, PhenoError, PhenoReport};
 pub use rise_trans_validation::{validate_rise_trans_corpus, RiseTransError, RiseTransReport};
-pub use stations_validation::{validate_stations_corpus, StationsError, StationsReport};
+pub use stations_validation::{
+    validate_stations_corpus, validate_stations_corpus_subset, StationsError, StationsReport,
+};
 pub use true_node_validation::{
     validate_true_node_corpus, TrueNodeCorpusError, TrueNodeCorpusReport,
 };

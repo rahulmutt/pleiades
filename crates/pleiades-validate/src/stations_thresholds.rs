@@ -58,6 +58,11 @@ pub(crate) const SEPARATION_DAYS: f64 = 3.0;
 /// 2026-10-02 (5542).
 pub(crate) const MIN_ROWS_VALIDATED: usize = 5542;
 
+/// Fail-closed floor for the release-battery subset (the `mean` and `sid`
+/// series only, see `validate_stations_corpus_subset`): the count that subset
+/// compared on 2026-10-02 (734).
+pub(crate) const MIN_ROWS_VALIDATED_MEAN_SID_SUBSET: usize = 734;
+
 /// Ceilings by corpus body name, or `None` for a body the gate does not cover.
 pub(crate) fn ceilings_for(body_name: &str) -> Option<Ceilings> {
     match body_name {
