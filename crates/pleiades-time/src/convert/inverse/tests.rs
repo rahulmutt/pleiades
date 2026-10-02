@@ -336,7 +336,7 @@ mod properties {
 
         #[test]
         fn leap_seconds_round_trip_at_every_millisecond(
-            index in 0usize..27,
+            index in 0..insertions().len(),
             ms in 0i64..1_000,
         ) {
             let insertion = &insertions()[index];
@@ -368,8 +368,10 @@ mod properties {
 
         #[test]
         fn utc_inverse_is_monotonic_and_reenters_the_forward(
-            // TT from one minute after the UTC epoch; `gap` reaches past two
-            // days so pairs straddle leap seconds and the leap horizon.
+            // TT from one minute after the UTC epoch to the leap horizon, with
+            // `gap` up to about 2.3 days: broad coverage of the whole UTC era.
+            // It rarely straddles a leap second; the anchored property below
+            // does that on every case.
             a in (ms_from_jd(leap::LEAP_EPOCH_JD) + 60_000)
                 ..(ms_from_jd(SUPPORT_END_JD) - 300_000_000),
             gap in 2i64..200_000_000,
@@ -380,6 +382,31 @@ mod properties {
             prop_assert!(key(civil_a) < key(civil_b), "{civil_a:?} !< {civil_b:?}");
             // Every result is a datetime the forward accepts, and it lands
             // within 1 ms of where it came from.
+            let again = to_terrestrial(civil_a, TimeScale::Utc, TimeScale::Tt).unwrap();
+            let error = (again.instant.julian_day.days() - jd_from_ms(a)) * SECONDS_PER_DAY;
+            prop_assert!(error.abs() < 1e-3, "re-entry error {error} s");
+        }
+
+        #[test]
+        fn utc_inverse_is_monotonic_across_every_leap_second(
+            index in 0..insertions().len(),
+            offset in -3_000i64..3_000,
+            gap in 2i64..3_000,
+        ) {
+            // TT instant of the inserted `23:59:60.000`; pairs around it cover
+            // `:57`..`:59.x`, `:60.x` and the next day's `00:00:0x`.
+            let insertion = &insertions()[index];
+            let leap = to_terrestrial(
+                at(insertion.last_day, 23, 59, 60.0),
+                TimeScale::Utc,
+                TimeScale::Tt,
+            )
+            .unwrap();
+            let a = ms_from_jd(leap.instant.julian_day.days()) + offset;
+            let b = a + gap;
+            let civil_a = utc_civil_from_tt(tt(jd_from_ms(a))).unwrap().civil;
+            let civil_b = utc_civil_from_tt(tt(jd_from_ms(b))).unwrap().civil;
+            prop_assert!(key(civil_a) < key(civil_b), "{civil_a:?} !< {civil_b:?}");
             let again = to_terrestrial(civil_a, TimeScale::Utc, TimeScale::Tt).unwrap();
             let error = (again.instant.julian_day.days() - jd_from_ms(a)) * SECONDS_PER_DAY;
             prop_assert!(error.abs() < 1e-3, "re-entry error {error} s");
