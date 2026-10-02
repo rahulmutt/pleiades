@@ -7,11 +7,15 @@
 //! to the target within a per-body arcsecond ceiling — honest, unamplified
 //! agreement with Swiss Ephemeris across the Moshier-vs-VSOP87/ELP theory floor.
 //! A sibling `manifest.txt` records an fnv1a64 digest of the CSV (drift guard).
+//! Rows carry a frame (`geo`, `helio`, `geo-mean`) and a zodiac (`tropical` or
+//! an ayanamsa name).
 
 use pleiades_apparent::fnv1a64;
 use pleiades_data::packaged_backend;
-use pleiades_events::{CrossingFrame, EventEngine};
-use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale};
+use pleiades_events::{CrossingFrame, CrossingReference, EventEngine};
+use pleiades_types::{
+    Ayanamsa, CelestialBody, Instant, JulianDay, Longitude, TimeScale, ZodiacMode,
+};
 
 const CORPUS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -24,7 +28,7 @@ const MANIFEST: &str = include_str!(concat!(
 
 /// Fixture count pinned by the corpus test. Update when the corpus is regenerated.
 #[cfg(test)]
-const EXPECTED_ROWS: usize = 86;
+const EXPECTED_ROWS: usize = 169;
 
 /// Tier-1 self-consistency ceiling: the engine is deterministic, so a recompute
 /// matches the committed golden to the bit unless engine output changed. Set a
@@ -33,7 +37,7 @@ const SELF_CONSISTENCY_TOL_S: f64 = 1.0;
 
 // Tier-2 per-body arcsecond ceilings — MEASURED from the committed corpus and set
 // to ceil(1.4x each body-class group max). Cross-theory (SE Moshier vs engine)
-// floors, not engine error. Measured group maxima (86-row corpus, 2026-09-30, after
+// floors, not engine error. Measured group maxima (the 86 tropical geo/helio rows, 2026-09-30, after
 // the #93 aberration fix): geo Sun 0.322", geo Moon 2.606", geo planets
 // (Mercury-Neptune) 0.483", helio (non-Pluto) 35.090". Before #93 the geo Moon and
 // planet groups measured 21.70" and 20.96": the double-counted ~20" term.
@@ -130,25 +134,72 @@ fn parse_manifest() -> Result<(usize, u64), CrossingsCorpusError> {
     ))
 }
 
-fn arcsec_ceiling_for(frame: CrossingFrame, body: &CelestialBody) -> f64 {
-    match frame {
-        CrossingFrame::Heliocentric => match body {
+// Measured group maxima for the mean-of-date and sidereal rows (169-row corpus,
+// 2026-10-01): geo-mean Sun 0.309", geo-mean Moon 2.638", geo-mean planets 0.342";
+// sidereal Sun 0.320", sidereal Moon 0.456", sidereal planets 0.420" (largest over
+// Lahiri, TrueCitra, GalacticCenter, DeLuce and both geocentric places).
+// Ceilings are ceil(1.4x each).
+const GEO_MEAN_SUN_ARCSEC: f64 = 1.0;
+const GEO_MEAN_MOON_ARCSEC: f64 = 4.0;
+const GEO_MEAN_PLANET_ARCSEC: f64 = 1.0;
+const SIDEREAL_SUN_ARCSEC: f64 = 1.0;
+const SIDEREAL_MOON_ARCSEC: f64 = 1.0;
+const SIDEREAL_PLANET_ARCSEC: f64 = 1.0;
+
+fn arcsec_ceiling_for(reference: &CrossingReference, body: &CelestialBody) -> f64 {
+    let sidereal = !matches!(reference.zodiac, ZodiacMode::Tropical);
+    match (reference.frame, sidereal) {
+        (CrossingFrame::Heliocentric, _) => match body {
             CelestialBody::Pluto => PLUTO_ARCSEC,
             _ => HELIO_ARCSEC,
         },
-        CrossingFrame::GeocentricApparentOfDate => match body {
+        (CrossingFrame::GeocentricApparentOfDate, false) => match body {
             CelestialBody::Sun => GEO_SUN_ARCSEC,
             CelestialBody::Moon => GEO_MOON_ARCSEC,
             CelestialBody::Pluto => PLUTO_ARCSEC,
             _ => GEO_PLANET_ARCSEC,
         },
-        // `CrossingFrame` is `#[non_exhaustive]`; a future frame falls back to the
-        // loose planet ceiling (this corpus only exercises geo/helio).
+        (CrossingFrame::GeocentricMeanOfDate, false) => match body {
+            CelestialBody::Sun => GEO_MEAN_SUN_ARCSEC,
+            CelestialBody::Moon => GEO_MEAN_MOON_ARCSEC,
+            _ => GEO_MEAN_PLANET_ARCSEC,
+        },
+        // Sidereal rows of either geocentric place.
+        (_, true) => match body {
+            CelestialBody::Sun => SIDEREAL_SUN_ARCSEC,
+            CelestialBody::Moon => SIDEREAL_MOON_ARCSEC,
+            _ => SIDEREAL_PLANET_ARCSEC,
+        },
+        // `CrossingFrame` is `#[non_exhaustive]`; a future frame falls back to
+        // the planet ceiling until it gets rows of its own.
         _ => GEO_PLANET_ARCSEC,
     }
 }
 
-/// Validate a 7-column crossings CSV string. `validate_crossings_corpus` calls
+/// Reads a corpus row's `frame` and `zodiac` fields. `None` for an unknown
+/// name, and for a sidereal heliocentric row (that frame is tropical only).
+pub(crate) fn parse_reference(frame: &str, zodiac: &str) -> Option<CrossingReference> {
+    let frame = match frame {
+        "geo" => CrossingFrame::GeocentricApparentOfDate,
+        "helio" => CrossingFrame::Heliocentric,
+        "geo-mean" => CrossingFrame::GeocentricMeanOfDate,
+        _ => return None,
+    };
+    let ayanamsa = match zodiac {
+        "tropical" => return Some(CrossingReference::tropical(frame)),
+        "Lahiri" => Ayanamsa::Lahiri,
+        "TrueCitra" => Ayanamsa::TrueCitra,
+        "GalacticCenter" => Ayanamsa::GalacticCenter,
+        "DeLuce" => Ayanamsa::DeLuce,
+        _ => return None,
+    };
+    if frame == CrossingFrame::Heliocentric {
+        return None;
+    }
+    Some(CrossingReference::sidereal(frame, ayanamsa))
+}
+
+/// Validate an 8-column crossings CSV string. `validate_crossings_corpus` calls
 /// this with the committed `CORPUS_CSV`; tests call it with crafted rows.
 pub(crate) fn validate_crossings_csv(
     csv: &str,
@@ -163,20 +214,15 @@ pub(crate) fn validate_crossings_csv(
             continue;
         }
         let f: Vec<&str> = line.split(',').collect();
-        if f.len() != 7 {
+        if f.len() != 8 {
             return Err(CrossingsCorpusError::Schema {
                 row: line.to_string(),
             });
         }
-        let frame = match f[0] {
-            "geo" => CrossingFrame::GeocentricApparentOfDate,
-            "helio" => CrossingFrame::Heliocentric,
-            _ => {
-                return Err(CrossingsCorpusError::Schema {
-                    row: line.to_string(),
-                })
-            }
-        };
+        let reference =
+            parse_reference(f[0], f[6].trim()).ok_or_else(|| CrossingsCorpusError::Schema {
+                row: line.to_string(),
+            })?;
         let body = parse_body(f[1]).ok_or_else(|| CrossingsCorpusError::Schema {
             row: line.to_string(),
         })?;
@@ -200,7 +246,7 @@ pub(crate) fn validate_crossings_csv(
             .map_err(|_| CrossingsCorpusError::Schema {
                 row: line.to_string(),
             })?;
-        let golden_jd = f[6]
+        let golden_jd = f[7]
             .parse::<f64>()
             .map_err(|_| CrossingsCorpusError::Schema {
                 row: line.to_string(),
@@ -209,7 +255,12 @@ pub(crate) fn validate_crossings_csv(
 
         // Tier 1: recompute vs committed golden.
         let got = engine
-            .next_longitude_crossing(body.clone(), Longitude::from_degrees(target), frame, after)
+            .next_longitude_crossing(
+                body.clone(),
+                Longitude::from_degrees(target),
+                &reference,
+                after,
+            )
             .map_err(|e| CrossingsCorpusError::Engine(e.to_string()))?
             .ok_or_else(|| CrossingsCorpusError::Missing {
                 row: line.to_string(),
@@ -227,10 +278,10 @@ pub(crate) fn validate_crossings_csv(
         // Tier 2: engine longitude at the SE time vs target, in arcseconds.
         let se_instant = Instant::new(JulianDay::from_days(se_jd), TimeScale::Tdb);
         let lambda = engine
-            .longitude_at(body.clone(), frame, se_instant)
+            .longitude_at(body.clone(), &reference, se_instant)
             .map_err(|e| CrossingsCorpusError::Engine(e.to_string()))?;
         let residual_arcsec = wrap180_deg(lambda.degrees() - target).abs() * 3600.0;
-        let ceiling_arcsec = arcsec_ceiling_for(frame, &body);
+        let ceiling_arcsec = arcsec_ceiling_for(&reference, &body);
         if !residual_arcsec.is_finite() || residual_arcsec > ceiling_arcsec {
             return Err(CrossingsCorpusError::ParityExceeded {
                 row: line.to_string(),
@@ -321,8 +372,8 @@ mod tests {
         // A row whose pleiades_jd_tdb golden is perturbed beyond the sub-second
         // self-consistency ceiling must fail closed.
         let csv = "\
-frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb,pleiades_jd_tdb
-geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,2416199.301931810
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb,zodiac,pleiades_jd_tdb
+geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,tropical,2416199.301931810
 ";
         let err = validate_crossings_csv(csv).unwrap_err();
         assert!(
@@ -336,8 +387,8 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,2416199.301931810
         // A target offset far from where the engine actually is at the SE time
         // must fail the arcsecond parity tier.
         let csv = "\
-frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb,pleiades_jd_tdb
-geo,Sun,10.000000,2416000.500000,fwd,2416195.301931810,PLEIADES
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb,zodiac,pleiades_jd_tdb
+geo,Sun,10.000000,2416000.500000,fwd,2416195.301931810,tropical,PLEIADES
 ";
         // Fill the golden with the engine's real recompute so Tier 1 passes and
         // only Tier 2 can fire.
@@ -351,12 +402,12 @@ geo,Sun,10.000000,2416000.500000,fwd,2416195.301931810,PLEIADES
 
     #[test]
     fn non_forward_and_bad_arity_are_schema_errors() {
-        let bad = "geo,Sun,0.0,2416000.5,bwd,2416195.3,2416195.3\n";
+        let bad = "geo,Sun,0.0,2416000.5,bwd,2416195.3,tropical,2416195.3\n";
         assert!(matches!(
             validate_crossings_csv(bad).unwrap_err(),
             CrossingsCorpusError::Schema { .. }
         ));
-        let short = "geo,Sun,0.0,2416000.5,fwd,2416195.3\n";
+        let short = "geo,Sun,0.0,2416000.5,fwd,2416195.3,tropical\n";
         assert!(matches!(
             validate_crossings_csv(short).unwrap_err(),
             CrossingsCorpusError::Schema { .. }
@@ -364,10 +415,60 @@ geo,Sun,10.000000,2416000.500000,fwd,2416195.301931810,PLEIADES
     }
 
     #[test]
+    fn parse_reference_reads_frames_and_zodiacs() {
+        use pleiades_types::{Ayanamsa, ZodiacMode};
+        let geo = parse_reference("geo", "tropical").unwrap();
+        assert_eq!(
+            geo,
+            CrossingReference::tropical(CrossingFrame::GeocentricApparentOfDate)
+        );
+        let mean = parse_reference("geo-mean", "Lahiri").unwrap();
+        assert_eq!(mean.frame, CrossingFrame::GeocentricMeanOfDate);
+        assert_eq!(
+            mean.zodiac,
+            ZodiacMode::Sidereal {
+                ayanamsa: Ayanamsa::Lahiri
+            }
+        );
+        for name in ["TrueCitra", "GalacticCenter", "DeLuce"] {
+            assert!(parse_reference("geo", name).is_some(), "{name}");
+        }
+        assert!(parse_reference("geo", "Nonesuch").is_none());
+        assert!(parse_reference("lunar", "tropical").is_none());
+        // The heliocentric frame is tropical only.
+        assert!(parse_reference("helio", "Lahiri").is_none());
+    }
+
+    #[test]
+    fn unknown_zodiac_is_a_schema_error() {
+        let csv = "geo,Sun,0.0,2416000.5,fwd,2416195.3,Nonesuch,2416195.3\n";
+        assert!(matches!(
+            validate_crossings_csv(csv).unwrap_err(),
+            CrossingsCorpusError::Schema { .. }
+        ));
+    }
+
+    #[test]
+    fn tier2_honours_the_zodiac_column() {
+        // The SE time below is the tropical 0° crossing. Labelled Lahiri, the
+        // engine's sidereal longitude there is about 24° short of the target.
+        let csv = "\
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb,zodiac,pleiades_jd_tdb
+geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,Lahiri,PLEIADES
+";
+        let csv = fill_golden_for_test(csv);
+        let err = validate_crossings_csv(&csv).unwrap_err();
+        assert!(
+            matches!(err, CrossingsCorpusError::ParityExceeded { .. }),
+            "{err:?}"
+        );
+    }
+
+    #[test]
     fn nan_golden_residual_fails_closed() {
         let csv = "\
-frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb,pleiades_jd_tdb
-geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,NaN
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb,zodiac,pleiades_jd_tdb
+geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,tropical,NaN
 ";
         let err = validate_crossings_csv(csv).unwrap_err();
         assert!(
@@ -379,17 +480,12 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,NaN
     // Test helper: replace a literal `PLEIADES` golden placeholder with the
     // engine's real next-crossing time so a crafted row exercises Tier 2 alone.
     fn fill_golden_for_test(csv: &str) -> String {
-        use pleiades_events::{CrossingFrame, EventEngine};
         let engine = EventEngine::new(packaged_backend());
         let mut out = String::new();
         for line in csv.lines() {
             if let Some(idx) = line.find(",PLEIADES") {
                 let f: Vec<&str> = line[..idx].split(',').collect();
-                let frame = if f[0] == "geo" {
-                    CrossingFrame::GeocentricApparentOfDate
-                } else {
-                    CrossingFrame::Heliocentric
-                };
+                let reference = parse_reference(f[0], f[6]).unwrap();
                 let body = parse_body(f[1]).unwrap();
                 let target = Longitude::from_degrees(f[2].parse::<f64>().unwrap());
                 let after = Instant::new(
@@ -397,7 +493,7 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,NaN
                     TimeScale::Tdb,
                 );
                 let c = engine
-                    .next_longitude_crossing(body, target, frame, after)
+                    .next_longitude_crossing(body, target, reference, after)
                     .unwrap()
                     .unwrap();
                 out.push_str(&format!(
@@ -428,20 +524,16 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,NaN
                 continue;
             }
             let f: Vec<&str> = line.split(',').collect();
-            let frame = match f[0] {
-                "geo" => CrossingFrame::GeocentricApparentOfDate,
-                "helio" => CrossingFrame::Heliocentric,
-                other => panic!("unknown frame {other}"),
-            };
+            let reference = parse_reference(f[0], f[6].trim()).expect("reference");
             let body = parse_body(f[1]).expect("known body");
             let target: f64 = f[2].parse().expect("target");
             let se_jd: f64 = f[5].parse().expect("se jd");
             let se_instant = Instant::new(JulianDay::from_days(se_jd), TimeScale::Tdb);
             let lambda = engine
-                .longitude_at(body.clone(), frame, se_instant)
+                .longitude_at(body.clone(), &reference, se_instant)
                 .expect("longitude_at");
             let residual_arcsec = wrap180_deg(lambda.degrees() - target).abs() * 3600.0;
-            let group = format!("{}/{}", f[0], f[1]);
+            let group = format!("{}/{}/{}", f[0], f[6].trim(), f[1]);
             let entry = max_by_group.entry(group).or_insert((0.0, String::new()));
             if residual_arcsec > entry.0 {
                 *entry = (residual_arcsec, line.to_string());

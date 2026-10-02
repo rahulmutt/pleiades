@@ -18,6 +18,7 @@ serde = ["dep:serde", "pleiades-types/serde"]
 pleiades-types = { workspace = true }
 pleiades-backend = { workspace = true }
 pleiades-apparent = { workspace = true }
+pleiades-ayanamsa = { workspace = true }
 pleiades-apsides = { workspace = true }
 pleiades-time = { workspace = true }
 serde = { workspace = true, optional = true }
@@ -30,6 +31,7 @@ pleiades-elp = { path = "../pleiades-elp" }
 pleiades-jpl = { path = "../pleiades-jpl" }
 pleiades-fict = { path = "../pleiades-fict" }
 pleiades-core = { path = "../pleiades-core" }
+serde_json = "1"
 
 [package.metadata.docs.rs]
 all-features = true

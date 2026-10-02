@@ -2,6 +2,7 @@
 
 use super::{motion, sample};
 use crate::crossings::CrossingFrame;
+use crate::reference::CrossingReference;
 use pleiades_data::packaged_backend;
 use pleiades_types::CelestialBody;
 
@@ -12,16 +13,17 @@ fn of_date_speed_exceeds_the_j2000_speed_by_the_precession_rate() {
     const PRECESSION_DEG_PER_DAY: f64 = 3.82e-5;
     let backend = packaged_backend();
     let body = CelestialBody::Neptune;
+    let helio: CrossingReference = CrossingFrame::Heliocentric.into();
     let epochs = 366;
     let mut excesses = Vec::with_capacity(epochs);
     for day in 0..epochs {
         let jd = 2_451_545.0 + day as f64;
-        let centre = sample(&backend, &body, CrossingFrame::Heliocentric, jd).expect("sample");
+        let centre = sample(&backend, &body, &helio, jd).expect("sample");
         let base = centre
             .base_motion
             .and_then(|m| m.longitude_deg_per_day)
             .expect("J2000 base speed");
-        let of_date = motion(&backend, &body, CrossingFrame::Heliocentric, jd, &centre)
+        let of_date = motion(&backend, &body, &helio, jd, &centre)
             .longitude_deg_per_day
             .expect("of-date speed");
         excesses.push(of_date - base);

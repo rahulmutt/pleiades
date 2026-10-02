@@ -250,6 +250,7 @@ version = "0.6.0"
 dependencies = [
  "pleiades-apparent",
  "pleiades-apsides",
+ "pleiades-ayanamsa",
  "pleiades-backend",
  "pleiades-core",
  "pleiades-data",
@@ -260,6 +261,7 @@ dependencies = [
  "pleiades-types",
  "pleiades-vsop87",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
