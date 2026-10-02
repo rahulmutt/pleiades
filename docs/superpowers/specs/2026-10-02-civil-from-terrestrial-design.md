@@ -116,6 +116,18 @@ an instant before 1900 reports the window, matching the forward's order.
 
 ### Algorithm
 
+0. **Millisecond axis.** The inverse quantizes once, early, to a whole
+   number of milliseconds (`ms_from_jd`: day number `floor(JD + 0.5)` times
+   86 400 000 plus the rounded millisecond of day, as an `i64`). Leap
+   thresholds are exact integers on that axis, so every comparison below is
+   an integer comparison and a millisecond-aligned civil input round-trips to
+   identical fields. The civil date comes from
+   `CivilDateTime::from_julian_day` evaluated at an exact midnight; hour,
+   minute and second come from the integer millisecond of day. Julian-day
+   expressions below are shorthand for this integer arithmetic. An instant
+   more than one day outside the support window is rejected as
+   `BeyondHorizon` before quantizing, so the `i64` cannot overflow.
+
 1. **To TT.** For a TDB instant, `jd_tt = jd_tdb − tdb_minus_tt_seconds(jd_tdb) / 86400`.
    The forward evaluates the periodic term at `jd_tt`; evaluating it at
    `jd_tdb` differs by under 1e-12 s and is not iterated.
@@ -129,13 +141,12 @@ an instant before 1900 reports the window, matching the forward's order.
    - `jd_tai < T_0` → before 1972: `BeyondHorizon { jd: jd_tt }` if
      `jd_tt < SUPPORT_START_JD`, otherwise `UtcBeforeLeapEpoch`.
    - Find the last row `i` with `jd_tai >= T_i`. Then
-     `jd_utc = jd_tai − secs_i / 86400`, the civil datetime is
-     `CivilDateTime::from_julian_day(jd_utc)`, and
-     `tai_minus_utc = Some(secs_i)`.
+     `jd_utc = jd_tai − secs_i / 86400`, the civil datetime is built from
+     that millisecond count, and `tai_minus_utc = Some(secs_i)`.
    - **Leap second.** If a next row exists and
      `jd_tai >= T_{i+1} − 1 s`, the instant is inside the inserted second.
-     The fraction is `f = (jd_tai − (T_{i+1} − 1 s)) × 86400`, rounded to
-     the millisecond and clamped to `[0, 0.999]`. The civil datetime is the
+     The fraction is `f = jd_tai − (T_{i+1} − 1 s)`, a whole number of
+     milliseconds in `[0, 999]`. The civil datetime is the
      date of `effective_{i+1} − 1 day` at `23:59:(60 + f)`, with
      `tai_minus_utc = Some(secs_i)` (the offset in force during the leap
      second).
@@ -208,9 +219,9 @@ does not remove the step; it predates this work and is described in
 - The round trip civil → TT/TDB → civil returns the starting datetime to
   within **1 ms**. `from_julian_day` rounds to the millisecond, and a Julian
   day near 2.46e6 resolves about 40 µs.
-- A result within half a millisecond below a minute boundary may round up to
-  the boundary; `from_julian_day` already handles the end-of-day case. Inside
-  a leap second the fraction is clamped so the result never reaches `61.0`.
+- Rounding happens once, on the millisecond axis, before any field is split,
+  so a result never shows `second == 60.0` outside a leap second and never
+  reaches `61.0` inside one.
 
 Rustdoc on `from_terrestrial` states the 1 ms figure, the quality tiers, the
 leap-second representation and the 2020-node choice, with a doctest that
@@ -302,11 +313,11 @@ Blocking-tier commands: `cargo fmt --all --check`, strict clippy,
 - **Stricter forward contract.** A caller passing `:60` loosely now gets an
   error. Mitigated by the breaking marker and a changelog note; the previous
   result was wrong by a second in the only case where `:60` is meaningful.
-- **Julian-day resolution at the leap boundary.** The leap-second test
-  compares `jd_tai` against `T_{i+1} − 1 s` with about 40 µs of resolution, so
-  an instant within that distance of the boundary may fall on either side.
-  Both sides agree to within the stated 1 ms, and the per-insertion tests
-  sample at 0.5 s offsets, well clear of it.
+- **Julian-day resolution at the leap boundary.** The input Julian day
+  resolves about 40 µs. Quantizing to the millisecond first means an instant
+  that is millisecond-aligned up to that noise lands on its exact
+  millisecond, so boundary samples (`23:59:60.000`, `00:00:00.000`) are
+  deterministic and are tested directly.
 - **Chart request path.** `pleiades-core` `chart/request.rs` calls the forward
   conversion; its tests are re-run to confirm no caller relied on the `:60`
   aliasing.
