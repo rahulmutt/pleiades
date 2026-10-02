@@ -79,7 +79,7 @@ The domain layer should support, either initially or in later phases:
 
 - retrograde and stationary classification, and the instants of stations (`pleiades-events` `EventEngine::stations_in_range` / `next_station`)
 - planetary speed bands
-- aspects and orb-ready angular separations
+- aspects and orb-ready angular separations, and the instants an aspect between two bodies is exact (`pleiades-events` `EventEngine::aspects_in_range` / `next_aspect`)
 - house placement and sign placement
 - optional higher-level chart helpers, such as dignities, built above the core domain layer
 

@@ -110,8 +110,9 @@ fn run_all_numeric_gates() -> Result<(), String> {
     // and in nightly `test-full`. The battery compares the mean/sid subset.
     crate::validate_stations_corpus_subset()
         .map_err(|e| format!("stations gate (mean/sid subset) failed: {e}"))?;
-    // The full aspects gate takes minutes; it runs as `validate-aspects`
-    // and in nightly `test-full`. The battery compares the mean subset.
+    // The full aspects gate takes ~15 minutes; it runs as `mise run
+    // gate-aspects` (its own nightly job and a `release-gate` dependency).
+    // The battery compares the mean subset.
     crate::validate_aspects_corpus_subset()
         .map_err(|e| format!("aspects gate (mean subset) failed: {e}"))?;
     crate::validate_equatorial_goldens().map_err(|e| format!("equatorial gate failed: {e}"))?;

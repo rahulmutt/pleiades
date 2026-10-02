@@ -2485,3 +2485,79 @@ The gate runs in two tiers (2026-10-02):
 
 **Severity:** (a) documented limit, (b)–(d) feature gaps, (e) performance,
 (f)–(g) documented notes · **Opened:** 2026-10-02
+
+---
+
+## FU-22: Exact-aspect event finder (issue #84)
+
+**Status:** resolved (2026-10-02; full gate measured 1110.8 s as a test, 880 s
+as the command) · Spec
+`docs/superpowers/specs/2026-10-02-aspect-exactness-design.md`, plan
+`docs/superpowers/plans/2026-10-02-aspect-exactness.md`.
+
+`EventEngine::aspects_in_range` and `EventEngine::next_aspect`
+(`pleiades-events` `src/aspects.rs`) find the instants the ecliptic
+separation of two bodies equals an unsigned angle, on both sides. The scan
+(`root.rs` `level_crossings_in_range`) splits each step at the turning points
+of the separation. `EventError` gained `InvalidAspect` (not breaking).
+
+**Gate:** `validate-aspects` (10359-row Swiss Ephemeris exact-aspect corpus,
+`tools/se-aspects-reference`). Measured 2026-10-02:
+
+```
+Aspects gate: 10359 exact aspects validated across 11 pairs vs Swiss Ephemeris corpus (event for event at 0, 60, 90, 120 and 180 degrees), max separation residual 2.894", max time 744.8 s, max lon 2.324"
+geo Sun-Moon: 3959 compared (0°: 494, 60°: 990, 90°: 990, 120°: 990, 180°: 495), max sep 2.894", max time 5.2 s, mean signed time +0.5 s, max lon 0.394"
+geo Sun-Mercury: 1261 compared (0°: 1261, 60°: 0, 90°: 0, 120°: 0, 180°: 0), max sep 0.146", max time 2.4 s, mean signed time +0.3 s, max lon 0.400"
+geo Mercury-Venus: 972 compared (0°: 496, 60°: 476, 90°: 0, 120°: 0, 180°: 0), max sep 0.473", max time 101.7 s, mean signed time +0.8 s, max lon 2.324"
+geo Venus-Mars: 1046 compared (0°: 167, 60°: 281, 90°: 268, 120°: 236, 180°: 94), max sep 0.958", max time 44.5 s, mean signed time +1.6 s, max lon 1.489"
+geo Mars-Jupiter: 842 compared (0°: 91, 60°: 209, 90°: 209, 120°: 201, 180°: 132), max sep 2.211", max time 177.7 s, mean signed time -0.7 s, max lon 0.801"
+geo Mars-Saturn: 872 compared (0°: 101, 60°: 213, 90°: 219, 120°: 223, 180°: 116), max sep 1.114", max time 70.6 s, mean signed time +1.6 s, max lon 1.075"
+geo Jupiter-Saturn: 210 compared (0°: 14, 60°: 42, 90°: 52, 120°: 66, 180°: 36), max sep 1.119", max time 533.3 s, mean signed time +0.5 s, max lon 2.231"
+geo Saturn-Pluto: 109 compared (0°: 10, 60°: 28, 90°: 26, 120°: 30, 180°: 15), max sep 1.565", max time 744.8 s, mean signed time -28.5 s, max lon 1.662"
+mean Mercury-Venus: 196 compared (0°: 100, 60°: 96, 90°: 0, 120°: 0, 180°: 0), max sep 0.384", max time 102.0 s, mean signed time +0.8 s, max lon 2.319"
+mean Mars-Saturn: 176 compared (0°: 20, 60°: 43, 90°: 43, 120°: 46, 180°: 24), max sep 0.825", max time 70.0 s, mean signed time +1.0 s, max lon 0.639"
+helio Mars-Jupiter: 716 compared (0°: 89, 60°: 179, 90°: 179, 120°: 179, 180°: 90), max sep 0.530", max time 34.4 s, mean signed time -1.1 s, max lon 0.747"
+```
+
+The gate runs in two tiers:
+
+- **Release battery** (`run_all_numeric_gates`: blocking `release-smoke`, and
+  the battery tests in nightly `test-full`): `validate_aspects_corpus_subset`
+  verifies the whole corpus's checksum and row count, then compares the
+  `mean` group only (372 events), about 16.3 s in the dev profile.
+  `release-smoke` went from 181 s to 198 s with this change.
+- **Full gate** (all 11 pairs, 10359 events): `mise run gate-aspects` (the
+  `validate-aspects` command, dev profile, 880 s wall), in its own nightly job
+  `aspects-gate` (`.github/workflows/nightly.yml`, 90-minute cap, own
+  failure-issue template), and a `release-gate` dependency. It is not in
+  nightly `test-full`: the in-crate test `aspects_gate_passes_within_ceilings`
+  took 1110.8 s in the test profile, so it runs only with
+  `PLEIADES_FULL_ASPECTS_GATE=1`. No release-profile time was measured.
+
+**Open items:**
+
+- **(a) The turning-point split is untested by the corpus.** Over the eight
+  geocentric corpus pairs and 200 years, a plain sign-change scan and the
+  turning-point scan return the same events; the closest two events are 1.59
+  days apart (Mercury–Venus conjunctions) against a 1-day step. The split is
+  covered by the synthetic `root::level_tests` only.
+- **(b) Two turning points within two steps of each other** may go unseen,
+  and with them a pair of exact moments between them. No planetary pair does
+  this; an oscillating lunar point (true node, osculating apogee) paired with
+  a slow body might.
+- **(c) No graze in the corpus.** The reference tool fails if a separation
+  turns within 30″ of an angle, so a near-tangent pair of events, whose
+  existence would depend on the ephemeris, is never compared. The closest
+  turn in the corpus pairs is 102″ (Venus–Mars at 60°). Adding a pair or an
+  angle that grazes needs a gate rule for it first.
+- **(d) `previous_aspect`** is not provided; it would inherit FU-13's
+  backward-search caveat.
+- **(e) No user-facing CLI aspects command**, and no batch call over several
+  angles or pairs. The gate scans each pair once per angle for that reason.
+- **(f) Ungated bodies.** The lunar points, asteroids and fictitious bodies
+  are accepted by the finders but have no reference corpus.
+- **(g) Cost for a pair that never reaches the angle.** `next_aspect` scans to
+  the end of the window before returning `None` (about 0.15 ms per step).
+
+**Severity:** (a)–(c) documented limits, (d)–(f) feature gaps, (g)
+performance · **Opened:** 2026-10-02

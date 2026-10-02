@@ -1,6 +1,6 @@
 # Event finder for exact aspects between two bodies (issue #84) — design
 
-**Status:** approved (2026-10-02), amended after the pre-plan probe ·
+**Status:** implemented (2026-10-02) ·
 **Opened:** 2026-10-02 · **Issue:** #84 ·
 **Crates:** `pleiades-events`, `pleiades-validate`, `pleiades-cli` (gate
 command routing only), `pleiades-core` (compatibility profile entry only) ·
@@ -475,3 +475,14 @@ Also settled here: the gate cannot share one scan across a pair's five
 angles through the public API, so the "Gate runtime" mitigation above does
 not apply. The plan measures the full gate and the release-battery subset
 and stops for a decision if either is over its budget.
+
+## Amendment (2026-10-02, implementation)
+
+The full gate measured 1110.8 s in the test profile (880 s as the
+`validate-aspects` command), against the plan's 600 s budget. Decision (user):
+it leaves nightly `test-full` and runs as `mise run gate-aspects` in its own
+nightly job `aspects-gate` (90-minute cap, own failure-issue template), and is
+a `release-gate` dependency; the in-crate test
+`aspects_gate_passes_within_ceilings` runs only with
+`PLEIADES_FULL_ASPECTS_GATE=1`. The mean subset (372 events, 16.3 s in the dev
+profile) stays in the release battery.

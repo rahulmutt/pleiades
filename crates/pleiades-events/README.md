@@ -1,6 +1,6 @@
 # pleiades-events
 
-Ephemeris event-finding for the `pleiades` astrology workspace: longitude crossings of the Sun, Moon, and planets, their ecliptic positions and speeds, and their stations.
+Ephemeris event-finding for the `pleiades` astrology workspace: longitude crossings of the Sun, Moon, and planets, their ecliptic positions and speeds, their stations, and the exact moments of the aspects between them.
 
 `EventEngine::position_at(body, frame, instant)` returns the full ecliptic
 position in either `CrossingFrame`: longitude, latitude and distance, with
@@ -96,3 +96,52 @@ about every two weeks; whether a touch crosses zero for a few hours depends on
 the ephemeris, so the gate compares only true-node stations at least 3 days
 from their neighbours. Stations of asteroids, fictitious bodies and the
 osculating apogee are found but not gated.
+
+## Aspects
+
+`EventEngine::aspects_in_range(first, second, angle, reference, start, end)`
+and `EventEngine::next_aspect(first, second, angle, reference, after)` find
+the instants the ecliptic separation of two bodies equals an angle. An
+`AspectEvent` carries the TDB instant and both longitudes.
+
+The angle is an unsigned separation from 0° to 180°. An angle strictly
+between the two is found on both sides: asking for 90° returns the moments
+the first body is 90° ahead of the second and the moments it is 90° behind,
+and the two longitudes say which. The moment a pair enters a 3° orb of a
+square is the exact moment of the 87° or 93° separation. A returned instant
+can be handed back to `next_aspect`, which then returns the following event.
+
+A pair that approaches an angle and turns back before reaching it returns
+nothing. A sidereal zodiac changes the reported longitudes, not the instants:
+the ayanamsa cancels in the separation.
+
+The search steps by the smaller of the two bodies' steps (0.25 day for the
+Moon and the lunar points, 1 day for the Sun, Mercury and Venus, 2 days
+otherwise) and splits each step where the separation turns, so two exact
+moments inside one step, around a station, are both found. Two turning points
+within two steps of each other may go unseen, and an event within two steps
+of either end of the 1900–2100 window is not reported.
+
+An aspect's instant is firm for a fast pair and soft for a slow pair near a
+station, where the pair's relative speed is close to zero and a small
+difference between two ephemerides is a large time difference.
+`validate-aspects` compares the engine, event for event at 0°, 60°, 90°, 120°
+and 180°, with the instants at which the difference of two Swiss Ephemeris
+(Moshier) longitudes equals the angle, 1900–2100 for the planet pairs. The
+separation difference is the time difference multiplied by the pair's
+relative speed:
+
+| Pair | Events | Largest separation difference | Largest time difference | Largest longitude difference |
+|---|---|---|---|---|
+| Sun–Moon (1990–2030) | 3959 | 2.894″ | 5.2 s | 0.394″ |
+| Sun–Mercury | 1261 | 0.146″ | 2.4 s | 0.400″ |
+| Mercury–Venus | 972 | 0.473″ | 101.7 s | 2.324″ |
+| Venus–Mars | 1046 | 0.958″ | 44.5 s | 1.489″ |
+| Mars–Jupiter | 842 | 2.211″ | 177.7 s | 0.801″ |
+| Mars–Saturn | 872 | 1.114″ | 70.6 s | 1.075″ |
+| Jupiter–Saturn | 210 | 1.119″ | 533.3 s | 2.231″ |
+| Saturn–Pluto | 109 | 1.565″ | 744.8 s | 1.662″ |
+
+The gate also covers Mercury–Venus and Mars–Saturn in the mean place and
+Mars–Jupiter from the Sun. Aspects of the lunar points, asteroids and
+fictitious bodies are found but not gated.
