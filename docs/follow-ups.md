@@ -2394,3 +2394,94 @@ such as `0.2.x` (`crates/pleiades-validate/src/release/readme_audit.rs`).
   copy of the publishable set and is not covered by the guard.
 - The published READMEs on crates.io change with the next release-plz release
   of each crate.
+
+---
+
+## FU-21: Planetary station finder (issue #85)
+
+**Status:** resolved (2026-10-02) · Spec
+`docs/superpowers/specs/2026-10-02-planetary-stations-design.md`, plan
+`docs/superpowers/plans/2026-10-02-planetary-stations.md`.
+
+`EventEngine::stations_in_range` and `EventEngine::next_station`
+(`pleiades-events` `src/stations.rs`) find sign changes of the longitude speed
+`position_at` reports. `EventError` gained `MissingSpeed` and is now
+`#[non_exhaustive]` (breaking).
+
+**Gate:** `validate-stations` (6576-row Swiss Ephemeris speed-zero corpus,
+`tools/se-stations-reference`). Measured 2026-10-02:
+
+```
+Stations gate: 5542 stations validated across 15 series vs Swiss Ephemeris speed-zero corpus (planets station-for-station; true node on stations separated by >= 3 d), max time 117467.6 s, max lon 51.338"
+geo Mercury: 1260 compared (engine 1260, corpus 1260), max time 9.3 s, mean signed time -4.2 s, max lon 0.381"
+geo Venus: 250 compared (engine 250, corpus 250), max time 21.5 s, mean signed time -1.3 s, max lon 0.542"
+geo Mars: 188 compared (engine 188, corpus 188), max time 54.9 s, mean signed time -5.0 s, max lon 1.119"
+geo Jupiter: 366 compared (engine 366, corpus 366), max time 101.0 s, mean signed time -5.8 s, max lon 0.695"
+geo Saturn: 386 compared (engine 386, corpus 386), max time 165.1 s, mean signed time -2.8 s, max lon 0.638"
+geo Uranus: 396 compared (engine 396, corpus 396), max time 318.7 s, mean signed time -4.5 s, max lon 0.505"
+geo Neptune: 398 compared (engine 398, corpus 398), max time 495.4 s, mean signed time +11.0 s, max lon 2.314"
+geo Pluto: 398 compared (engine 398, corpus 398), max time 1292.7 s, mean signed time -56.6 s, max lon 1.255"
+geo TrueNode: 1166 compared (engine 2002, corpus 2200), max time 117467.6 s, mean signed time +446.4 s, max lon 51.338"
+mean Mercury: 252 compared (engine 252, corpus 252), max time 6.4 s, mean signed time -4.0 s, max lon 0.183"
+mean Mars: 38 compared (engine 38, corpus 38), max time 28.8 s, mean signed time -5.5 s, max lon 0.638"
+mean Saturn: 77 compared (engine 77, corpus 77), max time 30.1 s, mean signed time -3.4 s, max lon 0.554"
+sid Mercury: 252 compared (engine 252, corpus 252), max time 6.5 s, mean signed time -4.1 s, max lon 0.312"
+sid Mars: 38 compared (engine 38, corpus 38), max time 28.9 s, mean signed time -5.5 s, max lon 0.769"
+sid Saturn: 77 compared (engine 77, corpus 77), max time 30.4 s, mean signed time -3.5 s, max lon 0.679"
+```
+
+The gate runs in two tiers (2026-10-02):
+
+- **Release battery** (`run_all_numeric_gates`: blocking `release-smoke`, and
+  the battery tests in nightly `test-full`): `validate_stations_corpus_subset`
+  verifies the whole corpus's checksum and row count, then compares the
+  `mean` and `sid` series only (Mercury, Mars, Saturn over 1990–2030; 734
+  stations, floor 734), about 24 s in the dev profile. Its summary line reads
+  `Stations gate (mean/sid subset): 734 stations validated across 6 series`.
+  `release-smoke` went from 553 s to 150 s with this change.
+- **Full gate** (`validate-stations`, and the
+  `stations_gate_passes_within_ceilings` test in nightly `test-full`, which
+  `release-gate` depends on): all 15 series, 5542 stations, 173 s in release
+  and 339 s in the dev profile.
+
+**Open items:**
+
+- **(a) The true node grazes zero.** Its speed touches zero about every two
+  weeks; over two years the engine finds 96, 98, 98 and 102 stations at steps
+  of 0.5, 0.25, 0.1 and 0.02 day. Pairs closer than the 0.25-day step are not
+  reported, and the gate compares only stations at least 3 days from their
+  neighbours. The separation was raised from the design's 2 days to 3 days by
+  measurement, and the true-node comparison is an existence-and-kind check
+  with a window of about three days; a tighter true-node comparison needs a
+  different metric. A concrete one: a distribution check on the compared
+  stations, e.g. "at least 90 % of compared true-node stations within 0.5 d
+  of their counterpart" (measured 2026-10-02: 1130 of 1166, 96.9 %). It would
+  catch a regression that moves every true-node station by a day, which the
+  present three-day existence window does not. Not implemented. A caller who
+  needs every graze has no way to ask for a finer step.
+- **(b) `previous_station`** is not provided; it would inherit FU-13's
+  backward-search caveat.
+- **(c) No user-facing CLI stations command.**
+- **(d) Ungated bodies.** Asteroids, fictitious bodies and the osculating
+  apogee are accepted by the finders but have no reference corpus (FU-7
+  records asteroid speed defects).
+- **(e) Cost for bodies that never station.** `next_station` scans to the end
+  of the window before returning `None` (about 0.3 ms per step).
+- **(f) Swiss Ephemeris speed convention.** Moshier planet speed is a
+  backward difference over `PLAN_SPEED_INTV` = 0.0001 day (`swemplan.c`), so
+  its speed zero lands 4.32 s late. That convention explains Mercury's
+  engine-minus-corpus mean of about -4.2 s (99.5 % of stations negative, both
+  kinds); it is included in the measured maxima and is not an engine defect.
+  For the slower planets the mean is dominated by scatter. **Open
+  observation:** Pluto's mean is -56.6 s (turning retrograde about -65 s,
+  turning direct about -48 s in the probe), which the 4.32 s convention does
+  not explain. It is well inside Pluto's 2000 s time ceiling and has not been
+  investigated.
+- **(g) Reference-tool NaN.** Swiss Ephemeris Moshier returns a NaN true-node
+  longitude speed at isolated grid instants (jd_tt 2451544.9 and 2451545.1);
+  `tools/se-stations-reference` skips an isolated non-finite grid sample
+  (logged to stderr) and aborts on anything else non-finite. No station lies
+  near them.
+
+**Severity:** (a) documented limit, (b)–(d) feature gaps, (e) performance,
+(f)–(g) documented notes · **Opened:** 2026-10-02

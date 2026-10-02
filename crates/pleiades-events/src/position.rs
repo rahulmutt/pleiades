@@ -136,6 +136,19 @@ fn motion<B: EphemerisBackend>(
     apparent_motion(base, &earlier, &later)
 }
 
+/// The place and speed [`EventEngine::position_at`] reports, without its
+/// window and frame guards. The station finder root-finds on the speed.
+pub(crate) fn place_and_motion<B: EphemerisBackend>(
+    backend: &B,
+    body: &CelestialBody,
+    reference: &CrossingReference,
+    julian_day: f64,
+) -> Result<(EclipticCoordinates, Motion), EventError> {
+    let centre = sample(backend, body, reference, julian_day)?;
+    let motion = motion(backend, body, reference, julian_day, &centre);
+    Ok((centre.corrected, motion))
+}
+
 impl<B: EphemerisBackend> EventEngine<B> {
     /// Ecliptic position and speed of `body` in `reference` at `instant` (TDB).
     ///
@@ -215,14 +228,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let jd = instant.julian_day.days();
         self.check_window(jd)?;
         check_supported(&body, &reference, jd, "position is")?;
-        let centre = sample(&self.backend, &body, &reference, jd)?;
-        let motion = motion(&self.backend, &body, &reference, jd, &centre);
+        let (ecliptic, motion) = place_and_motion(&self.backend, &body, &reference, jd)?;
         Ok(EclipticPosition {
             body,
             frame: reference.frame,
             zodiac: reference.zodiac,
             instant,
-            ecliptic: centre.corrected,
+            ecliptic,
             motion,
         })
     }
