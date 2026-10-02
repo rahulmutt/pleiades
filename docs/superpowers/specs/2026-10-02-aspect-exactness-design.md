@@ -197,23 +197,27 @@ existing variants as in `longitude_at`: `OutOfWindow`, `UnsupportedFrame`,
   - A falsely detected turning point (noise in a nearly flat separation)
     only adds a breakpoint. It cannot create an event, because an event
     still requires a sign change.
-  - One, two or three exact moments in a step are all found when the step
-    holds at most one turning point.
+  - *(Corrected — see the plan-writing amendment at the end.)* One or two
+    exact moments in a step are found. Three are found when two of them
+    share a step and the two turning points between them are more than two
+    steps apart.
   - Zero counts as the negative side, as in `bisect`. An exact tangency
     (the turning value equal to the level in floating point) reports no
     event.
 - **Step.** The smaller of `stations::step_days` for the two bodies (made
   `pub(crate)`). The station table is the right one because turning points
   of the separation come from the bodies' speed changes.
-- **Window clamp.** The scan runs over `[max(start, WINDOW_START + step),
-  min(end, WINDOW_END − step)]`, as crossings do.
+- **Window clamp.** The scan runs over `[max(start, WINDOW_START + 2·step),
+  min(end, WINDOW_END − 2·step)]`: the scanner looks one step behind its
+  start and up to two past its end.
 - **Event construction.** Both longitudes are read by `ecliptic_in` at the
   settled instant.
 - **Known limits**, documented on both finders:
-  - two turning points of the separation inside one step are not resolved
-    (this needs a separation that reverses twice within 0.25 to 2 days);
+  - two turning points of the separation within two steps of each other
+    may not be resolved (this needs a separation that reverses twice within
+    0.5 to 4 days);
   - an overshoot of the angle smaller than the ephemeris noise is not seen;
-  - an event within one step of either window end is not reported.
+  - an event within two steps of either window end is not reported.
 - **Cost.** Two place samples per step, plus a few dozen at each turning
   point, which are rare. Measured in the pre-plan probe and recorded.
 
@@ -440,3 +444,34 @@ Decision (user, 2026-10-02): **no graze zones.**
   167, 281, 268, 236, 94; Mars–Jupiter 91, 209, 209, 201, 132; Mars–Saturn
   101, 213, 219, 223, 116; Jupiter–Saturn 14, 42, 52, 66, 36; Saturn–Pluto
   10, 28, 26, 30, 15.
+
+## Amendment (2026-10-02, plan writing)
+
+Prototyping the scanner on synthetic functions before the plan corrected
+four points of this design. The text above is edited where marked.
+
+1. **Three exact moments inside one step are not all found.** Three roots in
+   one step need two turning points in that step, and on a monotone triple of
+   samples the slope test sees neither; the scan then reports one of the
+   three. What is found: two exact moments in one step, and three when two of
+   them share a step and the turning points are more than two steps apart.
+   A planetary retrograde loop has its turning points weeks apart, so every
+   loop in the probe's 200 years is of the second kind. The earlier claim
+   that "one, two or three exact moments in a step are all found" was wrong.
+2. **A flat pair of samples counts as a turn.** The test is "the slope into
+   the middle sample is non-zero and the slope out of it has the opposite
+   sign or is zero". With a strict opposite-sign test, a peak exactly midway
+   between two grid points (equal samples either side) was missed.
+3. **The window clamp is two steps, not one.** The scanner samples one step
+   before its start (to see a turning point in its first step) and up to two
+   steps past its end (one of look-ahead), so the finders clamp the scan two
+   steps inside each window end.
+4. **Test placement follows the stations precedent.** The scanner's
+   synthetic tests live in `src/root/level_tests.rs`, the finders' pure
+   pieces in `src/aspects/tests.rs`, and the tests on `packaged_backend()`
+   in `crates/pleiades-events/tests/aspects.rs`.
+
+Also settled here: the gate cannot share one scan across a pair's five
+angles through the public API, so the "Gate runtime" mitigation above does
+not apply. The plan measures the full gate and the release-battery subset
+and stops for a decision if either is over its budget.
