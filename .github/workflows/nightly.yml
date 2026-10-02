@@ -69,8 +69,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # gitleaks (mise run secrets) scans full history
 
       - name: Set up mise
         uses: jdx/mise-action@v2
@@ -85,9 +83,9 @@ jobs:
             ~/.cargo
             ~/.local/share/mise # mise-installed tool binaries: avoids recompiling cargo: tools each run
             target # compiled workspace artifacts: avoids a full cold rebuild each run
-          key: ${{ runner.os }}-rust-${{ hashFiles('mise.toml', 'Cargo.lock') }}
+          key: ${{ runner.os }}-rust-aspects-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-rust-
+            ${{ runner.os }}-rust-aspects-
 
       - name: Install mise-managed tools
         run: mise install

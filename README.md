@@ -246,7 +246,7 @@ mise run release-smoke
 mise run release-gate
 ```
 
-`release-smoke` runs the native dependency audit, validates the bundled compressed artifact, stages a release bundle, and verifies the bundle. `release-gate` also runs formatting, clippy, tests, and benchmark generation before invoking the smoke path.
+`release-smoke` runs the native dependency audit, validates the bundled compressed artifact, stages a release bundle, and verifies the bundle. `release-gate` also runs formatting, clippy, tests, and benchmark generation before invoking the smoke path, and the full exact-aspect gate (about 15 minutes, `mise run gate-aspects`).
 
 ## Documentation map
 

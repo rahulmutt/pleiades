@@ -9,9 +9,10 @@
 //! separation turns within 30 arcseconds of an angle, so no corpus event
 //! depends on the ephemeris. See `aspects_thresholds` for the ceilings.
 //!
-//! Tiers: the full gate (about 18.5 minutes) runs as `mise run gate-aspects`
-//! in its own nightly job and in `release-gate`; the `mean` subset (about
-//! 16 s) runs in the release battery (`release-smoke`).
+//! Tiers: the full gate (about 15 minutes as `mise run gate-aspects`, 880 s;
+//! 18.5 minutes as the in-crate test, 1110.8 s; dev/test profile, 2026-10-02)
+//! runs in its own nightly job and in `release-gate`; the `mean` subset
+//! (about 16 s) runs in the release battery (`release-smoke`).
 
 use crate::aspects_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_MEAN_SUBSET,
@@ -614,8 +615,8 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
 /// `MIN_ROWS_VALIDATED` (10359 events). Run by `validate-aspects` /
 /// `mise run gate-aspects` (its own nightly job and a `release-gate`
 /// dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test. About
-/// 1111 s (18.5 min) in the dev/test profile (2026-10-02), too slow for
-/// nightly `test-full`.
+/// 880 s (15 min) as the command and 1110.8 s (18.5 min) as the in-crate
+/// test, dev/test profile (2026-10-02); too slow for nightly `test-full`.
 pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
     validate(CORPUS_CSV, MANIFEST)
 }

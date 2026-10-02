@@ -481,6 +481,34 @@ fn ranges_touching_the_window_edges_work() {
         )
         .expect("next_aspect at the window end");
     assert_eq!(next, None);
+
+    // A 2-day-step pair exercises the wider scan margins at both edges.
+    let mars_saturn = |start: f64, end: f64| {
+        aspects(
+            CelestialBody::Mars,
+            CelestialBody::Saturn,
+            90.0,
+            GEO,
+            start,
+            end,
+        )
+    };
+    let early = mars_saturn(WINDOW_START_JD, WINDOW_START_JD + 400.0);
+    assert!(!early.is_empty(), "{early:?}");
+    assert_exact(&early, 90.0);
+    let late = mars_saturn(WINDOW_END_JD - 400.0, WINDOW_END_JD);
+    assert!(!late.is_empty(), "{late:?}");
+    assert_exact(&late, 90.0);
+    let next = engine
+        .next_aspect(
+            CelestialBody::Mars,
+            CelestialBody::Saturn,
+            Angle::from_degrees(90.0),
+            GEO,
+            tdb(WINDOW_END_JD),
+        )
+        .expect("next_aspect at the window end for a 2-day-step pair");
+    assert_eq!(next, None);
 }
 
 #[test]
@@ -509,14 +537,16 @@ fn a_body_the_backend_does_not_serve_is_an_error() {
         (CelestialBody::Mars, CelestialBody::Ceres),
     ] {
         let result = engine.aspects_in_range(
-            first,
-            second,
+            first.clone(),
+            second.clone(),
             Angle::from_degrees(0.0),
             GEO,
             tdb(J2000),
             tdb(J2000 + 30.0),
         );
         assert!(matches!(result, Err(EventError::Backend(_))), "{result:?}");
+        let next = engine.next_aspect(first, second, Angle::from_degrees(0.0), GEO, tdb(J2000));
+        assert!(matches!(next, Err(EventError::Backend(_))), "{next:?}");
     }
 }
 
