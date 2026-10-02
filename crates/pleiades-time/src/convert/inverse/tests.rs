@@ -283,3 +283,106 @@ fn conveniences_require_their_named_source_scale() {
         })
     );
 }
+
+mod properties {
+    use proptest::prelude::*;
+
+    use super::*;
+    use crate::convert::to_terrestrial;
+
+    /// Asserts the inverse reproduced the forward's provenance. ΔT is solved
+    /// rather than looked up, so it is compared to a microsecond.
+    fn assert_same_provenance(
+        back: &ConversionProvenance,
+        forward: &ConversionProvenance,
+    ) -> Result<(), TestCaseError> {
+        prop_assert_eq!(back.path, forward.path);
+        prop_assert_eq!(back.quality, forward.quality);
+        prop_assert_eq!(back.tai_minus_utc, forward.tai_minus_utc);
+        match (back.delta_t_seconds, forward.delta_t_seconds) {
+            (Some(a), Some(b)) => prop_assert!((a - b).abs() < 1e-6, "ΔT {a} vs {b}"),
+            (None, None) => {}
+            other => prop_assert!(false, "ΔT presence differs: {other:?}"),
+        }
+        Ok(())
+    }
+
+    /// Orders civil datetimes; `:60` sorts after `:59` on the same minute.
+    fn key(civil: CivilDateTime) -> (i32, u8, u8, u8, u8, f64) {
+        (
+            civil.year,
+            civil.month,
+            civil.day,
+            civil.hour,
+            civil.minute,
+            civil.second,
+        )
+    }
+
+    proptest! {
+        #[test]
+        fn utc_round_trips_through_tt_and_tdb(
+            ms in ms_from_jd(leap::LEAP_EPOCH_JD)..ms_from_jd(SUPPORT_END_JD),
+        ) {
+            let civil = civil_from_ms(ms);
+            for target in [TimeScale::Tt, TimeScale::Tdb] {
+                let forward = to_terrestrial(civil, TimeScale::Utc, target).unwrap();
+                let back = from_terrestrial(forward.instant, TimeScale::Utc).unwrap();
+                prop_assert_eq!(back.civil, civil);
+                prop_assert_eq!(back.scale, TimeScale::Utc);
+                assert_same_provenance(&back.provenance, &forward.provenance)?;
+            }
+        }
+
+        #[test]
+        fn leap_seconds_round_trip_at_every_millisecond(
+            index in 0usize..27,
+            ms in 0i64..1_000,
+        ) {
+            let insertion = &insertions()[index];
+            let civil = at(insertion.last_day, 23, 59, 60.0 + ms as f64 / 1_000.0);
+            for target in [TimeScale::Tt, TimeScale::Tdb] {
+                let forward = to_terrestrial(civil, TimeScale::Utc, target).unwrap();
+                let back = from_terrestrial(forward.instant, TimeScale::Utc).unwrap();
+                prop_assert_eq!(back.civil, civil);
+                prop_assert_eq!(back.provenance.tai_minus_utc, Some(insertion.offset_before));
+            }
+        }
+
+        #[test]
+        fn ut1_round_trips_away_from_the_2020_node(
+            ms in ms_from_jd(SUPPORT_START_JD)..ms_from_jd(SUPPORT_END_JD),
+        ) {
+            // The forward is two-to-one in a 0.216 s window at the node.
+            let node_ms = ms_from_jd(crate::deltat::OBSERVED_THROUGH_JD);
+            prop_assume!((ms - node_ms).abs() > 500);
+            let civil = civil_from_ms(ms);
+            for target in [TimeScale::Tt, TimeScale::Tdb] {
+                let forward = to_terrestrial(civil, TimeScale::Ut1, target).unwrap();
+                let back = from_terrestrial(forward.instant, TimeScale::Ut1).unwrap();
+                prop_assert_eq!(back.civil, civil);
+                prop_assert_eq!(back.scale, TimeScale::Ut1);
+                assert_same_provenance(&back.provenance, &forward.provenance)?;
+            }
+        }
+
+        #[test]
+        fn utc_inverse_is_monotonic_and_reenters_the_forward(
+            // TT from one minute after the UTC epoch; `gap` reaches past two
+            // days so pairs straddle leap seconds and the leap horizon.
+            a in (ms_from_jd(leap::LEAP_EPOCH_JD) + 60_000)
+                ..(ms_from_jd(SUPPORT_END_JD) - 300_000_000),
+            gap in 2i64..200_000_000,
+        ) {
+            let b = a + gap;
+            let civil_a = utc_civil_from_tt(tt(jd_from_ms(a))).unwrap().civil;
+            let civil_b = utc_civil_from_tt(tt(jd_from_ms(b))).unwrap().civil;
+            prop_assert!(key(civil_a) < key(civil_b), "{civil_a:?} !< {civil_b:?}");
+            // Every result is a datetime the forward accepts, and it lands
+            // within 1 ms of where it came from.
+            let again = to_terrestrial(civil_a, TimeScale::Utc, TimeScale::Tt).unwrap();
+            let error = (again.instant.julian_day.days() - jd_from_ms(a)) * SECONDS_PER_DAY;
+            prop_assert!(error.abs() < 1e-3, "re-entry error {error} s");
+        }
+    }
+}

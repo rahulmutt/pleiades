@@ -18,5 +18,8 @@ serde = ["dep:serde", "pleiades-types/serde"]
 pleiades-types = { workspace = true }
 serde = { workspace = true, optional = true }
 
+[dev-dependencies]
+proptest = { workspace = true }
+
 [package.metadata.docs.rs]
 all-features = true
