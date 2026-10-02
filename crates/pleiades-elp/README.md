@@ -15,7 +15,7 @@ serves the Swiss Ephemeris point from `pleiades-data` instead.
 
 ## Status
 
-Experimental `0.2.x`. Output is mean geometric coordinates; apparent-place corrections and topocentric requests are rejected. See the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
+Experimental, pre-1.0: breaking changes can land in any minor release. This backend returns mean geometric coordinates and rejects apparent and topocentric requests; the chart layer in `pleiades-core` applies those corrections on top of a backend. See the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
 
 ## License
 

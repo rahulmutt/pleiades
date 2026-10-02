@@ -142,6 +142,8 @@ pub(crate) use release::bundle_verify_helpers::{
     ensure_request_surface_summary_matches_current_rendering,
 };
 #[cfg(test)]
+pub(crate) use release::readme_audit::{audit_readme_crate_lists, audit_readme_release_series};
+#[cfg(test)]
 pub(crate) use release::workspace_audit::{
     audit_build_script_path, audit_lockfile_text, audit_manifest_text,
     audit_publishable_crate_files, audit_publishable_manifest_text, audit_tool_manifest_text,

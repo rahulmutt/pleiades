@@ -68,14 +68,28 @@ crate source in this repo; gate names are the runnable `validate-*` subcommands
 
 ## Published crates
 
-The eleven library crates (`pleiades-types`, `pleiades-backend`, `pleiades-core`,
-`pleiades-houses`, `pleiades-ayanamsa`, `pleiades-vsop87`, `pleiades-elp`,
-`pleiades-jpl`, `pleiades-compression`, `pleiades-time`, `pleiades-apparent`) are published to crates.io as
-experimental `0.2.x` releases under `MIT OR Apache-2.0`. The limits above apply
-to the published crates as well; production-accuracy claims wait on the phases
-in [PLAN.md](PLAN.md). `pleiades-cli`, `pleiades-data`, and `pleiades-validate`
-are contributor tooling and stay unpublished. The release procedure is
-documented in [docs/release-process.md](docs/release-process.md).
+The library crates are published to crates.io under `MIT OR Apache-2.0`:
+
+<!-- audit:published-crates -->
+`pleiades-types`, `pleiades-backend`, `pleiades-time`, `pleiades-apparent`,
+`pleiades-houses`, `pleiades-ayanamsa`, `pleiades-compression`,
+`pleiades-apsides`, `pleiades-vsop87`, `pleiades-elp`, `pleiades-jpl`,
+`pleiades-data`, `pleiades-fict`, `pleiades-core`, `pleiades-eclipse`,
+`pleiades-events`
+<!-- /audit:published-crates -->
+
+They are experimental, pre-1.0 releases, versioned per crate; crates.io shows
+each crate's current version. The limits above apply to the published crates as
+well; production-accuracy claims wait on the phases in [PLAN.md](PLAN.md).
+
+<!-- audit:unpublished-crates -->
+`pleiades-cli` and `pleiades-validate` are contributor tooling and stay
+unpublished.
+<!-- /audit:unpublished-crates -->
+
+Both lists are checked against the crate manifests by `mise run audit`. The
+release procedure is documented in
+[docs/release-process.md](docs/release-process.md).
 
 **Minimum supported Rust version: 1.99.0.** The MSRV is declared as
 `rust-version` in the workspace `Cargo.toml` and must match the toolchain
@@ -98,6 +112,9 @@ For the source-of-truth design and compatibility targets, read [SPEC.md](SPEC.md
 | `pleiades-vsop87` | Pure-Rust VSOP87B-backed planetary backend with generated binary coefficient tables and a Pluto approximate path. |
 | `pleiades-elp` | Compact Meeus-style lunar/lunar-point backend for Moon, mean/true node, and mean apogee/perigee channels. |
 | `pleiades-fict` | Fictitious/hypothetical body backend (SP-3): SE `seorbel.txt` bodies 40–58 as unperturbed Kepler orbits, definitional parity with Swiss Ephemeris via `validate-fictitious`. |
+| `pleiades-apsides` | Lunar orbit points: osculating and mean nodes and apsides from the Moon's state vector and mean elements, plus the shared Kepler-elements helpers. |
+| `pleiades-eclipse` | Global and per-observer local solar and lunar eclipse computation over the packaged 1900–2100 window. |
+| `pleiades-events` | Event engine: longitude crossings, ecliptic position and speed, rise/set/transit and horizontal coordinates, nodes and apsides, phase and magnitude, lunar occultations. |
 | `pleiades-jpl` | Reproducible de440-sourced JPL reference corpus (checksum-pinned, kernel SHA pinned, kernel not committed) and corpus-backed validation helpers behind a fail-closed gate. Also ingests external JPL-style products (Horizons vector-table / API JSON / generic CSV) into the corpus types via `pleiades-jpl::ingest`, with optional live fetch behind the default-off `horizons-fetch` feature. |
 | `pleiades-compression` | Compressed artifact data structures and codec helpers. |
 | `pleiades-data` | Packaged compressed-data backend and checked-in draft artifact fixture. |
