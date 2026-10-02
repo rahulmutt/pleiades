@@ -2369,3 +2369,28 @@ one second late in TT. `:60` is now accepted only at a real insertion.
   UT1), but its TT rounds to the millisecond of `2101-01-01T00:00:00.000`, so
   `from_terrestrial` returns `BeyondHorizon` for it. The window check applies
   after rounding and is not clamped.
+
+## FU-20: READMEs described an older release than the one published (issue #86)
+
+**Status:** resolved (2026-10-02) · Bounded change, no spec or plan document.
+
+**What:** the workspace README listed eleven published crates at `0.2.x` and
+called `pleiades-data` unpublished, when sixteen were published at 0.5.3 and
+0.6.0; eleven crate READMEs carried the same `0.2.x` status line, and the
+`pleiades-core` and `pleiades-data` READMEs denied capabilities the crates
+have (apparent and topocentric charts, the full packaged body set). The text
+is corrected and no README names a version any more.
+
+**Guard:** `workspace-audit` (`mise run audit`, blocking tier) now fails when
+the workspace README's marked published or unpublished crate list differs from
+the manifests' `publish` settings, or when any README pins a release series
+such as `0.2.x` (`crates/pleiades-validate/src/release/readme_audit.rs`).
+
+**Deferred:**
+
+- Capability prose in the READMEs is still hand-written; the guard covers the
+  crate lists and version literals only.
+- The crate list in `mise.toml`'s `package-check` task is a third hand-kept
+  copy of the publishable set and is not covered by the guard.
+- The published READMEs on crates.io change with the next release-plz release
+  of each crate.

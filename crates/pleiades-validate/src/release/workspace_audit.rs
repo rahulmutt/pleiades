@@ -8,9 +8,11 @@ use crate::*;
 
 use pleiades_core::{EphemerisError, EphemerisErrorKind};
 
+use super::readme_audit::{audit_readme_crate_lists, audit_readme_release_series};
+
 /// A deterministic workspace audit that checks for mandatory native build hooks
 /// in the first-party crates, lockfile, and pinned tooling manifest, plus
-/// publish metadata for publishable crates.
+/// publish metadata for publishable crates and README drift from the manifests.
 #[derive(Clone, Debug)]
 pub struct WorkspaceAuditReport {
     /// Workspace root used for the scan.
@@ -1106,8 +1108,43 @@ fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Er
         })
         .collect();
 
+    let unpublished_names: Vec<String> = manifests
+        .iter()
+        .filter(|(_, text)| manifest_is_package(text) && manifest_declares_publish_false(text))
+        .filter_map(|(_, text)| manifest_package_name(text))
+        .collect();
+
+    let workspace_readme_path = workspace_root.join("README.md");
+    if workspace_readme_path.is_file() {
+        let text = fs::read_to_string(&workspace_readme_path)?;
+        violations.extend(audit_readme_crate_lists(
+            &workspace_readme_path,
+            &text,
+            &publishable_names,
+            &unpublished_names,
+        ));
+        violations.extend(audit_readme_release_series(&workspace_readme_path, &text));
+    } else {
+        violations.push(WorkspaceAuditViolation {
+            path: workspace_readme_path,
+            rule: "readme.missing",
+            detail: "README.md is missing from the workspace root".to_string(),
+        });
+    }
+
     let root_manifest_path = workspace_root.join("Cargo.toml");
     for (path, text) in &manifests {
+        if let Some(crate_readme_path) = path
+            .parent()
+            .map(|dir| dir.join("README.md"))
+            .filter(|readme| *path != root_manifest_path && readme.is_file())
+        {
+            let readme_text = fs::read_to_string(&crate_readme_path)?;
+            violations.extend(audit_readme_release_series(
+                &crate_readme_path,
+                &readme_text,
+            ));
+        }
         violations.extend(audit_manifest_text(path, text));
         if let Some(violation) = audit_build_script_path(path) {
             violations.push(violation);

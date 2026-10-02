@@ -10,7 +10,7 @@ This crate sits at the base of the `pleiades-*` layering and depends on no other
 
 ## Status
 
-Experimental `0.2.x`. First-party backends expose mean geometric coordinates only, and broader accuracy claims are still gated; see the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
+Experimental, pre-1.0: breaking changes can land in any minor release. First-party backends return mean geometric coordinates; apparent place, topocentric correction, and civil-time conversion are applied above the backend boundary, by the chart layer in `pleiades-core` and the event engines. Each accuracy claim is tied to a numeric gate; see the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
 
 ## License
 

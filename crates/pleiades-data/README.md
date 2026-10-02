@@ -4,8 +4,9 @@
 [![docs.rs](https://img.shields.io/docsrs/pleiades-data)](https://docs.rs/pleiades-data)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-Packaged offline ephemeris data (precomputed Sun and Moon positions, derived
-from JPL public-domain ephemerides) and its `EphemerisBackend` for the
+Packaged offline ephemeris data (precomputed positions for the Sun, the Moon,
+Mercury through Pluto and the asteroid 433 Eros, derived from JPL public-domain
+ephemerides) and its `EphemerisBackend` for the
 [pleiades](https://github.com/rahulmutt/pleiades) astrology workspace.
 
 The crate ships a compressed artifact covering 1900-01-01 through 2100-01-01,
@@ -38,8 +39,10 @@ All six are served only inside the packaged window.
 
 ## Status
 
-Experimental `0.2.x`. First-party backends expose mean geometric coordinates
-only, and broader accuracy claims are still gated; see the
+Experimental, pre-1.0: breaking changes can land in any minor release. This backend returns mean
+geometric coordinates and rejects apparent requests; the chart layer in
+`pleiades-core` and the event engines in `pleiades-events` apply apparent
+place on top of it. See the
 [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full
 maturity posture.
 
