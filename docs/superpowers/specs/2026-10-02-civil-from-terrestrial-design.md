@@ -180,15 +180,21 @@ Steps 3 and 4 share one private helper,
 
 In `to_terrestrial`, before the Julian-day conversion:
 
-- If `civil.second >= 60.0`:
-  - source must be UTC, else `InvalidCivilDate { field: "second" }`;
-  - hour and minute must be `23:59` and the *next* day `00:00:00` must be the
-    effective Julian day of a leap row other than the first, else
-    `InvalidCivilDate { field: "second" }`;
-  - the conversion proceeds on the same datetime with `second − 1`, and one
-    second is added to the resulting TT. The lookup then sees the old offset,
-    which is the one in force.
-  - Provenance reports the old `tai_minus_utc`.
+- If `civil.second >= 60.0` (and `< 61.0`), the source must be UTC, the
+  hour and minute must be `23:59`, and the *next* day `00:00:00` must be the
+  effective Julian day of a leap row other than the first, else
+  `InvalidCivilDate { field: "second" }`.
+- On such a day, any UTC input at `23:59` with `second` in `[59, 61)` is
+  converted as `23:59:59.0` exactly, and `second − 59` seconds are added to
+  the resulting TT. The lookup then always sees the old offset, which is the
+  one in force. Anchoring at `:59.0` rather than at the input matters
+  because a Julian day near 2.46e6 resolves only about 40 µs, so the last
+  ~20 µs before midnight (`:59.99998` and later, or `:60.99998` and later
+  after subtracting one second) round to the next midnight's Julian day and
+  would pick up the new offset.
+- Provenance reports the old `tai_minus_utc`.
+- Every other input (UT1, other minutes, other days, `second < 59`) is
+  converted unchanged; `61.0` and NaN are still rejected by validation.
 
 A small `leap::is_insertion_day_end(jd_next_midnight) -> Result<bool, _>`
 supports the check; it and the TAI thresholds are the only additions to
