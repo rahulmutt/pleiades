@@ -77,7 +77,7 @@ As with house systems, this baseline is a minimum shipping floor. The ayanamsa i
 
 The domain layer should support, either initially or in later phases:
 
-- retrograde and stationary classification
+- retrograde and stationary classification, and the instants of stations (`pleiades-events` `EventEngine::stations_in_range` / `next_station`)
 - planetary speed bands
 - aspects and orb-ready angular separations
 - house placement and sign placement

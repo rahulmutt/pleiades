@@ -1,6 +1,6 @@
 # Event finder for planetary stations (issue #85) — design
 
-**Status:** approved design, not yet implemented ·
+**Status:** implemented (2026-10-02) ·
 **Opened:** 2026-10-02 · **Issue:** #85 ·
 **Crates:** `pleiades-events`, `pleiades-validate`, `pleiades-cli` (gate
 command routing only), `pleiades-core` (compatibility profile entry only) ·
@@ -399,3 +399,27 @@ unit-tested with synthetic lists.
 
 **Non-finite speed.** A NaN or infinite longitude speed is treated as
 missing and returns `MissingSpeed`; it is never compared against zero.
+
+## Amendment (2026-10-02, implementation measurements)
+
+- **Separation is 3 days, not 2.** The measurement found one-sided graze
+  pairs about 2.5 days wide; 3.0 is the smallest swept value (2.0, 2.5, 3.0,
+  3.5, 4.0, 5.0) at which every separated station has a same-kind
+  counterpart. `SEPARATION_DAYS = 3.0`.
+- **The true-node gate is a coarse existence-and-kind check, not a timing
+  check.** Its ceilings are 270 000 s (about three days: the larger of the
+  corpus-side residual 117 467.6 s and the engine-side distance 176 947 s,
+  times 1.5) and 78″. The node's speed hovers near zero for days, so a
+  station instant is ill-conditioned; a tighter comparison needs a different
+  metric.
+- **Swiss Ephemeris speed convention.** Moshier planet speed is a backward
+  difference over `PLAN_SPEED_INTV` = 0.0001 day (`swemplan.c`), so its speed
+  zero lands 4.32 s late. The engine-minus-corpus mean is about -4.2 s for
+  Mercury (99.5 % of stations negative, both kinds) and is buried in scatter
+  for slower planets. It is included in the measured maxima and is not an
+  engine defect.
+- **Reference-tool NaN.** Swiss Ephemeris Moshier returns a NaN true-node
+  longitude speed at isolated grid instants (jd_tt 2451544.9 and 2451545.1).
+  `tools/se-stations-reference` skips an isolated non-finite grid sample
+  (logged to stderr) and aborts on anything else non-finite. No station lies
+  near them.
