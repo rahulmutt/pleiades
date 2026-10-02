@@ -200,7 +200,48 @@ fn to_tt(
     }
 }
 
+/// Separates an inserted leap second from the datetime that carries it.
+///
+/// A Julian day cannot express the 86,401st second of a day: `23:59:60.x`
+/// aliases the next day's `00:00:00.x`. For a UTC input on a day that ends
+/// with an inserted leap second, this returns the same datetime one second
+/// earlier plus `true`, so the caller converts `23:59:59.x` under the offset
+/// still in force and then adds the second back. Any other `second` in
+/// `[60, 61)` is invalid.
+fn leap_second_split(
+    civil: CivilDateTime,
+    source: TimeScale,
+) -> Result<(CivilDateTime, bool), CivilTimeError> {
+    if !(60.0..61.0).contains(&civil.second) {
+        return Ok((civil, false));
+    }
+    let invalid = CivilTimeError::InvalidCivilDate { field: "second" };
+    if source != TimeScale::Utc || civil.hour != 23 || civil.minute != 59 {
+        return Err(invalid);
+    }
+    let midnight = CivilDateTime::new(civil.year, civil.month, civil.day, 0, 0, 0.0);
+    let next_midnight_jd = midnight.to_julian_day()?.days() + 1.0;
+    if !leap::is_insertion_day_end(next_midnight_jd)? {
+        return Err(invalid);
+    }
+    Ok((
+        CivilDateTime {
+            second: civil.second - 1.0,
+            ..civil
+        },
+        true,
+    ))
+}
+
 /// Converts a civil datetime tagged `source` (UTC or UT1) to `target` (TT or TDB).
+///
+/// # Leap seconds
+///
+/// A UTC `second` in `[60, 61)` is accepted only at `23:59` on a day that
+/// ends with an inserted leap second, and converts to the instant one second
+/// after `23:59:59.x` under the `TAI − UTC` in force before the insertion.
+/// On any other day or minute, and for UT1 input, it is
+/// [`CivilTimeError::InvalidCivilDate`] with `field: "second"`.
 ///
 /// # Examples
 ///
@@ -224,8 +265,14 @@ pub fn to_terrestrial(
     if !matches!(target, TimeScale::Tt | TimeScale::Tdb) {
         return Err(CivilTimeError::UnsupportedScale { source, target });
     }
+    let (civil, in_leap_second) = leap_second_split(civil, source)?;
     let jd_civil = civil.to_julian_day()?.days();
     let (jd_tt, provenance) = to_tt(jd_civil, source, target)?;
+    let jd_tt = if in_leap_second {
+        jd_tt + 1.0 / SECONDS_PER_DAY
+    } else {
+        jd_tt
+    };
     let (jd_out, scale) = match target {
         TimeScale::Tt => (jd_tt, TimeScale::Tt),
         TimeScale::Tdb => {
@@ -267,5 +314,7 @@ pub fn ut1_jd_from_tt(jd_tt: f64) -> Result<f64, crate::error::CivilTimeError> {
     Ok(jd_tt - delta_t_seconds / 86_400.0)
 }
 
+#[cfg(test)]
+mod test_support;
 #[cfg(test)]
 mod tests;
