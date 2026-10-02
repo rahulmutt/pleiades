@@ -11,5 +11,8 @@ Day, leap seconds, Delta-T, and TT/TDB with typed conversion provenance.
 
 Both cover 1900–2100 and report the same `ConversionProvenance`: `exact` for
 UTC inside the leap-second table (from 1972), `observed` or `predicted` where
-the Delta-T model is used. A round trip returns the starting datetime to
-within 1 ms.
+the Delta-T model is used. An instant converted to civil time and back returns
+to within 1 ms. A datetime converted to an instant and back also returns to
+within 1 ms, except UT1 in the 0.216 s before the 2020-01-01 Delta-T node
+(which comes back as the post-node datetime) and the last 0.5 ms of 2100
+(which rounds out of range).

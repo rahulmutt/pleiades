@@ -2365,3 +2365,7 @@ one second late in TT. `:60` is now accepted only at a real insertion.
   picks the post-node branch there.
 - Sub-millisecond precision would need a (day, seconds-of-day) representation
   in both directions; a Julian day near 2.46e6 resolves about 40 µs.
+- Known edge, kept: the forward accepts `2100-12-31T23:59:59.9996` (UTC or
+  UT1), but its TT rounds to the millisecond of `2101-01-01T00:00:00.000`, so
+  `from_terrestrial` returns `BeyondHorizon` for it. The window check applies
+  after rounding and is not clamped.

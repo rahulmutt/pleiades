@@ -160,7 +160,7 @@ an instant before 1900 reports the window, matching the forward's order.
 3. **UTC target, past the leap horizon** (`jd_tai > T_end`). Solve
    `jd_utc + ΔT(jd_utc) / 86400 = jd_tt` by fixed-point iteration starting
    from `jd_utc = jd_tt − ΔT(jd_tt) / 86400`. `ΔT` changes by under
-   3e-8 s per second, so the iteration contracts by that factor; it runs a
+   5e-8 s per second, so the iteration contracts by that factor; it runs a
    fixed three steps with no convergence test. Provenance:
    `FutureExtrapolated` / `Predicted`, `delta_t_seconds = Some(ΔT)`,
    `tai_minus_utc = None`. `ΔT` is anchored to the leap bound at the
@@ -173,8 +173,8 @@ an instant before 1900 reports the window, matching the forward's order.
 5. **Window.** The civil Julian day from step 2, 3 or 4 must lie in
    `[SUPPORT_START_JD, SUPPORT_END_JD)`.
 
-Steps 3 and 4 share one private helper,
-`civil_jd_from_tt_via_delta_t(jd_tt) -> Result<(f64, f64, DeltaTQuality), _>`.
+Steps 3 and 4 share one private helper, `civil_via_delta_t(jd_tt, target)`,
+which returns the civil millisecond count, the datetime and its provenance.
 
 ### Forward fix
 

@@ -129,7 +129,7 @@ fn utc_from_tt(jd_tt: f64) -> Result<Solved, CivilTimeError> {
 }
 
 /// Solves `civil + ΔT(civil) = TT` for the civil Julian day, the equation the
-/// forward conversion evaluates. ΔT changes by under 3e-8 s per second, so
+/// forward conversion evaluates. ΔT changes by under 5e-8 s per second, so
 /// each step shrinks the error by that factor and three steps are ample.
 /// At the 0.216 s step in ΔT at the 2020 node the start value is already past
 /// the node, so the solve settles on the post-node branch.
@@ -168,10 +168,14 @@ fn civil_via_delta_t(jd_tt: f64, target: TimeScale) -> Result<Solved, CivilTimeE
 ///
 /// The source scale is read from `instant.scale`. The result is rounded to
 /// the millisecond, and converting it back with `to_terrestrial` returns the
-/// starting instant to within 1 ms. The provenance uses the same vocabulary
-/// and the same epoch tiers as the forward conversion: UTC from 1972 through
-/// the leap-second table is `Exact`; UTC beyond the table and UT1 use the
-/// Delta-T model and are `Observed` or `Predicted`.
+/// starting instant to within 1 ms. In the other direction, a civil datetime
+/// passed through `to_terrestrial` and back returns to within 1 ms, except
+/// UT1 in the 0.216 s before the 2020-01-01 node, which comes back as the
+/// post-node datetime (see below), and the last 0.5 ms of 2100, which rounds
+/// out of range (see Errors). The provenance uses the same vocabulary and the
+/// same epoch tiers as the forward conversion: UTC from 1972 through the
+/// leap-second table is `Exact`; UTC beyond the table and UT1 use the Delta-T
+/// model and are `Observed` or `Predicted`.
 ///
 /// # Leap seconds
 ///
@@ -192,7 +196,12 @@ fn civil_via_delta_t(jd_tt: f64, target: TimeScale) -> Result<Solved, CivilTimeE
 ///   `target` is UTC or UT1.
 /// - [`CivilTimeError::NonFiniteOffset`] for a non-finite Julian day.
 /// - [`CivilTimeError::BeyondHorizon`] when the civil datetime falls outside
-///   the 1900–2100 support window.
+///   the 1900–2100 support window. The check applies after rounding to the
+///   millisecond, so an instant within the last 0.5 ms of the window rounds
+///   to 2101-01-01T00:00:00.000 and is out of range. The error carries the
+///   civil Julian day, except for an instant more than a day outside the
+///   window, which is rejected before conversion and carries the TT Julian
+///   day.
 /// - [`CivilTimeError::UtcBeforeLeapEpoch`] for a UTC target before
 ///   1972-01-01; use UT1 there.
 /// - [`CivilTimeError::StaleTimeData`] if a pinned table fails its checksum.

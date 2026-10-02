@@ -216,6 +216,28 @@ fn results_outside_the_window_are_beyond_horizon() {
 }
 
 #[test]
+fn last_half_millisecond_of_the_window_is_beyond_horizon() {
+    // The forward accepts 2100-12-31T23:59:59.9996, but its TT rounds to the
+    // millisecond of 2101-01-01T00:00:00.000, which the inverse rejects. The
+    // last whole millisecond of the window still round-trips.
+    for (scale, forward) in [
+        (TimeScale::Utc, tt_from_utc_civil as fn(_) -> _),
+        (TimeScale::Ut1, tt_from_ut1_civil),
+    ] {
+        let last_ms = CivilDateTime::new(2100, 12, 31, 23, 59, 59.999);
+        let back = from_terrestrial(forward(last_ms).unwrap().instant, scale).unwrap();
+        assert_eq!(back.civil, last_ms, "{scale}");
+
+        let edge = forward(CivilDateTime::new(2100, 12, 31, 23, 59, 59.9996)).unwrap();
+        assert_eq!(
+            from_terrestrial(edge.instant, scale),
+            Err(CivilTimeError::BeyondHorizon { jd: SUPPORT_END_JD }),
+            "{scale}"
+        );
+    }
+}
+
+#[test]
 fn absurd_julian_days_are_beyond_horizon() {
     for jd in [1e300, -1e300, f64::MAX, f64::MIN, 0.0] {
         for target in [TimeScale::Utc, TimeScale::Ut1] {
@@ -368,8 +390,9 @@ mod properties {
 
         #[test]
         fn utc_inverse_is_monotonic_and_reenters_the_forward(
-            // TT from one minute after the UTC epoch to the leap horizon, with
-            // `gap` up to about 2.3 days: broad coverage of the whole UTC era.
+            // TT from one minute after the UTC epoch to late 2100 (300e6 ms,
+            // about 3.5 days, before the window end), with `gap` up to about
+            // 2.3 days: broad coverage of the whole UTC era.
             // It rarely straddles a leap second; the anchored property below
             // does that on every case.
             a in (ms_from_jd(leap::LEAP_EPOCH_JD) + 60_000)
