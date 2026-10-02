@@ -1,7 +1,36 @@
 //! Measured-basis ceilings for the `validate-stations` gate.
-
-// Consumed by the gate entry point added next.
-#![allow(dead_code)]
+//!
+//! Measured on 2026-10-02 by running the gate with infinite ceilings against
+//! the committed corpus; each ceiling is the largest value over the body's
+//! corpus series (`geo`, and `mean` and `sid` where present) times 1.5,
+//! rounded up to two significant figures. The measured value and its series
+//! are recorded beside each ceiling.
+//!
+//! What the residual is. The corpus holds the zeros of Swiss Ephemeris'
+//! (Moshier) longitude speed; the engine finds the zeros of the packaged
+//! (DE440-derived) backend's. Near a station the longitude is a parabola in
+//! time, so a small difference between the two speeds moves the zero by that
+//! difference divided by the body's longitude acceleration at the station.
+//! That is why slow bodies, whose acceleration is tiny, have large time
+//! ceilings (Pluto about half an hour) while the longitude residual, which
+//! is the position difference at the station, stays within a few arcseconds.
+//!
+//! The planets' mean signed time (engine minus corpus) is about -4 s for
+//! every planet, in both station kinds. That is a reference convention, not
+//! an engine defect: Swiss Ephemeris' Moshier planet speed is a backward
+//! difference over `PLAN_SPEED_INTV` = 0.0001 d (8.64 s) (`swemplan.c`,
+//! `dx[i] = (xp[i] - x2[i]) / dt` with `x2` at `tjd - dt`), so its reported
+//! speed is the speed 4.32 s earlier and its zero lands 4.32 s late. The
+//! shift is included in the measured maxima; the gate does not compensate
+//! for it.
+//!
+//! True node. Its speed hovers near zero for days, so a station instant is
+//! ill-conditioned, and whether a graze crosses zero depends on the
+//! ephemeris. The true-node ceilings (about two days in time, tens of
+//! arcseconds in longitude) therefore make its comparison a coarse
+//! existence-and-kind check, a station of the same kind within about two
+//! days, and not a timing check. See `SEPARATION_DAYS` and the true-node arm
+//! of `ceilings_for`.
 
 /// Ceilings for one body: time between the engine's station and the
 /// reference's, and the longitude difference at the station.
@@ -15,23 +44,70 @@ pub(crate) struct Ceilings {
 /// in its own list is at least this many days away. Closer pairs are grazes
 /// of the speed against zero whose existence depends on the ephemeris, and
 /// are not compared.
-pub(crate) const SEPARATION_DAYS: f64 = 2.0;
+///
+/// 2 days was the design value. The measurement on 2026-10-02 found one-sided
+/// graze pairs up to about 2.5 days wide (corpus jd 2461966.56 R /
+/// 2461969.08 D and 2455381.07 R / 2455383.58 D have no engine station within
+/// 6 days), and 3.0 is the smallest value swept (2.0, 2.5, 3.0, 3.5, 4.0,
+/// 5.0) at which every separated station has a same-kind counterpart.
+pub(crate) const SEPARATION_DAYS: f64 = 3.0;
 
-/// Fail-closed floor on compared stations. Set in Task 5 from the measured
-/// count.
-pub(crate) const MIN_ROWS_VALIDATED: usize = 0;
-
-/// Not yet measured: Task 5 replaces every value from the gate's own output.
-const UNMEASURED: Ceilings = Ceilings {
-    time_s: f64::INFINITY,
-    lon_arcsec: f64::INFINITY,
-};
+/// Fail-closed floor on compared stations: the count the gate compared on
+/// 2026-10-02 (5542).
+pub(crate) const MIN_ROWS_VALIDATED: usize = 5542;
 
 /// Ceilings by corpus body name, or `None` for a body the gate does not cover.
 pub(crate) fn ceilings_for(body_name: &str) -> Option<Ceilings> {
     match body_name {
-        "Mercury" | "Venus" | "Mars" | "Jupiter" | "Saturn" | "Uranus" | "Neptune" | "Pluto"
-        | "TrueNode" => Some(UNMEASURED),
+        // measured max 9.3 s (geo), 0.381" (geo)
+        "Mercury" => Some(Ceilings {
+            time_s: 14.0,
+            lon_arcsec: 0.58,
+        }),
+        // measured max 21.5 s (geo), 0.542" (geo)
+        "Venus" => Some(Ceilings {
+            time_s: 33.0,
+            lon_arcsec: 0.82,
+        }),
+        // measured max 54.9 s (geo), 1.119" (geo)
+        "Mars" => Some(Ceilings {
+            time_s: 83.0,
+            lon_arcsec: 1.7,
+        }),
+        // measured max 101.0 s (geo), 0.695" (geo)
+        "Jupiter" => Some(Ceilings {
+            time_s: 160.0,
+            lon_arcsec: 1.1,
+        }),
+        // measured max 165.1 s (geo), 0.679" (sid)
+        "Saturn" => Some(Ceilings {
+            time_s: 250.0,
+            lon_arcsec: 1.1,
+        }),
+        // measured max 318.7 s (geo), 0.505" (geo)
+        "Uranus" => Some(Ceilings {
+            time_s: 490.0,
+            lon_arcsec: 0.76,
+        }),
+        // measured max 495.4 s (geo), 2.314" (geo)
+        "Neptune" => Some(Ceilings {
+            time_s: 750.0,
+            lon_arcsec: 3.5,
+        }),
+        // measured max 1292.7 s (geo), 1.255" (geo)
+        "Pluto" => Some(Ceilings {
+            time_s: 2000.0,
+            lon_arcsec: 1.9,
+        }),
+        // Coarse existence-and-kind check, not a timing check (see the module
+        // comment). Measured at SEPARATION_DAYS = 3.0: max 117467.6 s (geo),
+        // 51.338" (geo). Of the 1166 compared corpus stations, 724 are within
+        // 0.05 d of their counterpart, 1130 within 0.5 d, 1158 within 1 d, all
+        // within 2 d; the largest distance is 1.36 d.
+        "TrueNode" => Some(Ceilings {
+            time_s: 180_000.0,
+            lon_arcsec: 78.0,
+        }),
         _ => None,
     }
 }

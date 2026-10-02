@@ -8,12 +8,27 @@
 //! whether a touch crosses zero for a few hours depends on the ephemeris.
 //! See `stations_thresholds` for the basis of the ceilings.
 
-// Consumed by the gate entry point added next.
-#![allow(dead_code)]
+use crate::stations_thresholds::{ceilings_for, Ceilings, MIN_ROWS_VALIDATED, SEPARATION_DAYS};
+use pleiades_apparent::fnv1a64;
+use pleiades_data::packaged_backend;
+use pleiades_events::{CrossingFrame, CrossingReference, EventEngine, StationKind};
+use pleiades_types::{Ayanamsa, CelestialBody, Instant, JulianDay, TimeScale};
 
-use crate::stations_thresholds::{Ceilings, SEPARATION_DAYS};
-use pleiades_events::StationKind;
-use pleiades_types::CelestialBody;
+const CORPUS_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/stations.csv"
+));
+const MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/manifest.txt"
+));
+
+/// The spans `tools/se-stations-reference` scanned (Julian days, TT). The
+/// full span is the engine's window less five days at each end, so neither
+/// side of the comparison meets the engine's edge clamp.
+const FULL_SPAN: (f64, f64) = (2_415_025.5, 2_488_064.5);
+/// 1990-01-01 to 2030-01-01.
+const SHORT_SPAN: (f64, f64) = (2_447_892.5, 2_462_502.5);
 
 const SECONDS_PER_DAY: f64 = 86_400.0;
 
@@ -43,6 +58,17 @@ impl Group {
             Self::Geo => "geo",
             Self::Mean => "mean",
             Self::Sid => "sid",
+        }
+    }
+
+    fn reference(self) -> CrossingReference {
+        match self {
+            Self::Geo => CrossingFrame::GeocentricApparentOfDate.into(),
+            Self::Mean => CrossingFrame::GeocentricMeanOfDate.into(),
+            Self::Sid => CrossingReference::sidereal(
+                CrossingFrame::GeocentricApparentOfDate,
+                Ayanamsa::Lahiri,
+            ),
         }
     }
 }
@@ -402,6 +428,127 @@ fn compare_separated(
         }
     }
     Ok(residuals)
+}
+
+#[derive(Debug)]
+pub struct StationsReport {
+    /// Stations compared against the corpus.
+    pub rows_validated: usize,
+    series_lines: Vec<String>,
+    summary_line: String,
+}
+
+impl StationsReport {
+    pub fn summary_line(&self) -> &str {
+        &self.summary_line
+    }
+
+    /// One line per corpus series with its measured maxima; the basis for
+    /// the ceilings in `stations_thresholds`.
+    pub fn series_lines(&self) -> &[String] {
+        &self.series_lines
+    }
+}
+
+fn span(series: &Series) -> (f64, f64) {
+    if series.group == Group::Geo && series.body != CelestialBody::TrueNode {
+        FULL_SPAN
+    } else {
+        SHORT_SPAN
+    }
+}
+
+fn validate(csv: &str, manifest: &str) -> Result<StationsReport, StationsError> {
+    let (manifest_rows, manifest_checksum) = parse_manifest(manifest)?;
+    let got_checksum = fnv1a64(csv);
+    if got_checksum != manifest_checksum {
+        return Err(StationsError::ChecksumMismatch {
+            got: got_checksum,
+            want: manifest_checksum,
+        });
+    }
+    let all = parse_corpus(csv)?;
+    let rows_csv: usize = all.iter().map(|series| series.stations.len()).sum();
+    if rows_csv != manifest_rows {
+        return Err(StationsError::ManifestDrift {
+            rows_csv,
+            rows_manifest: manifest_rows,
+        });
+    }
+
+    let engine = EventEngine::new(packaged_backend());
+    // The corpus epoch is TT; the engine reads the Julian day as TDB. The two
+    // differ by under 2 ms, far below every ceiling here.
+    let tdb = |jd: f64| Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+    let mut validated = 0usize;
+    let mut series_lines = Vec::new();
+    let (mut max_time_s, mut max_lon_arcsec) = (0.0_f64, 0.0_f64);
+    for series in &all {
+        let label = format!("{} {}", series.group.name(), series.body_name);
+        let failed = |reason: String| StationsError::CalculationFailed {
+            series: label.clone(),
+            reason,
+        };
+        let ceilings = ceilings_for(series.body_name)
+            .ok_or_else(|| failed("no ceilings for this body".into()))?;
+        let (start, end) = span(series);
+        let found: Vec<Found> = engine
+            .stations_in_range(
+                series.body.clone(),
+                series.group.reference(),
+                tdb(start),
+                tdb(end),
+            )
+            .map_err(|e| failed(e.to_string()))?
+            .into_iter()
+            .map(|station| Found {
+                jd: station.instant.julian_day.days(),
+                lon_deg: station.longitude.degrees(),
+                kind: station.kind,
+            })
+            .collect();
+        let residuals = if series.body == CelestialBody::TrueNode {
+            compare_separated(&label, &found, &series.stations, ceilings)?
+        } else {
+            compare_exact(&label, &found, &series.stations, ceilings)?
+        };
+        validated += residuals.matched;
+        max_time_s = max_time_s.max(residuals.max_time_s);
+        max_lon_arcsec = max_lon_arcsec.max(residuals.max_lon_arcsec);
+        let mean_signed_s = if residuals.matched == 0 {
+            0.0
+        } else {
+            residuals.sum_signed_time_s / residuals.matched as f64
+        };
+        series_lines.push(format!(
+            "{label}: {} compared (engine {}, corpus {}), max time {:.1} s, mean signed time {:+.1} s, max lon {:.3}\"",
+            residuals.matched,
+            found.len(),
+            series.stations.len(),
+            residuals.max_time_s,
+            mean_signed_s,
+            residuals.max_lon_arcsec,
+        ));
+    }
+    let floor = MIN_ROWS_VALIDATED.max(1);
+    if validated < floor {
+        return Err(StationsError::TooFewRowsValidated { validated, floor });
+    }
+    let summary_line = format!(
+        "Stations gate: {validated} stations validated across {} series vs Swiss Ephemeris speed-zero corpus \
+         (planets station-for-station; true node on stations separated by >= {SEPARATION_DAYS} d), \
+         max time {max_time_s:.1} s, max lon {max_lon_arcsec:.3}\"",
+        all.len(),
+    );
+    Ok(StationsReport {
+        rows_validated: validated,
+        series_lines,
+        summary_line,
+    })
+}
+
+pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {
+    validate(CORPUS_CSV, MANIFEST)
 }
 
 #[cfg(test)]

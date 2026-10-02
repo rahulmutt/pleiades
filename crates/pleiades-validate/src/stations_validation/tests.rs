@@ -240,3 +240,99 @@ fn manifest_parses_rows_and_checksum() {
         );
     }
 }
+
+#[test]
+fn stations_gate_passes_within_ceilings() {
+    let report = validate_stations_corpus().expect("stations gate passes");
+    eprintln!("{}", report.summary_line());
+    for line in report.series_lines() {
+        eprintln!("{line}");
+    }
+    assert!(report.rows_validated >= MIN_ROWS_VALIDATED);
+}
+
+#[test]
+fn tampered_corpus_fails_the_checksum() {
+    let tampered = CORPUS_CSV.replacen("geo,Mercury,", "geo,Mercury, ", 1);
+    assert!(matches!(
+        validate(&tampered, MANIFEST),
+        Err(StationsError::ChecksumMismatch { .. })
+    ));
+}
+
+#[test]
+fn manifest_row_count_drift_fails_closed() {
+    let (rows, checksum) = parse_manifest(MANIFEST).unwrap();
+    let manifest = format!(
+        "slice stations file=stations.csv role=stations rows={} checksum={checksum}",
+        rows - 1
+    );
+    assert!(matches!(
+        validate(CORPUS_CSV, &manifest),
+        Err(StationsError::ManifestDrift { .. })
+    ));
+}
+
+#[test]
+fn a_corpus_missing_a_station_fails_the_count() {
+    // Drop Mars's first mean-of-date station: the engine then finds one more
+    // than the corpus has.
+    let line = CORPUS_CSV
+        .lines()
+        .find(|l| l.starts_with("mean,Mars,"))
+        .expect("a mean Mars row");
+    let csv: String = CORPUS_CSV
+        .lines()
+        .filter(|l| l.starts_with("mean,Mars,") && *l != line)
+        .map(|l| format!("{l}\n"))
+        .collect();
+    let rows = csv.lines().count();
+    let manifest = format!("slice x rows={rows} checksum={}", fnv1a64(&csv));
+    assert!(matches!(
+        validate(&csv, &manifest),
+        Err(StationsError::CountMismatch { .. })
+    ));
+}
+
+#[test]
+fn a_shifted_reference_instant_exceeds_the_time_ceiling() {
+    // Move Mars's first mean-of-date station by 0.5 day, far above any
+    // planetary time ceiling.
+    let line = CORPUS_CSV
+        .lines()
+        .find(|l| l.starts_with("mean,Mars,"))
+        .expect("a mean Mars row");
+    let mut fields: Vec<String> = line.split(',').map(str::to_string).collect();
+    let jd: f64 = fields[2].parse().unwrap();
+    fields[2] = format!("{:.7}", jd + 0.5);
+    let csv: String = CORPUS_CSV
+        .lines()
+        .filter(|l| l.starts_with("mean,Mars,"))
+        .map(|l| {
+            if l == line {
+                format!("{}\n", fields.join(","))
+            } else {
+                format!("{l}\n")
+            }
+        })
+        .collect();
+    let rows = csv.lines().count();
+    let manifest = format!("slice x rows={rows} checksum={}", fnv1a64(&csv));
+    assert!(matches!(
+        validate(&csv, &manifest),
+        Err(StationsError::CeilingExceeded {
+            kind: "time_seconds",
+            ..
+        })
+    ));
+}
+
+#[test]
+fn an_empty_corpus_validates_too_few_rows() {
+    let csv = "group,body,jd_tt,lon_deg,kind\n";
+    let manifest = format!("slice x rows=0 checksum={}", fnv1a64(csv));
+    assert!(matches!(
+        validate(csv, &manifest),
+        Err(StationsError::TooFewRowsValidated { validated: 0, .. })
+    ));
+}
