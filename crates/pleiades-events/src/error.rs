@@ -11,6 +11,7 @@ pub const WINDOW_END_JD: f64 = 2_488_069.5;
 
 /// Errors returned by the event engine; all variants fail closed.
 #[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum EventError {
     /// A requested instant falls outside the 1900–2100 CE window.
     OutOfWindow {
@@ -67,6 +68,14 @@ pub enum EventError {
         /// The unsupported scale.
         scale: TimeScale,
     },
+    /// The backend reported no finite longitude speed for a body, so its
+    /// stations cannot be found.
+    MissingSpeed {
+        /// Human-readable label of the body (e.g. `"Mercury"`).
+        body_label: &'static str,
+        /// The Julian Day at which the speed was requested.
+        julian_day: f64,
+    },
 }
 
 impl fmt::Display for EventError {
@@ -104,6 +113,13 @@ impl fmt::Display for EventError {
                 f,
                 "unsupported time scale {scale:?}: rise/set/transit and horizontal \
                  coordinates accept TDB, TT, UT1, and UTC instants"
+            ),
+            EventError::MissingSpeed {
+                body_label,
+                julian_day,
+            } => write!(
+                f,
+                "backend reported no finite longitude speed for {body_label} at JD {julian_day}"
             ),
         }
     }
@@ -149,5 +165,17 @@ mod tests {
         };
         assert!(err.to_string().contains("Utc"));
         assert!(err.to_string().contains("TDB, TT, UT1, and UTC"));
+    }
+
+    #[test]
+    fn missing_speed_names_the_body_and_the_julian_day() {
+        let err = EventError::MissingSpeed {
+            body_label: "Mercury",
+            julian_day: 2_451_545.0,
+        };
+        let text = err.to_string();
+        assert!(text.contains("Mercury"), "{text}");
+        assert!(text.contains("2451545"), "{text}");
+        assert!(text.contains("longitude speed"), "{text}");
     }
 }
