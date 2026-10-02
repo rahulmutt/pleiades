@@ -14,6 +14,10 @@
 //! (per-observer search), and [`EventEngine::next_global_occultation`]
 //! (global search for the central-observation point).
 //!
+//! Planetary stations — the instants a body's longitude speed changes sign —
+//! are found by [`EventEngine::stations_in_range`] and
+//! [`EventEngine::next_station`], in any [`CrossingFrame`] and zodiac.
+//!
 //! ## Example
 //!
 //! ```rust
@@ -123,6 +127,7 @@ mod rise_trans;
 mod root;
 mod semidiameter;
 mod state_vector;
+mod stations;
 mod time_scale;
 
 #[allow(deprecated)]
@@ -139,3 +144,4 @@ pub use pheno::PhenoData;
 pub use position::EclipticPosition;
 pub use reference::CrossingReference;
 pub use rise_trans::{DiscMode, RiseSet, RiseSetEvent, RiseSetOptions, RiseSetTarget};
+pub use stations::{Station, StationKind};
