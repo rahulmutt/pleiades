@@ -47,6 +47,8 @@ mod render;
 mod report;
 pub mod rise_trans_thresholds;
 pub mod rise_trans_validation;
+mod stations_thresholds;
+mod stations_validation;
 mod topocentric_validation;
 mod true_node_validation;
 
