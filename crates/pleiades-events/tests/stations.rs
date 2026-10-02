@@ -270,7 +270,12 @@ fn empty_and_inverted_ranges_give_no_stations() {
 fn a_body_the_backend_does_not_serve_is_an_error() {
     let engine = EventEngine::new(packaged_backend());
     let result = engine.stations_in_range(CelestialBody::Ceres, GEO, tdb(J2000), tdb(J2000 + 30.0));
-    assert!(result.is_err(), "{result:?}");
+    // An unserved body is a backend failure, not a missing speed.
+    assert!(
+        !matches!(result, Err(EventError::MissingSpeed { .. })),
+        "{result:?}"
+    );
+    assert!(matches!(result, Err(EventError::Backend(_))), "{result:?}");
 }
 
 #[cfg(feature = "serde")]

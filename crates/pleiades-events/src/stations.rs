@@ -128,7 +128,14 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///
     /// A body that never stations in `reference` (the Sun, the Moon, the
     /// mean node, every body in the heliocentric frame) returns an empty
-    /// list. An empty or inverted range returns an empty list.
+    /// list. An empty or inverted range returns an empty list, but the scan
+    /// still samples the speed at its start, so a body the backend cannot
+    /// serve, or one with no longitude speed, still returns its error.
+    ///
+    /// As for the crossings, the scan is clamped one step inside each end of
+    /// the 1900–2100 window so that its bracketing samples stay in the
+    /// window: a station within one step of either window end is not
+    /// reported.
     ///
     /// # Accuracy
     ///
@@ -142,8 +149,14 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// The 0.5 s bisection tolerance bounds how well the engine locates the
     /// zero of its own speed, not how well that zero matches another
     /// ephemeris: near a station the speed changes slowly, so a small speed
-    /// difference is a large time difference. See the crate README for the
-    /// measured agreement with Swiss Ephemeris per body.
+    /// difference is a large time difference. Measured against the sign
+    /// changes of Swiss Ephemeris's longitude speed over 1900–2100 (geocentric
+    /// apparent, 2026-10-02), the largest time difference runs from 9.3 s
+    /// for Mercury to 1292.7 s (about 22 minutes) for Pluto, and every
+    /// planet's longitude at the station agrees within 2.314″ (Neptune). The
+    /// true node is only checked for the existence and kind of its
+    /// well-separated stations, not for their timing. See the crate README
+    /// for the per-body figures.
     ///
     /// # Errors
     ///
@@ -192,7 +205,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// For a body that never stations the search runs to the end of the
     /// 1900–2100 window before returning `None`.
     ///
-    /// Accuracy, step and errors are those of
+    /// The window-edge clamp (a station within one step of either end of
+    /// the window is not reported), accuracy, step and errors are those of
     /// [`EventEngine::stations_in_range`].
     ///
     /// ```
