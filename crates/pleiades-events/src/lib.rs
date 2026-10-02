@@ -18,6 +18,10 @@
 //! are found by [`EventEngine::stations_in_range`] and
 //! [`EventEngine::next_station`], in any [`CrossingFrame`] and zodiac.
 //!
+//! Exact aspects — the instants the ecliptic separation of two bodies equals
+//! a given angle — are found by [`EventEngine::aspects_in_range`] and
+//! [`EventEngine::next_aspect`], in any [`CrossingFrame`] and zodiac.
+//!
 //! ## Example
 //!
 //! ```rust
@@ -111,6 +115,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod aspects;
 mod crossings;
 mod ephemeris;
 mod error;
@@ -130,6 +135,7 @@ mod state_vector;
 mod stations;
 mod time_scale;
 
+pub use aspects::AspectEvent;
 #[allow(deprecated)]
 pub use crossings::{Crossing, CrossingEngine, CrossingFrame, EventEngine};
 pub use error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
