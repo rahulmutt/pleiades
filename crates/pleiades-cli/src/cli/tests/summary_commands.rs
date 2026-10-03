@@ -6,12 +6,16 @@ use pleiades_validate::{house_validation_summary_for_report, render_cli as valid
 use super::super::test_support::packaged_artifact_access_report_line;
 use crate::cli::render_cli;
 
+// One test per command family (FU-23 (c)). The former single test made
+// every call on one thread and set the length of `test-full`'s second
+// step by itself; libtest now runs the families in parallel. The slow
+// calls share per-process fixtures, so the split repeats no work.
+
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
-fn summary_commands_render_compact_reports() {
+fn compatibility_summary_commands_render_compact_reports() {
     let release_profiles = current_release_profile_identifiers();
     let profile = current_compatibility_profile();
-
     let compatibility = render_cli(&["compatibility-profile-summary"])
         .expect("compatibility summary should render");
     assert_eq!(render_cli(&["profile-summary"]).unwrap(), compatibility);
@@ -102,7 +106,12 @@ fn summary_commands_render_compact_reports() {
     assert!(verification.contains(
         "Release posture: baseline milestone preserved, release additions explicit, custom definitions tracked, caveats documented"
     ));
+}
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+#[test]
+fn backend_matrix_comparison_corpus_and_api_stability_summary_commands_render_compact_reports() {
+    let release_profiles = current_release_profile_identifiers();
     let backend_matrix =
         render_cli(&["backend-matrix-summary"]).expect("backend matrix summary should render");
     assert!(backend_matrix.contains("Backend matrix summary"));
@@ -249,7 +258,13 @@ fn summary_commands_render_compact_reports() {
     assert!(api_stability.contains("Release notes summary: release-notes-summary"));
     assert!(api_stability.contains("Release checklist summary: release-checklist-summary"));
     assert!(api_stability.contains("Release bundle verification: verify-release-bundle"));
+}
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+#[test]
+fn release_summary_commands_render_compact_reports() {
+    let release_profiles = current_release_profile_identifiers();
+    let profile = current_compatibility_profile();
     let release_notes = render_cli(&["release-notes"]).expect("release notes should render");
     assert!(release_notes.contains("Release notes"));
     assert!(release_notes.contains("Release notes summary: release-notes-summary"));
@@ -414,11 +429,18 @@ fn summary_commands_render_compact_reports() {
     assert!(release_checklist_summary
         .contains("See release-summary for the compact one-screen release overview."));
 
+    // `release-gate` and `release-gate-summary` are both passthroughs to
+    // pleiades-validate, and each runs the numeric battery plus a bundle
+    // render and verify (about a minute on a CI runner). One real run covers
+    // the passthrough; the summary variant's routing is proven by its
+    // extra-argument error, which pleiades-validate raises before validating
+    // (FU-23 (d)).
     let release_gate = render_cli(&["release-gate"]).expect("release gate should render");
-    let release_gate_summary =
-        render_cli(&["release-gate-summary"]).expect("release gate summary should render");
     assert_eq!(release_gate, release_checklist);
-    assert_eq!(release_gate_summary, release_checklist_summary);
+    assert_eq!(
+        render_cli(&["release-gate-summary", "extra"]).unwrap_err(),
+        "release-gate-summary does not accept extra arguments"
+    );
 
     let compatibility_profile = current_compatibility_profile();
     let release_summary = render_cli(&["release-summary"]).expect("release summary should render");
@@ -459,6 +481,92 @@ fn summary_commands_render_compact_reports() {
         line == "Request policy: time-scale=direct backend requests accept TT/TDB; civil UTC/UT1 inputs convert via the pleiades-time crate or caller-supplied offsets; the ephemeris backends carry no internal Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; chart-layer topocentric body positions are supported as an opt-in correction (diurnal parallax + diurnal aberration); native-backend topocentric remains unsupported; apparentness=backends remain mean-only and J2000 at the backend boundary; apparent place of date (chart layer, default): light-time + precession-to-date + annual aberration + nutation-in-longitude, every body the backend serves, whatever its claim tier; gravitational light-deflection omitted; frame=ecliptic body positions are the default request shape; at the backend boundary equatorial output is derived via mean-obliquity transforms when supported, while the chart layer reports apparent equatorial of date (true obliquity = mean obliquity + nutation-in-obliquity) for every apparent placement; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
     }));
 
+    assert!(release_summary.lines().any(|line| {
+        line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / unsupported-modes-summary / unsupported-modes / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
+    }));
+    assert!(release_summary
+        .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
+    assert!(release_summary
+        .lines()
+        .any(|line| line == packaged_artifact_access_report_line()));
+    assert!(release_summary.lines().any(|line| {
+        line == format!(
+            "Packaged-artifact generation policy: {}",
+            pleiades_data::packaged_artifact_generation_policy_summary_details()
+        )
+    }));
+    assert!(release_summary.lines().any(|line| {
+        line == format!(
+            "Packaged frame treatment: {}",
+            pleiades_data::packaged_frame_treatment_summary_details()
+        )
+    }));
+    assert!(release_summary.contains(
+        "Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
+    ));
+    // Reconstructed from the retained structured summary (the free renderer moved
+    // to `pleiades-validate`'s posture module in Slice C).
+    let expected_tt_tdb = pleiades_data::packaged_mixed_tt_tdb_batch_parity_summary()
+        .as_ref()
+        .map(|summary| match summary.validated_summary_line() {
+            Ok(line) => line,
+            Err(error) => format!("Packaged mixed TT/TDB batch parity: unavailable ({error})"),
+        })
+        .unwrap_or_else(|| "Packaged mixed TT/TDB batch parity: unavailable".to_string());
+    assert!(release_summary
+        .lines()
+        .any(|line| { line == format!("Packaged batch parity: {expected_tt_tdb}") }));
+    assert!(release_summary.contains(
+        "Packaged batch parity: Packaged mixed TT/TDB batch parity: 11 requests across 11 bodies, TT requests=6, TDB requests=5; quality counts: Exact=0, Interpolated=11, Approximate=0, Unknown=0; order=preserved, single-query parity=preserved"
+    ));
+    assert!(release_summary.contains("Lunar high-curvature equatorial continuity evidence"));
+    assert!(release_summary.contains("Artifact inspection:"));
+    assert!(release_summary.contains("Release gate reminders:"));
+    assert!(
+        release_summary.contains("Compatibility profile summary: compatibility-profile-summary")
+    );
+    assert!(release_summary
+        .lines()
+        .any(|line| line == "Release notes summary: release-notes-summary"));
+    assert!(release_summary
+        .contains("lunar source selection: Compact Meeus-style truncated lunar baseline"));
+    assert!(release_summary.contains("Wang"));
+    assert!(release_summary.contains("Aries houses"));
+    assert!(release_summary.contains("Fagan/Bradley"));
+    assert!(release_summary.contains("Usha Shashi"));
+    assert!(release_summary.contains("Galactic Center (Mula/Wilhelm)"));
+    assert!(release_summary.contains("Mula Wilhelm"));
+    assert!(release_summary.contains("Wilhelm"));
+    assert!(release_summary.contains("Galactic Equator (Fiorenza)"));
+    assert!(release_summary.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=2 (Sun, Moon), samples="));
+    assert!(release_summary.contains("JPL interpolation posture: source="));
+    assert!(release_summary.lines().any(|line| {
+        line == "JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
+    }));
+    assert!(release_summary.lines().any(|line| {
+        line == "JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
+    }));
+    assert!(release_summary.contains(
+        "Validation report summary: validation-report-summary / validation-summary / report-summary"
+    ));
+    assert!(release_summary.contains("Artifact validation: validate-artifact"));
+    assert!(release_summary.contains("Release bundle verification: verify-release-bundle"));
+    assert!(release_summary
+        .lines()
+        .any(|line| line == "Workspace audit: workspace-audit / audit"));
+    assert!(release_summary
+        .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
+    assert!(release_summary.lines().any(|line| {
+        line == "Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"
+    }));
+    assert!(release_summary.contains("Release checklist summary: release-checklist-summary"));
+    assert!(release_summary.contains("Custom-definition label names: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Balarama, Aphoric, Takra"));
+    assert!(release_summary.contains("See release-notes and release-checklist"));
+}
+
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+#[test]
+fn request_summary_commands_render_compact_reports() {
     let request_surface_summary =
         render_cli(&["request-surface-summary"]).expect("request surface summary should render");
     assert_eq!(
@@ -598,7 +706,11 @@ fn summary_commands_render_compact_reports() {
             expected
         );
     }
+}
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+#[test]
+fn comparison_tolerance_body_claims_and_pluto_fallback_summary_commands_render_compact_reports() {
     let comparison_tolerance_policy_summary = render_cli(&["comparison-tolerance-policy-summary"])
         .expect("comparison tolerance policy summary should render");
     assert_eq!(
@@ -776,7 +888,11 @@ fn summary_commands_render_compact_reports() {
             .expect_err("Pluto fallback alias should reject extra arguments"),
         "pluto-fallback does not accept extra arguments"
     );
+}
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+#[test]
+fn jpl_source_corpus_and_packaged_lookup_summary_commands_render_compact_reports() {
     let jpl_batch_error_taxonomy_summary = render_cli(&["jpl-batch-error-taxonomy-summary"])
         .expect("JPL batch error taxonomy summary should render");
     assert_eq!(
@@ -948,7 +1064,11 @@ fn summary_commands_render_compact_reports() {
         render_cli(&["packaged-artifact-lookup-epoch-policy"])
             .expect("packaged artifact lookup epoch policy alias should render")
     );
+}
 
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+#[test]
+fn production_generation_summary_commands_render_compact_reports() {
     let production_generation_boundary_summary =
         render_cli(&["production-generation-boundary-summary"])
             .expect("production generation boundary summary should render");
@@ -1343,6 +1463,11 @@ fn summary_commands_render_compact_reports() {
             .expect_err("production generation source alias should reject extra arguments"),
         "production-generation-source does not accept extra arguments"
     );
+}
+
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+#[test]
+fn reference_and_comparison_snapshot_summary_commands_render_compact_reports() {
     let reference_snapshot_lunar_boundary_summary =
         render_cli(&["reference-snapshot-lunar-boundary-summary"])
             .expect("reference snapshot lunar boundary summary should render");
@@ -1656,6 +1781,11 @@ fn summary_commands_render_compact_reports() {
             .expect_err("reference snapshot equatorial parity alias should reject extra arguments"),
         "reference-snapshot-equatorial-parity does not accept extra arguments"
     );
+}
+
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+#[test]
+fn policy_interpolation_and_lunar_summary_commands_render_compact_reports() {
     let time_scale_policy_summary = render_cli(&["time-scale-policy-summary"])
         .expect("time-scale policy summary should render");
     assert!(time_scale_policy_summary.contains("Time-scale policy summary"));
@@ -1990,6 +2120,11 @@ fn summary_commands_render_compact_reports() {
         lunar_theory_catalog_validation_summary,
         pleiades_elp::lunar_theory_catalog_validation_summary().summary_line()
     );
+}
+
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+#[test]
+fn selected_asteroid_bridge_and_holdout_summary_commands_render_compact_reports() {
     let selected_asteroid_boundary_summary = render_cli(&["selected-asteroid-boundary-summary"])
         .expect("selected asteroid boundary summary should render");
     assert!(selected_asteroid_boundary_summary.contains("Selected asteroid boundary evidence"));
@@ -2486,6 +2621,11 @@ fn summary_commands_render_compact_reports() {
         ),
         "independent-holdout-equatorial-parity-summary does not accept extra arguments"
     );
+}
+
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+#[test]
+fn house_catalog_and_ayanamsa_summary_commands_render_compact_reports() {
     let house_validation_summary =
         render_cli(&["house-validation-summary"]).expect("house validation summary should render");
     assert!(house_validation_summary.contains("House validation corpus: 9 scenarios"));
@@ -2728,6 +2868,11 @@ fn summary_commands_render_compact_reports() {
         validate_render_cli(&["ayanamsa-reference-offsets-summary"])
             .expect("validation ayanamsa reference offsets summary should render")
     );
+}
+
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+#[test]
+fn high_curvature_and_boundary_summary_commands_render_compact_reports() {
     let reference_high_curvature_summary = render_cli(&["reference-high-curvature-summary"])
         .expect("reference high-curvature summary should render");
     assert!(
@@ -3007,6 +3152,11 @@ fn summary_commands_render_compact_reports() {
             .expect_err("dense boundary summary alias should reject extra arguments"),
         "dense-boundary-summary does not accept extra arguments"
     );
+}
+
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+#[test]
+fn source_documentation_and_audit_summary_commands_render_compact_reports() {
     let source_documentation_summary = render_cli(&["source-documentation-summary"])
         .expect("source documentation summary should render");
     assert!(source_documentation_summary.contains("VSOP87 source documentation:"));
@@ -3078,85 +3228,4 @@ fn summary_commands_render_compact_reports() {
             .expect_err("generated binary audit alias should reject extra arguments"),
         "generated-binary-audit does not accept extra arguments"
     );
-    assert!(release_summary.lines().any(|line| {
-        line == "Primary request surfaces: pleiades-types::Instant (tagged instant plus caller-supplied retagging); pleiades-core::ChartRequest (chart assembly plus house-observer preflight); pleiades-backend::EphemerisRequest (direct backend dispatch plus metadata preflight); pleiades-houses::HouseRequest (house-only observer calculations); request-policy-summary / request-policy / request-semantics-summary / request-semantics / unsupported-modes-summary / unsupported-modes / utc-convenience-policy-summary / utc-convenience-policy / delta-t-policy-summary / delta-t-policy / zodiac-policy-summary / zodiac-policy / native-sidereal-policy-summary / native-sidereal-policy (compact request-policy report entrypoints); pleiades-cli chart (explicit --tt|--tdb|--utc|--ut1 flags plus caller-supplied TT/TDB offset aliases: --tt-offset-seconds, --tt-from-utc-offset-seconds, --tt-from-ut1-offset-seconds, --tdb-offset-seconds, --tdb-from-utc-offset-seconds, --tdb-from-ut1-offset-seconds, --tdb-from-tt-offset-seconds, and --tt-from-tdb-offset-seconds; observer-bearing chart requests stay geocentric and use the observer only for houses)"
-    }));
-    assert!(release_summary
-        .contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary"));
-    assert!(release_summary
-        .lines()
-        .any(|line| line == packaged_artifact_access_report_line()));
-    assert!(release_summary.lines().any(|line| {
-        line == format!(
-            "Packaged-artifact generation policy: {}",
-            pleiades_data::packaged_artifact_generation_policy_summary_details()
-        )
-    }));
-    assert!(release_summary.lines().any(|line| {
-        line == format!(
-            "Packaged frame treatment: {}",
-            pleiades_data::packaged_frame_treatment_summary_details()
-        )
-    }));
-    assert!(release_summary.contains(
-        "Packaged lookup epoch policy: TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction"
-    ));
-    // Reconstructed from the retained structured summary (the free renderer moved
-    // to `pleiades-validate`'s posture module in Slice C).
-    let expected_tt_tdb = pleiades_data::packaged_mixed_tt_tdb_batch_parity_summary()
-        .as_ref()
-        .map(|summary| match summary.validated_summary_line() {
-            Ok(line) => line,
-            Err(error) => format!("Packaged mixed TT/TDB batch parity: unavailable ({error})"),
-        })
-        .unwrap_or_else(|| "Packaged mixed TT/TDB batch parity: unavailable".to_string());
-    assert!(release_summary
-        .lines()
-        .any(|line| { line == format!("Packaged batch parity: {expected_tt_tdb}") }));
-    assert!(release_summary.contains(
-        "Packaged batch parity: Packaged mixed TT/TDB batch parity: 11 requests across 11 bodies, TT requests=6, TDB requests=5; quality counts: Exact=0, Interpolated=11, Approximate=0, Unknown=0; order=preserved, single-query parity=preserved"
-    ));
-    assert!(release_summary.contains("Lunar high-curvature equatorial continuity evidence"));
-    assert!(release_summary.contains("Artifact inspection:"));
-    assert!(release_summary.contains("Release gate reminders:"));
-    assert!(
-        release_summary.contains("Compatibility profile summary: compatibility-profile-summary")
-    );
-    assert!(release_summary
-        .lines()
-        .any(|line| line == "Release notes summary: release-notes-summary"));
-    assert!(release_summary
-        .contains("lunar source selection: Compact Meeus-style truncated lunar baseline"));
-    assert!(release_summary.contains("Wang"));
-    assert!(release_summary.contains("Aries houses"));
-    assert!(release_summary.contains("Fagan/Bradley"));
-    assert!(release_summary.contains("Usha Shashi"));
-    assert!(release_summary.contains("Galactic Center (Mula/Wilhelm)"));
-    assert!(release_summary.contains("Mula Wilhelm"));
-    assert!(release_summary.contains("Wilhelm"));
-    assert!(release_summary.contains("Galactic Equator (Fiorenza)"));
-    assert!(release_summary.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=2 (Sun, Moon), samples="));
-    assert!(release_summary.contains("JPL interpolation posture: source="));
-    assert!(release_summary.lines().any(|line| {
-        line == "JPL request policy: frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false"
-    }));
-    assert!(release_summary.lines().any(|line| {
-        line == "JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant"
-    }));
-    assert!(release_summary.contains(
-        "Validation report summary: validation-report-summary / validation-summary / report-summary"
-    ));
-    assert!(release_summary.contains("Artifact validation: validate-artifact"));
-    assert!(release_summary.contains("Release bundle verification: verify-release-bundle"));
-    assert!(release_summary
-        .lines()
-        .any(|line| line == "Workspace audit: workspace-audit / audit"));
-    assert!(release_summary
-        .contains("[x] cargo run -q -p pleiades-validate -- verify-compatibility-profile"));
-    assert!(release_summary.lines().any(|line| {
-        line == "Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"
-    }));
-    assert!(release_summary.contains("Release checklist summary: release-checklist-summary"));
-    assert!(release_summary.contains("Custom-definition label names: Babylonian (House), Babylonian (Sissy), Babylonian (True Geoc), Babylonian (True Topc), Babylonian (True Obs), Babylonian (House Obs), True Balarama, Aphoric, Takra"));
-    assert!(release_summary.contains("See release-notes and release-checklist"));
 }

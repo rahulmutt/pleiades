@@ -1,5 +1,6 @@
 //! CLI dispatch tests for validate-apparent and validate-topocentric goldens gates.
 
+use super::test_support::*;
 use super::*;
 
 #[test]
@@ -260,11 +261,11 @@ fn validate_eclipses_rejects_extra_args() {
 
 #[test]
 fn validate_crossings_passes_over_committed_corpus() {
-    let report = crate::crossings_validation::run_crossings_gate();
-    assert!(report.passed(), "validate-crossings failed: {report:?}");
-    let checked = report.0.as_ref().expect("gate should pass").checked;
+    let report = crossings_gate_report()
+        .as_ref()
+        .expect("validate-crossings should pass");
     assert_eq!(
-        checked,
+        report.checked,
         crate::crossings_validation::EXPECTED_ROWS,
         "expected every committed fixture checked"
     );
@@ -272,7 +273,7 @@ fn validate_crossings_passes_over_committed_corpus() {
 
 #[test]
 fn validate_crossings_command_reports_a_summary() {
-    let out = render_cli(&["validate-crossings"]).expect("gate passes");
+    let out = crossings_gate_via_cli().as_ref().expect("gate passes");
     assert!(
         out.contains("validate-crossings"),
         "output should contain 'validate-crossings': {out}"
@@ -281,14 +282,22 @@ fn validate_crossings_command_reports_a_summary() {
         out.contains("SE crossing fixtures"),
         "output should contain 'SE crossing fixtures': {out}"
     );
+    let report = crossings_gate_report().as_ref().expect("gate passes");
+    assert_eq!(*out, report.summary_line());
 }
 
 #[test]
 fn crossings_gate_alias_matches_validate_crossings() {
-    let via_primary =
-        render_cli(&["validate-crossings"]).expect("validate-crossings should succeed");
-    let via_alias = render_cli(&["crossings-gate"]).expect("crossings-gate alias should succeed");
-    assert_eq!(via_primary, via_alias);
+    // `crossings-gate` shares the `validate-crossings` match arm, whose
+    // argument check runs before the gate and names the primary command.
+    // That proves the alias routes to the same arm without running the gate
+    // again (FU-23 (d)).
+    let error = render_cli(&["crossings-gate", "extra"])
+        .expect_err("crossings-gate alias should reject extra arguments");
+    assert!(
+        error.contains("validate-crossings does not accept extra arguments"),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
@@ -513,17 +522,22 @@ fn validate_pheno_and_alias_agree_and_reject_extra_args() {
 
 #[test]
 fn validate_occultations_and_aliases_agree_and_reject_extra_args() {
-    let primary = render_cli(&["validate-occultations"]).expect("gate ok");
-    let alias1 = render_cli(&["occultations"]).expect("alias ok");
-    let alias2 = render_cli(&["occult-gate"]).expect("alias ok");
-    assert_eq!(primary, alias1);
-    assert_eq!(primary, alias2);
-    let error = render_cli(&["validate-occultations", "extra"])
-        .expect_err("validate-occultations should reject extra arguments");
-    assert!(
-        error.contains("validate-occultations does not accept extra arguments"),
-        "unexpected error: {error}"
-    );
+    let primary = occultations_gate_via_cli().as_ref().expect("gate ok");
+    let report = occultations_gate_report().as_ref().expect("gate ok");
+    assert_eq!(*primary, report.summary_line());
+    // All three names share one match arm, whose argument check runs before
+    // the gate and names the primary command; that proves the aliases route
+    // to the same arm without running the gate once per alias (FU-23 (d)).
+    for name in ["validate-occultations", "occultations", "occult-gate"] {
+        let error = match render_cli(&[name, "extra"]) {
+            Err(error) => error,
+            Ok(rendered) => panic!("{name} should reject extra arguments, rendered: {rendered}"),
+        };
+        assert!(
+            error.contains("validate-occultations does not accept extra arguments"),
+            "{name}: unexpected error: {error}"
+        );
+    }
     let help = render_cli(&["help"]).expect("help ok");
     assert!(
         help.contains("validate-occultations"),

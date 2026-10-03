@@ -77,6 +77,38 @@ run-to-run noise is not separated out):
 
 The full stations gate (242 s, started 80 s into the suite) is now the lib suite's long pole.
 
+### FU-23 items (c)–(g), 2026-10-03
+
+Four changes and two measurements, all local (24-core container, dev/test profile at
+`opt-level = 2`, one run each unless stated); no nightly run yet, so the CI effect is projected.
+
+- **(f)** `test-full` is two mise tasks, `test-full-validate` and `test-full-ignored`, run in
+  parallel after `test` and `doctest`. Cargo serializes the two builds on the build-directory lock;
+  the test runs overlap. Projected saving on CI: up to the shorter step (about 150 s before (c)).
+- **(c)** `summary_commands_render_compact_reports` is 13 `#[ignore]`d tests by command family,
+  moved verbatim (483 `render_cli` calls, 816 assertions before and after). The release family
+  carries the only full `release-gate` run (one, not two: see (d)) and stays the longest; the
+  other twelve finish well inside it, so the step's length is now one gate run rather than one gate
+  run plus every other command.
+- **(d)** Per-process shared outcomes in `pleiades-validate`'s `tests::test_support`. Gate runs per
+  test process: crossings 6 → 3, occultations 7 → 3, release battery plus bundle 3 → 1 (one of each
+  count is the numeric battery's own run). The affected tests, run together with
+  `cargo test -p pleiades-validate --lib -- crossings occult release_gate_command release_smoke_command`:
+  178 s wall on the shared machine, where the two release-checklist tests and the battery test now
+  wait on one gate run instead of making three.
+- **(e)** The stations gate scans its series on one thread each
+  (`compare_series` under `std::thread::scope`, folded in corpus order). The full-gate test, same
+  binary, same machine: 343 s sequential → 175 s parallel, report lines byte-identical (16 lines).
+  The wall-clock is now the longest series, so a 4-core runner should land near 175 s too; the
+  343 s of CPU would otherwise take about 90 s spread over four cores, so splitting the longest
+  series into time chunks is the next step if the gate stays the long pole.
+- **(g)** `debug = "line-tables-only"` on the `test` and `dev` profiles: clean
+  `cargo test -p pleiades-validate --no-run` took 112 s and 112 s at the committed profile and 119 s
+  with the setting (its first run, 227 s, was the cold dependency cache). Not applied.
+  `[profile.test] opt-level = 3` (every crate): the parallel full stations gate test took 180 s
+  against 173 s at `opt-level = 2`, and the profile switch rebuilt the test binary in 75 s against
+  47 s. Not applied either; the numeric crates gain nothing past `opt-level = 2`.
+
 ---
 
 ## Section 1: Timing Inventory

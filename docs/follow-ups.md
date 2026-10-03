@@ -2569,7 +2569,9 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** open · Measurements and the two changes already made are in
+**Status:** partly resolved (2026-10-03) · Items (c), (d), (e) and (f) are
+done and (g) is measured; (a), (b), (h) and (i) remain open. Measurements,
+the two changes from #112 and the 2026-10-03 changes are in
 `docs/superpowers/plans/test-timings.md` (Section 0).
 
 **Where the time is:** nightly run 37119694132 (4-core GitHub runner) spent
@@ -2596,7 +2598,10 @@ estimates from that run's timestamps, not measurements of a fix.
   makes 485 `render_cli` calls on one thread and alone sets the length of
   `test-full`'s second step while the other cores sit idle for about 110 s.
   Splitting it into several tests by command family would save about 100 s.
-  Mechanical, but a 3000-line diff in `pleiades-cli`.
+  Mechanical, but a 3000-line diff in `pleiades-cli`. → **Resolved
+  2026-10-03:** split into 13 `#[ignore]`d tests, one per command family
+  (same 483 `render_cli` calls and 816 assertions, moved verbatim). The
+  release family also stops running `release-gate-summary` in full, see (d).
 - **(d) Command and alias tests re-run whole gates.** In
   `pleiades-validate`'s lib suite the crossings gate runs five times, the
   occultations gate five times, and
@@ -2605,19 +2610,45 @@ estimates from that run's timestamps, not measurements of a fix.
   a bundle again (154 s and 96 s). Sharing a per-process outcome where the
   test's subject is the report rather than the dispatch would save roughly
   250–300 thread-seconds, about 60–75 s of wall-clock on four cores. Each
-  case needs a check that the alias dispatch is still exercised.
+  case needs a check that the alias dispatch is still exercised. →
+  **Resolved 2026-10-03:** per-process `OnceLock` outcomes in
+  `tests::test_support` (`crossings_gate_report`, `occultations_gate_report`,
+  the `*_via_cli` dispatches and `release_gate_via_cli`). Runs per test
+  process: crossings 6 → 3, occultations 7 → 3, release battery plus bundle
+  3 → 1 (one of each is the battery's own run). Aliases are proven to share
+  the primary's match arm by their extra-argument error, which names the
+  primary command; `release-gate-summary` and `release-smoke` assert the
+  shared gate run plus their pure renderers, and `release-smoke` still runs
+  end to end in the blocking `ci` tier.
 - **(e) The full stations gate is a 253 s single-threaded test** and becomes
   the suite's long pole. `validate_scoped` loops over independent series, so
   `std::thread::scope` per series would cut it to roughly 70 s on four
   cores. It saves wall-clock only while other cores are idle (perhaps
   30–60 s), and it changes gate code, so report ordering must stay
-  deterministic.
+  deterministic. → **Resolved 2026-10-03:** `compare_series` runs under
+  `std::thread::scope`, one thread per series, folded in corpus order; the
+  report lines are byte-identical to the sequential code. Locally (24
+  cores) 343 s → 175 s. The floor is now the longest single series, so a
+  4-core runner should land near that 175 s rather than the 70 s estimated
+  above; splitting the long series into time chunks would be the next step
+  if the gate is still the long pole.
 - **(f) Run `test-full`'s two steps concurrently.** At most about 80 s, at
-  the price of eight test threads on four cores.
+  the price of eight test threads on four cores. → **Resolved 2026-10-03:**
+  `test-full` now depends on two tasks, `test-full-validate` and
+  `test-full-ignored`, which mise runs in parallel after `test` and
+  `doctest`; cargo serializes their builds on the build-directory lock, the
+  test runs overlap.
 - **(g) Build profile.** `dev` and `test` are already `opt-level = 2`, so
   the numeric crates are optimized. Untried: `debug = "line-tables-only"` to
   shorten compile and link, and `opt-level = 3` for the gate-heavy crates.
-  Neither was measured.
+  Neither was measured. → **Measured 2026-10-03, nothing applied:** clean
+  `cargo test -p pleiades-validate --no-run` on 24 cores took 112 s and
+  112 s at the committed profile and 119 s with `debug = "line-tables-only"`
+  (a 227 s first run was the cold dependency cache), so the debug-info
+  setting does not pay. `[profile.test] opt-level = 3` for every crate ran
+  the parallel full stations gate test in 180 s against 173 s at
+  `opt-level = 2` (and rebuilt in 75 s against 47 s), so it does not pay
+  either. Details in the timings plan.
 - **(h) Splitting the nightly into parallel jobs** gains little: the
   non-test tasks already run beside the tests inside `mise`, and each extra
   job pays its own cache restore and build.

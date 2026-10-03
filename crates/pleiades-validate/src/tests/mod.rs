@@ -7,7 +7,10 @@
 
 use super::*;
 
-mod test_support;
+// `pub(crate)` so the in-module test suites elsewhere in the crate (for
+// example `crossings_validation::tests`) can share the per-process gate
+// outcomes instead of re-running the gates.
+pub(crate) mod test_support;
 
 mod comparison;
 mod compatibility;

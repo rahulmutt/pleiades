@@ -351,7 +351,9 @@ mod tests {
 
     #[test]
     fn validate_crossings_passes_over_committed_corpus() {
-        let report = validate_crossings_corpus().expect("gate should pass");
+        let report = crate::tests::test_support::crossings_gate_report()
+            .as_ref()
+            .expect("gate should pass");
         // Pin the fixture count so a corpus that silently loses rows fails.
         assert_eq!(report.checked, EXPECTED_ROWS, "unexpected fixture count");
     }
