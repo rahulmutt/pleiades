@@ -78,11 +78,18 @@ run = "cargo test --doc --workspace"
 # docs/superpowers/specs/2026-07-02-release-bundle-test-fixture-design.md.
 #   1. all of pleiades-validate (excluded from `test`), ignored tests included;
 #   2. only the ignored tests of every other crate (`test` ran the rest).
+# The two halves are separate tasks so mise runs them concurrently (FU-23 (f)):
+# cargo serializes their builds on the build-directory lock, but the test runs
+# overlap, and neither half saturates the runner on its own.
+depends = ["test-full-validate", "test-full-ignored"]
+
+[tasks.test-full-validate]
 depends = ["doctest", "test"]
-run = [
-  "cargo test -p pleiades-validate --lib --bins --tests -- --include-ignored",
-  "cargo test --workspace --exclude pleiades-validate --lib --bins --tests -- --ignored",
-]
+run = "cargo test -p pleiades-validate --lib --bins --tests -- --include-ignored"
+
+[tasks.test-full-ignored]
+depends = ["doctest", "test"]
+run = "cargo test --workspace --exclude pleiades-validate --lib --bins --tests -- --ignored"
 
 [tasks.docs]
 run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --all-features"
