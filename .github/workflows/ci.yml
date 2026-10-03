@@ -39,5 +39,13 @@ jobs:
       - name: Install mise-managed tools
         run: mise install
 
+      # Without this, the restored `target` only serves registry crates: the
+      # checkout gives every source a new mtime and cargo rebuilds all
+      # first-party crates (FU-23 (b)). The script keeps a file old only when
+      # its content matches the cached build's commit, so a wrong cache can
+      # never yield a stale build; see .github/scripts/cargo-cache-mtimes.sh.
+      - name: Reuse cached workspace builds
+        run: .github/scripts/cargo-cache-mtimes.sh
+
       - name: Run workspace checks
         run: mise run ci
