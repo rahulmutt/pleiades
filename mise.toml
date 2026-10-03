@@ -16,7 +16,11 @@
 # That file must repeat the same date string — mise's Tera templating can't
 # reach into a file rustup reads directly — so it carries a comment pointing
 # back here; keep both dates identical on a bump.
-FUZZ_NIGHTLY = "nightly-2026-07-01"
+# The nightly's rustc version must be >= `[workspace.package] rust-version`
+# (cargo refuses to build the fuzz targets otherwise), so a stable-toolchain
+# bump below needs this date checked too. A nightly reports the version it
+# is heading for: nightly-2026-10-01 is rustc 1.101.0-nightly.
+FUZZ_NIGHTLY = "nightly-2026-10-01"
 
 [tools]
 rust = { version = "1.99.0", components = "rustfmt,clippy" }
@@ -57,8 +61,22 @@ run = "cargo nextest run --workspace -E 'not package(pleiades-validate)'"
 run = "cargo test --doc --workspace"
 
 [tasks.test-full]
-depends = ["doctest"]
-run = "cargo nextest run --workspace --run-ignored all"
+# Every test, `#[ignore = "slow: ..."]` ones included. The fast suite (`test`)
+# stays on nextest; the slow families run under libtest (`cargo test`) on
+# purpose. They share expensive fixtures through per-process `OnceLock`s — the
+# pristine release bundle, the packaged artifact, the validation report — and
+# nextest starts one process PER TEST, so each of the ~250 slow tests rebuilt
+# its fixture from scratch (~70 s apiece on a CI runner; `test-full` never
+# finished inside the nightly budget). libtest runs a whole test binary in one
+# process, so each fixture is built once. See
+# docs/superpowers/specs/2026-07-02-release-bundle-test-fixture-design.md.
+#   1. all of pleiades-validate (excluded from `test`), ignored tests included;
+#   2. only the ignored tests of every other crate (`test` ran the rest).
+depends = ["doctest", "test"]
+run = [
+  "cargo test -p pleiades-validate --lib --bins --tests -- --include-ignored",
+  "cargo test --workspace --exclude pleiades-validate --lib --bins --tests -- --ignored",
+]
 
 [tasks.docs]
 run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --all-features"

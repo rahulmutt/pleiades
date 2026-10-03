@@ -19,4 +19,4 @@
 # templating renders `[tools]`/`[tasks]` values in mise.toml itself, not
 # arbitrary files that rustup reads directly.
 [toolchain]
-channel = "nightly-2026-07-01"
+channel = "nightly-2026-10-01"

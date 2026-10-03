@@ -24,14 +24,19 @@ jobs:
         with:
           install: false
 
+      # Besides the toolchain and Cargo home, this caches the mise-installed
+      # tool binaries (avoids recompiling the `cargo:` tools, ~8 min) and
+      # `target` (avoids a cold workspace rebuild). Keep explanations up here:
+      # `path` is a literal block, so a trailing `# ...` on a path line is part
+      # of the path, matches nothing, and silently drops that entry.
       - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
           path: |
             ~/.rustup
             ~/.cargo
-            ~/.local/share/mise # mise-installed tool binaries: avoids recompiling cargo: tools each run
-            target # compiled workspace artifacts: avoids a full cold rebuild each run
+            ~/.local/share/mise
+            target
           key: ${{ runner.os }}-rust-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-
@@ -75,14 +80,19 @@ jobs:
         with:
           install: false
 
+      # Besides the toolchain and Cargo home, this caches the mise-installed
+      # tool binaries (avoids recompiling the `cargo:` tools, ~8 min) and
+      # `target` (avoids a cold workspace rebuild). Keep explanations up here:
+      # `path` is a literal block, so a trailing `# ...` on a path line is part
+      # of the path, matches nothing, and silently drops that entry.
       - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
           path: |
             ~/.rustup
             ~/.cargo
-            ~/.local/share/mise # mise-installed tool binaries: avoids recompiling cargo: tools each run
-            target # compiled workspace artifacts: avoids a full cold rebuild each run
+            ~/.local/share/mise
+            target
           key: ${{ runner.os }}-rust-aspects-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-aspects-
