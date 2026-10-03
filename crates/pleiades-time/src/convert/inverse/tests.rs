@@ -132,24 +132,30 @@ fn utc_before_1972_is_rejected() {
 
 #[test]
 fn leap_horizon_is_continuous() {
-    // 2026-06-30 00:00:00 UTC is the last leap-second-exact instant.
-    let horizon = CivilDateTime::new(2026, 6, 30, 0, 0, 0.0);
-    let forward = tt_from_utc_civil(horizon).unwrap();
+    // 2027-06-30 23:59:59.999 UTC is the last leap-second-exact millisecond.
+    let last_exact = CivilDateTime::new(2027, 6, 30, 23, 59, 59.999);
+    let forward = tt_from_utc_civil(last_exact).unwrap();
     assert_eq!(forward.provenance.quality, ConversionQuality::Exact);
     let back = utc_civil_from_tt(forward.instant).unwrap();
-    assert_eq!(back.civil, horizon);
+    assert_eq!(back.civil, last_exact);
     assert_eq!(back.provenance, forward.provenance);
 
-    let later = CivilDateTime::new(2026, 6, 30, 0, 0, 1.0);
-    let forward = tt_from_utc_civil(later).unwrap();
-    assert_eq!(forward.provenance.quality, ConversionQuality::Predicted);
-    let back = utc_civil_from_tt(forward.instant).unwrap();
-    assert_eq!(back.civil, later);
-    assert_eq!(back.provenance.path, ConversionPath::FutureExtrapolated);
-    assert_eq!(back.provenance.quality, ConversionQuality::Predicted);
-    assert_eq!(back.provenance.tai_minus_utc, None);
-    let delta_t = back.provenance.delta_t_seconds.unwrap();
-    assert!((delta_t - forward.provenance.delta_t_seconds.unwrap()).abs() < 1e-6);
+    // From the horizon midnight on, the last known offset is held: the same
+    // 37 s, tagged Predicted, with no ΔT model involved.
+    for later in [
+        CivilDateTime::new(2027, 7, 1, 0, 0, 0.0),
+        CivilDateTime::new(2027, 7, 1, 0, 0, 1.0),
+        CivilDateTime::new(2090, 6, 1, 6, 30, 15.5),
+    ] {
+        let forward = tt_from_utc_civil(later).unwrap();
+        assert_eq!(forward.provenance.quality, ConversionQuality::Predicted);
+        let back = utc_civil_from_tt(forward.instant).unwrap();
+        assert_eq!(back.civil, later);
+        assert_eq!(back.provenance.path, ConversionPath::FutureExtrapolated);
+        assert_eq!(back.provenance.tai_minus_utc, Some(37));
+        assert_eq!(back.provenance.delta_t_seconds, None);
+        assert_eq!(back.provenance, forward.provenance);
+    }
 }
 
 #[test]

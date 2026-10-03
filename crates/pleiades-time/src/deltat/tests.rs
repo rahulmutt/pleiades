@@ -46,13 +46,20 @@ fn leap_second_bound_is_tt_minus_utc() {
 
 #[test]
 fn boundary_at_leap_horizon() {
+    // The horizon is exclusive: the day before is leap-bound, the horizon
+    // itself is the first Predicted instant.
+    let (before, q_before) = delta_t(leap::VALID_THROUGH_JD - 1.0).unwrap();
     let (at, q_at) = delta_t(leap::VALID_THROUGH_JD).unwrap();
     let (past, q_past) = delta_t(leap::VALID_THROUGH_JD + 1.0).unwrap();
-    assert_eq!(q_at, DeltaTQuality::LeapSecondBound);
+    assert_eq!(q_before, DeltaTQuality::LeapSecondBound);
+    assert_eq!(q_at, DeltaTQuality::Predicted);
     assert_eq!(q_past, DeltaTQuality::Predicted);
-    // Anchored extrapolation: the polynomial's slope at 2026 is ≈0.62 s/yr,
-    // so one day past the horizon moves ΔT by ≈0.0017 s, not by the ≈6 s
-    // jump the unanchored polynomial would produce.
+    // Anchored extrapolation: ΔT at the horizon is the leap-second bound
+    // itself, and the polynomial's slope at 2027 is ≈0.63 s/yr, so one day
+    // past the horizon moves ΔT by ≈0.0017 s, not by the ≈6.8 s jump the
+    // unanchored polynomial would produce.
+    assert!((before - 69.184).abs() < 1e-12, "before {before}");
+    assert!((at - 69.184).abs() < 1e-12, "at {at}");
     assert!((past - at).abs() < 0.01, "at {at}, past {past}");
     assert!(past > at, "at {at}, past {past}");
 }
@@ -70,13 +77,13 @@ fn extrapolated_delta_t_is_the_anchored_published_polynomial() {
     // JD 2480765.0 = 2451545 + 365.25 * 80 exactly (representable), so
     // decimal_year is exactly 2080.0 and t = 80. Espenak-Meeus 2005-2050
     // polynomial P(t) = 62.92 + 0.32217 t + 0.005589 t²; P(80) = 124.4632.
-    // The extrapolation is anchored at the leap horizon (2026-06-30, decimal
-    // year 2026.4928131416839, P = 75.37793627892353) to the leap-bound
-    // value 69.184, so ΔT(2080) = 69.184 + 124.4632 − 75.37793627892353
-    // = 118.26926372107647 (evaluated outside the code with Python). Dropping
-    // the anchor displaces this by 6.19 s, dropping either polynomial term by
+    // The extrapolation is anchored at the leap horizon (2027-07-01, decimal
+    // year 2027.494866529774, P = 76.00312454410142) to the leap-bound
+    // value 69.184, so ΔT(2080) = 69.184 + 124.4632 − 76.00312454410142
+    // = 117.64407545589857 (evaluated outside the code with Python). Dropping
+    // the anchor displaces this by 6.82 s, dropping either polynomial term by
     // 20 s or more, so the 1e-6 s tolerance leaves a >1e6x margin.
     let (dt, q) = delta_t(2_480_765.0).unwrap();
     assert_eq!(q, DeltaTQuality::Predicted);
-    assert!((dt - 118.269_263_721).abs() < 1e-6, "got {dt}");
+    assert!((dt - 117.644_075_456).abs() < 1e-6, "got {dt}");
 }

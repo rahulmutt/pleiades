@@ -48,11 +48,58 @@ fn ut1_and_utc_agree_where_delta_t_is_leap_bound() {
 }
 
 #[test]
-fn future_utc_is_predicted() {
+fn future_utc_holds_the_last_known_offset_and_is_predicted() {
+    // Past the leap horizon the last announced TAI − UTC is held: no ΔT
+    // model is involved, and the result is still tagged Predicted.
     let civil = CivilDateTime::new(2090, 6, 1, 0, 0, 0.0);
     let out = tt_from_utc_civil(civil).unwrap();
     assert_eq!(out.provenance.quality, ConversionQuality::Predicted);
     assert_eq!(out.provenance.path, ConversionPath::FutureExtrapolated);
+    assert_eq!(out.provenance.tai_minus_utc, Some(37));
+    assert_eq!(out.provenance.delta_t_seconds, None);
+}
+
+#[test]
+fn utc_offset_is_flat_across_the_leap_horizon() {
+    // Issue #105: with the horizon at 2026-06-30 00:00 these noon instants
+    // converted through the ΔT polynomial and drifted 0.63 s a year (69.34 s
+    // on 2026-10-03, 71.42 s in 2030). TAI − UTC has been 37 s since 2017
+    // (IERS Bulletin C 72), so TT − UTC is 69.184 s on every one of them;
+    // only the quality tag changes at the horizon, 2027-07-01 00:00.
+    for (civil, quality) in [
+        (
+            CivilDateTime::new(2026, 6, 30, 12, 0, 0.0),
+            ConversionQuality::Exact,
+        ),
+        (
+            CivilDateTime::new(2026, 10, 3, 12, 0, 0.0),
+            ConversionQuality::Exact,
+        ),
+        (
+            CivilDateTime::new(2027, 6, 30, 23, 59, 59.0),
+            ConversionQuality::Exact,
+        ),
+        (
+            CivilDateTime::new(2027, 7, 1, 0, 0, 0.0),
+            ConversionQuality::Predicted,
+        ),
+        (
+            CivilDateTime::new(2028, 1, 1, 12, 0, 0.0),
+            ConversionQuality::Predicted,
+        ),
+        (
+            CivilDateTime::new(2030, 1, 1, 12, 0, 0.0),
+            ConversionQuality::Predicted,
+        ),
+    ] {
+        let out = tt_from_utc_civil(civil).unwrap();
+        assert_eq!(out.provenance.quality, quality, "{civil:?}");
+        assert_eq!(out.provenance.tai_minus_utc, Some(37), "{civil:?}");
+        let jd_utc = civil.to_julian_day().unwrap().days();
+        let offset = (out.instant.julian_day.days() - jd_utc) * SECONDS_PER_DAY;
+        // Half-ulp(JD) ≈ 2e-5 s of JD-grid quantization on each day value.
+        assert!((offset - 69.184).abs() < 1e-4, "{civil:?}: {offset}");
+    }
 }
 
 #[test]
@@ -197,19 +244,26 @@ fn utc_at_exact_leap_epoch_is_exact() {
 #[test]
 fn future_utc_and_ut1_jd_values_match_hand_computation() {
     // Future-UTC path: 2090-06-01 00:00 UTC -> jd_civil 2484568.5 (past
-    // the leap table's VALID_THROUGH_JD, inside the support window).
-    // dT = Espenak-Meeus polynomial at decimal_year(2484568.5), anchored at
-    // the leap horizon (JD 2461221.5, decimal year 2026.4928131416839) to the
-    // leap-second bound 69.184 s, evaluated outside the code with Python:
-    // 69.184 + P(2090.4133) − P(2026.4928) = 131.5423132417809 s (the
-    // unanchored polynomial gives 137.736 s). Smallest mutant displacement
-    // on this path is 3.19e-3 days (spec §4.1 group D).
+    // the leap table's VALID_THROUGH_JD, inside the support window). The
+    // last known TAI − UTC (37 s) is held, so
+    // jd_tt = 2484568.5 + 69.184/86400, computed outside the code.
     let out = tt_from_utc_civil(CivilDateTime::new(2090, 6, 1, 0, 0, 0.0)).unwrap();
     assert_eq!(out.provenance.path, ConversionPath::FutureExtrapolated);
-    let dt = out.provenance.delta_t_seconds.unwrap();
-    assert!((dt - 131.542_313_241_780_9).abs() < 1e-9, "dt {dt}");
     let jd = out.instant.julian_day.days();
-    assert!((jd - 2_484_568.501_522_480_5).abs() < 1e-9, "jd_tt {jd}");
+    assert!((jd - 2_484_568.500_800_741).abs() < 1e-9, "jd_tt {jd}");
+
+    // Future-UT1 path, same civil day. dT = Espenak-Meeus polynomial at
+    // decimal_year(2484568.5), anchored at the leap horizon (JD 2461587.5,
+    // decimal year 2027.494866529774) to the leap-second bound 69.184 s,
+    // evaluated outside the code with Python:
+    // 69.184 + P(2090.4133) − P(2027.4949) = 130.91712497660302 s (the
+    // unanchored polynomial gives 137.736 s).
+    let out = tt_from_ut1_civil(CivilDateTime::new(2090, 6, 1, 0, 0, 0.0)).unwrap();
+    assert_eq!(out.provenance.path, ConversionPath::FutureExtrapolated);
+    let dt = out.provenance.delta_t_seconds.unwrap();
+    assert!((dt - 130.917_124_976_603_02).abs() < 1e-9, "dt {dt}");
+    let jd = out.instant.julian_day.days();
+    assert!((jd - 2_484_568.501_515_244_6).abs() < 1e-9, "jd_tt {jd}");
 
     // UT1 path: 1955-06-15 00:00 UT1 -> jd_civil 2435273.5. dT hand-
     // interpolated between the committed 1950 (29.1 s) and 1960 (33.2 s)

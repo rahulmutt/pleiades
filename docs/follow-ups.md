@@ -1963,7 +1963,10 @@ left out of that change:
    horizon the Espenak–Meeus polynomial is anchored to the bound at the
    horizon so ΔT is continuous there, still tagged `Predicted`. The leap
    horizon moved from 2025-12-31 to 2026-06-30 on IERS Bulletin C 71; a
-   test pins it, and each future Bulletin C should move it again. The
+   test pins it, and each future Bulletin C should move it again
+   (**2026-10-03, issue #105:** moved to 2027-07-01 00:00, exclusive, on
+   Bulletin C 72; UTC past the horizon now holds the last `TAI − UTC`
+   rather than following this polynomial, which remains the UT1 model). The
    observed table stays authoritative through 2020 (0.2 s step at the node,
    same order as its interpolation error). The 2026 Chennai ascendant
    residual against SE dropped from 0.026° to 0.0014° and the #56 regression

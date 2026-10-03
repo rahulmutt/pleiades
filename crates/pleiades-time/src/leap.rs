@@ -17,10 +17,13 @@ const LEAP_CSV_CHECKSUM: u64 = 16253160508809344072; // pinned
 /// JD of the first UTC leap-second epoch (1972-01-01 00:00).
 pub const LEAP_EPOCH_JD: f64 = 2441317.5;
 
-/// Last UTC date the table is authoritative for (2026-06-30 00:00): IERS
-/// Bulletin C 71 (January 2026) announced no leap second at the end of June
-/// 2026. Bump this with each Bulletin C; `deltat` anchors its extrapolation here.
-pub const VALID_THROUGH_JD: f64 = 2461221.5;
+/// Exclusive end of the UTC range the table is authoritative for (2027-07-01
+/// 00:00): IERS Bulletin C 72 (6 July 2026) announced no leap second at the
+/// end of December 2026, so `TAI − UTC` is known through the next insertion
+/// date, the end of 2027-06-30. The horizon is the midnight after that day,
+/// the first instant a new leap second could change. Bump this with each
+/// Bulletin C; `deltat` anchors its extrapolation here.
+pub const VALID_THROUGH_JD: f64 = 2461587.5;
 
 static LEAP_ROWS: OnceLock<Result<Vec<(f64, i32)>, CivilTimeError>> = OnceLock::new();
 
@@ -62,9 +65,9 @@ pub(crate) fn table() -> Result<&'static [(f64, i32)], CivilTimeError> {
 }
 
 /// Returns `TAI − UTC` in whole seconds for a UTC instant, or `Ok(None)` if the
-/// instant is before 1972 or after the table's validated horizon.
+/// instant is before 1972 or at or after the table's validated horizon.
 pub fn tai_minus_utc(jd_utc: f64) -> Result<Option<i32>, CivilTimeError> {
-    if !(LEAP_EPOCH_JD..=VALID_THROUGH_JD).contains(&jd_utc) {
+    if !(LEAP_EPOCH_JD..VALID_THROUGH_JD).contains(&jd_utc) {
         return Ok(None);
     }
     let rows = table()?;
@@ -75,6 +78,17 @@ pub fn tai_minus_utc(jd_utc: f64) -> Result<Option<i32>, CivilTimeError> {
         }
     }
     Ok(current)
+}
+
+/// The last announced `TAI − UTC`, in whole seconds: the value in force up to
+/// the horizon, and the one held for UTC instants beyond it.
+pub fn last_tai_minus_utc() -> Result<i32, CivilTimeError> {
+    table()?
+        .last()
+        .map(|&(_, secs)| secs)
+        .ok_or(CivilTimeError::StaleTimeData {
+            kind: "leap-second",
+        })
 }
 
 /// Whether the UTC midnight `jd_next_midnight` immediately follows an
@@ -114,18 +128,32 @@ mod tests {
     }
 
     #[test]
-    fn horizon_covers_first_half_of_2026() {
-        // IERS Bulletin C 71 (January 2026): no leap second at the end of
-        // June 2026, so the table is authoritative through 2026-06-30
-        // (JD 2461221.5) and TAI − UTC is still 37 s there.
-        assert_eq!(VALID_THROUGH_JD, 2_461_221.5);
-        assert_eq!(tai_minus_utc(2_461_221.5).unwrap(), Some(37));
+    fn horizon_covers_the_first_half_of_2027() {
+        // IERS Bulletin C 72 (6 July 2026): no leap second at the end of
+        // December 2026, so TAI − UTC stays 37 s until the next insertion
+        // date, the end of 2027-06-30. The horizon is the following midnight
+        // (2027-07-01 00:00, JD 2461587.5) and is exclusive.
+        assert_eq!(VALID_THROUGH_JD, 2_461_587.5);
+        // 2026-06-30 12:00 and 2026-10-03 12:00, both past the old horizon.
+        assert_eq!(tai_minus_utc(2_461_222.0).unwrap(), Some(37));
+        assert_eq!(tai_minus_utc(2_461_317.0).unwrap(), Some(37));
+        // 2027-06-30 12:00, on the last covered day.
+        assert_eq!(tai_minus_utc(2_461_587.0).unwrap(), Some(37));
     }
 
     #[test]
     fn returns_none_outside_window() {
-        assert_eq!(tai_minus_utc(2441317.4).unwrap(), None); // before 1972
-        assert_eq!(tai_minus_utc(VALID_THROUGH_JD + 1.0).unwrap(), None); // past horizon
+        // Before 1972.
+        assert_eq!(tai_minus_utc(2441317.4).unwrap(), None);
+        // The horizon midnight is the first instant a new leap second could
+        // change, so it is already outside.
+        assert_eq!(tai_minus_utc(VALID_THROUGH_JD).unwrap(), None);
+        assert_eq!(tai_minus_utc(VALID_THROUGH_JD + 1.0).unwrap(), None);
+    }
+
+    #[test]
+    fn last_known_offset_is_the_final_row() {
+        assert_eq!(last_tai_minus_utc().unwrap(), 37);
     }
 
     #[test]
