@@ -1,7 +1,7 @@
 [package]
 name = "pleiades-apsides"
 description = "Lunar orbit points (mean and osculating nodes and apsides) for the pleiades astrology workspace"
-version = "0.5.3"
+version = "0.5.4"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
