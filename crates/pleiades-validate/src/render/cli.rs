@@ -3067,7 +3067,8 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,tropical
 
     #[test]
     fn run_all_numeric_gates_includes_occultations_and_passes() {
-        crate::validate_occultations_corpus()
+        crate::tests::test_support::occultations_gate_report()
+            .as_ref()
             .expect("occultations gate passes standalone on the committed corpus");
         numeric_battery_outcome().expect("full numeric-gate battery (incl. occultations) passes");
     }

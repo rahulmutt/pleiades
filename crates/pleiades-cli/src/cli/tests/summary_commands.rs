@@ -429,11 +429,18 @@ fn release_summary_commands_render_compact_reports() {
     assert!(release_checklist_summary
         .contains("See release-summary for the compact one-screen release overview."));
 
+    // `release-gate` and `release-gate-summary` are both passthroughs to
+    // pleiades-validate, and each runs the numeric battery plus a bundle
+    // render and verify (about a minute on a CI runner). One real run covers
+    // the passthrough; the summary variant's routing is proven by its
+    // extra-argument error, which pleiades-validate raises before validating
+    // (FU-23 (d)).
     let release_gate = render_cli(&["release-gate"]).expect("release gate should render");
-    let release_gate_summary =
-        render_cli(&["release-gate-summary"]).expect("release gate summary should render");
     assert_eq!(release_gate, release_checklist);
-    assert_eq!(release_gate_summary, release_checklist_summary);
+    assert_eq!(
+        render_cli(&["release-gate-summary", "extra"]).unwrap_err(),
+        "release-gate-summary does not accept extra arguments"
+    );
 
     let compatibility_profile = current_compatibility_profile();
     let release_summary = render_cli(&["release-summary"]).expect("release summary should render");

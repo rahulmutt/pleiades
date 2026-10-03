@@ -1375,7 +1375,9 @@ mod tests {
 
     #[test]
     fn manifest_row_count_is_pinned() {
-        let report = validate_occultations_corpus().expect("occult gate passes");
+        let report = crate::tests::test_support::occultations_gate_report()
+            .as_ref()
+            .expect("occult gate passes");
         assert_eq!(report.rows, EXPECTED_ROWS);
     }
 
@@ -1386,7 +1388,9 @@ mod tests {
 
     #[test]
     fn gate_passes_on_committed_corpus() {
-        let report = validate_occultations_corpus().expect("occult gate passes");
+        let report = crate::tests::test_support::occultations_gate_report()
+            .as_ref()
+            .expect("occult gate passes");
         eprintln!("{}", report.summary_line());
     }
 

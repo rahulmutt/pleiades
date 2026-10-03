@@ -320,22 +320,37 @@ fn release_checklist_summary_command_renders_the_summary() {
 
 #[test]
 fn release_gate_command_aliases_the_release_checklist() {
+    // One shared `release-gate` run per process (FU-23 (d)).
+    // `release-gate-summary` makes the same `validate_release_gate` call
+    // before its own renderer, so only that renderer and its argument check
+    // are asserted here rather than validating a second time.
     let checklist = render_cli(&["release-checklist"]).expect("release checklist should render");
-    let gate = render_cli(&["release-gate"]).expect("release gate should render");
+    let gate = release_gate_via_cli()
+        .as_ref()
+        .expect("release gate should render");
     let checklist_summary = render_cli(&["release-checklist-summary"])
         .expect("release checklist summary should render");
-    let gate_summary =
-        render_cli(&["release-gate-summary"]).expect("release gate summary should render");
 
-    assert_eq!(gate, checklist);
-    assert_eq!(gate_summary, checklist_summary);
+    assert_eq!(*gate, checklist);
+    assert_eq!(
+        crate::release::notes::render_release_checklist_summary_text(),
+        checklist_summary
+    );
     assert!(render_cli(&["release-gate", "extra"]).is_err());
     assert!(render_cli(&["release-gate-summary", "extra"]).is_err());
 }
 
 #[test]
 fn release_smoke_command_renders_the_smoke_report() {
-    let rendered = render_cli(&["release-smoke"]).expect("release smoke should render");
+    // `release-smoke` validates with the same battery and bundle as
+    // `release-gate` (`validate_release_gate_at` wraps
+    // `validate_release_smoke_at`), so the shared gate run stands in for the
+    // validation and only the smoke text is asserted here (FU-23 (d)). The
+    // command runs end to end in the blocking tier (`mise run release-smoke`).
+    release_gate_via_cli()
+        .as_ref()
+        .expect("release gate should pass");
+    let rendered = crate::release::notes::render_release_smoke_text();
 
     assert!(rendered.contains("Release smoke"));
     assert!(rendered.contains("workspace audit: ok"));

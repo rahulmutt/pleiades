@@ -54,6 +54,54 @@ pub(crate) fn pristine_release_bundle() -> &'static PristineBundle {
     })
 }
 
+/// The crossings gate, run once per test process (FU-23 (d)).
+///
+/// The gate is deterministic and takes tens of seconds, so the tests that
+/// assert its report share one run, the same way the release battery is
+/// shared in `render::cli::tests`. The battery itself still runs the gate
+/// once more inside `run_all_numeric_gates`.
+pub(crate) fn crossings_gate_report() -> &'static Result<CrossingsCorpusReport, CrossingsCorpusError>
+{
+    static REPORT: OnceLock<Result<CrossingsCorpusReport, CrossingsCorpusError>> = OnceLock::new();
+    REPORT.get_or_init(validate_crossings_corpus)
+}
+
+/// `validate-crossings` dispatched through the CLI, once per test process.
+///
+/// Tests whose subject is the rendered summary read this. The alias names
+/// share the same match arm, which their extra-argument errors prove (the
+/// error names the primary command), so no alias re-runs the gate.
+pub(crate) fn crossings_gate_via_cli() -> &'static Result<String, String> {
+    static RENDERED: OnceLock<Result<String, String>> = OnceLock::new();
+    RENDERED.get_or_init(|| render_cli(&["validate-crossings"]))
+}
+
+/// The occultations gate, run once per test process; see
+/// [`crossings_gate_report`].
+pub(crate) fn occultations_gate_report() -> &'static Result<OccultReport, OccultError> {
+    static REPORT: OnceLock<Result<OccultReport, OccultError>> = OnceLock::new();
+    REPORT.get_or_init(validate_occultations_corpus)
+}
+
+/// `validate-occultations` dispatched through the CLI, once per test process;
+/// see [`crossings_gate_via_cli`].
+pub(crate) fn occultations_gate_via_cli() -> &'static Result<String, String> {
+    static RENDERED: OnceLock<Result<String, String>> = OnceLock::new();
+    RENDERED.get_or_init(|| render_cli(&["validate-occultations"]))
+}
+
+/// `release-gate` dispatched through the CLI, once per test process.
+///
+/// One run is the whole numeric battery plus a bundle render and verify,
+/// about a minute on a CI runner. `release-gate-summary` and
+/// `release-smoke` validate with the same calls before rendering their own
+/// text, so the tests for those commands assert this shared run plus their
+/// pure renderers rather than validating again.
+pub(crate) fn release_gate_via_cli() -> &'static Result<String, String> {
+    static RENDERED: OnceLock<Result<String, String>> = OnceLock::new();
+    RENDERED.get_or_init(|| render_cli(&["release-gate"]))
+}
+
 pub(crate) fn stage_bundle_copy(prefix: &str) -> std::path::PathBuf {
     let source = &pristine_release_bundle().dir;
     let dest = unique_temp_dir(prefix);
