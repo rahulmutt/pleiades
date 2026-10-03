@@ -31,11 +31,11 @@ pub const CURRENT_OBSERVER_POLICY_SUMMARY_TEXT: &str =
 
 /// Canonical current policy summary text for the shared apparentness posture.
 pub const CURRENT_APPARENTNESS_POLICY_SUMMARY_TEXT: &str =
-    "backends remain mean-only and J2000 at the backend boundary; apparent place of date (chart layer, default): light-time + precession-to-date + annual aberration + nutation-in-longitude, release-grade bodies; gravitational light-deflection omitted";
+    "backends remain mean-only and J2000 at the backend boundary; apparent place of date (chart layer, default): light-time + precession-to-date + annual aberration + nutation-in-longitude, every body the backend serves, whatever its claim tier; gravitational light-deflection omitted";
 
 /// Canonical current policy summary text for the shared frame posture.
 pub const CURRENT_FRAME_POLICY_SUMMARY_TEXT: &str =
-    "ecliptic body positions are the default request shape; at the backend boundary equatorial output is derived via mean-obliquity transforms when supported, while the chart layer reports apparent equatorial of date (true obliquity = mean obliquity + nutation-in-obliquity) for release-grade bodies; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
+    "ecliptic body positions are the default request shape; at the backend boundary equatorial output is derived via mean-obliquity transforms when supported, while the chart layer reports apparent equatorial of date (true obliquity = mean obliquity + nutation-in-obliquity) for every apparent placement; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it";
 
 /// Canonical current policy summary text for the shared native sidereal posture.
 pub const CURRENT_NATIVE_SIDEREAL_POLICY_SUMMARY_TEXT: &str =
@@ -1761,11 +1761,11 @@ mod tests {
         );
         assert_eq!(
             request_policy.apparentness,
-            "backends remain mean-only and J2000 at the backend boundary; apparent place of date (chart layer, default): light-time + precession-to-date + annual aberration + nutation-in-longitude, release-grade bodies; gravitational light-deflection omitted"
+            "backends remain mean-only and J2000 at the backend boundary; apparent place of date (chart layer, default): light-time + precession-to-date + annual aberration + nutation-in-longitude, every body the backend serves, whatever its claim tier; gravitational light-deflection omitted"
         );
         assert_eq!(
             request_policy.frame,
-            "ecliptic body positions are the default request shape; at the backend boundary equatorial output is derived via mean-obliquity transforms when supported, while the chart layer reports apparent equatorial of date (true obliquity = mean obliquity + nutation-in-obliquity) for release-grade bodies; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
+            "ecliptic body positions are the default request shape; at the backend boundary equatorial output is derived via mean-obliquity transforms when supported, while the chart layer reports apparent equatorial of date (true obliquity = mean obliquity + nutation-in-obliquity) for every apparent placement; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
         );
         assert_eq!(
             time_scale_policy_summary_for_report().summary_line(),

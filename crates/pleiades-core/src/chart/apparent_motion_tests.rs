@@ -104,7 +104,8 @@ impl EphemerisBackend for SmoothBackend {
                 release_grade(CelestialBody::Sun),
                 release_grade(CelestialBody::Mars),
                 release_grade(CelestialBody::TrueNode),
-                // Not release-grade: an apparent chart serves it in the mean place.
+                // Served without a distance (see `position`), so an apparent
+                // chart falls back to its mean place.
                 BodyClaim::approximate(CelestialBody::Jupiter),
             ],
             supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
@@ -142,10 +143,13 @@ impl EphemerisBackend for SmoothBackend {
             request.apparent,
         );
         result.quality = QualityAnnotation::Approximate;
+        // Jupiter is served without a distance, so the light-time step fails
+        // closed for it and an apparent chart keeps its mean place.
+        let distance_au = (request.body != CelestialBody::Jupiter).then_some(sample.distance_au);
         result.ecliptic = Some(EclipticCoordinates::new(
             Longitude::from_degrees(sample.longitude_deg),
             Latitude::from_degrees(sample.latitude_deg),
-            Some(sample.distance_au),
+            distance_au,
         ));
         result.motion = Some(sample.motion);
         Ok(result)

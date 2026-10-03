@@ -12,6 +12,8 @@
 
 #[cfg(test)]
 mod apparent_motion_tests;
+#[cfg(test)]
+mod apparent_tier_tests;
 mod aspects;
 mod errors;
 mod houses;
@@ -370,14 +372,30 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             }
         }
 
+        // Apparent place is a frame reduction (light-time, precession, nutation,
+        // aberration) that applies to every body the backend serves, whatever
+        // its claim tier: the tier describes the backend's geometric accuracy,
+        // which the reduction neither needs nor changes (issue #113). The Sun's
+        // longitude of date feeds the aberration term, so a backend that cannot
+        // serve the Sun cannot serve an apparent chart; fail closed rather than
+        // return mean J2000 under an `Apparent` label.
         let apparent_requested = matches!(request.apparentness, Apparentness::Apparent);
-        let release_grade = metadata.release_grade_bodies();
-        // Only query the Sun's longitude when there is at least one release-grade body
-        // in the request. Non-release-grade bodies fall back to mean, so the Sun query
-        // is unnecessary (and costly) when no body in the batch can be corrected.
-        let has_release_grade_body = request.bodies.iter().any(|b| release_grade.contains(b));
-        let sun_true_longitude_of_date = if apparent_requested && has_release_grade_body {
-            Some(self.query_sun_longitude_of_date(request.instant, &backend_zodiac_mode)?)
+        let sun_true_longitude_of_date = if apparent_requested && !request.bodies.is_empty() {
+            let sun_lon = self
+                .query_sun_longitude_of_date(request.instant, &backend_zodiac_mode)
+                .map_err(|error| {
+                    EphemerisError::new(
+                        error.kind,
+                        format!(
+                            "apparent place needs the Sun's geocentric longitude for the \
+                             aberration term, but {backend_id} could not serve it at this \
+                             instant: {}; request Apparentness::Mean for the backend's raw \
+                             mean J2000 place",
+                            error.message
+                        ),
+                    )
+                })?;
+            Some(sun_lon)
         } else {
             None
         };
@@ -432,52 +450,47 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                         .map(|coords| house_for_longitude(coords.longitude, &snapshot.cusps))
                 });
                 let apparent = if let Some(sun_lon) = sun_true_longitude_of_date {
-                    if release_grade.contains(&body) {
-                        let outcome = self.apparent_place(
-                            &body,
-                            request.instant,
-                            sun_lon,
-                            &backend_zodiac_mode,
-                            &request.body_observer,
-                        );
-                        match outcome {
-                            Ok(outcome) => {
-                                if let Some(ecliptic) = position.ecliptic.as_mut() {
-                                    // Store the tropical apparent ecliptic. The sidereal
-                                    // ayanamsa re-apply (for non-native sidereal charts) is
-                                    // deferred to after the topocentric block so it runs
-                                    // exactly once on the final tropical longitude — whether
-                                    // that is geocentric or topocentric apparent.
-                                    *ecliptic = outcome.ecliptic;
-                                }
-                                position.apparent = Apparentness::Apparent;
-                                // The backend's speed describes the mean place; move it
-                                // to the apparent place stored above.
-                                if let Some(mean) = position.motion {
-                                    position.motion = self.apparent_motion(
-                                        mean,
-                                        &body,
-                                        speed_suns.as_ref().map_or(&[], |suns| suns.as_slice()),
-                                        &backend_zodiac_mode,
-                                        &request.body_observer,
-                                    );
-                                }
-                                Some(outcome.provenance)
+                    let outcome = self.apparent_place(
+                        &body,
+                        request.instant,
+                        sun_lon,
+                        &backend_zodiac_mode,
+                        &request.body_observer,
+                    );
+                    match outcome {
+                        Ok(outcome) => {
+                            if let Some(ecliptic) = position.ecliptic.as_mut() {
+                                // Store the tropical apparent ecliptic. The sidereal
+                                // ayanamsa re-apply (for non-native sidereal charts) is
+                                // deferred to after the topocentric block so it runs
+                                // exactly once on the final tropical longitude — whether
+                                // that is geocentric or topocentric apparent.
+                                *ecliptic = outcome.ecliptic;
                             }
-                            Err(_) => {
-                                // Apparent place unavailable for this release-grade body
-                                // (e.g. unreliable distance channel, out-of-range retarded
-                                // epoch). Gracefully fall back to the mean position already
-                                // stored in `position.ecliptic`; leave it and the sign
-                                // unchanged so the chart succeeds.
-                                position.apparent = Apparentness::Mean;
-                                None
+                            position.apparent = Apparentness::Apparent;
+                            // The backend's speed describes the mean place; move it
+                            // to the apparent place stored above.
+                            if let Some(mean) = position.motion {
+                                position.motion = self.apparent_motion(
+                                    mean,
+                                    &body,
+                                    speed_suns.as_ref().map_or(&[], |suns| suns.as_slice()),
+                                    &backend_zodiac_mode,
+                                    &request.body_observer,
+                                );
                             }
+                            Some(outcome.provenance)
                         }
-                    } else {
-                        // Non-release-grade: graceful mean fallback, not an error.
-                        position.apparent = Apparentness::Mean;
-                        None
+                        Err(_) => {
+                            // Apparent place unavailable for this body (e.g. unreliable
+                            // distance channel, out-of-range retarded epoch). Gracefully
+                            // fall back to the mean position already stored in
+                            // `position.ecliptic`; leave it and the sign unchanged so
+                            // the chart succeeds. `position.apparent` records the
+                            // downgrade; see FU-24 in docs/follow-ups.md.
+                            position.apparent = Apparentness::Mean;
+                            None
+                        }
                     }
                 } else {
                     position.apparent = Apparentness::Mean;
@@ -596,7 +609,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         })
     }
 
-    /// Apparent place of a release-grade body at `instant`.
+    /// Apparent place of a body at `instant`.
     /// `sun_longitude_of_date` is the Sun's true geometric longitude of date at
     /// the same instant, the argument of the annual-aberration term.
     fn apparent_place(

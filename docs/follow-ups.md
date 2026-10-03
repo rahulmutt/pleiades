@@ -2626,3 +2626,38 @@ estimates from that run's timestamps, not measurements of a fix.
   libtest keeps the tier inside its budget.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
+
+---
+
+## FU-24: A placement whose apparent reduction fails is reported under the snapshot's `Apparent` label
+
+**Status:** open · Surfaced while fixing issue #113 (apparent place on every
+claim tier). The common case the issue reported, every non-`ReleaseGrade` body
+returned in mean J2000 under an `Apparent` label, is gone: the chart layer now
+reduces every body the backend serves, and a backend that cannot serve the Sun
+fails closed. This entry tracks the remaining, narrower case.
+
+**Where:** `crates/pleiades-core/src/chart/mod.rs`, the `Err(_)` arm of the
+per-body `apparent_place` match in `ChartEngine::chart`.
+
+**What:** when the reduction fails for one body (no `distance_au` on the mean
+result, a light-time retarded epoch outside the backend's range, the light-time
+sanity cap), the engine keeps that body's mean J2000 place, sets
+`position.apparent = Mean` and attaches no provenance, but
+`ChartSnapshot::apparentness` still echoes the requested `Apparent`. A caller
+reading only the snapshot-level field sees a chart it believes is of date with
+one body about 50″ per year from J2000 adrift from the rest. The test
+`release_grade_body_falls_back_to_mean_when_apparent_unavailable` pins the
+graceful fallback deliberately (the 433-Eros unreliable-distance scenario), so
+this is a design decision to revisit, not a regression.
+
+**Suggested fix:** either (a) fail closed per body, as the original
+2026-06-22 apparent-place-corrections design specified, with the Eros distance
+channel fixed at its source; or (b) keep the fallback but make it visible at
+the snapshot level: a derived `ChartSnapshot::apparentness_applied()` (or a
+rendered "n of m placements reduced" line) so `summary_line()` and `Display`
+cannot read as fully apparent when a placement is not. Either way the
+per-placement truth (`position.apparent`, `BodyPlacement::apparent`) is
+already correct and should stay the source of record.
+
+**Severity:** honesty of reported output (narrow case) · **Opened:** 2026-10-03
