@@ -40,8 +40,10 @@ jobs:
 
       # 2. `target`, rolled forward on every run (same pattern as the fuzz
       #    corpus cache): the key carries the run id so it never hits exactly,
-      #    the restore-keys pick the newest build from this branch or main,
-      #    and the save step below writes a fresh entry. Without that roll-
+      #    the restore-keys pick the newest build this run may see (GitHub
+      #    scopes caches: a push run sees its branch and main, a pull_request
+      #    run sees main only), and the save step below writes a fresh entry
+      #    for the next one. Without that roll-
       #    forward the marker cargo-cache-mtimes.sh relies on would be frozen
       #    at the last Cargo.lock change. The `target` cache is kept apart
       #    from the tools cache because a legacy tools entry would otherwise

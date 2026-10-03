@@ -147,7 +147,11 @@ Two changes, both in `.github/workflows` (PR #117):
   never overwrites an existing key: inside the tools entry the marker could only have entered the
   cache when `Cargo.lock` or `mise.toml` changed. `pull_request` runs restore but do not save,
   since their checkout is an ephemeral merge commit that later runs cannot fetch; the `push` run
-  of the same commit saves the equivalent entry with a branch commit.
+  of the same commit saves the equivalent entry with a branch commit. GitHub scopes cache access:
+  a `push` run restores the newest entry from its branch or `main`, a `pull_request` run sees
+  `main`'s entries only (verified on PR #117: its `pull_request` runs found no cache while the
+  `push` runs of the same commits restored the branch's). So a PR's checks warm up through
+  `main`'s entries, and the diff against `main`'s commit is what rebuilds.
 
 Measured on the blocking job (`ubuntu-latest`, 4 cores). "Before" is the last run on `main` under
 the old layout; "after" is the rerun of PR #117's push run on its own seeded cache, so the marker
