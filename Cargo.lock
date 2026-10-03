@@ -206,9 +206,11 @@ dependencies = [
  "pleiades-backend",
  "pleiades-compression",
  "pleiades-data",
+ "pleiades-elp",
  "pleiades-houses",
  "pleiades-time",
  "pleiades-types",
+ "pleiades-vsop87",
 ]
 
 [[package]]

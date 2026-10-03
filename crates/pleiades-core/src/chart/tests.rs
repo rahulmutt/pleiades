@@ -288,10 +288,9 @@ fn chart_snapshot_supports_sidereal_signs() {
 
 #[test]
 fn chart_snapshot_preserves_apparentness_choice() {
-    // Use ApparentChartBackend which declares Sun as ReleaseGrade, so the
-    // engine applies actual apparent-place corrections and the placement
-    // reflects Apparentness::Apparent. ToyChartBackend has Constrained bodies
-    // only and would fall back to Mean (tested by non_release_grade_body_falls_back_to_mean).
+    // ApparentChartBackend serves the Sun with a distance, so the engine
+    // applies the apparent-place corrections and the placement reflects
+    // Apparentness::Apparent.
     let engine = ChartEngine::new(ApparentChartBackend);
     let request = ChartRequest::new(Instant::new(
         pleiades_types::JulianDay::from_days(2451545.0),
@@ -373,8 +372,11 @@ fn chart_snapshot_keeps_house_observer_out_of_body_position_requests() {
 
     assert!(chart.houses.is_some());
     assert_eq!(chart.observer, request.observer);
+    // Every backend query, including the apparent pipeline's own Sun and
+    // light-time re-queries, stays geocentric: the house observer never
+    // reaches the body channel.
     let observers = observers.lock().expect("observer log should be lockable");
-    assert_eq!(observers.len(), 1);
+    assert!(!observers.is_empty());
     assert!(observers.iter().all(Option::is_none));
 }
 
@@ -404,8 +406,11 @@ fn chart_snapshot_passes_body_observers_through_topocentric_requests() {
     assert_eq!(chart.observer, request.observer);
     assert!(chart.summary_line().contains("observer=geocentric"));
     assert!(chart.summary_line().contains("body observer=latitude=35°"));
+    // The position batch carries the body observer; the apparent pipeline's
+    // Sun queries (the aberration argument) are geocentric by design.
     let observers = observers.lock().expect("observer log should be lockable");
-    assert_eq!(observers.as_slice(), &[Some(body_observer)]);
+    assert_eq!(observers.first(), Some(&Some(body_observer)));
+    assert!(observers.iter().skip(1).all(Option::is_none));
 }
 
 #[test]
@@ -446,8 +451,11 @@ fn chart_snapshot_keeps_house_and_body_observers_on_distinct_channels() {
         .summary_line()
         .contains("body observer=latitude=-33.9°"));
 
+    // The position batch carries the body observer, never the house observer;
+    // the apparent pipeline's Sun queries are geocentric by design.
     let observers = observers.lock().expect("observer log should be lockable");
-    assert_eq!(observers.as_slice(), &[Some(body_observer)]);
+    assert_eq!(observers.first(), Some(&Some(body_observer)));
+    assert!(observers.iter().skip(1).all(Option::is_none));
 }
 
 #[test]
@@ -506,7 +514,7 @@ fn chart_snapshot_with_observer_but_without_houses_stays_geocentric() {
         .to_string()
         .contains("Observer policy: geocentric body positions; no house observer supplied"));
     let observers = observers.lock().expect("observer log should be lockable");
-    assert_eq!(observers.len(), 1);
+    assert!(!observers.is_empty());
     assert!(observers.iter().all(Option::is_none));
 }
 
@@ -593,8 +601,10 @@ fn chart_snapshot_uses_backend_batch_queries_for_body_positions() {
             .expect("batch call log should be lockable"),
         1
     );
+    // The apparent pipeline's Sun and light-time re-queries go through
+    // `position`, not the batch path, so the batch count above stays at one.
     let observers = observers.lock().expect("observer log should be lockable");
-    assert_eq!(observers.len(), 2);
+    assert!(observers.len() >= 2);
     assert!(observers.iter().all(Option::is_none));
 }
 
@@ -1319,10 +1329,8 @@ fn chart_request_validation_accepts_apparent_for_mean_only_backends() {
     // Apparent-place corrections are now applied in the engine layer, not the
     // backend. Validation no longer rejects Apparent for backends that declare
     // `apparent: false` — the engine always sends Mean to the backend and
-    // applies corrections itself (for ReleaseGrade bodies) or falls back
-    // gracefully to Mean (for Constrained bodies). MeanOnlyRecordingChartBackend
-    // has Constrained-tier bodies so the placement falls back to Mean, but the
-    // chart-level apparentness reflects the caller's Apparent request.
+    // applies the corrections itself, whatever the body's claim tier
+    // (issue #113).
     let observers = Arc::new(Mutex::new(Vec::new()));
     let apparent_calls = Arc::new(Mutex::new(Vec::new()));
     let engine = ChartEngine::new(MeanOnlyRecordingChartBackend {
@@ -2977,25 +2985,6 @@ fn default_chart_applies_apparent_for_release_grade_body() {
     assert!(
         placement.apparent.is_some(),
         "apparent provenance should be attached"
-    );
-}
-
-#[test]
-fn non_release_grade_body_falls_back_to_mean() {
-    let engine = ChartEngine::new(ConstrainedOnlyChartBackend);
-    let request = ChartRequest::new(Instant::new(
-        pleiades_types::JulianDay::from_days(2_451_545.0),
-        TimeScale::Tt,
-    ))
-    .with_bodies(vec![CelestialBody::Moon]);
-    let snapshot = engine
-        .chart(&request)
-        .expect("non-release-grade falls back, not errors");
-    let placement = snapshot.placement_for(&CelestialBody::Moon).unwrap();
-    assert_eq!(placement.position.apparent, Apparentness::Mean);
-    assert!(
-        placement.apparent.is_none(),
-        "no apparent provenance on fallback"
     );
 }
 

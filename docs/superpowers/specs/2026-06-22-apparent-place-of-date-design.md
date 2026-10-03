@@ -2,6 +2,7 @@
 
 **Status:** Approved design — 2026-06-22
 **Supersedes:** `docs/superpowers/specs/2026-06-22-apparent-place-corrections-design.md` and its plan `docs/superpowers/plans/2026-06-22-apparent-place-corrections.md` (parked at Task 1).
+**Amended 2026-10-03 (issue #113):** the "release-grade bodies only" scope of decision 2 is withdrawn. The claim tier is a validation-evidence boundary, not a capability boundary: the reduction needs only a J2000 ecliptic place with a distance, which every first-party backend supplies, and it leaves the backend's accuracy claim unchanged. Gating on the tier made the artifact-free VSOP87/ELP composite return mean J2000 longitudes (about 0.35° of unapplied precession in 2025) under an `Apparent` label. The chart layer now reduces every body the backend serves; the "non-release-grade → graceful mean fallback" bullets below are superseded accordingly, and the fallback remains only for a body whose reduction fails (no distance, retarded epoch out of range; FU-24). A backend that cannot serve the Sun fails closed on an `Apparent` request instead of silently returning mean J2000.
 
 ## Goal
 
@@ -18,7 +19,7 @@ Verified during design: JPL Horizons **is** reachable from this environment at `
 ## Decisions (with rationale)
 
 1. **Scope is merged, not layered.** Precession-to-date is implemented together with nutation + aberration + light-time as one apparent-place capability, rather than as a separate "foundation" pass. Rationale: Horizons' natural of-date output (Q31) is *apparent* (it bakes in aberration + nutation), so a precession-only intermediate cannot be validated tightly against Horizons; building the full reduction matches Horizons to arcsec in one pass and is scientifically cleanest.
-2. **Apparent of-date is the default output** for release-grade bodies; this is what almanacs / Swiss Ephemeris / astrologers expect and satisfies the goal that all charts are of-date. Mean (J2000) remains available as an explicit **diagnostic** mode and keeps validating against the existing J2000 corpus. Non-release-grade bodies fall back to mean with provenance noting it (not an error).
+2. **Apparent of-date is the default output** for release-grade bodies; this is what almanacs / Swiss Ephemeris / astrologers expect and satisfies the goal that all charts are of-date. Mean (J2000) remains available as an explicit **diagnostic** mode and keeps validating against the existing J2000 corpus. ~~Non-release-grade bodies fall back to mean with provenance noting it (not an error).~~ *Withdrawn 2026-10-03 (issue #113): every served body is reduced; see the amendment above.*
 3. **Backend stays J2000 mean-only** (Approach 1). All frame/correction math lives in the pure `pleiades-apparent` crate; the chart layer composes it. Rationale: preserves the strong existing J2000 corpus as a geometric-core gate, keeps backends simple, and puts precession alongside the corrections it combines with.
 4. **Validation regenerates the corpus from Horizons apparent-of-date (Q31)** and validates the chart-layer apparent output end-to-end to arcsec. The existing J2000 corpus is retained as the geometric-core gate.
 5. **Precession model: Meeus ch. 21 ecliptic precession** (IAU polynomial; sub-arcsec over 1900–2100; pure, no data file). The arcsec end-to-end Horizons gate is the arbiter; upgrade to IAU 2006 only if it misses.
@@ -70,7 +71,7 @@ The **Sun's true longitude ⊙** needed by the aberration term is queried mean a
 - Default apparentness becomes **Apparent**; an explicit **mean (diagnostic)** mode returns the raw backend J2000 position. The backend only ever receives `Mean`; "apparent" is a chart-layer composition.
 - Per body under the default:
   - *release-grade* → query backend mean (J2000) → apparent pipeline → apparent-of-date placement; `BodyPlacement.apparent = Some(provenance)`; `position.apparent = Apparentness::Apparent`; **sign re-derived from the apparent longitude**.
-  - *non-release-grade* → graceful fallback to mean J2000; `apparent = None`; diagnostic notes "apparent unavailable (not release-grade)". Not an error.
+  - ~~*non-release-grade* → graceful fallback to mean J2000; `apparent = None`; diagnostic notes "apparent unavailable (not release-grade)". Not an error.~~ *Withdrawn 2026-10-03 (issue #113): the tier no longer gates the reduction.*
 - `pleiades-core` re-exports `ApparentProvenance` / `CorrectionSet`.
 
 ## CLI (`pleiades-cli`)
@@ -98,7 +99,7 @@ This golden migration is the largest single cost. The work is one coherent featu
 - Apparent pipeline stays fail-closed via `ApparentPlaceError` (`NonConvergentLightTime`, `MissingDistance`, `NonFiniteCorrection { stage }`, `StaleModelData { kind }`) and `ApparentLightTimeError<E>` (`Query(E)` / `Apparent(...)`).
 - Precession non-finite → `NonFiniteCorrection { stage: "precession" }`.
 - Stale nutation checksum → `StaleModelData { kind: "nutation" }` (fail-closed before use).
-- Non-release-grade under default → graceful mean fallback (not an error).
+- ~~Non-release-grade under default → graceful mean fallback (not an error).~~ *Withdrawn 2026-10-03 (issue #113).* A backend that cannot serve the Sun fails closed on an `Apparent` request (structured error naming the Sun and `Apparentness::Mean`).
 
 ## Testing
 
