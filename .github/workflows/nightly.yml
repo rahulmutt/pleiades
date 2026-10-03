@@ -24,14 +24,19 @@ jobs:
         with:
           install: false
 
+      # Besides the toolchain and Cargo home, this caches the mise-installed
+      # tool binaries (avoids recompiling the `cargo:` tools, ~8 min) and
+      # `target` (avoids a cold workspace rebuild). Keep explanations up here:
+      # `path` is a literal block, so a trailing `# ...` on a path line is part
+      # of the path, matches nothing, and silently drops that entry.
       - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
           path: |
             ~/.rustup
             ~/.cargo
-            ~/.local/share/mise # mise-installed tool binaries: avoids recompiling cargo: tools each run
-            target # compiled workspace artifacts: avoids a full cold rebuild each run
+            ~/.local/share/mise
+            target
           key: ${{ runner.os }}-rust-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-
@@ -39,7 +44,15 @@ jobs:
       - name: Install mise-managed tools
         run: mise install
 
+      # Step-level timeout, deliberately shorter than the job-level one. GitHub
+      # *cancels* a job that exceeds its job-level timeout, and `if: failure()`
+      # steps do not run on cancellation — so an over-budget nightly would end
+      # "cancelled" with no tracking issue touched, which is how this job ran
+      # over budget unnoticed from its first day. A step timeout makes the step
+      # *fail* instead, so the issue step below still runs. Same pattern as
+      # .github/workflows/mutants.yml.
       - name: Run nightly tier
+        timeout-minutes: 50
         run: mise run ci-nightly
 
       - name: Open/update tracking issue on failure
@@ -75,14 +88,19 @@ jobs:
         with:
           install: false
 
+      # Besides the toolchain and Cargo home, this caches the mise-installed
+      # tool binaries (avoids recompiling the `cargo:` tools, ~8 min) and
+      # `target` (avoids a cold workspace rebuild). Keep explanations up here:
+      # `path` is a literal block, so a trailing `# ...` on a path line is part
+      # of the path, matches nothing, and silently drops that entry.
       - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
           path: |
             ~/.rustup
             ~/.cargo
-            ~/.local/share/mise # mise-installed tool binaries: avoids recompiling cargo: tools each run
-            target # compiled workspace artifacts: avoids a full cold rebuild each run
+            ~/.local/share/mise
+            target
           key: ${{ runner.os }}-rust-aspects-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-aspects-
@@ -90,7 +108,9 @@ jobs:
       - name: Install mise-managed tools
         run: mise install
 
+      # Step timeout below the job's 90 so an overrun fails loud (see `nightly`).
       - name: Run full aspects gate
+        timeout-minutes: 80
         run: mise run gate-aspects
 
       - name: Open/update tracking issue on failure

@@ -62,8 +62,11 @@ Benchmarks should measure:
 
 `cargo test` (and `mise test`) skip tests marked `#[ignore = "slow: ..."]` —
 the heavy release-bundle, benchmark/validation-report, and fit-analysis
-families — giving a fast local sanity run. `mise test-full`
-(`cargo test --workspace -- --include-ignored`) runs every test. CI and
+families — giving a fast local sanity run. `mise test-full` runs every
+test: the fast suite under nextest, then the slow families under libtest
+(`cargo test ... -- --include-ignored`). The slow families share their
+expensive fixtures through per-process `OnceLock`s, so they must run one
+process per test binary, not nextest's one process per test. CI and
 `release-gate` always run `test-full`, so the gate never reduces released
 coverage. The slow families are catalogued in
 `docs/superpowers/plans/test-timings.md`.

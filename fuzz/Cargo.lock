@@ -71,14 +71,14 @@ dependencies = [
 
 [[package]]
 name = "pleiades-backend"
-version = "0.4.0"
+version = "0.5.3"
 dependencies = [
  "pleiades-types",
 ]
 
 [[package]]
 name = "pleiades-compression"
-version = "0.4.0"
+version = "0.5.3"
 dependencies = [
  "pleiades-types",
 ]
@@ -94,7 +94,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-jpl"
-version = "0.4.0"
+version = "0.5.3"
 dependencies = [
  "pleiades-backend",
  "pleiades-types",
@@ -102,7 +102,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-types"
-version = "0.4.0"
+version = "0.5.3"
 
 [[package]]
 name = "r-efi"
