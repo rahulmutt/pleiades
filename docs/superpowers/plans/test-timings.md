@@ -61,6 +61,22 @@ Two changes followed from this (same PR as this section):
   feature unification (`pleiades-backend/test-backend` is on in a workspace build, off under `-p`).
   `cargo nextest list` is identical for both forms (1999 tests).
 
+Nightly run 37124856870 on the branch with both changes (same runner class, one run each, so
+run-to-run noise is not separated out):
+
+| Phase | Before (37119694132) | After (37124856870) |
+|-------|---------------------:|--------------------:|
+| `test` dependency: build | 220 | 180 |
+| `test` dependency: nextest run | 61 | 59 |
+| `test-full`: build `pleiades-validate` tests | 50 | 54 |
+| `test-full`: `pleiades-validate` lib suite | 444 | 358 |
+| `test-full`: `pleiades-cli` ignored tests | 154 | 145 |
+| `test-full`: `pleiades-data` ignored tests | 31 | 31 |
+| `test-full` total (after its dependencies) | 680 | 589 |
+| whole `ci-nightly` tier | 963 | 829 |
+
+The full stations gate (242 s, started 80 s into the suite) is now the lib suite's long pole.
+
 ---
 
 ## Section 1: Timing Inventory
