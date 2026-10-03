@@ -8,7 +8,8 @@
 //! UTC (1972 onward), [`Observed`](ConversionQuality::Observed) from the Delta-T
 //! table or the leap-second bound (`32.184 s + TAI − UTC`, within 0.9 s while
 //! the leap table is authoritative), or [`Predicted`](ConversionQuality::Predicted)
-//! from Delta-T extrapolation — so a modelled offset is never mistaken for an
+//! beyond the leap table (UTC with the last known `TAI − UTC` held, UT1 from
+//! Delta-T extrapolation) — so a modelled offset is never mistaken for an
 //! exact one. The finer-grained [`DeltaTQuality`] distinguishes the leap-second
 //! bound from the observed table.
 //! Sidereal time is then taken from the UT1 Julian day recovered via Delta-T

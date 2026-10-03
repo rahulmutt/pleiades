@@ -116,11 +116,7 @@ fn past_observed_table(jd: f64) -> Result<(f64, DeltaTQuality), CivilTimeError> 
         ));
     }
     let horizon_jd = leap::VALID_THROUGH_JD;
-    let anchor = leap::tai_minus_utc(horizon_jd)?
-        .map(leap_second_bound)
-        .ok_or(CivilTimeError::StaleTimeData {
-            kind: "leap-second",
-        })?;
+    let anchor = leap_second_bound(leap::last_tai_minus_utc()?);
     let predicted = anchor + extrapolate(decimal_year(jd)) - extrapolate(decimal_year(horizon_jd));
     Ok((predicted, DeltaTQuality::Predicted))
 }

@@ -80,13 +80,25 @@ fn exact_provenance(tai_minus_utc: i32) -> ConversionProvenance {
     }
 }
 
+/// Provenance past the leap horizon, where the last known offset is held.
+fn held_provenance(tai_minus_utc: i32) -> ConversionProvenance {
+    ConversionProvenance {
+        path: ConversionPath::FutureExtrapolated,
+        quality: ConversionQuality::Predicted,
+        delta_t_seconds: None,
+        tai_minus_utc: Some(tai_minus_utc),
+        sources: SOURCES,
+    }
+}
+
 /// A civil result before the support-window check: the civil millisecond
 /// count used for that check, the datetime, and its provenance.
 type Solved = (i64, CivilDateTime, ConversionProvenance);
 
 /// UTC from TT. Inside the leap table the lookup runs on the TAI axis, where
 /// row `i` takes effect at `effective_i + secs_i` and the second before each
-/// later threshold is the inserted leap second.
+/// later threshold is the inserted leap second. From the leap horizon on, the
+/// last row's offset is held, mirroring the forward.
 fn utc_from_tt(jd_tt: f64) -> Result<Solved, CivilTimeError> {
     let stale = CivilTimeError::StaleTimeData {
         kind: "leap-second",
@@ -107,8 +119,9 @@ fn utc_from_tt(jd_tt: f64) -> Result<Solved, CivilTimeError> {
         });
     }
     let horizon_ms = ms_from_jd(leap::VALID_THROUGH_JD) + i64::from(last.1) * 1_000;
-    if tai_ms > horizon_ms {
-        return civil_via_delta_t(jd_tt, TimeScale::Utc);
+    if tai_ms >= horizon_ms {
+        let utc_ms = tai_ms - i64::from(last.1) * 1_000;
+        return Ok((utc_ms, civil_from_ms(utc_ms), held_provenance(last.1)));
     }
     let index = rows
         .iter()
@@ -128,24 +141,23 @@ fn utc_from_tt(jd_tt: f64) -> Result<Solved, CivilTimeError> {
     Ok((utc_ms, civil_from_ms(utc_ms), exact_provenance(secs)))
 }
 
-/// Solves `civil + ΔT(civil) = TT` for the civil Julian day, the equation the
+/// Solves `UT1 + ΔT(UT1) = TT` for the UT1 Julian day, the equation the
 /// forward conversion evaluates. ΔT changes by under 5e-8 s per second, so
 /// each step shrinks the error by that factor and three steps are ample.
 /// At the 0.216 s step in ΔT at the 2020 node the start value is already past
 /// the node, so the solve settles on the post-node branch.
-fn civil_via_delta_t(jd_tt: f64, target: TimeScale) -> Result<Solved, CivilTimeError> {
+fn ut1_from_tt(jd_tt: f64) -> Result<Solved, CivilTimeError> {
     let (mut delta_t, mut delta_t_quality) = deltat::delta_t(jd_tt)?;
     for _ in 0..3 {
         (delta_t, delta_t_quality) = deltat::delta_t(jd_tt - delta_t / SECONDS_PER_DAY)?;
     }
     let civil_ms = ms_from_jd(jd_tt - delta_t / SECONDS_PER_DAY);
-    // Mirrors the forward: UTC reaches this path only past the leap horizon
-    // and is always Predicted; UT1 reports the ΔT tier it used.
-    let (path, quality) = match (target, delta_t_quality) {
-        (TimeScale::Ut1, DeltaTQuality::Observed | DeltaTQuality::LeapSecondBound) => {
+    // Mirrors the forward: UT1 reports the ΔT tier it used.
+    let (path, quality) = match delta_t_quality {
+        DeltaTQuality::Observed | DeltaTQuality::LeapSecondBound => {
             (ConversionPath::Ut1DeltaT, ConversionQuality::Observed)
         }
-        _ => (
+        DeltaTQuality::Predicted => (
             ConversionPath::FutureExtrapolated,
             ConversionQuality::Predicted,
         ),
@@ -174,8 +186,9 @@ fn civil_via_delta_t(jd_tt: f64, target: TimeScale) -> Result<Solved, CivilTimeE
 /// post-node datetime (see below), and the last 0.5 ms of 2100, which rounds
 /// out of range (see Errors). The provenance uses the same vocabulary and the
 /// same epoch tiers as the forward conversion: UTC from 1972 through the
-/// leap-second table is `Exact`; UTC beyond the table and UT1 use the Delta-T
-/// model and are `Observed` or `Predicted`.
+/// leap-second table is `Exact`; UTC beyond the table holds the last known
+/// `TAI − UTC` and is `Predicted`; UT1 uses the Delta-T model and is
+/// `Observed` or `Predicted`.
 ///
 /// # Leap seconds
 ///
@@ -250,7 +263,7 @@ pub fn from_terrestrial(
     let (civil_ms, civil, provenance) = if target == TimeScale::Utc {
         utc_from_tt(jd_tt)?
     } else {
-        civil_via_delta_t(jd_tt, target)?
+        ut1_from_tt(jd_tt)?
     };
     if !(ms_from_jd(SUPPORT_START_JD)..ms_from_jd(SUPPORT_END_JD)).contains(&civil_ms) {
         return Err(CivilTimeError::BeyondHorizon {

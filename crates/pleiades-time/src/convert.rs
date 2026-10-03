@@ -25,7 +25,7 @@ pub const SUPPORT_START_JD: f64 = 2415020.5;
 pub const SUPPORT_END_JD: f64 = 2488434.5;
 
 const SOURCES: &str =
-    "leap-seconds.csv (IERS Bulletin C); delta-t-observed.csv (IERS/USNO + Espenak–Meeus); as-of 2026-06";
+    "leap-seconds.csv (IERS Bulletin C); delta-t-observed.csv (IERS/USNO + Espenak–Meeus); as-of 2026-07";
 
 /// Which path the orchestrator took.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -35,7 +35,8 @@ pub enum ConversionPath {
     UtcLeapSecond,
     /// UT1 input converted via the observed Delta-T table.
     Ut1DeltaT,
-    /// Input beyond a validated table, converted via Delta-T extrapolation.
+    /// Input beyond a validated table: UTC with the last known `TAI − UTC`
+    /// held, UT1 via Delta-T extrapolation.
     FutureExtrapolated,
 }
 
@@ -57,7 +58,8 @@ pub enum ConversionQuality {
     Exact,
     /// From the observed Delta-T table.
     Observed,
-    /// From Delta-T extrapolation.
+    /// Beyond the leap-second table: from Delta-T extrapolation (UT1) or the
+    /// held last known `TAI − UTC` (UTC).
     Predicted,
 }
 
@@ -80,10 +82,11 @@ pub struct ConversionProvenance {
     /// Truthful accuracy tier of the result (`exact`/`observed`/`predicted`).
     pub quality: ConversionQuality,
     /// `ΔT = TT − UT1` in seconds when a Delta-T model was used; `None` on the
-    /// leap-second-exact UTC path.
+    /// UTC paths.
     pub delta_t_seconds: Option<f64>,
-    /// `TAI − UTC` in whole seconds when the leap-second table was used; `None`
-    /// on the UT1/Delta-T and extrapolated paths.
+    /// `TAI − UTC` in whole seconds on the UTC paths: read from the
+    /// leap-second table, or its last value held beyond the table's horizon
+    /// (quality `Predicted`). `None` on the UT1 paths.
     pub tai_minus_utc: Option<i32>,
     /// Human-readable identification of the underlying data tables and as-of date.
     pub sources: &'static str,
@@ -143,32 +146,31 @@ fn to_tt(
             if jd_civil < leap::LEAP_EPOCH_JD {
                 return Err(CivilTimeError::UtcBeforeLeapEpoch);
             }
-            if let Some(tai_minus_utc) = leap::tai_minus_utc(jd_civil)? {
-                let offset = tai_minus_utc as f64 + TT_MINUS_TAI;
-                let jd_tt = jd_civil + offset / SECONDS_PER_DAY;
-                finite(jd_tt)?;
-                return Ok((
-                    jd_tt,
-                    ConversionProvenance {
-                        path: ConversionPath::UtcLeapSecond,
-                        quality: ConversionQuality::Exact,
-                        delta_t_seconds: None,
-                        tai_minus_utc: Some(tai_minus_utc),
-                        sources: SOURCES,
-                    },
-                ));
-            }
-            // Future UTC beyond the leap table: fall back to Delta-T extrapolation.
-            let (dt, _q) = deltat::delta_t(jd_civil)?;
-            let jd_tt = jd_civil + dt / SECONDS_PER_DAY;
+            // Beyond the leap table the last announced offset is held. A
+            // future leap second moves the true offset by one whole second at
+            // a known date; a ΔT extrapolation would drift from the first day.
+            let (tai_minus_utc, path, quality) = match leap::tai_minus_utc(jd_civil)? {
+                Some(tai_minus_utc) => (
+                    tai_minus_utc,
+                    ConversionPath::UtcLeapSecond,
+                    ConversionQuality::Exact,
+                ),
+                None => (
+                    leap::last_tai_minus_utc()?,
+                    ConversionPath::FutureExtrapolated,
+                    ConversionQuality::Predicted,
+                ),
+            };
+            let offset = tai_minus_utc as f64 + TT_MINUS_TAI;
+            let jd_tt = jd_civil + offset / SECONDS_PER_DAY;
             finite(jd_tt)?;
             Ok((
                 jd_tt,
                 ConversionProvenance {
-                    path: ConversionPath::FutureExtrapolated,
-                    quality: ConversionQuality::Predicted,
-                    delta_t_seconds: Some(dt),
-                    tai_minus_utc: None,
+                    path,
+                    quality,
+                    delta_t_seconds: None,
+                    tai_minus_utc: Some(tai_minus_utc),
                     sources: SOURCES,
                 },
             ))
