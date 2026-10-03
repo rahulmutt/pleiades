@@ -24,11 +24,8 @@ jobs:
         with:
           install: false
 
-      # Besides the toolchain and Cargo home, this caches the mise-installed
-      # tool binaries (avoids recompiling the `cargo:` tools, ~8 min) and
-      # `target` (avoids a cold workspace rebuild). Keep explanations up here:
-      # `path` is a literal block, so a trailing `# ...` on a path line is part
-      # of the path, matches nothing, and silently drops that entry.
+      # Same two caches as ci.yml (see the explanation there): immutable tools,
+      # rolled-forward `target` shared with the blocking job.
       - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
@@ -36,10 +33,18 @@ jobs:
             ~/.rustup
             ~/.cargo
             ~/.local/share/mise
-            target
-          key: ${{ runner.os }}-rust-${{ hashFiles('mise.toml', 'Cargo.lock') }}
+          key: ${{ runner.os }}-tools-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-rust-
+            ${{ runner.os }}-tools-
+
+      - name: Restore cached workspace builds
+        uses: actions/cache/restore@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-
+            ${{ runner.os }}-target-
 
       - name: Install mise-managed tools
         run: mise install
@@ -59,6 +64,14 @@ jobs:
       - name: Run nightly tier
         timeout-minutes: 50
         run: mise run ci-nightly
+
+      # The nightly tier builds everything `test-full` needs, so its entry is
+      # the richest one the blocking job can restore.
+      - name: Save workspace builds
+        uses: actions/cache/save@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-${{ github.run_id }}
 
       - name: Open/update tracking issue on failure
         if: failure()
@@ -95,11 +108,9 @@ jobs:
         with:
           install: false
 
-      # Besides the toolchain and Cargo home, this caches the mise-installed
-      # tool binaries (avoids recompiling the `cargo:` tools, ~8 min) and
-      # `target` (avoids a cold workspace rebuild). Keep explanations up here:
-      # `path` is a literal block, so a trailing `# ...` on a path line is part
-      # of the path, matches nothing, and silently drops that entry.
+      # Same tools cache as the other jobs. The gate's only build, the
+      # pleiades-validate binary, is part of every blocking run's `target`,
+      # so this job restores that cache and does not save one of its own.
       - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
@@ -107,10 +118,18 @@ jobs:
             ~/.rustup
             ~/.cargo
             ~/.local/share/mise
-            target
-          key: ${{ runner.os }}-rust-aspects-${{ hashFiles('mise.toml', 'Cargo.lock') }}
+          key: ${{ runner.os }}-tools-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-rust-aspects-
+            ${{ runner.os }}-tools-
+
+      - name: Restore cached workspace builds
+        uses: actions/cache/restore@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-
+            ${{ runner.os }}-target-
 
       - name: Install mise-managed tools
         run: mise install

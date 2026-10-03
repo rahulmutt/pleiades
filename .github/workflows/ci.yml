@@ -19,11 +19,14 @@ jobs:
         with:
           install: false
 
-      # Besides the toolchain and Cargo home, this caches the mise-installed
-      # tool binaries (avoids recompiling the `cargo:` tools, ~8 min) and
-      # `target` (avoids a cold workspace rebuild). Keep explanations up here:
-      # `path` is a literal block, so a trailing `# ...` on a path line is part
-      # of the path, matches nothing, and silently drops that entry.
+      # Two caches with different lifetimes. Keep explanations up here: `path`
+      # is a literal block, so a trailing `# ...` on a path line is part of the
+      # path, matches nothing, and silently drops that entry.
+      #
+      # 1. Toolchain, Cargo home and the mise-installed tool binaries (avoids
+      #    recompiling the `cargo:` tools, ~8 min). Immutable per key: an
+      #    exact hit is not re-saved, which is fine because nothing in it
+      #    changes between runs with the same mise.toml and Cargo.lock.
       - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
@@ -31,10 +34,26 @@ jobs:
             ~/.rustup
             ~/.cargo
             ~/.local/share/mise
-            target
-          key: ${{ runner.os }}-rust-${{ hashFiles('mise.toml', 'Cargo.lock') }}
+          key: ${{ runner.os }}-tools-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-rust-
+            ${{ runner.os }}-tools-
+
+      # 2. `target`, rolled forward on every run (same pattern as the fuzz
+      #    corpus cache): the key carries the run id so it never hits exactly,
+      #    the restore-keys pick the newest build from this branch or main,
+      #    and the save step below writes a fresh entry. Without that roll-
+      #    forward the marker cargo-cache-mtimes.sh relies on would be frozen
+      #    at the last Cargo.lock change. The `target` cache is kept apart
+      #    from the tools cache because a legacy tools entry would otherwise
+      #    extract a markerless `target` underneath the real one.
+      - name: Restore cached workspace builds
+        uses: actions/cache/restore@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-
+            ${{ runner.os }}-target-
 
       - name: Install mise-managed tools
         run: mise install
@@ -49,3 +68,13 @@ jobs:
 
       - name: Run workspace checks
         run: mise run ci
+
+      # Not on pull_request: that event builds an ephemeral merge commit which
+      # later runs cannot fetch, so its marker would be useless. The push run
+      # of the same commit saves an equivalent entry with a branch commit.
+      - name: Save workspace builds
+        if: github.event_name != 'pull_request'
+        uses: actions/cache/save@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-${{ github.run_id }}
