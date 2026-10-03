@@ -12,6 +12,55 @@ captured) are all fully measured. All other crates are fast (< 3 s each) and ful
 after the initial draft. Including it, `pleiades-validate` has **166 tests over 60 s** — 120 of them
 in `release_bundle_verify_b`. This makes the release-bundle family larger than first documented.
 
+**Update 2026-10-03 — the inventory below is historical.** It describes the suite under nextest's
+one-process-per-test model, where every slow test rebuilt its fixture. Since PR #111 the slow
+families run under libtest (`mise run test-full`), one process per binary, so each fixture is built
+once and the per-test figures below no longer apply. The current breakdown is in the next section;
+the remaining ideas are FU-23 in `docs/follow-ups.md`.
+
+---
+
+## Section 0: `test-full` as of 2026-10-03
+
+Measured from nightly run 37119694132 (GitHub `ubuntu-latest`, 4 cores, commit `64cbd132c`), from
+step and per-test timestamps in the log. Whole `ci-nightly` tier: 963 s.
+
+| Phase | Seconds | Notes |
+|-------|--------:|-------|
+| `test` dependency: build | 220 | every workspace crate recompiles (shared with `doctest`, 109 s) |
+| `test` dependency: nextest run | 61 | 1999 tests |
+| `test-full` step 1: rebuild `pleiades-validate` tests | 50 | second build of the same test code, see below |
+| `test-full` step 1: `pleiades-validate` lib suite | 444 | 1155 tests on 4 threads |
+| `test-full` step 2: `pleiades-cli` ignored tests | 154 | 9 tests; one of them runs 153 s |
+| `test-full` step 2: `pleiades-data` ignored tests | 31 | 74 tests |
+| `test-full` total (after its dependencies) | 680 | |
+
+Long poles inside the 444 s `pleiades-validate` lib suite (thread-seconds, same run):
+
+| Test(s) | Seconds | What it does |
+|---------|--------:|--------------|
+| `stations_validation::tests::stations_gate_passes_within_ceilings` | 253 | full stations gate, single thread |
+| `render::cli::tests::run_all_numeric_gates_includes_*` (6 tests) | ~80 each, ~490 total | each ran the whole numeric battery |
+| `tests::release_checklist::release_gate_command_aliases_the_release_checklist` | 154 | battery + bundle through the command |
+| `tests::release_checklist::release_smoke_command_renders_the_smoke_report` | 96 | battery + bundle through the command |
+
+A local run of the same suite with libtest's `--report-time` (8-CPU container shared with another
+full test run, so absolute numbers are inflated about fivefold and only the shares are meaningful)
+gave 13 771 test-seconds in total: the six battery tests 29 %, the release-bundle verify families
+21 % (172 tests, includes time blocked on the shared fixture), the stations gate 13 %, the two
+release-checklist command tests 11 %, the crossings and occultation gate/alias tests about 5 % each.
+
+Two changes followed from this (same PR as this section):
+
+- The six `run_all_numeric_gates_includes_*` tests now assert one shared, per-process battery run
+  instead of running it six times. Back-to-back on the loaded 8-CPU container, those six tests alone:
+  320 s wall and about 1680 thread-seconds before, 182 s wall and about 182 thread-seconds after.
+- `mise run test` selects with `--workspace --exclude pleiades-validate` instead of a
+  `-E 'not package(pleiades-validate)'` filter. The filter still compiled `pleiades-validate`'s test
+  binaries (then skipped them), and `test-full` compiled them again under `-p` with a different
+  feature unification (`pleiades-backend/test-backend` is on in a workspace build, off under `-p`).
+  `cargo nextest list` is identical for both forms (1999 tests).
+
 ---
 
 ## Section 1: Timing Inventory
