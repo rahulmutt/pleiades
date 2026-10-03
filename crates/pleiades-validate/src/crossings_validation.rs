@@ -28,7 +28,7 @@ const MANIFEST: &str = include_str!(concat!(
 
 /// Fixture count pinned by the corpus test. Update when the corpus is regenerated.
 #[cfg(test)]
-const EXPECTED_ROWS: usize = 169;
+pub(crate) const EXPECTED_ROWS: usize = 169;
 
 /// Tier-1 self-consistency ceiling: the engine is deterministic, so a recompute
 /// matches the committed golden to the bit unless engine output changed. Set a

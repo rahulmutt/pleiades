@@ -263,7 +263,11 @@ fn validate_crossings_passes_over_committed_corpus() {
     let report = crate::crossings_validation::run_crossings_gate();
     assert!(report.passed(), "validate-crossings failed: {report:?}");
     let checked = report.0.as_ref().expect("gate should pass").checked;
-    assert_eq!(checked, 86, "expected all 86 committed fixtures checked");
+    assert_eq!(
+        checked,
+        crate::crossings_validation::EXPECTED_ROWS,
+        "expected every committed fixture checked"
+    );
 }
 
 #[test]
