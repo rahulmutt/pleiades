@@ -102,7 +102,7 @@ impl SiderealTime {
 /// `#[non_exhaustive]`).
 ///
 /// The error type is `pleiades_time::CivilTimeError` from the `pleiades-time`
-/// release this crate pins (0.6 and later); a caller that matches on it must
+/// release this crate pins (0.7 and later); a caller that matches on it must
 /// depend on the same `pleiades-time` release.
 pub fn ut1_instant(instant: Instant) -> Result<Instant, CivilTimeError> {
     let jd_ut1 = match instant.scale {

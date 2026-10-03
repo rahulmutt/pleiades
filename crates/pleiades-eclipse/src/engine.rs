@@ -112,7 +112,7 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
     /// per-observer visibility.
     ///
     /// `atmosphere` is `pleiades_apparent::Atmosphere` from the
-    /// `pleiades-apparent` release this crate pins (0.6 and later); build it
+    /// `pleiades-apparent` release this crate pins (0.7 and later); build it
     /// from that same release.
     pub fn local_circumstances(
         &self,
