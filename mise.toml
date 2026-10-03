@@ -55,7 +55,13 @@ run = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
 # / numeric-gate tests (30s–280s each) dominate wall-clock and belong to the nightly
 # tier. They still run in full via `test-full` (nightly) → reachable from release-gate,
 # so nothing goes unvalidated at release time.
-run = "cargo nextest run --workspace -E 'not package(pleiades-validate)'"
+# `--exclude` rather than a `-E 'not package(...)'` filter: a filter only skips
+# *running* the tests, so nextest still compiled pleiades-validate's test
+# binaries (its largest compile unit) and then threw them away — `test-full`
+# builds its own copy under `-p`, with a different feature unification. The
+# selected test list is identical either way; `lint` (`--all-targets`) still
+# compile-checks the excluded test code in the blocking tier.
+run = "cargo nextest run --workspace --exclude pleiades-validate"
 
 [tasks.doctest]
 run = "cargo test --doc --workspace"
