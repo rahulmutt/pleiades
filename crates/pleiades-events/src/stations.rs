@@ -48,7 +48,7 @@ pub struct Station {
 /// Step used to bracket stations: well under the shortest interval between
 /// two stations of the body. Mercury's shortest retrograde is about 19 days;
 /// the lunar points' speeds oscillate within a month.
-fn step_days(body: &CelestialBody) -> f64 {
+pub(crate) fn step_days(body: &CelestialBody) -> f64 {
     match body {
         CelestialBody::Moon
         | CelestialBody::MeanNode

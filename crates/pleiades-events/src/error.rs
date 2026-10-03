@@ -76,6 +76,12 @@ pub enum EventError {
         /// The Julian Day at which the speed was requested.
         julian_day: f64,
     },
+    /// An aspect request that is not defined: a non-finite angle, an angle
+    /// outside 0–180 degrees, or the same body twice.
+    InvalidAspect {
+        /// Human-readable explanation.
+        detail: String,
+    },
 }
 
 impl fmt::Display for EventError {
@@ -121,6 +127,7 @@ impl fmt::Display for EventError {
                 f,
                 "backend reported no finite longitude speed for {body_label} at JD {julian_day}"
             ),
+            EventError::InvalidAspect { detail } => write!(f, "invalid aspect: {detail}"),
         }
     }
 }
@@ -177,5 +184,13 @@ mod tests {
         assert!(text.contains("Mercury"), "{text}");
         assert!(text.contains("2451545"), "{text}");
         assert!(text.contains("longitude speed"), "{text}");
+    }
+
+    #[test]
+    fn invalid_aspect_renders_its_detail() {
+        let err = EventError::InvalidAspect {
+            detail: "got 200".into(),
+        };
+        assert_eq!(err.to_string(), "invalid aspect: got 200");
     }
 }

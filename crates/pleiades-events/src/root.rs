@@ -168,6 +168,221 @@ where
     Ok(None)
 }
 
+/// One sample of a wrapped-degree function: `(julian_day, degrees)`.
+type Sample = (f64, f64);
+
+/// The turning point of `d` between `p0` and `p2`, when the three samples
+/// show one: the slope into `p1` is non-zero and the slope out of it has the
+/// opposite sign or is zero (a peak midway between two grid points leaves
+/// equal samples either side). Located by a ternary search on `d` unwrapped
+/// about `p1`.
+///
+/// Only the value at the turning point matters to the caller, not its time,
+/// so the search does not suffer from the flatness of an extremum. A turning
+/// point reported where there is none only adds a breakpoint.
+fn turning_point<F>(
+    d: &mut F,
+    p0: Sample,
+    p1: Sample,
+    p2: Sample,
+) -> Result<Option<Sample>, EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    let rise_in = wrap180(p1.1 - p0.1);
+    let rise_out = wrap180(p2.1 - p1.1);
+    // A NaN increment compares false and reads as "no turning point".
+    let turns = rise_in != 0.0 && rise_in * rise_out <= 0.0;
+    if !turns {
+        return Ok(None);
+    }
+    let direction = rise_in.signum();
+    let (mut lo, mut hi) = (p0.0, p2.0);
+    while (hi - lo) > REFINE_TOLERANCE_DAYS {
+        let third = (hi - lo) / 3.0;
+        let (left, right) = (lo + third, hi - third);
+        let at_left = direction * wrap180(d(left)? - p1.1);
+        let at_right = direction * wrap180(d(right)? - p1.1);
+        if at_left < at_right {
+            lo = left;
+        } else {
+            hi = right;
+        }
+    }
+    let jd = 0.5 * (lo + hi);
+    Ok(Some((jd, d(jd)?)))
+}
+
+/// Appends the roots of `d − level`, for each of `levels`, in the bracket
+/// `[a, b]` that fall inside `[lo_jd, hi_jd]`, ascending. Same sign test,
+/// wrap-seam guard and bisection as [`crossings_in_range`].
+fn level_roots_between<F>(
+    d: &mut F,
+    levels: &[f64],
+    a: Sample,
+    b: Sample,
+    lo_jd: f64,
+    hi_jd: f64,
+    out: &mut Vec<f64>,
+) -> Result<(), EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    let first_new = out.len();
+    for &level in levels {
+        let f_a = wrap180(a.1 - level);
+        let f_b = wrap180(b.1 - level);
+        if (f_a <= 0.0) != (f_b <= 0.0) && (f_a - f_b).abs() < 180.0 {
+            let mut f = |jd: f64| Ok(wrap180(d(jd)? - level));
+            let root = bisect(&mut f, a.0, f_a, b.0)?;
+            if root >= lo_jd && root <= hi_jd {
+                out.push(root);
+            }
+        }
+    }
+    out[first_new..].sort_by(f64::total_cmp);
+    Ok(())
+}
+
+/// Tests and drops the leading brackets of `pending` whose later end is at
+/// or before `limit_jd`, keeping the last tested point as the next bracket's
+/// start.
+fn drain_until<F>(
+    d: &mut F,
+    levels: &[f64],
+    pending: &mut Vec<Sample>,
+    limit_jd: f64,
+    lo_jd: f64,
+    hi_jd: f64,
+    out: &mut Vec<f64>,
+) -> Result<(), EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    while pending.len() >= 2 && pending[1].0 <= limit_jd {
+        level_roots_between(d, levels, pending[0], pending[1], lo_jd, hi_jd, out)?;
+        pending.remove(0);
+    }
+    Ok(())
+}
+
+/// The scan behind [`level_crossings_in_range`] and
+/// [`first_level_crossing_after`]. Brackets are the intervals between
+/// consecutive breakpoints: the grid `lo_jd + k·step_days`, plus every
+/// turning point of `d` the samples reveal. A turning point between grid
+/// samples `k − 2` and `k` is only known once sample `k` is taken, so the
+/// brackets up to sample `k − 1` are tested one step late.
+fn scan_levels<F>(
+    mut d: F,
+    levels: &[f64],
+    lo_jd: f64,
+    hi_jd: f64,
+    step_days: f64,
+    first_only: bool,
+) -> Result<Vec<f64>, EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    let mut out = Vec::new();
+    // Always sample the low anchor, as `crossings_in_range` does, so a
+    // backend error there propagates even on an empty or inverted range.
+    let anchor = (lo_jd, d(lo_jd)?);
+    let span = hi_jd - lo_jd;
+    let in_order = span > 0.0;
+    if !in_order {
+        return Ok(out);
+    }
+    let intervals = (span / step_days).ceil() as i64;
+    let at = |k: i64| lo_jd + k as f64 * step_days;
+    let mut pending = vec![anchor];
+    // One sample before the range, to see a turning point in the first step.
+    let before = at(-1);
+    let mut older = (before, d(before)?);
+    let mut newer = anchor;
+    // One sample past the grid, to see a turning point in the last step.
+    for k in 1..=intervals + 1 {
+        let jd = at(k);
+        let sample = (jd, d(jd)?);
+        if let Some(turn) = turning_point(&mut d, older, newer, sample)? {
+            if pending.first().is_some_and(|earliest| turn.0 > earliest.0) {
+                let index = pending.partition_point(|point| point.0 < turn.0);
+                pending.insert(index, turn);
+            }
+        }
+        if k <= intervals {
+            pending.push(sample);
+        }
+        // No later sample can add a breakpoint before `newer`.
+        drain_until(
+            &mut d,
+            levels,
+            &mut pending,
+            newer.0,
+            lo_jd,
+            hi_jd,
+            &mut out,
+        )?;
+        if first_only && !out.is_empty() {
+            return Ok(out);
+        }
+        older = newer;
+        newer = sample;
+    }
+    drain_until(
+        &mut d,
+        levels,
+        &mut pending,
+        at(intervals),
+        lo_jd,
+        hi_jd,
+        &mut out,
+    )?;
+    Ok(out)
+}
+
+/// Every instant in `[lo_jd, hi_jd]` at which the wrapped-degree function `d`
+/// equals one of `levels`, ascending. Each is a settled instant, as from
+/// [`bisect`].
+///
+/// Unlike [`crossings_in_range`], each step is split at the turning points
+/// of `d`, so two crossings of a level inside one step are both found. `d`
+/// is sampled only in `[lo_jd − step_days, hi_jd + 2·step_days)`.
+///
+/// Limits: two turning points within two steps of each other may go unseen,
+/// and with them a pair of crossings between them.
+pub(crate) fn level_crossings_in_range<F>(
+    d: F,
+    levels: &[f64],
+    lo_jd: f64,
+    hi_jd: f64,
+    step_days: f64,
+) -> Result<Vec<f64>, EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    scan_levels(d, levels, lo_jd, hi_jd, step_days, false)
+}
+
+/// The first element of [`level_crossings_in_range`] for the same arguments,
+/// or `None`; the scan stops at the first bracket that yields a crossing.
+pub(crate) fn first_level_crossing_after<F>(
+    d: F,
+    levels: &[f64],
+    lo_jd: f64,
+    hi_jd: f64,
+    step_days: f64,
+) -> Result<Option<f64>, EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    Ok(scan_levels(d, levels, lo_jd, hi_jd, step_days, true)?
+        .into_iter()
+        .next())
+}
+
+#[cfg(test)]
+mod level_tests;
+
 #[cfg(test)]
 mod tests {
     use super::*;

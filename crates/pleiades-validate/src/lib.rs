@@ -15,6 +15,8 @@ use std::time::Instant as StdInstant;
 pub mod angles_validation;
 mod apparent_validation;
 mod artifact;
+mod aspects_thresholds;
+mod aspects_validation;
 mod ayanamsa_validation;
 mod chart_benchmark;
 mod claims;
@@ -204,6 +206,9 @@ pub use artifact::{
     ArtifactDecodeBenchmarkReport, ArtifactDecodeBenchmarkReportValidationError,
     ArtifactInspectionReport, ArtifactLookupBenchmarkReport,
     ArtifactLookupBenchmarkReportValidationError,
+};
+pub use aspects_validation::{
+    validate_aspects_corpus, validate_aspects_corpus_subset, AspectsError, AspectsReport,
 };
 pub use ayanamsa_validation::{
     validate_ayanamsa_corpus, AyanamsaCorpusError, AyanamsaCorpusReport,

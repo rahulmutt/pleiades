@@ -19,7 +19,7 @@ members = [
     "crates/pleiades-validate",
     "crates/pleiades-vsop87",
 ]
-exclude = ["tools/se-house-reference", "tools/se-ayanamsa-reference", "tools/se-lilith-reference", "tools/se-equatorial-reference", "tools/se-crossings-reference", "tools/se-rise-trans-reference", "tools/se-eclipse-local-reference", "tools/se-fictitious-reference", "tools/se-nodaps-reference", "tools/se-pheno-reference", "tools/se-occultations-reference", "tools/se-true-node-reference", "tools/se-mean-lunar-reference", "tools/se-helio-reference", "tools/se-stations-reference"]
+exclude = ["tools/se-house-reference", "tools/se-ayanamsa-reference", "tools/se-lilith-reference", "tools/se-equatorial-reference", "tools/se-crossings-reference", "tools/se-rise-trans-reference", "tools/se-eclipse-local-reference", "tools/se-fictitious-reference", "tools/se-nodaps-reference", "tools/se-pheno-reference", "tools/se-occultations-reference", "tools/se-true-node-reference", "tools/se-mean-lunar-reference", "tools/se-helio-reference", "tools/se-stations-reference", "tools/se-aspects-reference"]
 resolver = "2"
 
 [workspace.package]

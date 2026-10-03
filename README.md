@@ -35,6 +35,7 @@ gate, and 48 ayanamsas pass theirs — of 25 and 59 catalogued respectively.
 | Longitude crossings (geocentric apparent or mean of date, heliocentric; tropical or sidereal) | [`pleiades-events`](crates/pleiades-events) | `validate-crossings` | arcsecond-class |
 | Ecliptic position & speed (geocentric apparent, geocentric mean-of-date, heliocentric; tropical or sidereal zodiac, except heliocentric) | [`pleiades-events`](crates/pleiades-events) | `validate-helio-position` (heliocentric), `validate-apparent` (geocentric); mean-of-date and sidereal longitudes through the `validate-crossings` gate (their speeds are unit-tested only) | arcsecond-class geocentric; arcsecond-class heliocentric |
 | Planetary stations (geocentric apparent or mean of date; tropical or sidereal) | [`pleiades-events`](crates/pleiades-events) | `validate-stations` | arcsecond-class longitude; timing within 22 minutes of Swiss Ephemeris (planets; true node existence-checked only) |
+| Exact aspects between two bodies (geocentric apparent or mean of date, heliocentric; tropical or sidereal) | [`pleiades-events`](crates/pleiades-events) | `validate-aspects` | event for event with Swiss Ephemeris; separation within 3″ at the exact moment |
 | Rise/set/transit & horizontal | [`pleiades-events`](crates/pleiades-events) | `validate-rise-trans` | sub-arcsecond (horizontal); timing seconds-of-time |
 | Fictitious bodies | [`pleiades-fict`](crates/pleiades-fict) | `validate-fictitious` | definitional (sub-arcsecond) |
 | Nodes & apsides | [`pleiades-events`](crates/pleiades-events) | `validate-nod-aps` | sub-arcsecond (mean) / arcminute-class (osculating) |
@@ -245,7 +246,7 @@ mise run release-smoke
 mise run release-gate
 ```
 
-`release-smoke` runs the native dependency audit, validates the bundled compressed artifact, stages a release bundle, and verifies the bundle. `release-gate` also runs formatting, clippy, tests, and benchmark generation before invoking the smoke path.
+`release-smoke` runs the native dependency audit, validates the bundled compressed artifact, stages a release bundle, and verifies the bundle. `release-gate` also runs formatting, clippy, tests, and benchmark generation before invoking the smoke path, and the full exact-aspect gate (about 15 minutes, `mise run gate-aspects`).
 
 ## Documentation map
 

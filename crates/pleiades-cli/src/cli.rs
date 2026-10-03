@@ -806,6 +806,7 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
         }
         Some("validate-helio-position") | Some("helio-position-gate") => validate_render_cli(args),
         Some("validate-stations") | Some("stations-gate") => validate_render_cli(args),
+        Some("validate-aspects") | Some("aspects-gate") => validate_render_cli(args),
         Some("eclipses") => validate_render_cli(args),
         Some("validate-crossings") | Some("crossings-gate") => validate_render_cli(args),
         Some("crossings") => {
