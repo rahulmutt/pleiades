@@ -24,11 +24,8 @@ jobs:
         with:
           install: false
 
-      # Besides the toolchain and Cargo home, this caches the mise-installed
-      # tool binaries (avoids recompiling the `cargo:` tools, ~8 min) and
-      # `target` (avoids a cold workspace rebuild). Keep explanations up here:
-      # `path` is a literal block, so a trailing `# ...` on a path line is part
-      # of the path, matches nothing, and silently drops that entry.
+      # Same two caches as ci.yml (see the explanation there): immutable tools,
+      # rolled-forward `target` shared with the blocking job.
       - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
@@ -36,13 +33,26 @@ jobs:
             ~/.rustup
             ~/.cargo
             ~/.local/share/mise
-            target
-          key: ${{ runner.os }}-rust-${{ hashFiles('mise.toml', 'Cargo.lock') }}
+          key: ${{ runner.os }}-tools-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-rust-
+            ${{ runner.os }}-tools-
+
+      - name: Restore cached workspace builds
+        uses: actions/cache/restore@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-
+            ${{ runner.os }}-target-
 
       - name: Install mise-managed tools
         run: mise install
+
+      # Same as in ci.yml: let the restored `target` serve the workspace
+      # crates too (FU-23 (b)); see .github/scripts/cargo-cache-mtimes.sh.
+      - name: Reuse cached workspace builds
+        run: .github/scripts/cargo-cache-mtimes.sh
 
       # Step-level timeout, deliberately shorter than the job-level one. GitHub
       # *cancels* a job that exceeds its job-level timeout, and `if: failure()`
@@ -54,6 +64,14 @@ jobs:
       - name: Run nightly tier
         timeout-minutes: 50
         run: mise run ci-nightly
+
+      # The nightly tier builds everything `test-full` needs, so its entry is
+      # the richest one the blocking job can restore.
+      - name: Save workspace builds
+        uses: actions/cache/save@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-${{ github.run_id }}
 
       - name: Open/update tracking issue on failure
         if: failure()
@@ -82,17 +100,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # cargo-cache-mtimes.sh diffs against the cached build's commit
 
       - name: Set up mise
         uses: jdx/mise-action@v2
         with:
           install: false
 
-      # Besides the toolchain and Cargo home, this caches the mise-installed
-      # tool binaries (avoids recompiling the `cargo:` tools, ~8 min) and
-      # `target` (avoids a cold workspace rebuild). Keep explanations up here:
-      # `path` is a literal block, so a trailing `# ...` on a path line is part
-      # of the path, matches nothing, and silently drops that entry.
+      # Same tools cache as the other jobs. The gate's only build, the
+      # pleiades-validate binary, is part of every blocking run's `target`,
+      # so this job restores that cache and does not save one of its own.
       - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
@@ -100,13 +118,24 @@ jobs:
             ~/.rustup
             ~/.cargo
             ~/.local/share/mise
-            target
-          key: ${{ runner.os }}-rust-aspects-${{ hashFiles('mise.toml', 'Cargo.lock') }}
+          key: ${{ runner.os }}-tools-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-rust-aspects-
+            ${{ runner.os }}-tools-
+
+      - name: Restore cached workspace builds
+        uses: actions/cache/restore@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-
+            ${{ runner.os }}-target-
 
       - name: Install mise-managed tools
         run: mise install
+
+      - name: Reuse cached workspace builds
+        run: .github/scripts/cargo-cache-mtimes.sh
 
       # Step timeout below the job's 90 so an overrun fails loud (see `nightly`).
       - name: Run full aspects gate

@@ -109,6 +109,73 @@ Four changes and two measurements, all local (24-core container, dev/test profil
   against 173 s at `opt-level = 2`, and the profile switch rebuilt the test binary in 75 s against
   47 s. Not applied either; the numeric crates gain nothing past `opt-level = 2`.
 
+Nightly run 37154489996 (same runner class, commit `baf3d392c`, dispatched by hand once #115 had
+merged) measured the four changes together. The two `test-full` halves now overlap, so their
+individual figures include contention for the four cores and only the totals compare:
+
+| Phase | Before (37124856870) | After (37154489996) |
+|-------|---------------------:|--------------------:|
+| `test` dependency: build | 180 | 177 |
+| `test` dependency: nextest run | 59 | 62 |
+| `test-full-validate`: build `pleiades-validate` tests | 54 | 53 |
+| `test-full-validate`: `pleiades-validate` lib suite | 358 | 347 |
+| `test-full-ignored`: `pleiades-cli` ignored tests | 145 | 166 |
+| `test-full-ignored`: `pleiades-data` ignored tests | 31 | 65 |
+| `test-full` total (after its dependencies) | 589 | 401 |
+| whole `ci-nightly` tier | 829 | 639 |
+
+### FU-23 item (b), 2026-10-03
+
+The restored `target` cache served only registry crates. Those are fingerprinted by checksum; a
+path crate is fingerprinted by comparing each source file's mtime with the mtime of the unit's
+dep-info file, and a fresh checkout gives every tracked file a new mtime. The blocking run
+37153876584 on `main` spent about 200 s of its 331 s `mise run ci` step compiling first-party
+crates it had in the cache, and the nightly `test` step paid the same 177 s.
+
+Two changes, both in `.github/workflows` (PR #117):
+
+- `.github/scripts/cargo-cache-mtimes.sh` runs after the cache restore. It reads the commit the
+  cached build came from (a marker file inside `target`), floors every tracked file's mtime to a
+  fixed instant older than any cached dep-info, and touches back to now every file that differs from
+  that commit. A file is left old only when its content is what the cached build compiled, so a
+  cache from another branch cannot yield a stale build; with no usable marker the script is a
+  no-op. The common alternative, restoring last-commit mtimes (`git-restore-mtime`), was rejected
+  because under the cross-branch `restore-keys` fallback a file whose last commit predates the
+  cached build is judged fresh while its content differs.
+- `target` moved out of the tools cache into its own entry keyed by run id with prefix
+  `restore-keys` (the fuzz corpus pattern) and an explicit save step, because `actions/cache`
+  never overwrites an existing key: inside the tools entry the marker could only have entered the
+  cache when `Cargo.lock` or `mise.toml` changed. `pull_request` runs restore but do not save,
+  since their checkout is an ephemeral merge commit that later runs cannot fetch; the `push` run
+  of the same commit saves the equivalent entry with a branch commit. GitHub scopes cache access:
+  a `push` run restores the newest entry from its branch or `main`, a `pull_request` run sees
+  `main`'s entries only (verified on PR #117: its `pull_request` runs found no cache while the
+  `push` runs of the same commits restored the branch's). So a PR's checks warm up through
+  `main`'s entries, and the diff against `main`'s commit is what rebuilds.
+
+Measured on the blocking job (`ubuntu-latest`, 4 cores). "Before" is the last run on `main` under
+the old layout; "after" is the rerun of PR #117's push run on its own seeded cache, so the marker
+equals HEAD and nothing differs. The seeding run itself (cold tools cache under the new prefix,
+no `target`) took 10m14s, 6 min of it the one-time tools install:
+
+| Phase | Before (37153876584) | After (37155697448, attempt 2) |
+|-------|---------------------:|-------------------------------:|
+| Job wall-clock | 405 | 196 |
+| Cache restore (tools + `target`) | 33 | 17 |
+| `mise run ci` step | 331 | 159 |
+| `lint` | 88 | 10 |
+| `docs` | 75 | 10 |
+| `doctest` | 228 | 49 |
+| `test` (build + nextest; nextest alone) | 282 (83) | 104 (93) |
+| `release-smoke` | 325 | 155 |
+| First-party crates compiled | 18 (all) | 0 |
+| Cache save | 28 | 7 |
+
+The remaining `mise run ci` time is the work itself: the nextest run, the release-smoke battery
+with its bundle render and verify, gitleaks over the full history, and the doctests, which cargo
+re-links per crate. A run whose commit touches a crate rebuilds that crate and its dependents, so
+a typical PR lands between the two columns.
+
 ---
 
 ## Section 1: Timing Inventory
