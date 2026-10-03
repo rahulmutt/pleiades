@@ -1,7 +1,7 @@
 [package]
 name = "pleiades-compression"
 description = "Compressed ephemeris artifact data structures and codec helpers for the pleiades astrology workspace."
-version = "0.5.3"
+version = "0.5.4"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
