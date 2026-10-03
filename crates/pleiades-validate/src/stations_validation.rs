@@ -12,7 +12,7 @@ use crate::stations_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_MEAN_SID_SUBSET, SEPARATION_DAYS,
 };
 use pleiades_apparent::fnv1a64;
-use pleiades_data::packaged_backend;
+use pleiades_data::{packaged_backend, PackagedDataBackend};
 use pleiades_events::{CrossingFrame, CrossingReference, EventEngine, StationKind};
 use pleiades_types::{Ayanamsa, CelestialBody, Instant, JulianDay, TimeScale};
 
@@ -500,6 +500,66 @@ fn validate(csv: &str, manifest: &str) -> Result<StationsReport, StationsError> 
     validate_scoped(csv, manifest, Scope::Full)
 }
 
+/// One series' comparison, folded into the report by `validate_scoped`.
+struct SeriesOutcome {
+    residuals: Residuals,
+    /// The report line for the series.
+    line: String,
+}
+
+/// Scans one series with the engine and compares it with the corpus.
+fn compare_series(
+    engine: &EventEngine<PackagedDataBackend>,
+    series: &Series,
+) -> Result<SeriesOutcome, StationsError> {
+    let label = format!("{} {}", series.group.name(), series.body_name);
+    let failed = |reason: String| StationsError::CalculationFailed {
+        series: label.clone(),
+        reason,
+    };
+    let ceilings =
+        ceilings_for(series.body_name).ok_or_else(|| failed("no ceilings for this body".into()))?;
+    let (start, end) = span(series);
+    // The corpus epoch is TT; the engine reads the Julian day as TDB. The two
+    // differ by under 2 ms, far below every ceiling here.
+    let tdb = |jd: f64| Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+    let found: Vec<Found> = engine
+        .stations_in_range(
+            series.body.clone(),
+            series.group.reference(),
+            tdb(start),
+            tdb(end),
+        )
+        .map_err(|e| failed(e.to_string()))?
+        .into_iter()
+        .map(|station| Found {
+            jd: station.instant.julian_day.days(),
+            lon_deg: station.longitude.degrees(),
+            kind: station.kind,
+        })
+        .collect();
+    let residuals = if series.body == CelestialBody::TrueNode {
+        compare_separated(&label, &found, &series.stations, ceilings)?
+    } else {
+        compare_exact(&label, &found, &series.stations, ceilings)?
+    };
+    let mean_signed_s = if residuals.matched == 0 {
+        0.0
+    } else {
+        residuals.sum_signed_time_s / residuals.matched as f64
+    };
+    let line = format!(
+        "{label}: {} compared (engine {}, corpus {}), max time {:.1} s, mean signed time {:+.1} s, max lon {:.3}\"",
+        residuals.matched,
+        found.len(),
+        series.stations.len(),
+        residuals.max_time_s,
+        mean_signed_s,
+        residuals.max_lon_arcsec,
+    );
+    Ok(SeriesOutcome { residuals, line })
+}
+
 fn validate_scoped(
     csv: &str,
     manifest: &str,
@@ -523,58 +583,38 @@ fn validate_scoped(
     }
 
     let engine = EventEngine::new(packaged_backend());
-    // The corpus epoch is TT; the engine reads the Julian day as TDB. The two
-    // differ by under 2 ms, far below every ceiling here.
-    let tdb = |jd: f64| Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
-    let mut validated = 0usize;
-    let mut series_lines = Vec::new();
-    let (mut max_time_s, mut max_lon_arcsec) = (0.0_f64, 0.0_f64);
-    for series in all.iter().filter(|series| scope.includes(series.group)) {
-        let label = format!("{} {}", series.group.name(), series.body_name);
-        let failed = |reason: String| StationsError::CalculationFailed {
-            series: label.clone(),
-            reason,
-        };
-        let ceilings = ceilings_for(series.body_name)
-            .ok_or_else(|| failed("no ceilings for this body".into()))?;
-        let (start, end) = span(series);
-        let found: Vec<Found> = engine
-            .stations_in_range(
-                series.body.clone(),
-                series.group.reference(),
-                tdb(start),
-                tdb(end),
-            )
-            .map_err(|e| failed(e.to_string()))?
-            .into_iter()
-            .map(|station| Found {
-                jd: station.instant.julian_day.days(),
-                lon_deg: station.longitude.degrees(),
-                kind: station.kind,
-            })
+    let engine = &engine;
+    let selected: Vec<&Series> = all
+        .iter()
+        .filter(|series| scope.includes(series.group))
+        .collect();
+    // Each series is an independent scan of the engine, which only borrows
+    // the backend, so the series run on one thread apiece (FU-23 (e)): the
+    // full gate was otherwise one single-threaded multi-minute test. The
+    // outcomes are folded in corpus order below, so the report lines and the
+    // first error are the same as from a sequential loop.
+    let outcomes: Vec<Result<SeriesOutcome, StationsError>> = std::thread::scope(|threads| {
+        let handles: Vec<_> = selected
+            .iter()
+            .map(|&series| threads.spawn(move || compare_series(engine, series)))
             .collect();
-        let residuals = if series.body == CelestialBody::TrueNode {
-            compare_separated(&label, &found, &series.stations, ceilings)?
-        } else {
-            compare_exact(&label, &found, &series.stations, ceilings)?
-        };
+        handles
+            .into_iter()
+            .map(|handle| match handle.join() {
+                Ok(outcome) => outcome,
+                Err(payload) => std::panic::resume_unwind(payload),
+            })
+            .collect()
+    });
+    let mut validated = 0usize;
+    let mut series_lines = Vec::with_capacity(outcomes.len());
+    let (mut max_time_s, mut max_lon_arcsec) = (0.0_f64, 0.0_f64);
+    for outcome in outcomes {
+        let SeriesOutcome { residuals, line } = outcome?;
         validated += residuals.matched;
         max_time_s = max_time_s.max(residuals.max_time_s);
         max_lon_arcsec = max_lon_arcsec.max(residuals.max_lon_arcsec);
-        let mean_signed_s = if residuals.matched == 0 {
-            0.0
-        } else {
-            residuals.sum_signed_time_s / residuals.matched as f64
-        };
-        series_lines.push(format!(
-            "{label}: {} compared (engine {}, corpus {}), max time {:.1} s, mean signed time {:+.1} s, max lon {:.3}\"",
-            residuals.matched,
-            found.len(),
-            series.stations.len(),
-            residuals.max_time_s,
-            mean_signed_s,
-            residuals.max_lon_arcsec,
-        ));
+        series_lines.push(line);
     }
     let floor = scope.floor().max(1);
     if validated < floor {
@@ -595,9 +635,11 @@ fn validate_scoped(
 }
 
 /// The full gate: every corpus series (planets over 1900–2100 and the
-/// 1990–2030 series), floor `MIN_ROWS_VALIDATED` (5542 stations). About
-/// 3 minutes in release, 6 in the dev profile (2026-10-02); run by
-/// `validate-stations` and by the nightly `test-full` tier.
+/// 1990–2030 series), floor `MIN_ROWS_VALIDATED` (5542 stations). The
+/// series run on one thread each, so the wall-clock is the longest series:
+/// about 3 minutes in the dev profile with a core per series (2026-10-03;
+/// 343 s of CPU in all). Run by `validate-stations` and by the nightly
+/// `test-full` tier.
 pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {
     validate(CORPUS_CSV, MANIFEST)
 }
