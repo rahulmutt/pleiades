@@ -2564,3 +2564,65 @@ The gate runs in two tiers:
 
 **Severity:** (a)–(c) documented limits, (d)–(f) feature gaps, (g)
 performance · **Opened:** 2026-10-02
+
+---
+
+## FU-23: Remaining `test-full` / nightly wall-clock
+
+**Status:** open · Measurements and the two changes already made are in
+`docs/superpowers/plans/test-timings.md` (Section 0).
+
+**Where the time is:** nightly run 37119694132 (4-core GitHub runner) spent
+963 s in `ci-nightly`: 220 s building for `test`, 61 s running it, then
+680 s in `test-full` itself (50 s rebuild, 444 s `pleiades-validate` lib suite,
+154 s `pleiades-cli` ignored tests, 31 s `pleiades-data` ignored tests).
+
+**Open items**, ranked by estimated saving against risk. All savings are
+estimates from that run's timestamps, not measurements of a fix.
+
+- **(a) `release-gate` runs the smoke battery twice.** The `release-smoke`
+  dependency and the task's own `release-gate` command both call
+  `validate_release_smoke_at` (numeric battery, bundle render and verify).
+  Dropping the dependency from `release-gate` (not from `ci`) removes one
+  run: about 100 s on a CI runner, several minutes on a loaded machine. It
+  changes the release procedure, so it was left for a maintainer decision.
+- **(b) Workspace crates recompile on every CI run.** The `target` cache
+  restores, but a fresh checkout gives every source file a new mtime, so
+  cargo rebuilds all first-party crates: 220 s in the nightly `test` step,
+  and the same in blocking CI. Restoring mtimes from git history, or a
+  content-hash fingerprint once cargo offers one on stable, could save up to
+  about 3 minutes per run. Risk: a wrong mtime restore yields stale builds.
+- **(c) `summary_commands_render_compact_reports` is one 153 s test.** It
+  makes 485 `render_cli` calls on one thread and alone sets the length of
+  `test-full`'s second step while the other cores sit idle for about 110 s.
+  Splitting it into several tests by command family would save about 100 s.
+  Mechanical, but a 3000-line diff in `pleiades-cli`.
+- **(d) Command and alias tests re-run whole gates.** In
+  `pleiades-validate`'s lib suite the crossings gate runs five times, the
+  occultations gate five times, and
+  `release_gate_command_aliases_the_release_checklist` plus
+  `release_smoke_command_renders_the_smoke_report` each run the battery and
+  a bundle again (154 s and 96 s). Sharing a per-process outcome where the
+  test's subject is the report rather than the dispatch would save roughly
+  250–300 thread-seconds, about 60–75 s of wall-clock on four cores. Each
+  case needs a check that the alias dispatch is still exercised.
+- **(e) The full stations gate is a 253 s single-threaded test** and becomes
+  the suite's long pole. `validate_scoped` loops over independent series, so
+  `std::thread::scope` per series would cut it to roughly 70 s on four
+  cores. It saves wall-clock only while other cores are idle (perhaps
+  30–60 s), and it changes gate code, so report ordering must stay
+  deterministic.
+- **(f) Run `test-full`'s two steps concurrently.** At most about 80 s, at
+  the price of eight test threads on four cores.
+- **(g) Build profile.** `dev` and `test` are already `opt-level = 2`, so
+  the numeric crates are optimized. Untried: `debug = "line-tables-only"` to
+  shorten compile and link, and `opt-level = 3` for the gate-heavy crates.
+  Neither was measured.
+- **(h) Splitting the nightly into parallel jobs** gains little: the
+  non-test tasks already run beside the tests inside `mise`, and each extra
+  job pays its own cache restore and build.
+- **(i) Returning the slow families to nextest** with an on-disk fixture
+  cache keyed by content is the largest change and is not needed while
+  libtest keeps the tier inside its budget.
+
+**Severity:** performance (developer and CI time) · **Opened:** 2026-10-03

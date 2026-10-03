@@ -2997,9 +2997,21 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,tropical
     // inside `render::cli` itself) to prove the rise-trans and local-eclipse
     // gates are wired into the release set and the full numeric battery
     // still passes with both included.
+    //
+    // The battery is deterministic and takes over a minute, and six tests
+    // below assert its outcome. It therefore runs once per test process and
+    // every test asserts that one shared result (the same per-process
+    // `OnceLock` sharing as the release-bundle fixtures in
+    // `tests::test_support`); re-running it per test bought no extra coverage
+    // and was about a quarter of the suite's CPU time.
+    fn numeric_battery_outcome() -> Result<(), String> {
+        static OUTCOME: std::sync::OnceLock<Result<(), String>> = std::sync::OnceLock::new();
+        OUTCOME.get_or_init(super::run_all_numeric_gates).clone()
+    }
+
     #[test]
     fn run_all_numeric_gates_includes_rise_trans_and_passes() {
-        super::run_all_numeric_gates().expect(
+        numeric_battery_outcome().expect(
             "release-gate numeric battery (including validate-rise-trans) should pass on the committed corpora",
         );
     }
@@ -3012,7 +3024,7 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,tropical
         // battery-level assertion above.
         crate::validate_eclipse_local_corpus()
             .expect("eclipses-local gate should pass on the committed corpus");
-        super::run_all_numeric_gates().expect(
+        numeric_battery_outcome().expect(
             "release-gate numeric battery (including validate-eclipses-local) should pass on the committed corpora",
         );
     }
@@ -3024,7 +3036,7 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,tropical
         // passes independently of the rest of the battery, in addition to the
         // battery-level assertion above.
         crate::validate_fictitious_corpus().expect("fictitious gate passes standalone");
-        super::run_all_numeric_gates().expect(
+        numeric_battery_outcome().expect(
             "release-gate numeric battery (including validate-fictitious) should pass on the committed corpora",
         );
     }
@@ -3036,7 +3048,7 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,tropical
         // passes independently of the rest of the battery, in addition to the
         // battery-level assertion above.
         crate::validate_nod_aps_corpus().expect("nod-aps gate passes standalone");
-        super::run_all_numeric_gates().expect(
+        numeric_battery_outcome().expect(
             "release-gate numeric battery (including validate-nod-aps) should pass on the committed corpora",
         );
     }
@@ -3048,7 +3060,7 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,tropical
         // independently of the rest of the battery, in addition to the
         // battery-level assertion above.
         crate::validate_pheno_corpus().expect("pheno gate passes standalone");
-        super::run_all_numeric_gates().expect(
+        numeric_battery_outcome().expect(
             "release-gate numeric battery (including validate-pheno) should pass on the committed corpora",
         );
     }
@@ -3057,7 +3069,6 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,tropical
     fn run_all_numeric_gates_includes_occultations_and_passes() {
         crate::validate_occultations_corpus()
             .expect("occultations gate passes standalone on the committed corpus");
-        super::run_all_numeric_gates()
-            .expect("full numeric-gate battery (incl. occultations) passes");
+        numeric_battery_outcome().expect("full numeric-gate battery (incl. occultations) passes");
     }
 }
