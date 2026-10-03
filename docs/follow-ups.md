@@ -2569,8 +2569,8 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-03) · Items (c), (d), (e) and (f) are
-done and (g) is measured; (a), (b), (h) and (i) remain open. Measurements,
+**Status:** partly resolved (2026-10-03) · Items (b), (c), (d), (e) and (f)
+are done and (g) is measured; (a), (h) and (i) remain open. Measurements,
 the two changes from #112 and the 2026-10-03 changes are in
 `docs/superpowers/plans/test-timings.md` (Section 0).
 
@@ -2594,6 +2594,17 @@ estimates from that run's timestamps, not measurements of a fix.
   and the same in blocking CI. Restoring mtimes from git history, or a
   content-hash fingerprint once cargo offers one on stable, could save up to
   about 3 minutes per run. Risk: a wrong mtime restore yields stale builds.
+  → **Resolved 2026-10-03 (#117):** `.github/scripts/cargo-cache-mtimes.sh`
+  runs after the cache restore in all three jobs. It does not restore
+  history; it floors every tracked file's mtime and touches back only the
+  files whose content differs from the commit the cached `target` was built
+  from (a marker the script keeps inside `target`), so a stale build is
+  impossible by construction and a missing or unreachable marker leaves the
+  run as it was. `target` is now its own cache entry, rolled forward every
+  non-`pull_request` run, because `actions/cache` never overwrites a key.
+  Measured on the blocking job with nothing changed since the cached
+  build: 0 first-party crates compiled, `mise run ci` 331 s → 159 s, job
+  405 s → 196 s. Mechanism and the full table in the timings plan.
 - **(c) `summary_commands_render_compact_reports` is one 153 s test.** It
   makes 485 `render_cli` calls on one thread and alone sets the length of
   `test-full`'s second step while the other cores sit idle for about 110 s.
