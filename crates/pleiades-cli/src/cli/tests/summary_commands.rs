@@ -311,7 +311,7 @@ fn release_summary_commands_render_compact_reports() {
     assert!(release_notes_summary.contains("Release notes summary"));
     assert!(release_notes_summary
         .contains("Comparison tolerance policy: backend family=Composite; scopes=6"));
-    assert!(release_notes_summary.contains("Pluto fallback (approximate)"));
+    assert!(release_notes_summary.contains("Pluto (periodic-term fit)"));
     assert!(release_notes_summary.contains(&format!(
         "House code aliases: {}",
         current_compatibility_profile().house_code_aliases_summary_line()

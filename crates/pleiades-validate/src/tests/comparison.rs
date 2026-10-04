@@ -313,7 +313,7 @@ fn comparison_tolerance_catalog_entries_use_body_class_specific_limits() {
     );
     assert_eq!(
         entries[5].summary_line(),
-        "Pluto fallback (approximate): Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"
+        "Pluto (periodic-term fit): Δlon≤0.010°, Δlat≤0.010°, Δdist=0.001 AU"
     );
 }
 
@@ -1141,7 +1141,7 @@ fn comparison_audit_command_reports_clean_release_grade_corpus() {
     assert!(report.contains("Tolerance policy"));
     assert!(report.contains("Notable regressions\n  none"));
     assert!(report.contains("regression bodies: none"));
-    assert!(report.contains("Pluto fallback (approximate): backend family=composite, profile=phase-1 Pluto approximate fallback evidence, bodies=0 (none), samples=0"));
+    assert!(report.contains("Pluto (periodic-term fit): backend family=composite, profile=phase-1 Pluto periodic-term fit evidence, bodies=0 (none), samples=0"));
 
     let summary =
         render_cli(&["comparison-audit-summary"]).expect("comparison audit summary should render");

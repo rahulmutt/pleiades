@@ -68,7 +68,7 @@ impl std::error::Error for ClaimPostureError {}
 ///
 /// The per-backend claim model makes most legacy invariants true by construction
 /// (a body may legitimately hold different tiers via *different* backends, e.g.
-/// Pluto is `ReleaseGrade@pleiades-data` and `Approximate@pleiades-vsop87`). The
+/// Pluto is `ReleaseGrade@pleiades-data` and `Constrained@pleiades-vsop87`). The
 /// remaining honesty invariant that is not guaranteed by the type is that a
 /// *single* backend must not claim the same body at two different tiers.
 pub(crate) fn validate_release_posture(posture: &ReleasePosture) -> Result<(), ClaimPostureError> {

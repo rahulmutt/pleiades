@@ -96,7 +96,7 @@ pub enum ComparisonToleranceScope {
     Asteroid,
     /// Custom-body body-class scope.
     Custom,
-    /// Pluto-specific approximate fallback scope.
+    /// Pluto scope: the Meeus Table 37.A periodic-term fit on the algorithmic path.
     Pluto,
 }
 
@@ -108,7 +108,7 @@ impl ComparisonToleranceScope {
             Self::LunarPoint => "Lunar points",
             Self::Asteroid => "Asteroids",
             Self::Custom => "Custom bodies",
-            Self::Pluto => "Pluto fallback (approximate)",
+            Self::Pluto => "Pluto (periodic-term fit)",
         }
     }
 }

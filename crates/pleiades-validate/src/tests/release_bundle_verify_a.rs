@@ -472,7 +472,7 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(release_notes.contains("Rust compiler version"));
     assert!(release_notes_summary.contains("Release notes summary"));
     assert!(release_notes_summary.contains(
-            "Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="
+            "Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto (periodic-term fit)); limits="
         ));
     assert!(release_notes_summary.contains("Release-specific coverage:"));
     assert!(release_notes_summary
