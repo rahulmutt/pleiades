@@ -64,17 +64,6 @@ impl Vsop87Backend {
             .collect()
     }
 
-    fn earth_elements(days: f64) -> OrbitalElements {
-        OrbitalElements::new(
-            0.0,
-            0.0,
-            282.9404 + 4.70935e-5 * days,
-            1.000000,
-            0.016709 - 1.151e-9 * days,
-            356.0470 + 0.985_600_258_5 * days,
-        )
-    }
-
     fn orbital_elements(body: CelestialBody, days: f64) -> Option<OrbitalElements> {
         match body {
             CelestialBody::Mercury => Some(OrbitalElements::new(
@@ -145,7 +134,7 @@ impl Vsop87Backend {
         }
     }
 
-    fn heliocentric_coordinates(elements: OrbitalElements) -> HeliocentricCoordinates {
+    pub(crate) fn heliocentric_coordinates(elements: OrbitalElements) -> HeliocentricCoordinates {
         let mean_anomaly = normalize_degrees(elements.mean_anomaly);
         let eccentric_anomaly = solve_kepler(mean_anomaly, elements.eccentricity);
         let true_anomaly = true_anomaly_from_eccentric(eccentric_anomaly, elements.eccentricity);
@@ -155,8 +144,11 @@ impl Vsop87Backend {
 
         let node = elements.ascending_node.to_radians();
         let inclination = elements.inclination.to_radians();
-        let perihelion = elements.argument_of_perihelion.to_radians();
-        let lon = (true_anomaly + perihelion).to_radians();
+        // Argument of latitude: true anomaly plus argument of perihelion. Both
+        // terms are converted to radians before they are summed (issue #119:
+        // adding the degree-valued anomaly to a radian-valued perihelion and
+        // converting the sum shrank the perihelion to 1/57 of its value).
+        let lon = true_anomaly.to_radians() + elements.argument_of_perihelion.to_radians();
 
         let xh = radius * (node.cos() * lon.cos() - node.sin() * lon.sin() * inclination.cos());
         let yh = radius * (node.sin() * lon.cos() + node.cos() * lon.sin() * inclination.cos());
@@ -198,7 +190,9 @@ impl Vsop87Backend {
             });
         }
 
-        let earth = Self::heliocentric_coordinates(Self::earth_elements(days));
+        // Mean-element fallback (Pluto): heliocentric Pluto minus the same
+        // VSOP87B heliocentric Earth the table-backed planets use.
+        let earth = Self::heliocentric_earth_from_vsop87b(days);
         let target = Self::heliocentric_coordinates(Self::orbital_elements(body, days)?);
         Some(HeliocentricCoordinates {
             xh: target.xh - earth.xh,
