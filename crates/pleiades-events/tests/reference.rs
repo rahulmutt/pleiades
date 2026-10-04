@@ -533,8 +533,54 @@ fn one_reference_serves_many_calls_by_borrow() {
     assert_eq!(count, 4);
 }
 
-/// Diagnostic for FU-18: how a sidereal chart differs from a sidereal
-/// crossing reference. Run with
+#[test]
+fn sidereal_apparent_chart_agrees_with_the_crossing_reference() {
+    // Issue #120: both read a sidereal longitude on the mean equinox of date
+    // minus the mean ayanamsa, so a crossing the engine finds sits on the
+    // chart's own longitude. The mean chart still differs (FU-18 (b)).
+    let engine = EventEngine::new(packaged_backend());
+    let chart_engine = ChartEngine::new(packaged_backend());
+    let bodies = [
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        CelestialBody::Mars,
+        CelestialBody::Saturn,
+    ];
+    for jd in [2_420_000.5, 2_451_545.0, 2_460_000.5, 2_480_000.5] {
+        let chart = chart_engine
+            .chart(
+                &ChartRequest::new(tdb(jd))
+                    .with_bodies(bodies.to_vec())
+                    .with_zodiac_mode(ZodiacMode::Sidereal {
+                        ayanamsa: Ayanamsa::Lahiri,
+                    }),
+            )
+            .expect("chart");
+        for body in &bodies {
+            let chart_lon = chart
+                .placement_for(body)
+                .expect("placed")
+                .position
+                .ecliptic
+                .as_ref()
+                .expect("ecliptic")
+                .longitude
+                .degrees();
+            let engine_lon = engine
+                .longitude_at(body.clone(), lahiri(APPARENT), tdb(jd))
+                .unwrap()
+                .degrees();
+            let arcsec = wrap(chart_lon - engine_lon) * 3600.0;
+            assert!(
+                arcsec.abs() < 0.001,
+                "jd {jd} {body:?}: chart − crossing reference = {arcsec:.4}\""
+            );
+        }
+    }
+}
+
+/// Diagnostic for FU-18 (b): how a sidereal mean chart differs from a
+/// sidereal crossing reference (the apparent case is asserted above). Run with
 /// `cargo test -p pleiades-events --test reference measure_chart_sidereal_conventions -- --nocapture --ignored`
 #[test]
 #[ignore]

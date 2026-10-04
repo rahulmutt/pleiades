@@ -3061,15 +3061,24 @@ fn sidereal_apparent_chart_applies_ayanamsa_to_apparent_longitude() {
         .unwrap()
         .longitude;
 
-    // The expected sidereal apparent longitude is the tropical apparent longitude
-    // with the ayanamsa applied.
-    let expected_sidereal = sidereal_longitude(tropical_apparent_lon, instant, &zodiac_mode)
-        .expect("sidereal conversion of apparent longitude should succeed");
+    // The expected sidereal apparent longitude is the tropical apparent
+    // longitude moved to the mean equinox of date (minus Δψ) with the ayanamsa
+    // applied (issue #120).
+    let delta_psi_deg = pleiades_apparent::nutation::nutation(instant.julian_day.days())
+        .expect("nutation")
+        .delta_psi_arcsec
+        / 3600.0;
+    let expected_sidereal = sidereal_longitude(
+        pleiades_types::Longitude::from_degrees(tropical_apparent_lon.degrees() - delta_psi_deg),
+        instant,
+        &zodiac_mode,
+    )
+    .expect("sidereal conversion of apparent longitude should succeed");
 
-    // The stored longitude must match the ayanamsa-adjusted apparent longitude.
+    // The stored longitude must match the ayanamsa-adjusted mean-equinox longitude.
     assert!(
         (sidereal_apparent_lon.degrees() - expected_sidereal.degrees()).abs() < 1e-9,
-        "sidereal apparent longitude {:.6}° must equal tropical apparent {:.6}° minus ayanamsa = {:.6}°",
+        "sidereal apparent longitude {:.6}° must equal tropical apparent {:.6}° minus Δψ and ayanamsa = {:.6}°",
         sidereal_apparent_lon.degrees(),
         tropical_apparent_lon.degrees(),
         expected_sidereal.degrees(),
@@ -3254,9 +3263,18 @@ fn sidereal_topocentric_applies_ayanamsa_once() {
         .unwrap()
         .longitude;
 
-    // The expected sidereal+topocentric longitude is: tropical+topocentric − ayanamsa (once).
-    let expected_sid_topo = sidereal_longitude(topo_trop_lon, instant, &zodiac_mode)
-        .expect("sidereal conversion of tropical topocentric longitude should succeed");
+    // The expected sidereal+topocentric longitude is: tropical+topocentric − Δψ
+    // (to the mean equinox, issue #120) − ayanamsa (once).
+    let delta_psi_deg = pleiades_apparent::nutation::nutation(instant.julian_day.days())
+        .expect("nutation")
+        .delta_psi_arcsec
+        / 3600.0;
+    let expected_sid_topo = sidereal_longitude(
+        pleiades_types::Longitude::from_degrees(topo_trop_lon.degrees() - delta_psi_deg),
+        instant,
+        &zodiac_mode,
+    )
+    .expect("sidereal conversion of tropical topocentric longitude should succeed");
 
     // Allow a generous 2 arcsec tolerance for floating-point rounding.
     let tol_deg = 2.0 / 3600.0;
@@ -3267,7 +3285,7 @@ fn sidereal_topocentric_applies_ayanamsa_once() {
     assert!(
         err < tol_deg,
         "sidereal+topocentric longitude {topo_sid_lon:.6}° must equal \
-         tropical+topocentric {:.6}° − ayanamsa = {:.6}° (err {:.4} arcsec); \
+         tropical+topocentric {:.6}° − Δψ − ayanamsa = {:.6}° (err {:.4} arcsec); \
          a large error (~23°) indicates double ayanamsa subtraction",
         topo_trop_lon.degrees(),
         expected_sid_topo.degrees(),
