@@ -350,6 +350,55 @@ under 0.1 s.
   runner) and the `pleiades-cli` ignored tests in the other half, so a further cut needs both
   halves to shrink.
 
+### FU-23 items (m), (n) and (o), 2026-10-04
+
+On `main` after #136 (nightly run 37199097620), the tier ran in four phases: nextest (0–69 s), a
+54 s compile of `pleiades-validate`'s test binary (69–123 s, both `test-full` halves waiting on
+it), the two halves in parallel (123–256 s), and the `pleiades-data` ignored tests on their own
+(256–294 s) after the `pleiades-cli` ones in the same `cargo test` call.
+
+- **(m)** `test-full-build` compiles the `test-full` binaries during the nextest run. `test-build`
+  records nextest's binaries (`cargo nextest list --list-type binaries-only`) and the cargo
+  metadata, and `test` runs from that record without invoking cargo. Without the record it gained
+  nothing. Started alongside `test`, `test-full-build` sometimes took the build lock first, and
+  nextest waited for it (runs 37229732320, 37229734252). After a plain `nextest run --no-run`,
+  `cargo nextest run`'s own no-op build still waited on the lock, 53–61 s (runs 37230857839,
+  37230859135).
+- **(n)** The ignored half is two concurrent tasks, `--bins` (the `pleiades-cli` tests) and
+  `--lib --test '*'` (everything else, `pleiades-data` included).
+- **(o)** The `pleiades-cli` release-summary test no longer runs `release-gate` (a battery plus a
+  bundle render and verify), and the output-alias test verifies the shared pristine bundle instead
+  of rendering its own. Per-test times locally (load ~27, ratios only) put those two at 75 s and
+  31 s of the half's 137 s.
+
+A warm cache hides (m), because a nightly whose cache already holds the `pleiades-validate` test
+binary has nothing to compile (the second round, runs 37230425262 to 37230432371, was like that).
+To measure it, two throwaway branches, `main` and this branch, each got the same comment change in
+a `pleiades-validate` test file, and each was dispatched twice at the same time. A third round was
+needed, because the second force-pushed the probe branch and left the cached commit unreachable,
+so the mtime script fell back to a full rebuild. Doctest (CPU-bound, starting at t=0 in both
+arms) is the runner-speed reference, because nextest now shares its cores with the compile.
+Durations in seconds; "at" rows are seconds from the start of `mise run ci-nightly`:
+
+| Phase | `main` 1 (37232063518) | `main` 2 (37232065621) | Branch 1 (37232067510) | Branch 2 (37232069475) |
+|-------|---:|---:|---:|---:|
+| doctest duration (runner-speed reference) | 19 | 29 | 30 | 29 |
+| nextest run duration | 34 | 58 | 90 | 70 |
+| at: `test-full` binaries ready | 69 | 115 | 101 | 90 |
+| `pleiades-cli` ignored tests duration | 56 | 102 | 86 | 71 |
+| at: `pleiades-data` and other ignored lib tests end | 153 | 261 | 172 | 150 |
+| `pleiades-validate` suite duration | 76 | 132 | 137 | 121 |
+| tier duration (`mise run ci-nightly`) | 153 | 262 | 239 | 211 |
+| `nightly` job (wall-clock) | 206 | 325 | 280 | 267 |
+
+`main` 1 ran on a runner about 1.5× faster than the other three (doctest 19 s against 29–30 s),
+so the comparison is `main` 2 against the two branch runs, which ran at the same speed. The
+compile now overlaps nextest: the binaries are ready 14–25 s sooner, although nextest itself
+slows from about 58 s to 70–90 s with the two sharing four cores. The `test-full` phase went from
+147 s to 121–138 s. The tier went from 262 s to 211–239 s, about 25–50 s less. The
+`pleiades-validate` half, whose long pole is the stations gate, now ends about 50 s after the
+other `test-full` tasks, so a further cut has to shorten that suite.
+
 ---
 
 ## Section 1: Timing Inventory

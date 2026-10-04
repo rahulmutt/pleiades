@@ -2598,8 +2598,8 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-04) · Items (a) to (f), (k) and (l) are done,
-(g) and (j) are measured and not applied; (h) and (i) remain open.
+**Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) to (o) are
+done, (g) and (j) are measured and not applied; (h) and (i) remain open.
 Measurements, the two changes from #112 and the 2026-10-03 and 2026-10-04
 changes are in `docs/superpowers/plans/test-timings.md` (Section 0).
 
@@ -2771,6 +2771,44 @@ estimates from that run's timestamps, not measurements of a fix.
   together. Table in the timings plan. The long poles are now the stations
   gate and the `pleiades-cli` ignored tests, so a further cut needs both
   halves to shrink.
+- **(m) `test-full` compiled only after `test` had run.** On `main` after
+  #136 (nightly run 37199097620), the tier spent 54 s compiling
+  `pleiades-validate`'s test binary between the nextest run and the
+  `test-full` runs. The blocking tier never builds that binary, and any
+  change to a crate it depends on rebuilds it, so nearly every scheduled
+  nightly pays this. → **Resolved 2026-10-04:** a `test-full-build` task
+  compiles every `test-full` binary while `test` runs. That only works because
+  `test` now runs from a build record: `test-build` compiles nextest's binaries
+  and writes the binaries list and cargo metadata, and `test` runs them with
+  `--binaries-metadata`/`--cargo-metadata`, without invoking cargo. The first
+  two attempts (`test-full-build` alongside `test`, then after a plain
+  `--no-run`) gained nothing, because `cargo nextest run` starts with a cargo
+  build that waited on the build-directory lock for the whole compile.
+- **(n) The `pleiades-data` ignored tests ran on alone.** The ignored half was
+  one `cargo test`, so the `pleiades-data` tests (30–45 s) started only after
+  the `pleiades-cli` ones, and ran on after everything else. → **Resolved
+  2026-10-04:** the half is now two concurrent tasks, `--bins` and
+  `--lib --test '*'` (not `--tests`, which selects bin targets too). They keep
+  the same package selection, so they reuse one build and list the same 97
+  tests.
+- **(o) The `pleiades-cli` ignored tests repeated work done elsewhere.**
+  `release_summary_commands_render_compact_reports` ran
+  `render_cli(&["release-gate"])` (numeric battery, bundle render and verify)
+  on one thread, and `bundle_release_commands_accept_output_alias` rendered a
+  second bundle. → **Resolved 2026-10-04:** the release-gate routing is now
+  checked by its extra-argument error, as `release-gate-summary`'s already was.
+  `pleiades-validate` pins what the gate returns, and `mise run release-gate`
+  runs it end to end. The alias test verifies the shared pristine bundle
+  through `--output`. The CLI half went from 102–114 s to 71–86 s.
+
+  Measured together on pairs of nightlies that each had to recompile the
+  `pleiades-validate` test binary (two throwaway branches, `main` and this
+  branch plus a comment change in a `pleiades-validate` test file;
+  runs 37232063518, 37232065621, 37232067510, 37232069475). Against the
+  `main` run on a comparable runner, the tier went from 262 s to 211–239 s.
+  Table in the timings plan. The `pleiades-validate` half (stations gate)
+  is now the only long pole: the other `test-full` tasks end about 50 s
+  before it.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 
