@@ -2790,3 +2790,52 @@ per-placement truth (`position.apparent`, `BodyPlacement::apparent`) is
 already correct and should stay the source of record.
 
 **Severity:** honesty of reported output (narrow case) · **Opened:** 2026-10-03
+
+---
+
+## FU-25: Cost of an apparent-of-date sample (issue #128)
+
+**Status:** partly resolved (2026-10-04) · Issue #128 measured an apparent
+sample at 4–20× the raw backend query on the VSOP87/ELP composite (Moon
+15 µs → 293 µs) and an 11-body chart at 12× its raw queries.
+
+**Done (bit-identical outputs, no numeric change):**
+
+- The event engine no longer queries the backend for the Sun on every
+  apparent sample. That query fed only the provenance aberration estimate,
+  which the engine discards; the backend-free Meeus Sun
+  (`pleiades-events/src/solar.rs`, shared with fixed stars) now serves it.
+- The event engine's speed sample (`sampled_place`) reads each body once and
+  reduces that read, instead of reading it again inside the reduction; the
+  apparent reduction's first light-time query reuses it.
+- The chart layer reuses its position batch as the first light-time query at
+  the chart instant, and the mean-place query as the first light-time query
+  at each speed-difference instant.
+- `pleiades-apparent` parses and checksums its nutation table once per
+  process instead of on every call.
+
+Measured on the composite (2025-03-29, 400 samples, release build; shared
+machine at load ≈ 50–65, so read the ratios against the raw query, which run
+in the same process): Moon apparent 263 µs → 30 µs (15× → 1.9× raw), Moon
+`position_at` 867 µs → 91 µs, planets ≈ 4× → ≈ 2.3× raw, 11-body chart
+60.6 ms → 31–35 ms. A checksum over every benchmarked value is identical
+before and after. Tests pin the query counts: no Sun query in a body's
+apparent sample, one read per body per sampled instant in `sampled_place`
+and in an apparent chart.
+
+**Remaining:**
+
+- `Vsop87Backend::position` always computes motion by two extra series
+  evaluations, so each light-time re-query costs three evaluations it uses
+  one of. A motion-free query path, or deriving the retarded place from the
+  backend's own velocity, is the next multiplier.
+- The chart layer queries the Sun four times per chart (aberration argument
+  plus the two speed-difference neighbours plus the Sun's own reduction);
+  a one-body chart of a cheap body is dominated by these.
+- Precession and nutation are recomputed per body per sample; a per-instant
+  reduction context in `pleiades-apparent` would share them across a chart.
+
+These change query shape or numerics and need their own design with the
+gates as arbiter.
+
+**Severity:** performance · **Opened:** 2026-10-04

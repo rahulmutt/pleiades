@@ -20,6 +20,8 @@ mod houses;
 mod motion;
 mod observer;
 mod placement;
+#[cfg(test)]
+mod query_count_tests;
 mod request;
 mod sidereal;
 #[cfg(test)]
@@ -423,6 +425,10 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             .cloned()
             .zip(positions)
             .map(|(body, mut position)| {
+                // The batch's mean J2000 place, before any sidereal rewrite below:
+                // the apparent reduction's first backend query at this instant is
+                // the same request, so this answers it (issue #128).
+                let batch_mean = position.ecliptic;
                 let sign = if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
                     && !native_sidereal
                 {
@@ -458,6 +464,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                         sun_lon,
                         &backend_zodiac_mode,
                         &request.body_observer,
+                        batch_mean,
                     );
                     match outcome {
                         Ok(outcome) => {
@@ -618,6 +625,12 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// Apparent place of a body at `instant`.
     /// `sun_longitude_of_date` is the Sun's true geometric longitude of date at
     /// the same instant, the argument of the annual-aberration term.
+    ///
+    /// `mean_at_instant` is the body's mean J2000 place at `instant` for
+    /// `body_observer`, when the caller already queried it; it answers the
+    /// reduction's first backend query, which is that same request. The
+    /// result is bit-identical either way (the backend is deterministic); the
+    /// reuse saves one backend query per call (issue #128).
     fn apparent_place(
         &self,
         body: &CelestialBody,
@@ -625,7 +638,14 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         sun_longitude_of_date: f64,
         zodiac_mode: &ZodiacMode,
         body_observer: &Option<ObserverLocation>,
+        mean_at_instant: Option<pleiades_types::EclipticCoordinates>,
     ) -> Result<ApparentPosition, EphemerisError> {
+        // The Sun and lunar-point paths query geocentrically (observer None),
+        // so a place queried for an observer cannot stand in for them.
+        let geocentric_mean = || match (mean_at_instant, body_observer) {
+            (Some(mean), None) => Ok(mean),
+            _ => self.query_mean_ecliptic(body, instant, zodiac_mode, None),
+        };
         match body {
             // Sun: light-time and aberration are the same ~20.5″ effect, so the
             // Sun path applies aberration ONCE to the instantaneous (un-retarded)
@@ -633,27 +653,33 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             // whose geocentric light-time re-query already carries aberration
             // (no separate term, #93). observer = None keeps the aberration
             // argument geocentric.
-            CelestialBody::Sun => self
-                .query_mean_ecliptic(body, instant, zodiac_mode, None)
-                .and_then(|sun_j2000| {
-                    apparent_sun_position(instant, sun_j2000).map_err(map_apparent_place_error)
-                }),
+            CelestialBody::Sun => geocentric_mean().and_then(|sun_j2000| {
+                apparent_sun_position(instant, sun_j2000).map_err(map_apparent_place_error)
+            }),
             // Lunar orbit point: a geometric direction (see `is_lunar_point`).
             // observer = None keeps it geocentric.
-            body if is_lunar_point(body) => self
-                .query_mean_ecliptic(body, instant, zodiac_mode, None)
-                .and_then(|point_j2000| {
-                    apparent_apsis_position(instant, point_j2000).map_err(map_apparent_place_error)
-                }),
-            _ => apparent_position::<_, EphemerisError>(
-                instant,
-                sun_longitude_of_date,
-                DEFAULT_MAX_ITERATIONS,
-                |instant| {
-                    self.query_mean_ecliptic(body, instant, zodiac_mode, body_observer.clone())
-                },
-            )
-            .map_err(map_apparent_error),
+            body if is_lunar_point(body) => geocentric_mean().and_then(|point_j2000| {
+                apparent_apsis_position(instant, point_j2000).map_err(map_apparent_place_error)
+            }),
+            _ => {
+                // The light-time loop's first query is at `instant` itself.
+                let mut first_query = mean_at_instant;
+                apparent_position::<_, EphemerisError>(
+                    instant,
+                    sun_longitude_of_date,
+                    DEFAULT_MAX_ITERATIONS,
+                    |instant| match first_query.take() {
+                        Some(mean) => Ok(mean),
+                        None => self.query_mean_ecliptic(
+                            body,
+                            instant,
+                            zodiac_mode,
+                            body_observer.clone(),
+                        ),
+                    },
+                )
+                .map_err(map_apparent_error)
+            }
         }
     }
 
@@ -665,12 +691,19 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         zodiac_mode: &ZodiacMode,
         body_observer: &Option<ObserverLocation>,
     ) -> Result<CorrectionSample, EphemerisError> {
-        let apparent =
-            self.apparent_place(body, sun.instant, sun.sun_lon, zodiac_mode, body_observer)?;
         // The mean place the backend's speed describes: the same query the
-        // chart's position batch makes.
+        // chart's position batch makes. It also answers the apparent
+        // reduction's first query at this instant.
         let mean =
             self.query_mean_ecliptic(body, sun.instant, zodiac_mode, body_observer.clone())?;
+        let apparent = self.apparent_place(
+            body,
+            sun.instant,
+            sun.sun_lon,
+            zodiac_mode,
+            body_observer,
+            Some(mean),
+        )?;
         Ok(CorrectionSample {
             julian_day: sun.instant.julian_day.days(),
             correction: Correction::between(&apparent.ecliptic, &mean),

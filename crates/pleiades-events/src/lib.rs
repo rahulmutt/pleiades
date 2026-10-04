@@ -131,6 +131,7 @@ mod reference;
 mod rise_trans;
 mod root;
 mod semidiameter;
+mod solar;
 mod state_vector;
 mod stations;
 mod time_scale;

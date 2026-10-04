@@ -53,8 +53,8 @@ pub struct EclipticPosition {
     /// [`CrossingFrame::Heliocentric`]. The distance is `Some` for every body
     /// and `None` for a lunar orbit point (mean or true node, apogee or
     /// perigee) the backend serves as a direction only, as the ELP backend
-    /// does. Only the apparent frame can fail within a light-time of the start
-    /// of the packaged range (see `position_at`).
+    /// does for its mean points. Only the apparent frame can fail within a
+    /// light-time of the start of the packaged range (see `position_at`).
     pub ecliptic: EclipticCoordinates,
     /// Speed of `ecliptic`: longitude and latitude in degrees per day,
     /// distance in AU per day. A channel is `None` when the backend reports no

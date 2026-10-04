@@ -4,6 +4,10 @@
 use super::{ecliptic_in, sampled_place, CrossingReference};
 use crate::crossings::CrossingFrame;
 use crate::ephemeris::{geocentric_apparent_longitude_deg, heliocentric_longitude_deg};
+use pleiades_backend::{
+    BackendMetadata, CompositeBackend, EphemerisBackend, EphemerisError, EphemerisRequest,
+    EphemerisResult,
+};
 use pleiades_data::packaged_backend;
 use pleiades_types::{Ayanamsa, CelestialBody};
 
@@ -69,5 +73,207 @@ fn sampled_place_agrees_with_ecliptic_in() {
                 "{reference:?} {label} dist"
             );
         }
+    }
+}
+
+/// Records every `(body, julian_day)` the wrapped backend is asked for.
+struct Recording<B> {
+    inner: B,
+    queries: std::sync::Mutex<Vec<(CelestialBody, f64)>>,
+}
+
+impl<B> Recording<B> {
+    fn new(inner: B) -> Self {
+        Self {
+            inner,
+            queries: std::sync::Mutex::new(Vec::new()),
+        }
+    }
+
+    fn take(&self) -> Vec<(CelestialBody, f64)> {
+        std::mem::take(&mut *self.queries.lock().unwrap())
+    }
+}
+
+impl<B: EphemerisBackend> EphemerisBackend for Recording<B> {
+    fn metadata(&self) -> BackendMetadata {
+        self.inner.metadata()
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        self.inner.supports_body(body)
+    }
+
+    fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        self.queries
+            .lock()
+            .unwrap()
+            .push((req.body.clone(), req.instant.julian_day.days()));
+        self.inner.position(req)
+    }
+}
+
+/// A backend that drops every distance.
+struct NoDistance<B>(B);
+
+impl<B: EphemerisBackend> EphemerisBackend for NoDistance<B> {
+    fn metadata(&self) -> BackendMetadata {
+        self.0.metadata()
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        self.0.supports_body(body)
+    }
+
+    fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        let mut result = self.0.position(req)?;
+        if let Some(ecliptic) = result.ecliptic.as_mut() {
+            ecliptic.distance_au = None;
+        }
+        Ok(result)
+    }
+}
+
+/// Queries of `body`, at `jd` when given.
+fn count(queries: &[(CelestialBody, f64)], body: &CelestialBody, jd: Option<f64>) -> usize {
+    queries
+        .iter()
+        .filter(|(b, j)| b == body && jd.is_none_or(|jd| *j == jd))
+        .count()
+}
+
+/// 2025-03-29 00:00 TDB, the issue #128 measurement start.
+const ISSUE_128_JD: f64 = 2_460_763.5;
+
+#[test]
+fn an_apparent_sample_of_a_body_does_not_query_the_sun() {
+    // Regression for issue #128: every apparent sample of every body queried
+    // the backend for the Sun, only to feed a provenance estimate this engine
+    // discards. For the Moon that query cost ten times the Moon's own.
+    let backend = Recording::new(packaged_backend());
+    let reference = CrossingReference::tropical(CrossingFrame::GeocentricApparentOfDate);
+    for body in [
+        CelestialBody::Moon,
+        CelestialBody::Mars,
+        CelestialBody::Pluto,
+    ] {
+        ecliptic_in(&backend, &body, &reference, ISSUE_128_JD).unwrap();
+        let queries = backend.take();
+        assert_eq!(count(&queries, &CelestialBody::Sun, None), 0, "{body:?}");
+        // The light-time loop reads the body once at the instant itself.
+        assert_eq!(
+            count(&queries, &body, Some(ISSUE_128_JD)),
+            1,
+            "{body:?}: {queries:?}"
+        );
+    }
+}
+
+#[test]
+fn sampled_place_reads_the_body_once_at_its_instant() {
+    // Regression for issue #128: the speed sample read the mean place and then
+    // read it again inside the reduction.
+    let backend = Recording::new(packaged_backend());
+    for frame in [
+        CrossingFrame::GeocentricApparentOfDate,
+        CrossingFrame::GeocentricMeanOfDate,
+    ] {
+        for body in [
+            CelestialBody::Sun,
+            CelestialBody::Moon,
+            CelestialBody::Mars,
+            CelestialBody::TrueNode,
+        ] {
+            let reference = CrossingReference::tropical(frame);
+            sampled_place(&backend, &body, &reference, ISSUE_128_JD).unwrap();
+            let queries = backend.take();
+            assert_eq!(
+                count(&queries, &body, Some(ISSUE_128_JD)),
+                1,
+                "{frame:?} {body:?}: {queries:?}"
+            );
+            if body != CelestialBody::Sun {
+                assert_eq!(
+                    count(&queries, &CelestialBody::Sun, None),
+                    0,
+                    "{frame:?} {body:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn sampled_place_agrees_with_ecliptic_in_for_the_luminaries_and_lunar_points() {
+    // The reused read must reproduce the unseeded reduction bit for bit on the
+    // Sun's own path, the Moon, and the lunar-point paths, including the ELP
+    // mean node, which the backend serves without a distance.
+    let composite = CompositeBackend::new(
+        pleiades_elp::ElpBackend::new(),
+        pleiades_vsop87::Vsop87Backend::new(),
+    );
+    let packaged = packaged_backend();
+    let references = [
+        CrossingReference::tropical(CrossingFrame::GeocentricApparentOfDate),
+        CrossingReference::tropical(CrossingFrame::GeocentricMeanOfDate),
+        CrossingReference::sidereal(CrossingFrame::GeocentricApparentOfDate, Ayanamsa::Lahiri),
+    ];
+    let bodies = [
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        CelestialBody::TrueNode,
+        CelestialBody::MeanNode,
+    ];
+    for reference in &references {
+        for body in &bodies {
+            for jd in [2_415_100.25, ISSUE_128_JD] {
+                let pairs = [
+                    (
+                        sampled_place(&packaged, body, reference, jd)
+                            .unwrap()
+                            .corrected,
+                        ecliptic_in(&packaged, body, reference, jd).unwrap(),
+                    ),
+                    (
+                        sampled_place(&composite, body, reference, jd)
+                            .unwrap()
+                            .corrected,
+                        ecliptic_in(&composite, body, reference, jd).unwrap(),
+                    ),
+                ];
+                for (place, direct) in pairs {
+                    let context = format!("{reference:?} {body:?} {jd}");
+                    assert_eq!(place.0.to_bits(), direct.0.to_bits(), "{context} lon");
+                    assert_eq!(place.1.to_bits(), direct.1.to_bits(), "{context} lat");
+                    assert_eq!(
+                        place.2.map(f64::to_bits),
+                        direct.2.map(f64::to_bits),
+                        "{context} dist"
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn sampled_place_still_requires_a_distance_for_a_body() {
+    // Without a distance a body cannot be reduced; reusing the read must keep
+    // the pre-existing error in both geocentric frames, whatever its wording.
+    let backend = NoDistance(packaged_backend());
+    for frame in [
+        CrossingFrame::GeocentricApparentOfDate,
+        CrossingFrame::GeocentricMeanOfDate,
+    ] {
+        let reference = CrossingReference::tropical(frame);
+        let seeded = sampled_place(&backend, &CelestialBody::Mars, &reference, ISSUE_128_JD);
+        let direct = ecliptic_in(&backend, &CelestialBody::Mars, &reference, ISSUE_128_JD);
+        let seeded = format!("{:?}", seeded.err().expect("no distance must fail"));
+        let direct = format!("{:?}", direct.expect_err("no distance must fail"));
+        assert_eq!(seeded, direct, "{frame:?}");
+        assert!(
+            seeded.to_lowercase().contains("distance"),
+            "{frame:?}: {seeded}"
+        );
     }
 }
