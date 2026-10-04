@@ -2616,7 +2616,8 @@ performance · **Opened:** 2026-10-02
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
 **Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) to (u)
-are done, (g) and (j) are measured and not applied; (h) and (i) remain open.
+are done, (g) and (j) are measured and not applied; (h), (i) and (v) remain
+open.
 Measurements, the two changes from #112 and the 2026-10-03 and 2026-10-04
 changes are in `docs/superpowers/plans/test-timings.md` (Section 0).
 
@@ -2886,7 +2887,16 @@ estimates from that run's timestamps, not measurements of a fix.
   and branch binaries: 332 s and 175 s against 124 s and 86 s (load 94, 61,
   78 and 39 at the starts). The branch's run is now about as long as the
   bundle render alone, so the next cut is overlapping the render's two
-  serial computations from (t). CI measurement: pending.
+  serial computations from (t). On CI the 4-core blocking tier is
+  CPU-bound, so the gain there is small: on a rerun pair with nothing to
+  compile (`main` 37242920889 attempt 2, branch 37243388887 attempt 2) the
+  check step went 71 s → 66 s, `release-smoke` now ends 17 s after nextest
+  instead of 31 s, and nextest itself went 33.5 s → 40.5 s because the
+  battery's threads share its cores. Where the smoke had the cores to itself
+  (branch 37243391521) it ran in 47 s against 93–105 s on `main`. Nightly:
+  no change (`test-full-validate` 148.6–148.9 s against 148.8 s on a `main`
+  run of equal runner speed, runs 37243856918, 37243858701, 37243865748).
+  Table in the timings plan.
 - **(s) Two `pleiades-cli` tests re-ran gates that `release-smoke` runs.** On
   the `main` push CI run 37238126985 the blocking-tier nextest's two slowest
   tests were `crossings_alias_dispatches_to_validate` (13.9 s, the one real
@@ -2935,16 +2945,18 @@ estimates from that run's timestamps, not measurements of a fix.
   beside `nightly` and `aspects-gate`, and is a `release-gate` dependency.
   The mean/sid subset still runs in the release battery (blocking
   `release-smoke`) and as its own lib test. No other lib test runs the full
-  gate. Measured on two nightlies dispatched on the branch (runs 37242175532
-  and 37242183836) against two on `main` (37238629089, 37238636089):
-  `test-full-validate` 141–150 s → 121–126 s, and it now ends 33–42 s after
-  the other `test-full` halves instead of 58–65 s; the `stations-gate` job
-  took under 2 minutes (gate step 52–60 s) and finishes well before
-  `aspects-gate`. The saving is smaller than the gate's ~105 s because the
-  gate's pool shared the cores with the rest of the suite; something else
-  now ends the lib suite. The tier totals (229–238 s against 293–296 s) are
-  not comparable: the branch runs had to recompile `test`'s binaries (90 s
-  `test-build` against 1–3 s). Table in the timings plan.
+  gate. The two branch nightlies (runs 37242175532 and 37242183836) showed
+  `test-full-validate` at 121–126 s against 141–150 s on `main`, but that
+  did not hold up: on `main` after the merge (run 37243856918, a runner of
+  the same speed by the unchanged rows) it ran 148.8 s and again ended 65 s
+  after the other `test-full` halves. So the saving was runner noise, and
+  the stations gate was not what set the lib suite's length; the job move
+  takes about 105 s of CPU off the tier's four cores but not its wall-clock.
+  The `stations-gate` job takes under 2 minutes (gate step 52–60 s) and
+  finishes well before `aspects-gate`. **Open (v):** find what ends the
+  `pleiades-validate` lib suite now, with per-test times
+  (`RUSTC_BOOTSTRAP=1 <test binary> -Z unstable-options --report-time`).
+  Table in the timings plan.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 
