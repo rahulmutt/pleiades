@@ -3002,7 +3002,7 @@ already correct and should stay the source of record.
 
 ## FU-25: Cost of an apparent-of-date sample (issue #128)
 
-**Status:** partly resolved (2026-10-04) · Issue #128 measured an apparent
+**Status:** resolved (2026-10-04) · Issue #128 measured an apparent
 sample at 4–20× the raw backend query on the VSOP87/ELP composite (Moon
 15 µs → 293 µs) and an 11-body chart at 12× its raw queries.
 
@@ -3030,20 +3030,41 @@ before and after. Tests pin the query counts: no Sun query in a body's
 apparent sample, one read per body per sampled instant in `sampled_place`
 and in an apparent chart.
 
-**Remaining:**
+**Done in round two (bit-identical positions and speeds):**
 
-- `Vsop87Backend::position` always computes motion by two extra series
-  evaluations, so each light-time re-query costs three evaluations it uses
-  one of. A motion-free query path, or deriving the retarded place from the
-  backend's own velocity, is the next multiplier.
-- The chart layer queries the Sun four times per chart (aberration argument
-  plus the two speed-difference neighbours plus the Sun's own reduction);
-  a one-body chart of a cheap body is dominated by these.
-- Precession and nutation are recomputed per body per sample; a per-instant
-  reduction context in `pleiades-apparent` would share them across a chart.
+- `EphemerisBackend::position_without_motion`: VSOP87, ELP and the
+  fictitious backend skip the ±0.5 d finite-difference speed. The light-time
+  re-queries, the chart's speed-difference mean places and the events and
+  eclipse mean-place reads use it.
+- The chart's aberration-argument Sun comes from the backend-free Meeus Sun
+  (now `pleiades_apparent::sun_true_longitude_of_date_deg`): no backend Sun
+  query beyond the Sun's own placement. Provenance aberration estimates move
+  by ≤ ~0.01″; a backend without a Sun can serve an apparent chart.
+- Precession + nutation: measured at 0.15% of an 11-body chart (33 calls of
+  0.82 µs against 18.3 ms; the base measured 0.06%); no per-instant
+  reduction context is needed, so that item closes without change.
 
-These change query shape or numerics and need their own design with the
-gates as arbiter.
+Measured (2025-03-29, 400 samples, release build; medians of three runs
+alternated base/new, in µs per sample). The machine was shared and heavily
+loaded (1-minute load 47–65 on 24 cores at the six runs; it never fell below
+3 in a 15-minute wait), so single cells are noisy (the raw column of one body
+varies by up to 2× between runs): read the ratios, and the raw query as the
+in-process yardstick. "motion-free" is `position` on the base, where
+`position_without_motion` does not exist. Each cell is before → after.
+
+| body | raw | motion-free | meanOfDate | apparent | position_at | 1-body chart |
+|---|---|---|---|---|---|---|
+| Sun | 213 → 182 | 289 → 52 | 187 → 61 | 624 → 49 | 839 → 731 | 1410 → 274 |
+| Moon | 16 → 17 | 18 → 7 | 17 → 7 | 37 → 16 | 126 → 76 | 635 → 86 |
+| Mercury | 1057 → 733 | 1436 → 275 | 1034 → 326 | 2064 → 785 | 5957 → 5034 | 6759 → 2526 |
+| Mars | 944 → 924 | 736 → 273 | 982 → 235 | 2421 → 435 | 4622 → 2777 | 6151 → 2532 |
+| Saturn | 724 → 672 | 734 → 212 | 778 → 216 | 3354 → 653 | 8627 → 4718 | 10895 → 2844 |
+| Pluto | 229 → 208 | 185 → 87 | 156 → 162 | 515 → 214 | 1930 → 1035 | 2393 → 656 |
+| TrueNode | 51 → 43 | 44 → 14 | 42 → 24 | 39 → 14 | 123 → 129 | 643 → 89 |
+
+11-body chart: 43.0 → 18.3 ms (11 raw queries: 5.6 ms before, 5.6 ms after).
+A checksum over the benchmarked values is identical before and after
+(`chart::bit_identity_tests`, `fu25_bit_identity`).
 
 **Severity:** performance · **Opened:** 2026-10-04
 
