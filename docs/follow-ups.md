@@ -3030,7 +3030,7 @@ before and after. Tests pin the query counts: no Sun query in a body's
 apparent sample, one read per body per sampled instant in `sampled_place`
 and in an apparent chart.
 
-**Done in round two (bit-identical positions and speeds):**
+**Done in round two (bit-identical positions and speeds; only the provenance aberration estimate moves, by ≤ ~0.01″):**
 
 - `EphemerisBackend::position_without_motion`: VSOP87, ELP and the
   fictitious backend skip the ±0.5 d finite-difference speed. The light-time
@@ -3046,10 +3046,12 @@ and in an apparent chart.
 
 Measured (2025-03-29, 400 samples, release build; medians of three runs
 alternated base/new, in µs per sample). The machine was shared and heavily
-loaded (1-minute load 47–65 on 24 cores at the six runs; it never fell below
-3 in a 15-minute wait), so single cells are noisy (the raw column of one body
-varies by up to 2× between runs): read the ratios, and the raw query as the
-in-process yardstick. "motion-free" is `position` on the base, where
+loaded (1-minute load average 47–65 on 24 cores at the six runs; it never fell
+below 3 in a 15-minute wait), so single cells are noisy, several-fold between
+runs (Sun raw 144–748 µs on base, 112–400 µs on new, up to ~5×). Cells within
+about 2× of each other (Pluto meanOfDate 156 → 162, TrueNode position_at
+123 → 129, Moon raw 16 → 17) cannot be told apart from noise at this load:
+read the ratios, and the raw query as the in-process yardstick. "motion-free" is `position` on the base, where
 `position_without_motion` does not exist. Each cell is before → after.
 
 | body | raw | motion-free | meanOfDate | apparent | position_at | 1-body chart |
@@ -3061,6 +3063,16 @@ in-process yardstick. "motion-free" is `position` on the base, where
 | Saturn | 724 → 672 | 734 → 212 | 778 → 216 | 3354 → 653 | 8627 → 4718 | 10895 → 2844 |
 | Pluto | 229 → 208 | 185 → 87 | 156 → 162 | 515 → 214 | 1930 → 1035 | 2393 → 656 |
 | TrueNode | 51 → 43 | 44 → 14 | 42 → 24 | 39 → 14 | 123 → 129 | 643 → 89 |
+
+The Sun's `position_at` barely moves (839 → 731) while its apparent sample
+drops 624 → 49, probably for these reasons. `position_at` makes three
+`sampled_place` reads (the instant and ±0.5 d; `position.rs` `motion`/`sample`), and
+each reads the mean place with its motion (`reference.rs` `sampled_place`,
+`ephemeris.rs` `read_mean_place`) because the speed needs the backend's own speed; this
+round did not change that read, and the Sun's backend query is its dearest
+(raw 180 µs). The Sun's per-run `position_at` cells (base 456 / 1902 / 839,
+new 731 / 1485 / 395) are also noise-dominated, so this is a reading of the
+code, not a measured attribution.
 
 11-body chart: 43.0 → 18.3 ms (11 raw queries: 5.6 ms before, 5.6 ms after).
 A checksum over the benchmarked values is identical before and after
