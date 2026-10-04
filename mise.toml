@@ -78,22 +78,41 @@ run = "cargo test --doc --workspace"
 # docs/superpowers/specs/2026-07-02-release-bundle-test-fixture-design.md.
 #   1. all of pleiades-validate (excluded from `test`), ignored tests included;
 #   2. only the ignored tests of every other crate (`test` ran the rest).
-# The two halves are separate tasks so mise runs them concurrently (FU-23 (f)):
-# cargo serializes their builds on the build-directory lock, but the test runs
-# overlap, and neither half saturates the runner on its own.
-depends = ["test-full-validate", "test-full-ignored"]
+# The halves are separate tasks so mise runs them concurrently (FU-23 (f)),
+# and the second is split again by target kind (FU-23 (n)): run as one
+# `cargo test`, the `pleiades-data` ignored tests (~40 s) only started after
+# the `pleiades-cli` ones and ran on alone after everything else had ended.
+# Splitting by `--bins` / `--lib --test '*'` (not `--tests`, which selects bin
+# targets too) keeps the package selection, so cargo resolves the same features
+# and both reuse one build.
+depends = ["test-full-validate", "test-full-ignored-bins", "test-full-ignored-libs"]
+
+[tasks.test-full-build]
+# Compile every `test-full` test binary while `test` runs, rather than after
+# it (FU-23 (m)): `pleiades-validate`'s test binary is the largest compile unit
+# and the blocking tier, whose build the CI cache usually carries, never builds
+# it. The arguments must stay in step with the run tasks below, or they
+# recompile.
+run = [
+  "cargo test -p pleiades-validate --lib --bins --tests --no-run",
+  "cargo test --workspace --exclude pleiades-validate --lib --bins --tests --no-run",
+]
 
 [tasks.test-full-validate]
-depends = ["doctest", "test"]
+depends = ["doctest", "test", "test-full-build"]
 # libtest's default thread count (one per CPU). Doubling it to stop tests that
 # wait on a shared gate run from idling a core was measured on the nightly
 # runner and made both halves of `test-full` slower, since the two halves
 # already share the cores (FU-23 (j) in docs/follow-ups.md).
 run = "cargo test -p pleiades-validate --lib --bins --tests -- --include-ignored"
 
-[tasks.test-full-ignored]
-depends = ["doctest", "test"]
-run = "cargo test --workspace --exclude pleiades-validate --lib --bins --tests -- --ignored"
+[tasks.test-full-ignored-bins]
+depends = ["doctest", "test", "test-full-build"]
+run = "cargo test --workspace --exclude pleiades-validate --bins -- --ignored"
+
+[tasks.test-full-ignored-libs]
+depends = ["doctest", "test", "test-full-build"]
+run = "cargo test --workspace --exclude pleiades-validate --lib --test '*' -- --ignored"
 
 [tasks.docs]
 run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --all-features"
