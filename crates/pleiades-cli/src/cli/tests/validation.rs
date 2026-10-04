@@ -217,49 +217,39 @@ fn release_profile_identifiers_summary_command_renders_the_shared_release_profil
 
 #[test]
 fn validate_eclipses_command_forwards_to_validate_crate() {
-    let out = render_cli(&["validate-eclipses"])
-        .expect("validate-eclipses should succeed through the pleiades-cli layer");
-    assert!(
-        out.contains("validate-eclipses"),
-        "output should contain 'validate-eclipses': {out}"
-    );
-    assert!(
-        out.contains("NASA-canon"),
-        "output should contain 'NASA-canon': {out}"
-    );
-    // Alias should produce identical output.
-    let via_alias = render_cli(&["eclipses-gate"]).expect("eclipses-gate alias should succeed");
-    assert_eq!(out, via_alias);
+    // `validate-eclipses` and `eclipses-gate` are passthroughs to the
+    // pleiades-validate eclipses gate. Their routing is proven by the
+    // extra-argument error, which pleiades-validate raises before running the
+    // gate (FU-23 (s)). The gate itself is not re-run here: it runs in the
+    // blocking tier inside `mise run release-smoke`'s numeric battery
+    // (`run_all_numeric_gates` in crates/pleiades-validate/src/render/cli.rs
+    // calls the same `validate_eclipse_corpus` this arm reaches), so an
+    // eclipses regression surfaces as a `release-smoke` failure ("eclipse
+    // gate failed: ...") rather than as this test.
+    for command in ["validate-eclipses", "eclipses-gate"] {
+        assert_eq!(
+            render_cli(&[command, "extra"]).unwrap_err(),
+            "validate-eclipses does not accept extra arguments",
+            "{command} should route to the validate-eclipses gate"
+        );
+    }
 }
 
 #[test]
 fn crossings_alias_dispatches_to_validate() {
-    let out = render_cli(&["crossings"]).expect("crossings should dispatch");
-    // NOTE: the validate layer's `validate-crossings` / `crossings-gate` arm
-    // (crates/pleiades-validate/src/render/cli.rs) returns
-    // `CrossingsCorpusReport::summary_line()` directly — it has no
-    // "Crossings gate:" banner prefix (unlike the plan's original Task 9
-    // sketch). Asserting the real output here, mirroring how the existing
-    // `validate_eclipses_command_forwards_to_validate_crate` test above
-    // checks for the "validate-eclipses" substring rather than an
-    // "Eclipses gate" banner.
-    assert!(
-        out.contains("validate-crossings"),
-        "output should contain 'validate-crossings': {out}"
-    );
-    assert!(
-        out.contains("SE crossing fixtures"),
-        "output should contain 'SE crossing fixtures': {out}"
-    );
-
     // `crossings`, `validate-crossings` and `crossings-gate` are all
-    // passthroughs to the same pleiades-validate gate, and each full run
-    // (including the Tier-1 golden column) costs ~15 s on a CI runner. The
-    // single real run above covers the passthrough and keeps the blocking
-    // tier's guard that the crossings gate passes; the other names' routing
-    // is proven by their extra-argument error, which pleiades-validate
-    // raises before running the gate (FU-23 (p)). The bare `crossings` arm
+    // passthroughs to the same pleiades-validate gate. Their routing is
+    // proven by the extra-argument error, which pleiades-validate raises
+    // before running the gate (FU-23 (p), (s)). The bare `crossings` arm
     // rewrites its command name, so it reports as `validate-crossings` too.
+    //
+    // The gate itself (including the Tier-1 golden column) is not re-run
+    // here: it runs in the blocking tier inside `mise run release-smoke`'s
+    // numeric battery (`run_all_numeric_gates` in
+    // crates/pleiades-validate/src/render/cli.rs calls the same
+    // `validate_crossings_corpus` this arm reaches), so a crossings
+    // regression surfaces as a `release-smoke` failure ("crossings gate
+    // failed: ...") rather than as this test.
     for command in ["crossings", "validate-crossings", "crossings-gate"] {
         assert_eq!(
             render_cli(&[command, "extra"]).unwrap_err(),
@@ -272,11 +262,12 @@ fn crossings_alias_dispatches_to_validate() {
 #[test]
 fn rise_trans_alias_dispatches_to_validate() {
     let out = render_cli(&["rise-trans"]).expect("rise-trans should dispatch");
-    // Mirrors `crossings_alias_dispatches_to_validate` above: the validate
-    // layer's `validate-rise-trans` / `rise-trans-gate` arm
+    // The validate layer's `validate-rise-trans` / `rise-trans-gate` arm
     // (crates/pleiades-validate/src/render/cli.rs) returns
     // `RiseTransReport::summary_line()` directly, so we assert on that
-    // substring rather than inventing a banner that doesn't exist.
+    // substring rather than inventing a banner that doesn't exist. Unlike the
+    // crossings and eclipses tests above, which check routing only (FU-23
+    // (s)), this test still runs the gate.
     assert!(
         out.contains("validate-rise-trans"),
         "output should contain 'validate-rise-trans': {out}"
