@@ -9,9 +9,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use pleiades_apparent::{
-    apparent_position, precess_ecliptic_j2000_to_date, DEFAULT_MAX_ITERATIONS,
-};
+use pleiades_apparent::{apparent_position, DEFAULT_MAX_ITERATIONS};
 use pleiades_backend::{
     Apparentness, BackendMetadata, CompositeBackend, EphemerisBackend, EphemerisError,
     EphemerisRequest, EphemerisResult,
@@ -134,14 +132,7 @@ fn reusing_the_batch_read_leaves_the_apparent_place_bit_identical() {
             .position(&request)
             .map(|result| result.ecliptic.expect("ecliptic"))
     };
-    let sun = mean(&CelestialBody::Sun, instant).expect("Sun");
-    let sun_lon = precess_ecliptic_j2000_to_date(
-        sun.longitude.degrees(),
-        sun.latitude.degrees(),
-        ISSUE_128_JD,
-    )
-    .expect("precession")
-    .longitude_deg;
+    let sun_lon = pleiades_apparent::sun_true_longitude_of_date_deg(ISSUE_128_JD);
 
     let bodies = vec![
         CelestialBody::Moon,
@@ -212,4 +203,45 @@ fn only_the_position_batch_asks_a_backend_for_motion() {
             "{body:?}: the batch is at the chart instant"
         );
     }
+}
+
+#[test]
+fn an_apparent_chart_reads_the_sun_only_as_a_body() {
+    // Issue #128: the aberration argument comes from the backend-free Meeus
+    // Sun, so a chart without the Sun never queries it, and a chart with the
+    // Sun queries it exactly as it queries any other body.
+    let queries = QueryLog::default();
+    let backend = Recording {
+        inner: composite(),
+        queries: Arc::clone(&queries),
+    };
+    let engine = ChartEngine::new(backend);
+    engine
+        .chart(&apparent_request(vec![
+            CelestialBody::Moon,
+            CelestialBody::Mars,
+        ]))
+        .expect("apparent chart");
+    let sun_reads = |log: &[(CelestialBody, f64, Entry)]| {
+        log.iter()
+            .filter(|(b, _, _)| *b == CelestialBody::Sun)
+            .map(|(_, jd, _)| *jd)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(sun_reads(&queries.lock().unwrap()), Vec::<f64>::new());
+
+    queries.lock().unwrap().clear();
+    engine
+        .chart(&apparent_request(vec![
+            CelestialBody::Sun,
+            CelestialBody::Moon,
+        ]))
+        .expect("apparent chart");
+    let mut reads = sun_reads(&queries.lock().unwrap());
+    reads.sort_by(f64::total_cmp);
+    // The batch at the chart instant, and the two speed-difference instants.
+    assert_eq!(
+        reads,
+        vec![ISSUE_128_JD - 0.5, ISSUE_128_JD, ISSUE_128_JD + 0.5]
+    );
 }

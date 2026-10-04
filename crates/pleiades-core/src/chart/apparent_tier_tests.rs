@@ -246,19 +246,19 @@ impl EphemerisBackend for MoonOnlyChartBackend {
 }
 
 #[test]
-fn apparent_chart_fails_closed_when_backend_cannot_serve_the_sun() {
+fn apparent_chart_needs_no_sun_from_the_backend() {
+    // The Sun's longitude feeds only the provenance's aberration estimate,
+    // which the backend-free Meeus Sun now serves (issue #128), so a backend
+    // without a Sun can still serve an apparent chart.
     let engine = ChartEngine::new(MoonOnlyChartBackend);
     let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
 
-    let error = engine
+    let snapshot = engine
         .chart(&ChartRequest::new(instant).with_bodies(vec![CelestialBody::Moon]))
-        .expect_err("an apparent chart without a Sun source must not silently return mean J2000");
-    assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
-    assert!(
-        error.message.contains("Sun") && error.message.contains("Apparentness::Mean"),
-        "error should name the Sun and the mean escape hatch: {}",
-        error.message
-    );
+        .expect("an apparent chart needs no Sun source");
+    let placement = snapshot.placement_for(&CelestialBody::Moon).unwrap();
+    assert_eq!(placement.position.apparent, Apparentness::Apparent);
+    assert!(placement.apparent.is_some());
 
     // The explicit mean request still works and is reported as mean.
     let snapshot = engine

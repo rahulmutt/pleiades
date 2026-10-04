@@ -51,7 +51,7 @@ pub use snapshot::ChartSnapshot;
 
 use pleiades_apparent::{
     apparent_apsis_position, apparent_equatorial_of_date, apparent_position, apparent_sun_position,
-    precess_ecliptic_j2000_to_date, ApparentLightTimeError, ApparentPlaceError, ApparentPosition,
+    sun_true_longitude_of_date_deg, ApparentLightTimeError, ApparentPlaceError, ApparentPosition,
     DEFAULT_MAX_ITERATIONS,
 };
 use pleiades_backend::{
@@ -95,7 +95,7 @@ fn is_lunar_point(body: &CelestialBody) -> bool {
     body.class() == pleiades_types::CelestialBodyClass::LunarPoint
 }
 
-/// An instant of the apparent-speed difference and the Sun's true geometric
+/// An instant of the apparent-speed difference and the Meeus Sun's true
 /// longitude of date there, in degrees.
 #[derive(Clone, Copy)]
 struct SunSample {
@@ -381,43 +381,27 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         // Apparent place is a frame reduction (light-time, precession, nutation,
         // aberration) that applies to every body the backend serves, whatever
         // its claim tier: the tier describes the backend's geometric accuracy,
-        // which the reduction neither needs nor changes (issue #113). The Sun's
-        // longitude of date feeds the aberration term, so a backend that cannot
-        // serve the Sun cannot serve an apparent chart; fail closed rather than
-        // return mean J2000 under an `Apparent` label.
+        // which the reduction neither needs nor changes (issue #113).
         let apparent_requested = matches!(request.apparentness, Apparentness::Apparent);
-        let sun_true_longitude_of_date = if apparent_requested && !request.bodies.is_empty() {
-            let sun_lon = self
-                .query_sun_longitude_of_date(request.instant, &backend_zodiac_mode)
-                .map_err(|error| {
-                    EphemerisError::new(
-                        error.kind,
-                        format!(
-                            "apparent place needs the Sun's geocentric longitude for the \
-                             aberration term, but {backend_id} could not serve it at this \
-                             instant: {}; request Apparentness::Mean for the backend's raw \
-                             mean J2000 place",
-                            error.message
-                        ),
-                    )
-                })?;
-            Some(sun_lon)
-        } else {
-            None
-        };
-        // The Sun at the instants the apparent speed is differenced over, shared
-        // by every body in the chart. A neighbour the backend cannot serve is
-        // simply absent; the speed then falls back to a one-sided difference.
-        let speed_suns = sun_true_longitude_of_date.map(|sun_lon| {
+        // The Sun's true longitude of date is the argument of the annual-
+        // aberration term, which feeds only the provenance's aberration
+        // estimate: the light-time re-query already carries aberration (#93).
+        // The backend-free Meeus Sun serves it, so an apparent chart neither
+        // queries the backend for the Sun nor needs a backend that serves it
+        // (issue #128). Positions do not depend on it.
+        let sun_true_longitude_of_date = (apparent_requested && !request.bodies.is_empty())
+            .then(|| sun_true_longitude_of_date_deg(request.instant.julian_day.days()));
+        // The instants the apparent speed is differenced over, shared by every
+        // body in the chart. A neighbour the backend cannot serve for a body
+        // fails that body's correction sample; the speed then falls back to a
+        // one-sided difference.
+        let speed_suns = sun_true_longitude_of_date.map(|_| {
             [-HALF_SPAN_DAYS, 0.0, HALF_SPAN_DAYS].map(|offset_days| {
                 let instant = offset_instant(request.instant, offset_days);
-                let sun_lon = if offset_days == 0.0 {
-                    Some(sun_lon)
-                } else {
-                    self.query_sun_longitude_of_date(instant, &backend_zodiac_mode)
-                        .ok()
-                };
-                sun_lon.map(|sun_lon| SunSample { instant, sun_lon })
+                Some(SunSample {
+                    instant,
+                    sun_lon: sun_true_longitude_of_date_deg(instant.julian_day.days()),
+                })
             })
         });
 
@@ -770,32 +754,5 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 format!("apparent place requires ecliptic coordinates for {body}"),
             )
         })
-    }
-
-    fn query_sun_longitude_of_date(
-        &self,
-        instant: Instant,
-        zodiac_mode: &ZodiacMode,
-    ) -> Result<f64, EphemerisError> {
-        // The Sun longitude for the aberration term must remain geocentric — pass None.
-        let ecliptic = self.query_mean_ecliptic(
-            &pleiades_types::CelestialBody::Sun,
-            instant,
-            zodiac_mode,
-            None,
-        )?;
-        // Precess the Sun's J2000 longitude to of-date so the aberration term is consistent.
-        let precessed = precess_ecliptic_j2000_to_date(
-            ecliptic.longitude.degrees(),
-            ecliptic.latitude.degrees(),
-            instant.julian_day.days(),
-        )
-        .map_err(|e| {
-            EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                format!("apparent-place Sun precession failed: {e}"),
-            )
-        })?;
-        Ok(precessed.longitude_deg)
     }
 }
