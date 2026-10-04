@@ -61,7 +61,15 @@ run = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
 # builds its own copy under `-p`, with a different feature unification. The
 # selected test list is identical either way; `lint` (`--all-targets`) still
 # compile-checks the excluded test code in the blocking tier.
+depends = ["test-build"]
 run = "cargo nextest run --workspace --exclude pleiades-validate"
+
+[tasks.test-build]
+# Compile `test`'s binaries as a step of its own, so that `test-full-build`
+# can start compiling once this finishes, while `test` runs. Without it, the
+# two raced for cargo's build lock, and when `test-full-build` won, `test` did
+# not start running until it was done.
+run = "cargo nextest run --workspace --exclude pleiades-validate --no-run"
 
 [tasks.doctest]
 run = "cargo test --doc --workspace"
@@ -93,6 +101,7 @@ depends = ["test-full-validate", "test-full-ignored-bins", "test-full-ignored-li
 # and the blocking tier, whose build the CI cache usually carries, never builds
 # it. The arguments must stay in step with the run tasks below, or they
 # recompile.
+depends = ["test-build"]
 run = [
   "cargo test -p pleiades-validate --lib --bins --tests --no-run",
   "cargo test --workspace --exclude pleiades-validate --lib --bins --tests --no-run",
