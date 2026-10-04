@@ -85,6 +85,10 @@ depends = ["test-full-validate", "test-full-ignored"]
 
 [tasks.test-full-validate]
 depends = ["doctest", "test"]
+# libtest's default thread count (one per CPU). Doubling it to stop tests that
+# wait on a shared gate run from idling a core was measured on the nightly
+# runner and made both halves of `test-full` slower, since the two halves
+# already share the cores (FU-23 (j) in docs/follow-ups.md).
 run = "cargo test -p pleiades-validate --lib --bins --tests -- --include-ignored"
 
 [tasks.test-full-ignored]
@@ -183,7 +187,12 @@ run = "cargo mutants --test-tool nextest --test-workspace=false --baseline run -
 run = "cargo run -q -p pleiades-validate -- release-smoke"
 
 [tasks.release-gate]
-depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "release-smoke", "claims-audit", "gate-aspects"]
+# Not a dependency: `release-smoke`. The `release-gate` command performs the
+# same smoke checks itself (`validate_release_gate_at` wraps
+# `validate_release_smoke_at`: numeric battery, bundle render and verify), so
+# the dependency ran that battery twice per gate (FU-23 (a)). `ci` keeps
+# `release-smoke` as the blocking tier's smoke run.
+depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "claims-audit", "gate-aspects"]
 run = "cargo run -q -p pleiades-validate -- release-gate"
 
 [tasks.ci]

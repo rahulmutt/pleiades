@@ -176,6 +176,76 @@ with its bundle render and verify, gitleaks over the full history, and the docte
 re-links per crate. A run whose commit touches a crate rebuilds that crate and its dependents, so
 a typical PR lands between the two columns.
 
+### FU-23 items (e) continued and (a), 2026-10-04
+
+Nightly run 37154489996 (the run after #115, before #117), read from the per-test timestamps:
+the `pleiades-validate` lib suite's 347 s is a chain, not an even load. The six numeric-battery
+tests share one run but each holds a libtest thread while it waits, so three of the four threads
+sit blocked from about 60 s to 100 s; the full stations gate starts at 102 s and ends at 280 s
+(178 s, the longest series, as (e) predicted); the `validate_gates` and `release_checklist` tail
+runs from 280 s to 347 s because libtest dispatches in name order.
+
+- **(e) continued: the series scan in chunks.** `validate_scoped` now scans every series in
+  ten-year windows (`CHUNK_DAYS`) on a pool of one thread per core, and folds the windows back in
+  order. The window length is a multiple of 2 days, the common multiple of the engine's steps
+  (0.25, 1 and 2 days), so each window brackets exactly as the single scan does; neighbouring
+  windows share the one bracket that starts at their boundary, so a station exactly on a boundary
+  is kept once (`join_chunks`). `chunked_scan_matches_the_single_scan_at_every_seam` compares
+  100-day windows against the single scan on the mean Mars (2-day step) and Mercury (1-day step)
+  series, bit for bit over 292 seams, in 7 s. Measured locally under a 4-core affinity mask
+  (`taskset -c 0-3`, consecutive runs, the machine shared with another session's test run at a
+  load average above 30, so absolute figures are inflated and only the ratio is meaningful):
+
+  | Full stations gate test | Wall-clock (s) |
+  |-------------------------|---------------:|
+  | one thread per series (before) | 228 |
+  | ten-year windows on a 4-thread pool (after, first run) | 130 |
+  | same, second run (448 s of CPU at a load average above 40) | 179 |
+
+  The 16 report lines are byte-identical between before and after.
+
+  Measured on CI by dispatching the nightly on the branch (run 37183040722, `ubuntu-latest`,
+  4 cores; the branch commit differs from the cached build's, so 9 first-party crates rebuilt).
+  "Before" is the last nightly on `main` before #117:
+
+  | Phase | Before (37154489996) | After (37183040722) |
+  |-------|---------------------:|--------------------:|
+  | `test` dependency: build | 177 | 89 |
+  | `test` dependency: nextest run | 62 | 46 |
+  | `test-full-validate`: build `pleiades-validate` tests | 53 | 42 |
+  | `test-full-validate`: `pleiades-validate` lib suite | 347 | 282 |
+  | full stations gate test inside it | 178 | 105 |
+  | `test-full-ignored`: `pleiades-cli` ignored tests | 166 | 133 |
+  | `test-full-ignored`: `pleiades-data` ignored tests | 65 | 67 |
+  | `test-full` total (after its dependencies) | 401 | 323 |
+  | whole `ci-nightly` tier | 639 | 460 |
+
+  The build rows are #117's cache at work, not this change. The lib suite's new long pole is the
+  tail after the stations gate (FU-23 (k)): the `release_bundle_verify_b` batch draining, then the
+  release gate's own battery and bundle, seeded late by libtest's name order and serial on one
+  thread for about 45 s while the other half of `test-full` has already finished.
+- **(j) libtest threads, measured and not applied.** `test-full-validate` with
+  `--test-threads=$(( 2 * $(getconf _NPROCESSORS_ONLN) ))`, dispatched as a second nightly on the
+  branch (37183098143) against the run above. The second runner was slower on the unchanged
+  `test` step as well (build 111 s against 89 s, nextest 61 s against 46 s), so the columns carry
+  about 25 % of runner variance:
+
+  | Phase | 4 threads (37183040722) | 8 threads (37183098143) |
+  |-------|------------------------:|------------------------:|
+  | `pleiades-validate` lib suite | 282 | 345 |
+  | numeric battery tests done (seconds from suite start) | 76 | 170 |
+  | full stations gate test inside it | 105 | 138 |
+  | `test-full-ignored`: `pleiades-cli` ignored tests | 133 | 280 |
+  | `test-full-ignored`: `pleiades-data` ignored tests | 67 | 49 |
+  | `test-full` total (after its dependencies) | 323 | 395 |
+  | whole `ci-nightly` tier | 460 | 568 |
+
+  The two halves of `test-full` already share the four cores, and the gates are CPU-bound on their
+  own pools, so the extra threads added contention rather than filling idle time; the battery, not
+  its waiters, got slower. Reverted before merge.
+- **(a)** `release-smoke` left `release-gate`'s dependency list; the gate command performs the
+  smoke checks itself. No measurement: it removes one battery run from the release procedure only.
+
 ---
 
 ## Section 1: Timing Inventory

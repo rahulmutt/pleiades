@@ -2584,9 +2584,9 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-03) · Items (b), (c), (d), (e) and (f)
-are done and (g) is measured; (a), (h) and (i) remain open. Measurements,
-the two changes from #112 and the 2026-10-03 changes are in
+**Status:** partly resolved (2026-10-04) · Items (a) to (f) are done and (g)
+is measured; (h) and (i) remain open. Measurements, the two changes from
+#112 and the 2026-10-03 and 2026-10-04 changes are in
 `docs/superpowers/plans/test-timings.md` (Section 0).
 
 **Where the time is:** nightly run 37119694132 (4-core GitHub runner) spent
@@ -2603,6 +2603,9 @@ estimates from that run's timestamps, not measurements of a fix.
   Dropping the dependency from `release-gate` (not from `ci`) removes one
   run: about 100 s on a CI runner, several minutes on a loaded machine. It
   changes the release procedure, so it was left for a maintainer decision.
+  → **Resolved 2026-10-04:** `release-smoke` is no longer a `release-gate`
+  dependency; the task comment in `mise.toml` and the README say why. `ci`
+  still depends on it, so the blocking tier's smoke run is unchanged.
 - **(b) Workspace crates recompile on every CI run.** The `target` cache
   restores, but a fresh checkout gives every source file a new mtime, so
   cargo rebuilds all first-party crates: 220 s in the nightly `test` step,
@@ -2657,7 +2660,13 @@ estimates from that run's timestamps, not measurements of a fix.
   cores) 343 s → 175 s. The floor is now the longest single series, so a
   4-core runner should land near that 175 s rather than the 70 s estimated
   above; splitting the long series into time chunks would be the next step
-  if the gate is still the long pole.
+  if the gate is still the long pole. → **Chunked 2026-10-04:** every series
+  scans in ten-year windows (`CHUNK_DAYS`, a multiple of every engine step,
+  so a window brackets exactly as the single scan does and
+  `join_chunks` keeps a boundary station once) on a pool of one thread per
+  core. Full gate under a 4-core affinity mask: 228 s → 130 s, report lines
+  byte-identical; `chunked_scan_matches_the_single_scan_at_every_seam` pins
+  the seam rule bit for bit over 292 seams.
 - **(f) Run `test-full`'s two steps concurrently.** At most about 80 s, at
   the price of eight test threads on four cores. → **Resolved 2026-10-03:**
   `test-full` now depends on two tasks, `test-full-validate` and
@@ -2681,6 +2690,36 @@ estimates from that run's timestamps, not measurements of a fix.
 - **(i) Returning the slow families to nextest** with an on-disk fixture
   cache keyed by content is the largest change and is not needed while
   libtest keeps the tier inside its budget.
+- **(j) Tests waiting on a shared gate run hold a libtest thread.** In
+  nightly run 37154489996 the six battery tests blocked three of the four
+  threads from about 60 s to 100 s of the lib suite, and the crossings,
+  occultations and release-gate sharers do the same later. →
+  **Measured and rejected 2026-10-04:** `test-full-validate` with
+  `--test-threads=$(( 2 * $(getconf _NPROCESSORS_ONLN) ))`, nightly
+  dispatched on the branch with and without it (runs 37183040722 and
+  37183098143): the `pleiades-validate` lib suite 282 s → 345 s and the
+  other half of `test-full`, which shares the four cores, 242 s → 378 s;
+  the tier 460 s → 568 s. The second runner was about 25 % slower on the
+  unchanged `test` step too, but the change is at best a wash after
+  correcting for that. The waiting threads were not the bottleneck: the
+  gates are CPU-bound and already run on their own pools, and the extra
+  threads only added contention. Not applied; the task comment in
+  `mise.toml` says so.
+- **(k) The release gate's own battery is a serial tail.** With the stations
+  gate shortened (nightly run 37183040722), the `pleiades-validate` lib
+  suite ends about 100 s after the stations gate: the 122
+  `release_bundle_verify_b` tests drain at about one per second on the four
+  threads until about 60 s after the gate, and only then does libtest's
+  name order reach `tests::release_checklist`, whose first test seeds
+  `release_gate_via_cli`: `render_cli(&["release-gate"])`, a second full
+  numeric battery (the first is `numeric_battery_outcome` in
+  `render::cli::tests`) plus a bundle render and verify, about 45 s on one
+  thread while the other three sit idle. The other half of `test-full`
+  finished 80 s earlier. Options: seed the release-gate run from an early
+  test so it overlaps the bundle batch, or let the release-checklist tests
+  assert the shared battery outcome plus a shared bundle render and verify
+  and keep one cheap end-to-end dispatch check. Open; estimated saving about
+  45 s of nightly wall-clock.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 

@@ -369,3 +369,94 @@ fn an_empty_corpus_validates_too_few_rows() {
         Err(StationsError::TooFewRowsValidated { validated: 0, .. })
     ));
 }
+
+#[test]
+fn chunk_bounds_cover_the_span_contiguously_on_the_two_day_grid() {
+    let (start, end) = FULL_SPAN;
+    let bounds = chunk_bounds(start, end, CHUNK_DAYS);
+    assert_eq!(bounds.len(), 20, "{bounds:?}");
+    assert_eq!(bounds[0].0, start);
+    assert_eq!(bounds[bounds.len() - 1].1, end);
+    for pair in bounds.windows(2) {
+        assert_eq!(pair[0].1, pair[1].0, "chunks are contiguous: {pair:?}");
+        assert!(pair[0].1 > pair[0].0, "{pair:?}");
+        // Every interior boundary is a sample of every engine step (0.25, 1
+        // and 2 days), so a chunk brackets exactly as the single scan does.
+        assert_eq!((pair[0].1 - start) % 2.0, 0.0, "{pair:?}");
+    }
+}
+
+#[test]
+fn chunk_bounds_of_a_span_shorter_than_a_chunk_is_the_span() {
+    assert_eq!(
+        chunk_bounds(2_451_545.0, 2_451_555.0, CHUNK_DAYS),
+        vec![(2_451_545.0, 2_451_555.0)]
+    );
+}
+
+#[test]
+fn chunk_bounds_of_an_exact_multiple_has_no_empty_tail() {
+    assert_eq!(
+        chunk_bounds(10.0, 210.0, 100.0),
+        vec![(10.0, 110.0), (110.0, 210.0)]
+    );
+}
+
+#[test]
+fn join_chunks_concatenates_in_order_and_drops_a_seam_duplicate() {
+    let a = found(1.0, 0.0, R);
+    let b = found(2.0, 0.0, D);
+    let c = found(3.0, 0.0, R);
+    // Distinct stations across a seam are all kept.
+    assert_eq!(join_chunks(vec![vec![a, b], vec![c]]), vec![a, b, c]);
+    // A station exactly on a boundary is found by both neighbours from the
+    // one bracket they share, and is kept once.
+    assert_eq!(join_chunks(vec![vec![a, b], vec![b, c]]), vec![a, b, c]);
+    // The single scan can report a boundary root from both adjacent brackets;
+    // the chunked scan then has it twice in one chunk and once in the next,
+    // and keeps two, like the single scan.
+    assert_eq!(
+        join_chunks(vec![vec![a, b, b], vec![b, c]]),
+        vec![a, b, b, c]
+    );
+    // Only the previous chunk's last station is compared, not the output's:
+    // an empty chunk between two equal stations drops nothing.
+    assert_eq!(join_chunks(vec![vec![a], vec![], vec![a]]), vec![a, a]);
+    assert_eq!(join_chunks(vec![vec![], vec![a]]), vec![a]);
+    assert_eq!(join_chunks(Vec::new()), Vec::<Found>::new());
+}
+
+#[test]
+fn chunked_scan_matches_the_single_scan_at_every_seam() {
+    // 100-day chunks over 1990–2030 put about 146 seams in each series. Mars
+    // samples every 2 days and Mercury every day, so both grids meet the
+    // boundaries; the engine results must agree to the bit.
+    let all = parse_corpus(CORPUS_CSV).unwrap();
+    let selected: Vec<&Series> = all
+        .iter()
+        .filter(|series| {
+            series.group == Group::Mean
+                && (series.body_name == "Mars" || series.body_name == "Mercury")
+        })
+        .collect();
+    assert_eq!(selected.len(), 2);
+    let engine = EventEngine::new(packaged_backend());
+    let chunked = scan_series_chunked(&engine, &selected, 100.0);
+    assert_eq!(chunked.len(), 2);
+    for (series, got) in selected.iter().zip(chunked) {
+        let (start, end) = span(series);
+        let want: Vec<Found> = engine
+            .stations_in_range(
+                series.body.clone(),
+                series.group.reference(),
+                tdb(start),
+                tdb(end),
+            )
+            .unwrap()
+            .iter()
+            .map(Found::from_station)
+            .collect();
+        assert_eq!(want.len(), series.stations.len(), "{}", series.body_name);
+        assert_eq!(got.unwrap(), want, "{}", series.body_name);
+    }
+}
