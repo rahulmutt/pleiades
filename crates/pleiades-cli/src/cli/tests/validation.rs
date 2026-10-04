@@ -252,13 +252,21 @@ fn crossings_alias_dispatches_to_validate() {
         "output should contain 'SE crossing fixtures': {out}"
     );
 
-    // validate-crossings and crossings-gate should reach the validate layer
-    // directly and match the bare "crossings" alias output exactly.
-    let via_validate =
-        render_cli(&["validate-crossings"]).expect("validate-crossings should succeed");
-    assert_eq!(out, via_validate);
-    let via_gate = render_cli(&["crossings-gate"]).expect("crossings-gate alias should succeed");
-    assert_eq!(out, via_gate);
+    // `crossings`, `validate-crossings` and `crossings-gate` are all
+    // passthroughs to the same pleiades-validate gate, and each full run
+    // (including the Tier-1 golden column) costs ~15 s on a CI runner. The
+    // single real run above covers the passthrough and keeps the blocking
+    // tier's guard that the crossings gate passes; the other names' routing
+    // is proven by their extra-argument error, which pleiades-validate
+    // raises before running the gate (FU-23 (p)). The bare `crossings` arm
+    // rewrites its command name, so it reports as `validate-crossings` too.
+    for command in ["crossings", "validate-crossings", "crossings-gate"] {
+        assert_eq!(
+            render_cli(&[command, "extra"]).unwrap_err(),
+            "validate-crossings does not accept extra arguments",
+            "{command} should route to the validate-crossings gate"
+        );
+    }
 }
 
 #[test]

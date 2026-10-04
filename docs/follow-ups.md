@@ -2601,7 +2601,7 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) to (o) are
+**Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) to (p) are
 done, (g) and (j) are measured and not applied; (h) and (i) remain open.
 Measurements, the two changes from #112 and the 2026-10-03 and 2026-10-04
 changes are in `docs/superpowers/plans/test-timings.md` (Section 0).
@@ -2812,6 +2812,16 @@ estimates from that run's timestamps, not measurements of a fix.
   Table in the timings plan. The `pleiades-validate` half (stations gate)
   is now the only long pole: the other `test-full` tasks end about 50 s
   before it.
+- **(p) The crossings alias test ran the crossings gate three times.** The
+  blocking-tier `nextest` run on `main` push CI run 37230900043 spent 67 s, of
+  which `crossings_alias_dispatches_to_validate` was 47.8 s: it rendered
+  `crossings`, `validate-crossings` and `crossings-gate` in full (each a whole
+  crossings gate run, including the Tier-1 golden column) to compare their
+  output. → **Resolved 2026-10-04:** one real `crossings` run remains, as the
+  blocking tier's guard that the crossings gate passes; the routing of all
+  three names is checked by the extra-argument error that `pleiades-validate`
+  raises before running the gate, as in (d) and (o). Measured on nightly
+  dispatches: see the timings plan.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 
