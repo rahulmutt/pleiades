@@ -772,7 +772,7 @@ fn backend_matrix_command_renders_the_implemented_catalog() {
     assert!(rendered.contains("interpolation, bracket span"));
     assert!(rendered.contains("TDB"));
     assert!(rendered.contains("VSOP87 planetary backend"));
-    assert!(rendered.contains("Pluto remains the current approximate mean-element fallback special case until a Pluto-specific source path is selected"));
+    assert!(rendered.contains("Pluto comes from the Meeus Table 37.A periodic-term fit over 1885-2099, with mean elements outside"));
     assert!(rendered.contains("ELP lunar backend (Moon and lunar nodes)"));
     assert!(rendered.contains("specification summary: ELP lunar theory specification:"));
     assert!(rendered.contains("compact lunar and lunar-point formulas provide the current deterministic baseline while documented production lunar-theory ingestion remains open"));
@@ -892,7 +892,7 @@ fn backend_matrix_summary_command_renders_the_summary() {
     assert!(rendered.contains("Accuracy classes:"));
     assert!(rendered.contains("Exact: 1"));
     assert!(rendered.contains("Approximate: 4"));
-    assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 approximate fallback mean-element body profile (Pluto); source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep"));
+    assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback (non-VSOP87B) body profile (Pluto); source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep"));
     assert!(rendered.contains(
             "source-backed breakdown: 8 generated binary bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file bodies (none), 0 truncated slice bodies (none)"
         ));

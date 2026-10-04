@@ -20,9 +20,9 @@ pub enum Vsop87BodySourceKind {
     /// binary table derived from a vendored public IMCCE/CELMECH VSOP87B
     /// source file.
     GeneratedBinaryVsop87b,
-    /// Coordinates are produced from compact mean orbital elements while the
-    /// remaining Pluto-specific source path is modeled separately as an
-    /// explicit special case.
+    /// Coordinates are produced from compact mean orbital elements (Pluto outside
+    /// its periodic-term fit window; the fit itself is modeled separately as
+    /// [`Self::PeriodicTermFit`]).
     MeanOrbitalElements,
     /// Heliocentric spherical coordinates are evaluated from a published
     /// periodic-term fit inside its validity window (Pluto: Meeus Table 37.A,

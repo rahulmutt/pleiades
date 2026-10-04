@@ -42,7 +42,7 @@ fn metadata_identifies_source_backed_planet_vsop87b_paths() {
     assert!(metadata
         .provenance
         .summary
-        .contains("1 fallback mean-element body path"));
+        .contains("1 fallback (non-VSOP87B) body path"));
     assert!(metadata
         .provenance
         .data_sources

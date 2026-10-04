@@ -101,9 +101,9 @@ pub(crate) fn format_source_documentation_summary(
         format_celestial_bodies(&summary.truncated_bodies)
     };
     let fallback_profile_label = if summary.fallback_profile_count == 1 {
-        "approximate fallback mean-element body profile"
+        "fallback (non-VSOP87B) body profile"
     } else {
-        "approximate fallback mean-element body profiles"
+        "fallback (non-VSOP87B) body profiles"
     };
 
     format!(

@@ -837,7 +837,7 @@ pub(crate) fn implemented_backend_catalog() -> Vec<BackendMatrixEntry> {
             label: "VSOP87 planetary backend",
             metadata: Vsop87Backend::new().metadata(),
             implementation_status: BackendImplementationStatus::PartialSourceBacked,
-            status_note: "Sun through Neptune now use generated binary VSOP87B source tables derived from the vendored full-file inputs, and Pluto remains the current approximate mean-element fallback special case until a Pluto-specific source path is selected",
+            status_note: "Sun through Neptune now use generated binary VSOP87B source tables derived from the vendored full-file inputs, and Pluto comes from the Meeus Table 37.A periodic-term fit over 1885-2099, with mean elements outside",
             expected_error_kinds: VSOP87_EXPECTED_ERROR_KINDS,
             required_data_files: &[],
         },

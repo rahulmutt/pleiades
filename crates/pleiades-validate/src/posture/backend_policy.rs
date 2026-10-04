@@ -46,8 +46,9 @@ pub const CURRENT_ZODIAC_POLICY_SUMMARY_TEXT: &str = "tropical only";
 
 /// Canonical current policy summary text for the Pluto fallback posture.
 ///
-/// This line is per-backend: the algorithmic (VSOP87) path serves Pluto from the Meeus Table 37.A periodic-term fit over 1885–2099 (mean elements outside), while the packaged-data artifact ships
-/// Pluto as release-grade ([`ClaimEvidence::ArtifactValidated`]). The prose is
+/// This line is per-backend: the algorithmic (VSOP87) path serves Pluto from
+/// the Meeus Table 37.A periodic-term fit over 1885–2099 (mean elements
+/// outside), while the packaged-data artifact ships Pluto as release-grade ([`ClaimEvidence::ArtifactValidated`]). The prose is
 /// scoped to the fallback path so it cannot be read as a global posture that
 /// excludes Pluto from every backend's release-grade claims.
 ///
