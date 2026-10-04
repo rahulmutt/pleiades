@@ -2288,18 +2288,27 @@ availability
 
 ## FU-18: Sidereal conventions differ from Swiss Ephemeris and the chart layer (issue #88)
 
-**Status:** open · **Opened:** 2026-10-01
+**Status:** open ((a) resolved 2026-10-04 under issue #120; (b), (c), (d) open) · **Opened:** 2026-10-01
 
 Issue #88 gave `pleiades-events` sidereal crossings: the longitude on the mean
 equinox of date minus the mean ayanamsa. The chart layer (`pleiades-core`
-`src/chart/sidereal.rs`) subtracts the same mean ayanamsa from whatever
-longitude the chart holds, which gives two chart-layer differences, (a) and
+`src/chart/sidereal.rs`) subtracted the same mean ayanamsa from whatever
+longitude the chart held, which gave two chart-layer differences, (a) and
 (b). Both were measured for the Sun with Lahiri by
 `measure_chart_sidereal_conventions` in
 `crates/pleiades-events/tests/reference.rs`. A third difference, (c), is with
 Swiss Ephemeris itself.
 
-- **(a) A sidereal apparent chart keeps nutation.** The chart longitude is on
+- **(a) A sidereal apparent chart keeps nutation.** → **Resolved 2026-10-04
+  (issue #120):** the apparent arm now removes the Δψ recorded in the
+  placement's provenance before subtracting the ayanamsa
+  (`sidereal_longitude_of_true_equinox`), so chart and crossing-reference
+  sidereal longitudes agree to under 0.001″ at the four epochs below
+  (`sidereal_apparent_chart_agrees_with_the_crossing_reference`) and the
+  chart matches Swiss Ephemeris Lahiri to under 1″ at the issue's instant.
+  House cusps and angles are untouched: they sit on the true equinox too,
+  and whether Swiss Ephemeris removes Δψ from sidereal cusps should be
+  measured with the reference tool before they follow. The chart longitude was on
   the true equinox, so it exceeds the crossing engine's sidereal longitude by
   Δψ: measured 2.240″ (JD 2420000.5), −13.924″ (JD 2451545.0), −9.279″
   (JD 2460000.5) and −15.740″ (JD 2480000.5), equal to Δψ at each epoch.
@@ -2337,11 +2346,12 @@ Swiss Ephemeris itself.
   frame), while the tropical Moon groups measure 2.6″, so a regeneration
   with more Moon rows should expect a ceiling near 4″.
 
-Fixing (a) or (b) changes chart output and needs its own decision, a
-regenerated chart golden and a gate against a Swiss Ephemeris sidereal
-position corpus.
+Fixing (b) changes chart output and needs its own decision, a regenerated
+chart golden and a gate against a Swiss Ephemeris sidereal position corpus;
+(a) was fixed under issue #120 without a corpus, pinned to the four Swiss
+Ephemeris values the issue quoted.
 
-**Severity:** (a) convention, up to about 17″; (b) frame correctness, growing
+**Severity:** (a) convention, up to about 17″ (resolved); (b) frame correctness, growing
 with distance from J2000; (c) convention, up to about 20″, star-anchored
 ayanamsas only
 

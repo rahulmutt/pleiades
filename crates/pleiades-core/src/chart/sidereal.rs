@@ -5,7 +5,9 @@ use pleiades_types::{Instant, Longitude, ZodiacMode};
 /// Converts a tropical longitude into the requested zodiac mode.
 ///
 /// Tropical mode returns the input unchanged. Sidereal mode subtracts the
-/// resolved ayanamsa for the provided instant.
+/// resolved ayanamsa for the provided instant. The longitude is taken to be
+/// on the mean equinox; for an apparent (true-equinox) longitude use
+/// [`sidereal_longitude_of_true_equinox`] so nutation comes off first.
 ///
 /// # Example
 ///
@@ -49,4 +51,27 @@ pub fn sidereal_longitude(
             "unsupported zodiac mode",
         )),
     }
+}
+
+/// Converts a longitude on the **true** equinox of date (an apparent place)
+/// into the requested zodiac mode.
+///
+/// A sidereal longitude is referred to the mean equinox of date, so nutation
+/// in longitude (`nutation_longitude_arcsec`, Δψ) is removed before the
+/// ayanamsa is subtracted and nutation does not move a body through a
+/// sidereal zodiac. This is the Swiss Ephemeris `SEFLG_SIDEREAL` convention
+/// and the one `pleiades-events` reads crossings in (issue #120). Tropical
+/// mode returns the input unchanged.
+pub(super) fn sidereal_longitude_of_true_equinox(
+    longitude: Longitude,
+    nutation_longitude_arcsec: f64,
+    instant: Instant,
+    zodiac_mode: &ZodiacMode,
+) -> Result<Longitude, EphemerisError> {
+    if matches!(zodiac_mode, ZodiacMode::Tropical) {
+        return Ok(longitude);
+    }
+    let mean_equinox =
+        Longitude::from_degrees(longitude.degrees() - nutation_longitude_arcsec / 3600.0);
+    sidereal_longitude(mean_equinox, instant, zodiac_mode)
 }

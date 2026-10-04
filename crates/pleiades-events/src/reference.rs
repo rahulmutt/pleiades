@@ -42,8 +42,10 @@ type EclipticTriple = (f64, f64, f64);
 /// A sidereal longitude is the longitude on the **mean** equinox of date minus
 /// the mean ayanamsa (`pleiades_ayanamsa::sidereal_offset`), so nutation does
 /// not move a body through a sidereal zodiac. This is the Swiss Ephemeris
-/// `SEFLG_SIDEREAL` convention. A sidereal `pleiades-core` apparent chart
-/// keeps nutation and can differ from it by up to about 17″.
+/// `SEFLG_SIDEREAL` convention, and a sidereal `pleiades-core` apparent chart
+/// follows it too (issue #120). A sidereal `pleiades-core` *mean* chart
+/// subtracts the ayanamsa from the backend's J2000 longitude and differs by
+/// the precession since J2000 (FU-18 (b)).
 ///
 /// The mean ayanamsa is used in every frame. For the star-anchored ayanamsa
 /// classes (`TrueStar` and `Galactic`) Swiss Ephemeris's apparent sidereal

@@ -22,6 +22,8 @@ mod observer;
 mod placement;
 mod request;
 mod sidereal;
+#[cfg(test)]
+mod sidereal_tests;
 mod signs;
 mod snapshot;
 
@@ -565,15 +567,19 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 // tropical apparent longitude exactly once.  This covers both paths:
                 //   • geocentric apparent (topocentric_prov is None)
                 //   • topocentric apparent (topocentric_prov is Some)
+                // The apparent longitude is on the true equinox of date; the
+                // nutation in longitude recorded in its provenance comes off
+                // first so the sidereal longitude is referred to the mean
+                // equinox, as pleiades-events and Swiss Ephemeris do (#120).
                 // The mean-fallback path already applied the ayanamsa in the pre-apparent
                 // block above and does not reach here (topocentric is rejected in mean mode).
-                if apparent.is_some()
-                    && matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
-                    && !native_sidereal
-                {
+                if let Some(provenance) = apparent.as_ref().filter(|_| {
+                    matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. }) && !native_sidereal
+                }) {
                     if let Some(ecliptic) = position.ecliptic.as_mut() {
-                        ecliptic.longitude = sidereal_longitude(
+                        ecliptic.longitude = sidereal::sidereal_longitude_of_true_equinox(
                             ecliptic.longitude,
+                            provenance.nutation_longitude_arcsec,
                             request.instant,
                             &request.zodiac_mode,
                         )?;
