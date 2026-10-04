@@ -782,8 +782,8 @@ fn validate_scoped(
 /// The full gate: every corpus series (planets over 1900–2100 and the
 /// 1990–2030 series), floor `MIN_ROWS_VALIDATED` (5542 stations). The
 /// series scan in ten-year windows on a pool of one thread per core, so the
-/// wall-clock is about 343 s of CPU spread over the cores: 130 s on four
-/// cores in the dev profile (2026-10-04; 228 s with one thread per series,
+/// wall-clock is about 343 s of CPU spread over the cores: about 105 s on
+/// the 4-core nightly runner (2026-10-04; 178 s with one thread per series,
 /// where the longest series set the length). Run by `validate-stations` and
 /// by the nightly `test-full` tier.
 pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {

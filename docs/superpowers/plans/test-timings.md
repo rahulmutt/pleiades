@@ -203,6 +203,46 @@ runs from 280 s to 347 s because libtest dispatches in name order.
   | same, second run (448 s of CPU at a load average above 40) | 179 |
 
   The 16 report lines are byte-identical between before and after.
+
+  Measured on CI by dispatching the nightly on the branch (run 37183040722, `ubuntu-latest`,
+  4 cores; the branch commit differs from the cached build's, so 9 first-party crates rebuilt).
+  "Before" is the last nightly on `main` before #117:
+
+  | Phase | Before (37154489996) | After (37183040722) |
+  |-------|---------------------:|--------------------:|
+  | `test` dependency: build | 177 | 89 |
+  | `test` dependency: nextest run | 62 | 46 |
+  | `test-full-validate`: build `pleiades-validate` tests | 53 | 42 |
+  | `test-full-validate`: `pleiades-validate` lib suite | 347 | 282 |
+  | full stations gate test inside it | 178 | 105 |
+  | `test-full-ignored`: `pleiades-cli` ignored tests | 166 | 133 |
+  | `test-full-ignored`: `pleiades-data` ignored tests | 65 | 67 |
+  | `test-full` total (after its dependencies) | 401 | 323 |
+  | whole `ci-nightly` tier | 639 | 460 |
+
+  The build rows are #117's cache at work, not this change. The lib suite's new long pole is the
+  tail after the stations gate (FU-23 (k)): the `release_bundle_verify_b` batch draining, then the
+  release gate's own battery and bundle, seeded late by libtest's name order and serial on one
+  thread for about 45 s while the other half of `test-full` has already finished.
+- **(j) libtest threads, measured and not applied.** `test-full-validate` with
+  `--test-threads=$(( 2 * $(getconf _NPROCESSORS_ONLN) ))`, dispatched as a second nightly on the
+  branch (37183098143) against the run above. The second runner was slower on the unchanged
+  `test` step as well (build 111 s against 89 s, nextest 61 s against 46 s), so the columns carry
+  about 25 % of runner variance:
+
+  | Phase | 4 threads (37183040722) | 8 threads (37183098143) |
+  |-------|------------------------:|------------------------:|
+  | `pleiades-validate` lib suite | 282 | 345 |
+  | numeric battery tests done (seconds from suite start) | 76 | 170 |
+  | full stations gate test inside it | 105 | 138 |
+  | `test-full-ignored`: `pleiades-cli` ignored tests | 133 | 280 |
+  | `test-full-ignored`: `pleiades-data` ignored tests | 67 | 49 |
+  | `test-full` total (after its dependencies) | 323 | 395 |
+  | whole `ci-nightly` tier | 460 | 568 |
+
+  The two halves of `test-full` already share the four cores, and the gates are CPU-bound on their
+  own pools, so the extra threads added contention rather than filling idle time; the battery, not
+  its waiters, got slower. Reverted before merge.
 - **(a)** `release-smoke` left `release-gate`'s dependency list; the gate command performs the
   smoke checks itself. No measurement: it removes one battery run from the release procedure only.
 
