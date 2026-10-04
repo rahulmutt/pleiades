@@ -2028,7 +2028,18 @@ Lilith gate functions, not only in the nightly test; resolved 2026-10-04: both
 gates now fail with `TooFewRowsValidated` below 3170 validated rows, per
 channel for the true node, as the mean-lunar and helio gates already did),
 #65 (residual
-attribution above). · **Severity:** accuracy (now closed) · **Opened:**
+attribution above; resolved 2026-10-04: forming the node from the exact DE440
+Moon state of NAIF `de440s.bsp` through the same construction measures max
+53.014″ against the corpus, the packaged node 52.851″, and packaged minus
+exact max 0.228″ rms 0.021″, so the residual is Moshier against DE440 and the
+80″ ceiling stays until the corpus is regenerated from DE-based Swiss
+Ephemeris files), #108 (the node's speed ran about 3″/day low at the peaks of
+its short direct spells, hiding about 40 stations in 2017–2027; resolved
+2026-10-04: the cause was the ±0.5-day central difference in
+`derived_point_motion`, not the data, and the packaged derived points now
+Richardson-extrapolate ±0.5/±0.25-day differences, measured against the
+exact-DE440 derivative at max 0.71″/day for the node and 13″/day for the true
+apogee, down from 3.9″/day and 161″/day). · **Severity:** accuracy (now closed) · **Opened:**
 2026-09-26 · **Merged:** PR #62 (2026-09-27)
 
 ## FU-13: Event surfaces outside rise/set/transit and chained searches (issues #80, #81)

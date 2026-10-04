@@ -83,7 +83,7 @@ impl PackagedDataBackend {
 
     /// Assembles a derived lunar point (osculating or mean apsis or node) into a
     /// backend result: J2000 ecliptic from `eval`, mean-obliquity equatorial,
-    /// central-difference motion, `Interpolated` quality.
+    /// extrapolated central-difference motion, `Interpolated` quality.
     fn derived_point_position(
         &self,
         req: &EphemerisRequest,
@@ -255,48 +255,92 @@ impl PackagedDataBackend {
         ))
     }
 
-    /// Central-difference motion of a derived lunar point over ±0.5 day. A
-    /// probe that falls outside the packaged window degrades to `None`
-    /// channels rather than failing the position.
+    /// Motion of a derived lunar point: central differences over ±0.5 and
+    /// ±0.25 day, Richardson-extrapolated to cancel their leading truncation
+    /// term, `(4·D(0.25) − D(0.5)) / 3`.
+    ///
+    /// The osculating points oscillate within a fortnight, so a plain ±0.5-day
+    /// difference reads their speed low wherever it peaks: the true node by
+    /// about 3″/day in its short direct spells, enough to hide them (#108).
+    /// A shorter plain difference is no better, because it amplifies the small
+    /// steps in the packaged Moon's velocity between fitted segments. Measured
+    /// against the derivative of the node and apogee formed from the exact
+    /// DE440 Moon, 2017–2027 every 0.05 day: true node max 0.71″/day (rms
+    /// 0.07″) against 3.9″/day for the ±0.5-day difference; true apogee max
+    /// 13″/day (rms 2.3″) against 161″/day.
+    ///
+    /// A probe that falls outside the packaged window degrades to `None`
+    /// channels rather than failing the position. The outer probes sit at
+    /// ±0.5 day as before, so the same instants degrade.
     fn derived_point_motion(
         &self,
         instant: Instant,
         eval: &dyn Fn(Instant) -> Result<EclipticCoordinates, EphemerisError>,
     ) -> Result<Motion, EphemerisError> {
-        const HALF_SPAN_DAYS: f64 = 0.5;
-        let shift = |days: f64| {
-            Instant::new(
+        const OUTER_HALF_SPAN_DAYS: f64 = 0.5;
+        const INNER_HALF_SPAN_DAYS: f64 = 0.25;
+        let probe = |days: f64| -> Result<Option<EclipticCoordinates>, EphemerisError> {
+            let shifted = Instant::new(
                 JulianDay::from_days(instant.julian_day.days() + days),
                 instant.scale,
+            );
+            match eval(shifted) {
+                Ok(e) => Ok(Some(e)),
+                Err(ref e) if e.kind == EphemerisErrorKind::OutOfRangeInstant => Ok(None),
+                Err(e) => Err(e),
+            }
+        };
+        let (Some(outer_before), Some(inner_before), Some(inner_after), Some(outer_after)) = (
+            probe(-OUTER_HALF_SPAN_DAYS)?,
+            probe(-INNER_HALF_SPAN_DAYS)?,
+            probe(INNER_HALF_SPAN_DAYS)?,
+            probe(OUTER_HALF_SPAN_DAYS)?,
+        ) else {
+            return Ok(Motion::new(None, None, None));
+        };
+
+        // One rate per span, then the extrapolation.
+        let extrapolate = |outer: f64, inner: f64| (4.0 * inner - outer) / 3.0;
+        let rate = |before: f64, after: f64, half_span: f64| (after - before) / (2.0 * half_span);
+        let lon_rate = |before: &EclipticCoordinates, after: &EclipticCoordinates, half_span| {
+            let mut dlon = after.longitude.degrees() - before.longitude.degrees();
+            while dlon > 180.0 {
+                dlon -= 360.0;
+            }
+            while dlon < -180.0 {
+                dlon += 360.0;
+            }
+            dlon / (2.0 * half_span)
+        };
+        let lat_rate = |before: &EclipticCoordinates, after: &EclipticCoordinates, half_span| {
+            rate(
+                before.latitude.degrees(),
+                after.latitude.degrees(),
+                half_span,
             )
         };
-        let before = match eval(shift(-HALF_SPAN_DAYS)) {
-            Ok(e) => e,
-            Err(ref e) if e.kind == EphemerisErrorKind::OutOfRangeInstant => {
-                return Ok(Motion::new(None, None, None));
-            }
-            Err(e) => return Err(e),
-        };
-        let after = match eval(shift(HALF_SPAN_DAYS)) {
-            Ok(e) => e,
-            Err(ref e) if e.kind == EphemerisErrorKind::OutOfRangeInstant => {
-                return Ok(Motion::new(None, None, None));
-            }
-            Err(e) => return Err(e),
-        };
-        let span = 2.0 * HALF_SPAN_DAYS;
+        let dist_rate =
+            |before: &EclipticCoordinates, after: &EclipticCoordinates, half_span| match (
+                before.distance_au,
+                after.distance_au,
+            ) {
+                (Some(b), Some(a)) => Some(rate(b, a, half_span)),
+                _ => None,
+            };
 
-        let mut dlon = after.longitude.degrees() - before.longitude.degrees();
-        while dlon > 180.0 {
-            dlon -= 360.0;
-        }
-        while dlon < -180.0 {
-            dlon += 360.0;
-        }
-        let dlon_per_day = dlon / span;
-        let dlat_per_day = (after.latitude.degrees() - before.latitude.degrees()) / span;
-        let ddist_per_day = match (before.distance_au, after.distance_au) {
-            (Some(b), Some(a)) => Some((a - b) / span),
+        let dlon_per_day = extrapolate(
+            lon_rate(&outer_before, &outer_after, OUTER_HALF_SPAN_DAYS),
+            lon_rate(&inner_before, &inner_after, INNER_HALF_SPAN_DAYS),
+        );
+        let dlat_per_day = extrapolate(
+            lat_rate(&outer_before, &outer_after, OUTER_HALF_SPAN_DAYS),
+            lat_rate(&inner_before, &inner_after, INNER_HALF_SPAN_DAYS),
+        );
+        let ddist_per_day = match (
+            dist_rate(&outer_before, &outer_after, OUTER_HALF_SPAN_DAYS),
+            dist_rate(&inner_before, &inner_after, INNER_HALF_SPAN_DAYS),
+        ) {
+            (Some(outer), Some(inner)) => Some(extrapolate(outer, inner)),
             _ => None,
         };
         Ok(Motion::new(
