@@ -152,6 +152,67 @@ fn the_true_node_stations_often() {
     assert_alternating(&found);
 }
 
+/// Short direct spells of the true node from issue #108: Swiss Ephemeris
+/// (`swe_calc(SE_TRUE_NODE, SEFLG_SWIEPH | SEFLG_SPEED)`, pyswisseph 2.10.03)
+/// turns direct at `start` for `hours` and peaks at `peak` arcseconds a day.
+const TRUE_NODE_DIRECT_SPELLS: [(f64, f64, f64); 6] = [
+    (2_457_892.495, 2.6, 0.11),
+    (2_458_422.645, 13.4, 3.29),
+    (2_459_102.895, 13.9, 2.97),
+    (2_459_796.955, 9.8, 1.66),
+    (2_460_327.085, 13.9, 3.55),
+    (2_461_020.815, 13.7, 3.12),
+];
+
+// The true node's speed is the derivative of a fast-oscillating point. A
+// one-day central difference read it about 3.2"/day low at these peaks, so the
+// shallower spells never turned direct (#108). The peak must match Swiss
+// Ephemeris, whose Moon differs from the packaged DE440 one by far less.
+#[test]
+fn true_node_speed_peaks_match_swiss_ephemeris_in_short_direct_spells() {
+    let engine = EventEngine::new(packaged_backend());
+    for (start, hours, se_peak) in TRUE_NODE_DIRECT_SPELLS {
+        let end = start + hours / 24.0;
+        let mut peak = f64::NEG_INFINITY;
+        let mut jd = start - 0.25;
+        while jd <= end + 0.25 {
+            let speed = engine
+                .position_at(CelestialBody::TrueNode, GEO, tdb(jd))
+                .expect("position")
+                .motion
+                .longitude_deg_per_day
+                .expect("speed");
+            peak = peak.max(speed * 3600.0);
+            jd += 0.01;
+        }
+        assert!(
+            (peak - se_peak).abs() < 0.1,
+            "spell at {start}: peak {peak:.3}\"/day, Swiss Ephemeris {se_peak}\"/day"
+        );
+    }
+}
+
+// Every spell longer than the 0.25-day scan step is found as a station pair.
+#[test]
+fn true_node_short_direct_spells_are_station_pairs() {
+    for (start, hours, _) in TRUE_NODE_DIRECT_SPELLS {
+        if hours / 24.0 <= 0.25 {
+            continue;
+        }
+        let end = start + hours / 24.0;
+        let found = stations(CelestialBody::TrueNode, GEO, start - 0.5, end + 0.5);
+        let kinds: Vec<StationKind> = found.iter().map(|s| s.kind).collect();
+        assert_eq!(
+            kinds,
+            [StationKind::TurnsDirect, StationKind::TurnsRetrograde],
+            "spell at {start} ({hours} h): {found:?}"
+        );
+        // Within an hour of Swiss Ephemeris at each end.
+        assert!((jd(&found[0]) - start).abs() < 1.0 / 24.0, "{found:?}");
+        assert!((jd(&found[1]) - end).abs() < 1.0 / 24.0, "{found:?}");
+    }
+}
+
 // A sidereal longitude speed is the tropical one less the ayanamsa's rate
 // (about 3.8e-5 deg/day), so the speed reaches zero later on the way up and
 // earlier on the way down. The mean-of-date frame is used because the

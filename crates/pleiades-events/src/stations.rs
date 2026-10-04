@@ -144,7 +144,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// closer together than the step are not reported. That happens only
     /// for the osculating lunar points: the true node's speed touches zero
     /// about every two weeks, and whether a touch crosses zero for a few
-    /// hours depends on the ephemeris.
+    /// hours depends on the ephemeris. On the packaged backend the node's
+    /// speed is within 0.71″/day of the derivative of the node formed from
+    /// the exact DE440 Moon (2017–2027), and its peaks in #108's short
+    /// direct spells match Swiss Ephemeris within 0.1″/day.
     ///
     /// The 0.5 s bisection tolerance bounds how well the engine locates the
     /// zero of its own speed, not how well that zero matches another
