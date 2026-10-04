@@ -176,6 +176,36 @@ with its bundle render and verify, gitleaks over the full history, and the docte
 re-links per crate. A run whose commit touches a crate rebuilds that crate and its dependents, so
 a typical PR lands between the two columns.
 
+### FU-23 items (e) continued and (a), 2026-10-04
+
+Nightly run 37154489996 (the run after #115, before #117), read from the per-test timestamps:
+the `pleiades-validate` lib suite's 347 s is a chain, not an even load. The six numeric-battery
+tests share one run but each holds a libtest thread while it waits, so three of the four threads
+sit blocked from about 60 s to 100 s; the full stations gate starts at 102 s and ends at 280 s
+(178 s, the longest series, as (e) predicted); the `validate_gates` and `release_checklist` tail
+runs from 280 s to 347 s because libtest dispatches in name order.
+
+- **(e) continued: the series scan in chunks.** `validate_scoped` now scans every series in
+  ten-year windows (`CHUNK_DAYS`) on a pool of one thread per core, and folds the windows back in
+  order. The window length is a multiple of 2 days, the common multiple of the engine's steps
+  (0.25, 1 and 2 days), so each window brackets exactly as the single scan does; neighbouring
+  windows share the one bracket that starts at their boundary, so a station exactly on a boundary
+  is kept once (`join_chunks`). `chunked_scan_matches_the_single_scan_at_every_seam` compares
+  100-day windows against the single scan on the mean Mars (2-day step) and Mercury (1-day step)
+  series, bit for bit over 292 seams, in 7 s. Measured locally under a 4-core affinity mask
+  (`taskset -c 0-3`, consecutive runs, the machine shared with another session's test run at a
+  load average above 30, so absolute figures are inflated and only the ratio is meaningful):
+
+  | Full stations gate test | Wall-clock (s) |
+  |-------------------------|---------------:|
+  | one thread per series (before) | 228 |
+  | ten-year windows on a 4-thread pool (after, first run) | 130 |
+  | same, second run (448 s of CPU at a load average above 40) | 179 |
+
+  The 16 report lines are byte-identical between before and after.
+- **(a)** `release-smoke` left `release-gate`'s dependency list; the gate command performs the
+  smoke checks itself. No measurement: it removes one battery run from the release procedure only.
+
 ---
 
 ## Section 1: Timing Inventory

@@ -183,7 +183,12 @@ run = "cargo mutants --test-tool nextest --test-workspace=false --baseline run -
 run = "cargo run -q -p pleiades-validate -- release-smoke"
 
 [tasks.release-gate]
-depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "release-smoke", "claims-audit", "gate-aspects"]
+# Not a dependency: `release-smoke`. The `release-gate` command performs the
+# same smoke checks itself (`validate_release_gate_at` wraps
+# `validate_release_smoke_at`: numeric battery, bundle render and verify), so
+# the dependency ran that battery twice per gate (FU-23 (a)). `ci` keeps
+# `release-smoke` as the blocking tier's smoke run.
+depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "claims-audit", "gate-aspects"]
 run = "cargo run -q -p pleiades-validate -- release-gate"
 
 [tasks.ci]
