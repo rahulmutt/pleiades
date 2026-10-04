@@ -2969,6 +2969,9 @@ claim tier). The common case the issue reported, every non-`ReleaseGrade` body
 returned in mean J2000 under an `Apparent` label, is gone: the chart layer now
 reduces every body the backend serves, and a backend that cannot serve the Sun
 fails closed. This entry tracks the remaining, narrower case.
+(Update 2026-10-04, FU-25 / #128: the fail-closed Sun requirement was removed;
+the aberration argument now comes from the backend-free Meeus Sun, so a backend
+that cannot serve the Sun returns apparent placements.)
 
 **Where:** `crates/pleiades-core/src/chart/mod.rs`, the `Err(_)` arm of the
 per-body `apparent_place` match in `ChartEngine::chart`.
