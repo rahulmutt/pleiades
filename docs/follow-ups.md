@@ -2612,8 +2612,8 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) to (q) are
-done, (g) and (j) are measured and not applied; (h) and (i) remain open.
+**Status:** partly resolved (2026-10-04) · Items (a) to (f), (k) to (q) and
+(s) are done, (g) and (j) are measured and not applied; (h) and (i) remain open.
 Measurements, the two changes from #112 and the 2026-10-03 and 2026-10-04
 changes are in `docs/superpowers/plans/test-timings.md` (Section 0).
 
@@ -2859,6 +2859,22 @@ estimates from that run's timestamps, not measurements of a fix.
   37235480458 and 37235486708) against two on `main` (37233188362,
   37233194338) it took 0.2–0.3 s instead of 63–66 s, and no longer ends the
   nextest run. Table in the timings plan.
+- **(s) Two `pleiades-cli` tests re-ran gates that `release-smoke` runs.** On
+  the `main` push CI run 37238126985 the blocking-tier nextest's two slowest
+  tests were `crossings_alias_dispatches_to_validate` (13.9 s, the one real
+  crossings run kept by (p)) and
+  `validate_eclipses_command_forwards_to_validate_crate` (12.9 s, the full
+  eclipses gate twice, as `validate-eclipses` and `eclipses-gate`). Both gates
+  also run in the same tier, in `mise run release-smoke`'s numeric battery.
+  → **Resolved 2026-10-04:** both tests now check routing only, by the
+  extra-argument error that `pleiades-validate` raises before running the
+  gate, as in (d), (o) and (p). The gates themselves (crossings including
+  the Tier-1 golden column) still run in the blocking tier:
+  `run_all_numeric_gates` calls the same `validate_crossings_corpus` and
+  `validate_eclipse_corpus` the CLI arms call. The trade-off is that a
+  crossings or eclipses regression now surfaces as a `release-smoke` failure
+  ("crossings gate failed: ..." or "eclipse gate failed: ...") rather than as
+  a named nextest test. Measured: pending.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 

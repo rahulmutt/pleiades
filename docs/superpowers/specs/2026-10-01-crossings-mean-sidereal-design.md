@@ -249,7 +249,9 @@ gate.
 ### Engine golden (Tier 1)
 
 The new rows get `pleiades_jd_tdb` through `crossings-golden --regenerate` in
-the same pull request. Tier 1 runs in the blocking tier via `pleiades-cli`.
+the same pull request. Tier 1 runs in the blocking tier, in
+`mise run release-smoke`'s numeric battery (until FU-23 (s) it also ran in a
+`pleiades-cli` test).
 
 ## Tests in `pleiades-events`
 
