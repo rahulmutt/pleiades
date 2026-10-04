@@ -296,7 +296,9 @@ half of `test-full` had already finished.
   `tests::comparison::regression_finding_has_a_displayable_summary_line`, which fails on `main`
   for an unrelated reason (the default-corpus comparison has had no notable regression since #122
   fixed VSOP87 Pluto, and no nightly has run `test-full` on `main` since); it fails in 0.07 s and
-  does not affect the timings above.
+  does not affect the timings above. Fixed right after #130: the test builds its
+  `RegressionFinding` directly, and a new test pins that the default-corpus comparison has no
+  notable regression.
 
 ---
 

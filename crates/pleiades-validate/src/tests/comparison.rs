@@ -995,16 +995,30 @@ fn comparison_tail_envelope_is_publicly_reusable() {
 }
 
 #[test]
-fn regression_finding_has_a_displayable_summary_line() {
+fn default_corpus_comparison_has_no_notable_regressions() {
+    // Pluto was the only body outside its comparison tolerance until #122
+    // fixed the VSOP87 mean-element orbit; the release-grade corpus below
+    // excludes Pluto, this one keeps it.
     let corpus = default_corpus();
     let reference = default_reference_backend();
     let candidate = default_candidate_backend();
     let report =
         compare_backends(&reference, &candidate, &corpus).expect("comparison should build");
-    let notable_regressions = report.notable_regressions();
-    let finding = notable_regressions
-        .first()
-        .expect("comparison should include at least one notable regression");
+
+    assert!(report.notable_regressions().is_empty());
+}
+
+#[test]
+fn regression_finding_has_a_displayable_summary_line() {
+    // Built directly, like the blank-note case below: the default corpus
+    // has produced no notable regression since #122.
+    let finding = RegressionFinding {
+        body: CelestialBody::Pluto,
+        longitude_delta_deg: 1.5,
+        latitude_delta_deg: 0.4,
+        distance_delta_au: Some(0.2),
+        note: "longitude delta exceeds 1.0°".to_string(),
+    };
 
     assert_eq!(finding.summary_line(), finding.to_string());
     assert_eq!(finding.validated_summary_line(), Ok(finding.summary_line()));
