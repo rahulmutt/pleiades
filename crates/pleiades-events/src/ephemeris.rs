@@ -6,13 +6,13 @@ use crate::error::EventError;
 use crate::state_vector::cartesian_velocity;
 use pleiades_apparent::nutation::nutation;
 use pleiades_apparent::{
-    apparent_position, apparent_sun_position, precess_ecliptic_j2000_to_date,
-    DEFAULT_MAX_ITERATIONS,
+    apparent_apsis_position, apparent_position, apparent_sun_position,
+    precess_ecliptic_j2000_to_date, DEFAULT_MAX_ITERATIONS,
 };
 use pleiades_backend::{EphemerisBackend, EphemerisRequest};
 use pleiades_types::{
-    Apparentness, CelestialBody, CoordinateFrame, EclipticCoordinates, Instant, JulianDay,
-    Latitude, Longitude, Motion, TimeScale, ZodiacMode,
+    Apparentness, CelestialBody, CelestialBodyClass, CoordinateFrame, EclipticCoordinates, Instant,
+    JulianDay, Latitude, Longitude, Motion, TimeScale, ZodiacMode,
 };
 
 fn request(body: CelestialBody, julian_day: f64) -> EphemerisRequest {
@@ -29,14 +29,23 @@ fn request(body: CelestialBody, julian_day: f64) -> EphemerisRequest {
 /// `(longitude_deg, latitude_deg, distance_au)`.
 type EclipticTriple = (f64, f64, f64);
 
-/// Mean/J2000 geocentric ecliptic `(longitude_deg, latitude_deg, distance_au)`
+/// `(longitude_deg, latitude_deg, distance_au)` with the distance only when
+/// the backend reports one.
+pub(crate) type MeanPlace = (f64, f64, Option<f64>);
+
+/// Mean/J2000 geocentric ecliptic place as the backend serves it: longitude
+/// and latitude in degrees, the distance in AU when the backend reports one,
 /// and the backend's motion for that place, when it reports one.
-pub(crate) fn read_mean_ecliptic_with_motion<B: EphemerisBackend>(
+///
+/// Only a lunar orbit point may come without a distance (the ELP backend
+/// serves the nodes and apsides as directions); [`read_mean_ecliptic_with_motion`]
+/// requires one for every other body.
+pub(crate) fn read_mean_place<B: EphemerisBackend>(
     backend: &B,
     body: CelestialBody,
     body_label: &'static str,
     julian_day: f64,
-) -> Result<(EclipticTriple, Option<Motion>), EventError> {
+) -> Result<(MeanPlace, Option<Motion>), EventError> {
     let result = backend
         .position(&request(body, julian_day))
         .map_err(|e| EventError::Backend(e.to_string()))?;
@@ -44,18 +53,31 @@ pub(crate) fn read_mean_ecliptic_with_motion<B: EphemerisBackend>(
         body_label,
         julian_day,
     })?;
-    let distance = ecliptic.distance_au.ok_or(EventError::MissingCoordinates {
-        body_label,
-        julian_day,
-    })?;
     Ok((
         (
             ecliptic.longitude.degrees(),
             ecliptic.latitude.degrees(),
-            distance,
+            ecliptic.distance_au,
         ),
         result.motion,
     ))
+}
+
+/// Mean/J2000 geocentric ecliptic `(longitude_deg, latitude_deg, distance_au)`
+/// and the backend's motion for that place, when it reports one. A place
+/// without a distance is [`EventError::MissingDistance`].
+pub(crate) fn read_mean_ecliptic_with_motion<B: EphemerisBackend>(
+    backend: &B,
+    body: CelestialBody,
+    body_label: &'static str,
+    julian_day: f64,
+) -> Result<(EclipticTriple, Option<Motion>), EventError> {
+    let ((lon, lat, distance), motion) = read_mean_place(backend, body, body_label, julian_day)?;
+    let distance = distance.ok_or(EventError::MissingDistance {
+        body_label,
+        julian_day,
+    })?;
+    Ok(((lon, lat, distance), motion))
 }
 
 /// Mean/J2000 geocentric ecliptic (longitude_deg, latitude_deg, distance_au).
@@ -169,6 +191,61 @@ pub(crate) fn geocentric_mean_of_date_ecliptic<B: EphemerisBackend>(
         precessed.longitude_deg.rem_euclid(360.0),
         precessed.latitude_deg,
         dist,
+    ))
+}
+
+/// Whether `body` is a lunar orbit point: mean or true node, apogee or perigee.
+pub(crate) fn is_lunar_point(body: &CelestialBody) -> bool {
+    body.class() == CelestialBodyClass::LunarPoint
+}
+
+/// Geocentric apparent-of-date direction of a lunar orbit point,
+/// `(longitude_deg, latitude_deg, distance_au)`: the backend's J2000
+/// direction rotated to the true ecliptic and equinox of date with precession
+/// and nutation in longitude only. No light-time and no annual aberration: the
+/// point is a geometric direction of the lunar orbit, not a body, and this is
+/// how the `pleiades-core` chart layer and Swiss Ephemeris reduce it (issue
+/// #118). The distance, when the backend reports one, passes through
+/// unchanged; the ELP backend reports none.
+pub(crate) fn geocentric_apparent_lunar_point<B: EphemerisBackend>(
+    backend: &B,
+    body: CelestialBody,
+    body_label: &'static str,
+    julian_day: f64,
+) -> Result<MeanPlace, EventError> {
+    let ((lon, lat, distance), _) = read_mean_place(backend, body, body_label, julian_day)?;
+    let instant = Instant::new(JulianDay::from_days(julian_day), TimeScale::Tdb);
+    let j2000 = EclipticCoordinates::new(
+        Longitude::from_degrees(lon),
+        Latitude::from_degrees(lat),
+        distance,
+    );
+    let apparent = apparent_apsis_position(instant, j2000)
+        .map_err(|e| EventError::Backend(format!("{body_label} apparent place failed: {e}")))?;
+    Ok((
+        apparent.ecliptic.longitude.degrees(),
+        apparent.ecliptic.latitude.degrees(),
+        apparent.ecliptic.distance_au,
+    ))
+}
+
+/// Geocentric mean-of-date direction of a lunar orbit point,
+/// `(longitude_deg, latitude_deg, distance_au)`: the backend's J2000 direction
+/// precessed to the mean ecliptic and equinox of date. See
+/// [`geocentric_apparent_lunar_point`] for why no distance is required.
+pub(crate) fn geocentric_mean_of_date_lunar_point<B: EphemerisBackend>(
+    backend: &B,
+    body: CelestialBody,
+    body_label: &'static str,
+    julian_day: f64,
+) -> Result<MeanPlace, EventError> {
+    let ((lon, lat, distance), _) = read_mean_place(backend, body, body_label, julian_day)?;
+    let precessed = precess_ecliptic_j2000_to_date(lon, lat, julian_day)
+        .map_err(|e| EventError::Backend(format!("{body_label} precession failed: {e}")))?;
+    Ok((
+        precessed.longitude_deg.rem_euclid(360.0),
+        precessed.latitude_deg,
+        distance,
     ))
 }
 

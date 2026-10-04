@@ -20,9 +20,19 @@ pub enum EventError {
     },
     /// The backend returned a structured error (message forwarded verbatim).
     Backend(String),
-    /// The backend produced no ecliptic coordinates (or no distance) for a body.
+    /// The backend produced no ecliptic coordinates for a body.
     MissingCoordinates {
         /// Human-readable label of the body that was missing (e.g. `"Sun"`).
+        body_label: &'static str,
+        /// The Julian Day at which coordinates were requested.
+        julian_day: f64,
+    },
+    /// The backend produced ecliptic coordinates but no distance for a body
+    /// that needs one. Every body except the lunar orbit points (mean and true
+    /// node, apogee and perigee) needs a distance in every frame; the lunar
+    /// points are directions and are served without one by some backends.
+    MissingDistance {
+        /// Human-readable label of the body (e.g. `"Sun"`).
         body_label: &'static str,
         /// The Julian Day at which coordinates were requested.
         julian_day: f64,
@@ -99,6 +109,14 @@ impl fmt::Display for EventError {
             } => write!(
                 f,
                 "backend returned no ecliptic coordinates for {body_label} at JD {julian_day}"
+            ),
+            EventError::MissingDistance {
+                body_label,
+                julian_day,
+            } => write!(
+                f,
+                "backend returned ecliptic coordinates but no distance for {body_label} at JD \
+                 {julian_day}"
             ),
             EventError::UnsupportedFrame { detail } => {
                 write!(f, "unsupported crossing frame: {detail}")

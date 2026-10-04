@@ -9,8 +9,9 @@
 
 use crate::crossings::{body_label, CrossingFrame};
 use crate::ephemeris::{
-    geocentric_apparent_ecliptic, geocentric_mean_of_date_ecliptic, heliocentric_j2000,
-    heliocentric_of_date, j2000_spherical, read_mean_ecliptic_with_motion,
+    geocentric_apparent_ecliptic, geocentric_apparent_lunar_point,
+    geocentric_mean_of_date_ecliptic, geocentric_mean_of_date_lunar_point, heliocentric_j2000,
+    heliocentric_of_date, is_lunar_point, j2000_spherical, read_mean_place,
 };
 use crate::error::EventError;
 use crate::state_vector::spherical_rates;
@@ -19,8 +20,14 @@ use pleiades_ayanamsa::sidereal_offset;
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{Ayanamsa, CelestialBody, Instant, JulianDay, Motion, TimeScale, ZodiacMode};
 
-/// `(longitude_deg, latitude_deg, distance_au)`.
-type EclipticTriple = (f64, f64, f64);
+/// `(longitude_deg, latitude_deg, distance_au)`. The distance is `None` only
+/// for a lunar orbit point the backend serves as a direction (issue #118).
+type EclipticTriple = (f64, f64, Option<f64>);
+
+/// A body's place, whose distance is always known, as an [`EclipticTriple`].
+fn with_distance((lon, lat, dist): (f64, f64, f64)) -> EclipticTriple {
+    (lon, lat, Some(dist))
+}
 
 /// The frame and zodiac a longitude is measured in.
 ///
@@ -143,6 +150,14 @@ pub(crate) fn check_supported(
             "heliocentric {what} undefined for {body:?}"
         )));
     }
+    // A lunar orbit point is a direction from the Earth; "node minus Sun" is
+    // not a place (issue #118, FU-17 (b)).
+    if heliocentric && is_lunar_point(body) {
+        return Err(unsupported(format!(
+            "heliocentric {what} undefined for {body:?}: a lunar orbit point is a direction \
+             of the lunar orbit, not a body with a place from the Sun"
+        )));
+    }
     match &reference.zodiac {
         ZodiacMode::Tropical => Ok(()),
         ZodiacMode::Sidereal { .. } if heliocentric => Err(unsupported(
@@ -185,6 +200,37 @@ fn in_zodiac(
     Ok(((lon - shift).rem_euclid(360.0), lat, dist))
 }
 
+/// Geocentric apparent-of-date tropical place of `body`: the light-time
+/// pipeline for a body, precession plus nutation for a lunar orbit point.
+fn geocentric_apparent<B: EphemerisBackend>(
+    backend: &B,
+    body: &CelestialBody,
+    label: &'static str,
+    julian_day: f64,
+) -> Result<EclipticTriple, EventError> {
+    if is_lunar_point(body) {
+        geocentric_apparent_lunar_point(backend, body.clone(), label, julian_day)
+    } else {
+        geocentric_apparent_ecliptic(backend, body.clone(), label, julian_day).map(with_distance)
+    }
+}
+
+/// Geocentric mean-of-date tropical place of `body`: precession only, with a
+/// distance required for a body and optional for a lunar orbit point.
+fn geocentric_mean_of_date<B: EphemerisBackend>(
+    backend: &B,
+    body: &CelestialBody,
+    label: &'static str,
+    julian_day: f64,
+) -> Result<EclipticTriple, EventError> {
+    if is_lunar_point(body) {
+        geocentric_mean_of_date_lunar_point(backend, body.clone(), label, julian_day)
+    } else {
+        geocentric_mean_of_date_ecliptic(backend, body.clone(), label, julian_day)
+            .map(with_distance)
+    }
+}
+
 /// Ecliptic `(longitude_deg, latitude_deg, distance_au)` of `body` in
 /// `reference` at `julian_day` (TDB). The crossing engine root-finds on the
 /// longitude; `longitude_at` and `position_at` report it.
@@ -197,14 +243,14 @@ pub(crate) fn ecliptic_in<B: EphemerisBackend>(
     let label = body_label(body);
     let tropical = match reference.frame {
         CrossingFrame::GeocentricApparentOfDate => {
-            geocentric_apparent_ecliptic(backend, body.clone(), label, julian_day)?
+            geocentric_apparent(backend, body, label, julian_day)?
         }
         CrossingFrame::Heliocentric => {
             let helio = heliocentric_j2000(backend, body.clone(), label, julian_day)?;
-            heliocentric_of_date(helio.position, julian_day)?
+            with_distance(heliocentric_of_date(helio.position, julian_day)?)
         }
         CrossingFrame::GeocentricMeanOfDate => {
-            geocentric_mean_of_date_ecliptic(backend, body.clone(), label, julian_day)?
+            geocentric_mean_of_date(backend, body, label, julian_day)?
         }
     };
     in_zodiac(tropical, reference, julian_day)
@@ -230,27 +276,24 @@ pub(crate) fn sampled_place<B: EphemerisBackend>(
     let label = body_label(body);
     let (base, base_motion, tropical) = match reference.frame {
         CrossingFrame::GeocentricApparentOfDate => {
-            let (mean, motion) =
-                read_mean_ecliptic_with_motion(backend, body.clone(), label, julian_day)?;
-            let apparent = geocentric_apparent_ecliptic(backend, body.clone(), label, julian_day)?;
+            let (mean, motion) = read_mean_place(backend, body.clone(), label, julian_day)?;
+            let apparent = geocentric_apparent(backend, body, label, julian_day)?;
             (mean, motion, apparent)
         }
         CrossingFrame::Heliocentric => {
             let helio = heliocentric_j2000(backend, body.clone(), label, julian_day)?;
             let of_date = heliocentric_of_date(helio.position, julian_day)?;
             (
-                j2000_spherical(helio.position),
+                with_distance(j2000_spherical(helio.position)),
                 helio
                     .velocity
                     .map(|velocity| spherical_rates(helio.position, velocity)),
-                of_date,
+                with_distance(of_date),
             )
         }
         CrossingFrame::GeocentricMeanOfDate => {
-            let (mean, motion) =
-                read_mean_ecliptic_with_motion(backend, body.clone(), label, julian_day)?;
-            let of_date =
-                geocentric_mean_of_date_ecliptic(backend, body.clone(), label, julian_day)?;
+            let (mean, motion) = read_mean_place(backend, body.clone(), label, julian_day)?;
+            let of_date = geocentric_mean_of_date(backend, body, label, julian_day)?;
             (mean, motion, of_date)
         }
     };

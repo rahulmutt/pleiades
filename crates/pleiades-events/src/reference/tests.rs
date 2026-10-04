@@ -64,8 +64,8 @@ fn sampled_place_agrees_with_ecliptic_in() {
                 "{reference:?} {label} lat"
             );
             assert_eq!(
-                place.corrected.2.to_bits(),
-                direct.2.to_bits(),
+                place.corrected.2.map(f64::to_bits),
+                direct.2.map(f64::to_bits),
                 "{reference:?} {label} dist"
             );
         }
