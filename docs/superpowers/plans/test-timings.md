@@ -424,6 +424,31 @@ which does the same kind of work, took 0.5–1.4× its `main` time, so the cut i
 effect. The unchanged eclipse window-end test, last to finish, still set the length of the
 nextest run.
 
+### FU-23 item (q), 2026-10-04
+
+The last test of the blocking nextest run (`main` push CI run 37230900043) was
+`pleiades-eclipse`'s `previous_eclipse_at_window_end_does_not_error`, 42.4 s, because
+`previous_eclipse` scanned every eclipse from the window start to the query instant (and
+`next_eclipse` from the query instant to the window end). (q) searches outward from the query
+instant in doubling spans, with the same results by construction.
+
+Two nightlies on `main` (`baf6b3903`) and two on the branch. Both arms rebuilt most of the
+workspace (`main` after #137's `pleiades-jpl` change, the branch after its `pleiades-eclipse`
+change, on which `pleiades-core` and the tooling crates depend), but the `main` rebuild was larger,
+so the tier totals (426 s against 178–186 s) overstate the change. Seconds:
+
+| Test | `main` 1 (37233188362) | `main` 2 (37233194338) | Branch 1 (37235480458) | Branch 2 (37235486708) |
+|------|---:|---:|---:|---:|
+| `previous_eclipse_at_window_end_does_not_error` | 63.3 | 65.9 | 0.30 | 0.21 |
+| `validate_eclipses_command_forwards_to_validate_crate` (reference) | 9.0 | 10.2 | 5.0 | 4.2 |
+| `crossings_alias_dispatches_to_validate` (unchanged here, see (p)) | 46.1 | 49.8 | 23.4 | 22.8 |
+| nextest run (`Summary`) | 81.5 | 84.4 | 32.4 | 30.1 |
+
+The window-end test went from 63–66 s to under 0.3 s. Nextest now ends with the crossings alias
+test, which (p) cuts separately; the branch runners did the reference work in about half the
+`main` time, so roughly half of the nextest drop is runner and compile load, and the rest is the
+eclipse test leaving the tail.
+
 ---
 
 ## Section 1: Timing Inventory

@@ -22,6 +22,12 @@ const MAX_LOCAL_SEARCH: usize = 4000;
 /// range is found even when its syzygy falls just outside it.
 const GREATEST_BRACKET_DAYS: f64 = 0.25;
 
+/// Width of the first span `next_eclipse`/`previous_eclipse` search outward
+/// from the query instant; later spans double. Under every filter the admitted
+/// eclipses recur well within a year, so away from the window edges the first
+/// span holds the answer; the value only tunes cost, never the result.
+const FIRST_SEARCH_SPAN_DAYS: f64 = 400.0;
+
 /// Searches for global/geocentric eclipses over a chosen [`EphemerisBackend`].
 ///
 /// Backed by the packaged data, results are valid only within the
@@ -93,35 +99,96 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
 
     /// Returns the first eclipse admitted by `filter` whose greatest eclipse is
     /// strictly after `after`, or `None` if none remains before the window end.
+    /// Fails closed if `after` is outside the supported window.
+    ///
+    /// The cost grows with the distance to the eclipse found, not to the window
+    /// end.
     pub fn next_eclipse(
         &self,
         after: Instant,
         filter: EclipseFilter,
     ) -> Result<Option<Eclipse>, EclipseError> {
-        let after_jd = after.julian_day.days();
-        // `eclipses_in_range` clamps the scan end to WINDOW_END_JD - STEP_DAYS,
-        // so passing WINDOW_END_JD directly is safe and correct.
-        let end = Instant::new(JulianDay::from_days(WINDOW_END_JD), TimeScale::Tdb);
-        Ok(self
-            .eclipses_in_range(after, end, filter)?
-            .into_iter()
-            .find(|e| e.greatest_eclipse.julian_day.days() > after_jd))
+        self.search_forward(after.julian_day.days(), FIRST_SEARCH_SPAN_DAYS, filter)
     }
 
     /// Returns the last eclipse admitted by `filter` whose greatest eclipse is
     /// strictly before `before`, or `None` if none exists after the window start.
+    /// Fails closed if `before` is outside the supported window.
+    ///
+    /// The cost grows with the distance to the eclipse found, not to the window
+    /// start.
     pub fn previous_eclipse(
         &self,
         before: Instant,
         filter: EclipseFilter,
     ) -> Result<Option<Eclipse>, EclipseError> {
-        let before_jd = before.julian_day.days();
-        let start = Instant::new(JulianDay::from_days(WINDOW_START_JD), TimeScale::Tdb);
-        Ok(self
-            .eclipses_in_range(start, before, filter)?
-            .into_iter()
-            .rev()
-            .find(|e| e.greatest_eclipse.julian_day.days() < before_jd))
+        self.search_backward(before.julian_day.days(), FIRST_SEARCH_SPAN_DAYS, filter)
+    }
+
+    // Outward search behind `next_eclipse`/`previous_eclipse`.
+    //
+    // Scans adjacent spans moving away from the query instant (widths
+    // `first_span`, 2×, 4×, …, the last clamped to the window edge) and returns
+    // the first admitted eclipse past the query instant in the first span that
+    // has one. This is exactly the eclipse a single scan from the query instant
+    // to the window edge returns first: `eclipses_in_range` selects by the
+    // greatest-eclipse instant inside its inclusive bounds, and that instant does
+    // not depend on the range searched (the syzygy grid is anchored to absolute
+    // STEP_DAYS multiples), so the spans together cover the same instants with
+    // the same eclipses and the earlier, empty spans hold nothing nearer. An
+    // eclipse exactly on a shared span bound shows up in both spans; harmless,
+    // since the strict comparison against the query instant decides and the
+    // nearer span is searched first.
+
+    fn search_forward(
+        &self,
+        after_jd: f64,
+        first_span: f64,
+        filter: EclipseFilter,
+    ) -> Result<Option<Eclipse>, EclipseError> {
+        self.check_window(after_jd)?;
+        let mut near = after_jd;
+        let mut span = first_span;
+        loop {
+            // `eclipses_in_range` clamps its scan end to WINDOW_END_JD - STEP_DAYS,
+            // so ending the last span at WINDOW_END_JD itself is safe and correct.
+            let far = (near + span).min(WINDOW_END_JD);
+            let found = self
+                .eclipses_in_range(tdb(near), tdb(far), filter)?
+                .into_iter()
+                .find(|e| e.greatest_eclipse.julian_day.days() > after_jd);
+            // `span` stays positive and grows, so `far` strictly advances until
+            // it reaches the window end, which ends the loop.
+            if found.is_some() || far >= WINDOW_END_JD {
+                return Ok(found);
+            }
+            near = far;
+            span *= 2.0;
+        }
+    }
+
+    fn search_backward(
+        &self,
+        before_jd: f64,
+        first_span: f64,
+        filter: EclipseFilter,
+    ) -> Result<Option<Eclipse>, EclipseError> {
+        self.check_window(before_jd)?;
+        let mut near = before_jd;
+        let mut span = first_span;
+        loop {
+            let far = (near - span).max(WINDOW_START_JD);
+            let found = self
+                .eclipses_in_range(tdb(far), tdb(near), filter)?
+                .into_iter()
+                .rev()
+                .find(|e| e.greatest_eclipse.julian_day.days() < before_jd);
+            if found.is_some() || far <= WINDOW_START_JD {
+                return Ok(found);
+            }
+            near = far;
+            span *= 2.0;
+        }
     }
 
     /// Local (per-observer) circumstances for an already-found `eclipse`.
@@ -314,6 +381,10 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
     }
 }
 
+fn tdb(jd: f64) -> Instant {
+    Instant::new(JulianDay::from_days(jd), TimeScale::Tdb)
+}
+
 fn check_atmosphere(atmos: Atmosphere) -> Result<(), EclipseError> {
     if !atmos.pressure_mbar.is_finite() || !atmos.temperature_c.is_finite() {
         return Err(EclipseError::InvalidAtmosphere {
@@ -355,6 +426,74 @@ mod tests {
             .eclipses_in_range(at(2_451_549.0), at(2_451_551.0), EclipseFilter::SolarOnly)
             .unwrap();
         assert!(solar.iter().all(|e| e.kind == EclipseKind::Solar));
+    }
+
+    /// Real eclipses always recur within the 400-day first span, so the
+    /// doubling path is exercised by starting from a 1-day span: reaching the
+    /// next/previous eclipse (months away) then takes many doubled spans, and
+    /// must give exactly the eclipse the default span gives in one. (The
+    /// default-span results are pinned against a single `eclipses_in_range`
+    /// scan in `tests/known_eclipses.rs`.)
+    #[test]
+    fn outward_search_result_does_not_depend_on_the_first_span() {
+        let engine = EclipseEngine::new(pleiades_data::packaged_backend());
+        // Near each edge: one direction walks to an eclipse months away, the
+        // other runs into the clamped window edge.
+        for t in [WINDOW_START_JD + 40.0, WINDOW_END_JD - 40.0] {
+            for filter in [
+                EclipseFilter::All,
+                EclipseFilter::SolarOnly,
+                EclipseFilter::LunarOnly,
+            ] {
+                assert_eq!(
+                    engine.search_forward(t, 1.0, filter).unwrap(),
+                    engine
+                        .search_forward(t, FIRST_SEARCH_SPAN_DAYS, filter)
+                        .unwrap(),
+                    "forward from JD {t}, {filter:?}"
+                );
+                assert_eq!(
+                    engine.search_backward(t, 1.0, filter).unwrap(),
+                    engine
+                        .search_backward(t, FIRST_SEARCH_SPAN_DAYS, filter)
+                        .unwrap(),
+                    "backward from JD {t}, {filter:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn outward_search_with_no_eclipse_ends_at_the_window_edge() {
+        // Off-node Moon: no syzygy is an eclipse, so the search must walk its
+        // doubling spans out to the window edge and stop there with `None`.
+        let engine =
+            EclipseEngine::new(LinearSunMoon::new_moon_at(2_451_550.0).with_moon_latitude(5.0));
+        let t = WINDOW_END_JD - 30.0;
+        assert_eq!(
+            engine.search_forward(t, 1.0, EclipseFilter::All).unwrap(),
+            None
+        );
+        let t = WINDOW_START_JD + 30.0;
+        assert_eq!(
+            engine.search_backward(t, 1.0, EclipseFilter::All).unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn next_and_previous_eclipse_fail_closed_outside_the_window() {
+        let engine = EclipseEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        for jd in [WINDOW_START_JD - 1.0, WINDOW_END_JD + 1.0, f64::NAN] {
+            assert!(matches!(
+                engine.next_eclipse(at(jd), EclipseFilter::All),
+                Err(EclipseError::OutOfWindow { .. })
+            ));
+            assert!(matches!(
+                engine.previous_eclipse(at(jd), EclipseFilter::All),
+                Err(EclipseError::OutOfWindow { .. })
+            ));
+        }
     }
 
     #[test]

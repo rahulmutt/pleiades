@@ -2601,7 +2601,7 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) to (p) are
+**Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) to (q) are
 done, (g) and (j) are measured and not applied; (h) and (i) remain open.
 Measurements, the two changes from #112 and the 2026-10-03 and 2026-10-04
 changes are in `docs/superpowers/plans/test-timings.md` (Section 0).
@@ -2824,6 +2824,30 @@ estimates from that run's timestamps, not measurements of a fix.
   nightlies dispatched on the branch (runs 37234780388 and 37234786315)
   against two on `main` (37233188362, 37233194338): the test took 6–14 s
   instead of 46–50 s. Table in the timings plan.
+- **(q) `next_eclipse`/`previous_eclipse` scanned to the window edge.** On
+  the main push CI run 37230900043 the blocking-tier nextest took 67 s, and
+  `pleiades-eclipse`'s `previous_eclipse_at_window_end_does_not_error` took
+  42.4 s of it and was the last test to finish. `next_eclipse(after)` ran
+  `eclipses_in_range(after, WINDOW_END_JD)` and took the first result, and
+  `previous_eclipse(before)` scanned from `WINDOW_START_JD`, so each call cost
+  the distance to the window edge (up to 200 years) instead of the distance
+  to the eclipse found. `next_local_eclipse`/`previous_local_eclipse` call
+  them in a loop, which made those roughly quadratic. → **Resolved
+  2026-10-04:** both now search adjacent spans outward from the query instant
+  (400 days first, doubling, the last clamped to the window edge) and return
+  the first admitted eclipse past the instant in the first span that has
+  one. The result is exactly the eclipse the edge-to-edge scan found:
+  `eclipses_in_range` selects by greatest-eclipse instant inside inclusive
+  bounds, and that instant does not depend on the range searched (the
+  syzygy grid is anchored to absolute `STEP_DAYS` multiples). The new tests
+  in `tests/known_eclipses.rs` pin both methods, with every filter, against
+  a single two-year `eclipses_in_range` scan at the window edges, mid-window
+  and from an exact greatest-eclipse instant. A white-box test starts from a
+  1-day span to drive the doubling. Locally, under load, the test went from
+  188.5 s to 0.15–0.8 s. On two nightlies dispatched on the branch (runs
+  37235480458 and 37235486708) against two on `main` (37233188362,
+  37233194338) it took 0.2–0.3 s instead of 63–66 s, and no longer ends the
+  nextest run. Table in the timings plan.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 

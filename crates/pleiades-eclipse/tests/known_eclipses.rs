@@ -3,7 +3,8 @@ use pleiades_backend::{
 };
 use pleiades_data::packaged_backend;
 use pleiades_eclipse::{
-    EclipseEngine, EclipseFilter, EclipseKind, EclipseType, SolarEclipseType, WINDOW_END_JD,
+    Eclipse, EclipseEngine, EclipseFilter, EclipseKind, EclipseType, SolarEclipseType,
+    WINDOW_END_JD, WINDOW_START_JD,
 };
 use pleiades_types::{Instant, JulianDay, TimeScale};
 
@@ -194,4 +195,151 @@ fn range_selects_solar_eclipse_by_greatest_eclipse() {
 fn range_selects_lunar_eclipse_by_greatest_eclipse() {
     // 2025-03-14 total lunar eclipse; its syzygy falls before greatest eclipse.
     assert_range_selects_on_greatest_eclipse(2_460_748.791_6, EclipseKind::Lunar);
+}
+
+/// Span of the reference scans below: every filter's admitted eclipses recur
+/// well within it, so the first/last eclipse past `t` inside it is the
+/// first/last one past `t` in the whole window.
+const REFERENCE_SPAN_DAYS: f64 = 2.0 * 365.25;
+
+const ALL_FILTERS: [EclipseFilter; 3] = [
+    EclipseFilter::All,
+    EclipseFilter::SolarOnly,
+    EclipseFilter::LunarOnly,
+];
+
+fn greatest_jd(eclipse: &Eclipse) -> f64 {
+    eclipse.greatest_eclipse.julian_day.days()
+}
+
+/// `next_eclipse(t)` and `previous_eclipse(t)` must return exactly the
+/// eclipse (all fields) that one `eclipses_in_range` scan over
+/// `REFERENCE_SPAN_DAYS` on that side of `t` returns first/last past `t`.
+/// One `All` scan per side serves every filter: the filter only drops kinds.
+fn assert_next_and_previous_match_a_range_scan(t: f64) {
+    let engine = EclipseEngine::new(packaged_backend());
+    let later = engine
+        .eclipses_in_range(
+            at(t),
+            at((t + REFERENCE_SPAN_DAYS).min(WINDOW_END_JD)),
+            EclipseFilter::All,
+        )
+        .unwrap();
+    let earlier = engine
+        .eclipses_in_range(
+            at((t - REFERENCE_SPAN_DAYS).max(WINDOW_START_JD)),
+            at(t),
+            EclipseFilter::All,
+        )
+        .unwrap();
+    for filter in ALL_FILTERS {
+        let expected_next = later
+            .iter()
+            .find(|e| filter.admits(e.kind) && greatest_jd(e) > t)
+            .copied();
+        let expected_previous = earlier
+            .iter()
+            .rev()
+            .find(|e| filter.admits(e.kind) && greatest_jd(e) < t)
+            .copied();
+        assert_eq!(
+            engine.next_eclipse(at(t), filter).unwrap(),
+            expected_next,
+            "next_eclipse(JD {t}, {filter:?})"
+        );
+        assert_eq!(
+            engine.previous_eclipse(at(t), filter).unwrap(),
+            expected_previous,
+            "previous_eclipse(JD {t}, {filter:?})"
+        );
+    }
+}
+
+#[test]
+fn next_and_previous_match_a_range_scan_near_the_window_start() {
+    assert_next_and_previous_match_a_range_scan(WINDOW_START_JD);
+    assert_next_and_previous_match_a_range_scan(WINDOW_START_JD + 100.0);
+}
+
+#[test]
+fn next_and_previous_match_a_range_scan_mid_window() {
+    assert_next_and_previous_match_a_range_scan(2_451_400.0);
+}
+
+#[test]
+fn next_and_previous_match_a_range_scan_near_the_window_end() {
+    assert_next_and_previous_match_a_range_scan(WINDOW_END_JD - 365.0);
+    assert_next_and_previous_match_a_range_scan(WINDOW_END_JD - 100.0);
+    assert_next_and_previous_match_a_range_scan(WINDOW_END_JD - 10.0);
+    assert_next_and_previous_match_a_range_scan(WINDOW_END_JD);
+}
+
+/// Querying from an eclipse's exact greatest instant must skip that eclipse
+/// in both directions (strict comparison), and still match a range scan.
+#[test]
+fn next_and_previous_from_an_exact_greatest_instant_skip_that_eclipse() {
+    let engine = EclipseEngine::new(packaged_backend());
+    // 2024-04-08 total solar eclipse.
+    let found = engine
+        .eclipses_in_range(at(2_460_407.0), at(2_460_411.0), EclipseFilter::SolarOnly)
+        .unwrap();
+    assert_eq!(found.len(), 1, "one solar eclipse around 2024-04-08");
+    let g = greatest_jd(&found[0]);
+    let next = engine.next_eclipse(at(g), EclipseFilter::All).unwrap();
+    let previous = engine.previous_eclipse(at(g), EclipseFilter::All).unwrap();
+    assert!(greatest_jd(&next.unwrap()) > g, "next from g skips it");
+    assert!(
+        greatest_jd(&previous.unwrap()) < g,
+        "previous from g skips it"
+    );
+    assert_next_and_previous_match_a_range_scan(g);
+}
+
+#[test]
+fn no_eclipse_before_the_first_or_after_the_last_in_the_window() {
+    let engine = EclipseEngine::new(packaged_backend());
+    let two_years = 2.0 * 365.25;
+    let first = *engine
+        .eclipses_in_range(
+            at(WINDOW_START_JD),
+            at(WINDOW_START_JD + two_years),
+            EclipseFilter::All,
+        )
+        .unwrap()
+        .first()
+        .expect("an eclipse in the window's first two years");
+    let last = *engine
+        .eclipses_in_range(
+            at(WINDOW_END_JD - two_years),
+            at(WINDOW_END_JD),
+            EclipseFilter::All,
+        )
+        .unwrap()
+        .last()
+        .expect("an eclipse in the window's last two years");
+
+    assert_eq!(
+        engine
+            .previous_eclipse(at(greatest_jd(&first)), EclipseFilter::All)
+            .unwrap(),
+        None
+    );
+    assert_eq!(
+        engine
+            .next_eclipse(at(WINDOW_START_JD), EclipseFilter::All)
+            .unwrap(),
+        Some(first)
+    );
+    assert_eq!(
+        engine
+            .next_eclipse(at(greatest_jd(&last)), EclipseFilter::All)
+            .unwrap(),
+        None
+    );
+    assert_eq!(
+        engine
+            .previous_eclipse(at(WINDOW_END_JD), EclipseFilter::All)
+            .unwrap(),
+        Some(last)
+    );
 }
