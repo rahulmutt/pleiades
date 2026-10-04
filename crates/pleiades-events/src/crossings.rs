@@ -293,10 +293,17 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// [`CrossingFrame::GeocentricApparentOfDate`]; geocentric geometric, mean
     /// equinox of date for [`CrossingFrame::GeocentricMeanOfDate`]; heliocentric
     /// of date for [`CrossingFrame::Heliocentric`]. Fails closed outside the
-    /// packaged 1900–2100 window and for heliocentric Sun/Moon, matching the
-    /// crossing entry points. This is the evaluator the `validate-crossings`
-    /// parity tier uses to compare the engine's longitude against a reference
-    /// crossing time.
+    /// packaged 1900–2100 window and for a heliocentric Sun, Moon or lunar
+    /// orbit point, matching the crossing entry points. This is the evaluator
+    /// the `validate-crossings` parity tier uses to compare the engine's
+    /// longitude against a reference crossing time.
+    ///
+    /// A lunar orbit point (mean or true node, apogee or perigee) is a
+    /// direction of the lunar orbit, not a body: in the geocentric frames it is
+    /// precessed, and in the apparent frame also rotated by nutation in
+    /// longitude, with no light-time and no aberration, as the `pleiades-core`
+    /// chart layer does. A backend may serve it without a distance (issue
+    /// #118).
     ///
     /// ```
     /// use pleiades_data::packaged_backend;
@@ -342,6 +349,12 @@ pub(crate) fn body_label(body: &CelestialBody) -> &'static str {
         CelestialBody::Uranus => "Uranus",
         CelestialBody::Neptune => "Neptune",
         CelestialBody::Pluto => "Pluto",
+        CelestialBody::MeanNode => "mean node",
+        CelestialBody::TrueNode => "true node",
+        CelestialBody::MeanApogee => "mean apogee",
+        CelestialBody::TrueApogee => "true apogee",
+        CelestialBody::MeanPerigee => "mean perigee",
+        CelestialBody::TruePerigee => "true perigee",
         _ => "body",
     }
 }

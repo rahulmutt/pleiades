@@ -2272,10 +2272,15 @@ Three items the final review of issue #89 found outside that change's scope:
   is light-time-retarded, and that — not the planet-minus-Sun reconstruction —
   is the real source of the 35.09″ maximum. Regenerate the reference with
   `SEFLG_TRUEPOS` and tighten the ceilings in a separate change.
-- **(b) Heliocentric lunar points.** Heliocentric `longitude_at` /
-  `position_at` return `Ok` for `MeanNode`, `TrueNode`, `MeanApogee` and
-  `TrueApogee`, although "node minus Sun" is meaningless. Rejecting them
-  changes `longitude_at`'s public behaviour and needs its own decision.
+- **(b) Heliocentric lunar points.** → **Resolved 2026-10-04 (issue #118):**
+  `check_supported` rejects every lunar orbit point in the heliocentric frame
+  with `UnsupportedFrame`, on every backend; the same change made the
+  geocentric frames evaluate the lunar points as directions (precession, plus
+  nutation in the apparent frame, no light-time or aberration, no distance
+  required), as the chart layer does. Before, heliocentric `longitude_at` /
+  `position_at` returned `Ok` for `MeanNode`, `TrueNode`, `MeanApogee` and
+  `TrueApogee` on the packaged backend although "node minus Sun" is
+  meaningless.
 - **(c) Geocentric reads near the range start.** Geocentric reads within a
   light-time of the packaged range start (for example Mars or the Moon at
   JD 2415020.5) fail with `Backend(OutOfRangeInstant)` although the instant is

@@ -10,6 +10,7 @@
 //! | geocentric apparent of date | backend mean J2000 place and its motion | apparent place of date |
 //! | geocentric mean of date | backend mean J2000 place and its motion | precessed to the mean equinox of date |
 //! | heliocentric | planet minus Sun in J2000, rates from Cartesian velocities | true equinox of date |
+//! | either geocentric frame, lunar orbit point | backend mean J2000 direction and its motion | precessed, plus Δψ in the apparent frame; no light-time, no aberration |
 //! | any geocentric frame, sidereal zodiac | as the frame | the frame's place − Δψ (apparent only) − mean ayanamsa |
 //!
 //! The heliocentric place is geometric — no light-time, no aberration — in the
@@ -45,12 +46,15 @@ pub struct EclipticPosition {
     pub zodiac: ZodiacMode,
     /// The instant as given; its Julian day is read as TDB.
     pub instant: Instant,
-    /// Ecliptic longitude and latitude (degrees) and distance (AU, always
-    /// `Some`): from the Earth's centre for the geocentric frames
+    /// Ecliptic longitude and latitude (degrees) and distance (AU): from the
+    /// Earth's centre for the geocentric frames
     /// ([`CrossingFrame::GeocentricApparentOfDate`] and
     /// [`CrossingFrame::GeocentricMeanOfDate`]), from the Sun for
-    /// [`CrossingFrame::Heliocentric`]. Only the apparent frame can fail within
-    /// a light-time of the start of the packaged range (see `position_at`).
+    /// [`CrossingFrame::Heliocentric`]. The distance is `Some` for every body
+    /// and `None` for a lunar orbit point (mean or true node, apogee or
+    /// perigee) the backend serves as a direction only, as the ELP backend
+    /// does. Only the apparent frame can fail within a light-time of the start
+    /// of the packaged range (see `position_at`).
     pub ecliptic: EclipticCoordinates,
     /// Speed of `ecliptic`: longitude and latitude in degrees per day,
     /// distance in AU per day. A channel is `None` when the backend reports no
@@ -76,11 +80,11 @@ impl Sample {
     }
 }
 
-fn coordinates((lon_deg, lat_deg, distance_au): (f64, f64, f64)) -> EclipticCoordinates {
+fn coordinates((lon_deg, lat_deg, distance_au): (f64, f64, Option<f64>)) -> EclipticCoordinates {
     EclipticCoordinates::new(
         Longitude::from_degrees(lon_deg),
         Latitude::from_degrees(lat_deg),
-        Some(distance_au),
+        distance_au,
     )
 }
 
@@ -169,6 +173,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///   `SEFLG_HELCTR` output is retarded by the heliocentric light-time and
     ///   differs from this place by up to ≈ 41″ (Mercury).
     ///
+    /// A lunar orbit point (mean or true node, apogee or perigee) is a
+    /// direction of the lunar orbit, not a body: in both geocentric frames it
+    /// is precessed, and in the apparent frame also rotated by nutation in
+    /// longitude, with no light-time and no aberration, as the `pleiades-core`
+    /// chart layer and Swiss Ephemeris reduce it. A backend may serve it
+    /// without a distance (the ELP backend does); the distance is then `None`.
+    ///
     /// With a sidereal [`CrossingReference`] the longitude is the frame's
     /// longitude on the mean equinox of date minus the mean ayanamsa. The
     /// speed drops by the ayanamsa's rate, and in the apparent frame it also
@@ -185,11 +196,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///
     /// The same as [`EventEngine::longitude_at`]:
     /// [`EventError::OutOfWindow`] outside the packaged 1900–2100 window,
-    /// [`EventError::UnsupportedFrame`] for a heliocentric Sun or Moon, for a
-    /// sidereal zodiac in the heliocentric frame, and for a sidereal ayanamsa
-    /// with no finite offset data,
+    /// [`EventError::UnsupportedFrame`] for a heliocentric Sun, Moon or lunar
+    /// orbit point, for a sidereal zodiac in the heliocentric frame, and for a
+    /// sidereal ayanamsa with no finite offset data,
     /// [`EventError::MissingCoordinates`] when the backend returns no ecliptic
-    /// place or no distance, and [`EventError::Backend`] for a backend failure.
+    /// place, [`EventError::MissingDistance`] when a body other than a lunar
+    /// orbit point comes without a distance, and [`EventError::Backend`] for a
+    /// backend failure.
     /// In [`CrossingFrame::GeocentricApparentOfDate`] an instant within a light-time of the start of
     /// the packaged range can fail with [`EventError::Backend`], exactly as
     /// `longitude_at` does there, because the light-time re-query leaves the
