@@ -85,7 +85,14 @@ depends = ["test-full-validate", "test-full-ignored"]
 
 [tasks.test-full-validate]
 depends = ["doctest", "test"]
-run = "cargo test -p pleiades-validate --lib --bins --tests -- --include-ignored"
+# Twice as many libtest threads as CPUs (FU-23). Several tests in this suite
+# only wait for a shared per-process run (the numeric battery, the crossings
+# and occultations gates, the release gate) and hold a thread while they do:
+# on the 4-core nightly runner the six battery tests left one thread working
+# for about 40 s. A waiting thread costs nothing and the gates run on their
+# own pools, so the extra threads only fill idle cores. `getconf` exists on
+# Linux and macOS and honours an affinity mask.
+run = "cargo test -p pleiades-validate --lib --bins --tests -- --include-ignored --test-threads=$(( 2 * $(getconf _NPROCESSORS_ONLN) ))"
 
 [tasks.test-full-ignored]
 depends = ["doctest", "test"]

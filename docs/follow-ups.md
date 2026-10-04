@@ -2675,6 +2675,15 @@ estimates from that run's timestamps, not measurements of a fix.
 - **(i) Returning the slow families to nextest** with an on-disk fixture
   cache keyed by content is the largest change and is not needed while
   libtest keeps the tier inside its budget.
+- **(j) Tests waiting on a shared gate run hold a libtest thread.** In
+  nightly run 37154489996 the six battery tests blocked three of the four
+  threads from about 60 s to 100 s of the lib suite, and the crossings,
+  occultations and release-gate sharers do the same later. →
+  **Done 2026-10-04:** `test-full-validate` passes
+  `--test-threads=$(( 2 * $(getconf _NPROCESSORS_ONLN) ))`, so a waiting
+  test no longer idles a core; the gates run on their own pools. Measured
+  on CI by dispatching the nightly on the branch before and after the
+  change; the figures are in the timings plan.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 
