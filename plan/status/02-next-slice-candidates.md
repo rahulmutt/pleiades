@@ -39,7 +39,7 @@ No open Phase 2 slices remain.
 
 ## Phase 3 — Body/backend claim closure
 
-- Resolve Pluto as validated, approximate, constrained, or excluded.
+- Resolve Pluto as validated, approximate, constrained, or excluded. — done for the algorithmic path (issue #129: Meeus Table 37.A, constrained).
 - Decide whether to implement fuller lunar theory or constrain lunar/lunar-point
   claims to the compact Meeus-style baseline.
 - Promote selected asteroid support only where source evidence and backend
