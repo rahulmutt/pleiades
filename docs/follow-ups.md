@@ -2024,7 +2024,10 @@ trend-free residual distribution supports that, but interpolation error in
 the packaged Moon velocity has not been separated out (tracked as #65).
 · **Follow-up issues:** #63 (comment documenting the topocentric exemption in
 `chart/mod.rs`), #64 (enforce the validated-row floor inside the true-node and
-Lilith gate functions, not only in the nightly test), #65 (residual
+Lilith gate functions, not only in the nightly test; resolved 2026-10-04: both
+gates now fail with `TooFewRowsValidated` below 3170 validated rows, per
+channel for the true node, as the mean-lunar and helio gates already did),
+#65 (residual
 attribution above). · **Severity:** accuracy (now closed) · **Opened:**
 2026-09-26 · **Merged:** PR #62 (2026-09-27)
 

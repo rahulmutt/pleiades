@@ -24,6 +24,10 @@ const LON_CEILING_ARCSEC: f64 = 460.0; // measured max 306.442"
 const LAT_CEILING_ARCSEC: f64 = 80.0; // measured max 53.007"
 const DIST_CEILING_REL: f64 = 2.34e-4; // measured max 1.56e-4
 
+/// Fail-closed floor on validated rows (corpus is 3177 rows; every row lies
+/// inside the packaged window, so skips should be zero).
+const MIN_ROWS_VALIDATED: usize = 3170;
+
 #[derive(Clone, Copy, Debug)]
 struct LilithRow {
     jd_tt: f64,
@@ -56,6 +60,10 @@ pub enum LilithCorpusError {
         residual: f64,
         ceiling: f64,
     },
+    TooFewRowsValidated {
+        validated: usize,
+        floor: usize,
+    },
 }
 
 impl std::fmt::Display for LilithCorpusError {
@@ -76,6 +84,9 @@ impl std::fmt::Display for LilithCorpusError {
                 f,
                 "lilith {kind} ceiling exceeded at jd_tt={jd_tt}: got {got:.6} want {want:.6} residual {residual:.4} > ceiling {ceiling:.4}"
             ),
+            Self::TooFewRowsValidated { validated, floor } => {
+                write!(f, "lilith: only {validated} rows validated, floor is {floor}")
+            }
         }
     }
 }
@@ -85,8 +96,9 @@ impl std::error::Error for LilithCorpusError {}
 #[derive(Debug)]
 pub struct LilithCorpusReport {
     pub rows_validated: usize,
-    /// Rows skipped because the packaged backend's coverage boundary (±0.5 day motion
-    /// probe) falls outside the supported range; typically ≤2 rows at 1900/2100 edges.
+    /// Rows skipped because the packaged backend reported the apogee's position
+    /// outside its coverage window. Zero on the committed corpus; the gate fails
+    /// if fewer than `MIN_ROWS_VALIDATED` rows are validated.
     pub rows_skipped_oor: usize,
     pub max_residual_lon_arcsec: f64,
     pub max_residual_lat_arcsec: f64,
@@ -180,14 +192,45 @@ pub fn validate_lilith_corpus() -> Result<LilithCorpusReport, LilithCorpusError>
         });
     }
 
-    let backend = PackagedDataBackend::new();
+    let m = measure(&PackagedDataBackend::new(), &rows)?;
+    let summary_line = format!(
+        "Lilith gate: {} rows validated ({} oor-skipped) vs Swiss Ephemeris SE_OSCU_APOG, max lon {:.3}\" lat {:.3}\" dist {:.2e} rel",
+        m.rows_validated, m.rows_skipped_oor, m.max_lon_arcsec, m.max_lat_arcsec, m.max_dist_rel,
+    );
+    Ok(LilithCorpusReport {
+        rows_validated: m.rows_validated,
+        rows_skipped_oor: m.rows_skipped_oor,
+        max_residual_lon_arcsec: m.max_lon_arcsec,
+        max_residual_lat_arcsec: m.max_lat_arcsec,
+        max_residual_dist_rel: m.max_dist_rel,
+        summary_line,
+    })
+}
+
+/// Residual maxima of one backend's true apogee over the corpus.
+struct Measurement {
+    rows_validated: usize,
+    rows_skipped_oor: usize,
+    max_lon_arcsec: f64,
+    max_lat_arcsec: f64,
+    max_dist_rel: f64,
+}
+
+/// Compares `backend`'s `TrueApogee`, taken through `apparent_apsis_position`,
+/// against every corpus row under the ceilings. `OutOfRangeInstant` rows are
+/// skipped, but the gate fails unless at least `MIN_ROWS_VALIDATED` rows (or
+/// every row, for a smaller corpus) are validated.
+fn measure<B: EphemerisBackend>(
+    backend: &B,
+    rows: &[LilithRow],
+) -> Result<Measurement, LilithCorpusError> {
     let mut max_lon = 0.0_f64;
     let mut max_lat = 0.0_f64;
     let mut max_dist = 0.0_f64;
     let mut validated = 0usize;
     let mut skipped_oor = 0usize;
 
-    for row in &rows {
+    for row in rows {
         let instant = Instant::new(JulianDay::from_days(row.jd_tt), TimeScale::Tt);
         let mean_result =
             backend.position(&EphemerisRequest::new(CelestialBody::TrueApogee, instant));
@@ -199,9 +242,9 @@ pub fn validate_lilith_corpus() -> Result<LilithCorpusReport, LilithCorpusError>
                     reason: "no ecliptic".into(),
                 })?,
             Err(ref e) if e.kind == EphemerisErrorKind::OutOfRangeInstant => {
-                // The packaged backend's ±0.5-day motion probe falls outside the
-                // 1900–2100 coverage window at the first/last rows. Skip silently;
-                // at most a handful of boundary rows are affected.
+                // Only a position outside the backend's window lands here: the
+                // packaged motion probe degrades to `None` channels instead of
+                // erroring. The floor below bounds how many rows may skip.
                 skipped_oor += 1;
                 continue;
             }
@@ -268,41 +311,47 @@ pub fn validate_lilith_corpus() -> Result<LilithCorpusReport, LilithCorpusError>
         validated += 1;
     }
 
-    let summary_line = format!(
-        "Lilith gate: {validated} rows validated ({skipped_oor} oor-skipped) vs Swiss Ephemeris SE_OSCU_APOG, max lon {max_lon:.3}\" lat {max_lat:.3}\" dist {max_dist:.2e} rel"
-    );
-    Ok(LilithCorpusReport {
+    let floor = MIN_ROWS_VALIDATED.min(rows.len());
+    if validated < floor {
+        return Err(LilithCorpusError::TooFewRowsValidated { validated, floor });
+    }
+
+    Ok(Measurement {
         rows_validated: validated,
         rows_skipped_oor: skipped_oor,
-        max_residual_lon_arcsec: max_lon,
-        max_residual_lat_arcsec: max_lat,
-        max_residual_dist_rel: max_dist,
-        summary_line,
+        max_lon_arcsec: max_lon,
+        max_lat_arcsec: max_lat,
+        max_dist_rel: max_dist,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::AlwaysOutOfRange;
+
+    #[test]
+    fn backend_that_skips_every_row_fails_the_gate() {
+        // #64: the floor must live in the gate, not only in this test module,
+        // so release-gate and the CLI cannot pass on a mass of skipped rows.
+        let rows = parse_corpus().expect("corpus parses");
+        let err = measure(&AlwaysOutOfRange::new(), &rows)
+            .err()
+            .expect("a backend that validates no rows must fail the gate");
+        let message = err.to_string();
+        assert!(
+            message.contains("0 rows validated, floor is 3170"),
+            "{message}"
+        );
+    }
 
     #[test]
     fn lilith_gate_passes_within_ceilings() {
+        // The gate itself enforces the validated-row floor (see
+        // `backend_that_skips_every_row_fails_the_gate`); every committed row
+        // lies inside the packaged window, so none is skipped.
         let report = validate_lilith_corpus().expect("lilith gate passes");
-        assert!(report.rows_validated > 0);
-        // Fail-closed floor: the OOR-skip is a single-boundary-row accommodation, not
-        // a license to silently validate almost nothing. Cap the skipped rows and
-        // require the corpus is overwhelmingly validated, so a future regression that
-        // mass-skips rows fails the gate instead of passing vacuously.
-        assert!(
-            report.rows_skipped_oor <= 5,
-            "too many oor-skipped rows: {} (expected the boundary handful); check coverage/probe logic",
-            report.rows_skipped_oor
-        );
-        assert!(
-            report.rows_validated >= 3170,
-            "too few rows validated: {} (corpus is 3177 rows)",
-            report.rows_validated
-        );
+        assert_eq!(report.rows_skipped_oor, 0);
         // Print measured maxima so the ceilings can be tightened.
         eprintln!("{}", report.summary_line());
     }
