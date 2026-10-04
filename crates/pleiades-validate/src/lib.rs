@@ -51,6 +51,8 @@ pub mod rise_trans_thresholds;
 pub mod rise_trans_validation;
 mod stations_thresholds;
 mod stations_validation;
+#[cfg(test)]
+mod test_support;
 mod topocentric_validation;
 mod true_node_validation;
 

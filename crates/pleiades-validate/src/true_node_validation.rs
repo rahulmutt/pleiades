@@ -45,6 +45,10 @@ const ELP_LON_CEILING_ARCSEC: f64 = 120.0; // measured max 78.0"
 const ELP_LAT_CEILING_ARCSEC: f64 = 1.0; // measured max 6.87e-11" (fp noise)
 const ELP_DIST_CEILING_REL: f64 = 6.4e-4; // measured max 4.189e-4
 
+/// Fail-closed floor on validated rows per channel (corpus is 3177 rows; every
+/// row lies inside the packaged window, so skips should be zero).
+const MIN_ROWS_VALIDATED: usize = 3170;
+
 /// Per-channel ceilings for one true-node backend.
 #[derive(Clone, Copy)]
 struct Ceilings {
@@ -99,6 +103,12 @@ pub enum TrueNodeCorpusError {
         residual: f64,
         ceiling: f64,
     },
+    TooFewRowsValidated {
+        /// Which channel fell short: `"packaged"` or `"elp"`.
+        backend: &'static str,
+        validated: usize,
+        floor: usize,
+    },
 }
 
 impl std::fmt::Display for TrueNodeCorpusError {
@@ -119,6 +129,10 @@ impl std::fmt::Display for TrueNodeCorpusError {
                 f,
                 "true-node ({backend}) {kind} ceiling exceeded at jd_tt={jd_tt}: got {got:.6} want {want:.6} residual {residual:.4} > ceiling {ceiling:.4}"
             ),
+            Self::TooFewRowsValidated { backend, validated, floor } => write!(
+                f,
+                "true-node ({backend}): only {validated} rows validated, floor is {floor}"
+            ),
         }
     }
 }
@@ -129,8 +143,9 @@ impl std::error::Error for TrueNodeCorpusError {}
 pub struct TrueNodeCorpusReport {
     /// Packaged (release-grade) channel: rows compared.
     pub rows_validated: usize,
-    /// Rows skipped because the packaged backend's coverage boundary (±0.5 day
-    /// motion probe) falls outside the supported range; a boundary handful at most.
+    /// Rows skipped because the packaged backend reported the node's position
+    /// outside its coverage window. Zero on the committed corpus; the gate fails
+    /// if fewer than `MIN_ROWS_VALIDATED` rows are validated.
     pub rows_skipped_oor: usize,
     pub max_residual_lon_arcsec: f64,
     pub max_residual_lat_arcsec: f64,
@@ -225,8 +240,9 @@ fn wrap_arcsec(got_deg: f64, want_deg: f64) -> f64 {
 
 /// Compares one backend's `TrueNode`, taken through `apparent_apsis_position`,
 /// against every corpus row under `ceilings`. `OutOfRangeInstant` rows are
-/// skipped (the packaged backend's window edges); every other failure is an
-/// error.
+/// skipped, but the channel fails unless at least `MIN_ROWS_VALIDATED` rows
+/// (or every row, for a smaller corpus) are validated; every other failure is
+/// an error.
 fn measure_channel<B: EphemerisBackend>(
     backend: &B,
     label: &'static str,
@@ -250,8 +266,9 @@ fn measure_channel<B: EphemerisBackend>(
                     reason: format!("{label}: no ecliptic"),
                 })?,
             Err(ref e) if e.kind == EphemerisErrorKind::OutOfRangeInstant => {
-                // ±0.5-day motion probe outside the 1900–2100 window at the
-                // first/last rows only.
+                // Only a position outside the backend's window lands here: the
+                // packaged motion probe degrades to `None` channels instead of
+                // erroring. The floor below bounds how many rows may skip.
                 skipped_oor += 1;
                 continue;
             }
@@ -321,6 +338,15 @@ fn measure_channel<B: EphemerisBackend>(
         validated += 1;
     }
 
+    let floor = MIN_ROWS_VALIDATED.min(rows.len());
+    if validated < floor {
+        return Err(TrueNodeCorpusError::TooFewRowsValidated {
+            backend: label,
+            validated,
+            floor,
+        });
+    }
+
     Ok(ChannelMeasurement {
         rows_validated: validated,
         rows_skipped_oor: skipped_oor,
@@ -384,23 +410,31 @@ pub fn validate_true_node_corpus() -> Result<TrueNodeCorpusReport, TrueNodeCorpu
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::AlwaysOutOfRange;
+
+    #[test]
+    fn channel_that_skips_every_row_fails_the_gate() {
+        // #64: the floor must live in the gate, not only in this test module,
+        // so release-gate and the CLI cannot pass on a mass of skipped rows.
+        let rows = parse_corpus().expect("corpus parses");
+        let err = measure_channel(&AlwaysOutOfRange::new(), "stub", &rows, PACKAGED_CEILINGS)
+            .err()
+            .expect("a channel that validates no rows must fail the gate");
+        let message = err.to_string();
+        assert!(
+            message.contains("0 rows validated, floor is 3170"),
+            "{message}"
+        );
+    }
 
     #[test]
     fn true_node_gate_passes_within_ceilings() {
+        // The gate itself enforces the validated-row floor (see
+        // `channel_that_skips_every_row_fails_the_gate`); every committed row
+        // lies inside the packaged window, so none is skipped.
         let report = validate_true_node_corpus().expect("true-node gate passes");
-        assert!(report.rows_validated > 0);
-        // Fail-closed floor: the OOR skip is a boundary-row accommodation, not a
-        // license to validate almost nothing.
-        assert!(
-            report.rows_skipped_oor <= 5,
-            "too many oor-skipped rows: {}",
-            report.rows_skipped_oor
-        );
-        assert!(
-            report.rows_validated >= 3170,
-            "too few rows validated: {} (corpus is 3177 rows)",
-            report.rows_validated
-        );
+        assert_eq!(report.rows_skipped_oor, 0);
+        assert_eq!(report.elp_rows_validated, report.rows_validated);
         // Print measured maxima so the ceilings can be set/tightened.
         eprintln!("{}", report.summary_line());
     }
