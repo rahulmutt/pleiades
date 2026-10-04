@@ -1,6 +1,6 @@
 # Pluto periodic-term fit for the algorithmic backends (issue #129) — design
 
-**Status:** draft for review · **Opened:** 2026-10-04 · **Issue:** #129 ·
+**Status:** approved (2026-10-04) · **Opened:** 2026-10-04 · **Issue:** #129 ·
 **Crates:** `pleiades-vsop87` (code, data, tests), `pleiades-validate`
 (comparison tolerance, docs), `pleiades-core` (compatibility profile)
 
@@ -113,16 +113,25 @@ module docs, like the VSOP87B tables cite IMCCE.
 - The Pluto catalog entry becomes `PeriodicTermFit`, provenance "Meeus
   Astronomical Algorithms Table 37.A periodic-term fit (Chapront, DE200),
   valid 1885–2099; mean-element fallback outside", source fidelity
-  `AccuracyClass::Exact` inside the window (the full published table), and a
-  `canonical_sample` at Example 37.a.
+  `AccuracyClass::Exact` (the full published table). It keeps
+  `canonical_sample: None`: canonical samples feed the J2000 geocentric
+  evidence summaries of the VSOP87B files, and Example 37.a is a
+  heliocentric check that lives in its own unit test instead.
+- Inside the window a Pluto result carries `QualityAnnotation::Exact`, as the
+  VSOP87B planets do; outside it carries `Approximate`.
 - `vsop87_body_claims()`: Pluto moves from `BodyClaim::approximate` to
   `BodyClaim::constrained(Pluto, Moderate, AlgorithmicModel)`, like every
   other body the backend serves.
-- `source_backed_body_profiles()` now includes Pluto and
-  `fallback_body_profiles()` returns an empty list. Both functions keep their
-  signatures; their docs and the `lib.rs` doctest change to match. The
-  `MeanOrbitalElements` variant stays (it still describes the out-of-window
-  path).
+- **Buckets (amended 2026-10-04, while planning):** "source-backed" keeps
+  meaning *backed by a vendored VSOP87B source file*, because the
+  regenerator, the source manifest and the source-documentation summary all
+  assume it. A new `Vsop87BodySourceKind::is_vsop87b()` decides the split:
+  `source_backed_body_profiles()` is the VSOP87B kinds (Sun–Neptune,
+  unchanged) and `fallback_body_profiles()` is every other kind, which is
+  still exactly Pluto, now with kind `PeriodicTermFit`. Its docs say "bodies
+  outside the VSOP87B files". Summary counts and body lists are unchanged;
+  only the kind label and provenance strings move. The `MeanOrbitalElements`
+  variant stays (it still describes the out-of-window path).
 
 ## 3. Validation
 
@@ -179,9 +188,10 @@ module docs, like the VSOP87B tables cite IMCCE.
 4. Every other body's output is bit-identical (VSOP87B paths untouched).
 5. `mise run ci` green; nightly green on the branch.
 
-## Open questions for review
+## Resolved review questions
 
-1. Is the mean-element fallback outside 1885–2099 acceptable, or should the
-   backend fail closed there for Pluto?
-2. Is a breaking `#[non_exhaustive]` on `Vsop87BodySourceKind` acceptable now,
-   or should only the variant be added?
+Spec approved 2026-10-04 with the defaults:
+
+1. Outside 1885–2099 Pluto keeps the mean-element fallback (no fail-closed).
+2. `Vsop87BodySourceKind` gains the variant and becomes `#[non_exhaustive]`
+   in the same breaking change.
