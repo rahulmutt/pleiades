@@ -62,14 +62,19 @@ run = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
 # selected test list is identical either way; `lint` (`--all-targets`) still
 # compile-checks the excluded test code in the blocking tier.
 depends = ["test-build"]
-run = "cargo nextest run --workspace --exclude pleiades-validate"
+run = "cargo nextest run --binaries-metadata target/nextest-binaries.json --cargo-metadata target/nextest-cargo-metadata.json"
 
 [tasks.test-build]
-# Compile `test`'s binaries as a step of its own, so that `test-full-build`
-# can start compiling once this finishes, while `test` runs. Without it, the
-# two raced for cargo's build lock, and when `test-full-build` won, `test` did
-# not start running until it was done.
-run = "cargo nextest run --workspace --exclude pleiades-validate --no-run"
+# Compile `test`'s binaries as a step of its own and record what was built, so
+# `test` runs them from that record (nextest's reuse-build mode) without
+# invoking cargo, and `test-full-build` can compile while `test` runs (FU-23
+# (m)). A plain `cargo nextest run` starts with a cargo build, even a no-op one,
+# which waits on the build-directory lock for as long as `test-full-build`
+# holds it: nightly runs 37230857839 and 37230859135 lost the whole overlap so.
+run = [
+  "cargo nextest list --workspace --exclude pleiades-validate --list-type binaries-only --message-format json > target/nextest-binaries.json",
+  "cargo metadata --format-version 1 > target/nextest-cargo-metadata.json",
+]
 
 [tasks.doctest]
 run = "cargo test --doc --workspace"
