@@ -3,9 +3,9 @@
 //! a committed CSV at build time.
 
 use crate::error::EventError;
-use crate::solar::sun_true_longitude_of_date_deg;
 use pleiades_apparent::aberration::annual_aberration;
 use pleiades_apparent::nutation::nutation;
+use pleiades_apparent::sun_true_longitude_of_date_deg;
 use pleiades_apparent::{apparent_equatorial_of_date, precess_ecliptic_j2000_to_date};
 use pleiades_types::{
     Angle, EclipticCoordinates, EquatorialCoordinates, Instant, Latitude, Longitude,

@@ -3,12 +3,11 @@
 //! mean-of-date, and heliocentric.
 
 use crate::error::EventError;
-use crate::solar::sun_true_longitude_of_date_deg;
 use crate::state_vector::cartesian_velocity;
 use pleiades_apparent::nutation::nutation;
 use pleiades_apparent::{
     apparent_apsis_position, apparent_position, apparent_sun_position,
-    precess_ecliptic_j2000_to_date, DEFAULT_MAX_ITERATIONS,
+    precess_ecliptic_j2000_to_date, sun_true_longitude_of_date_deg, DEFAULT_MAX_ITERATIONS,
 };
 use pleiades_backend::{EphemerisBackend, EphemerisRequest};
 use pleiades_types::{

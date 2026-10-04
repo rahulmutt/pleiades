@@ -179,3 +179,19 @@ fn aberration_in_latitude_is_signed_not_merely_bounded() {
         off.d_lambda_arcsec
     );
 }
+
+#[test]
+fn meeus_sun_matches_example_25a() {
+    // Meeus, Astronomical Algorithms, example 25.a: 1992 October 13.0 TD,
+    // JD 2448908.5, true longitude ☉ = 199°.90988 (L0 + C).
+    let lon = super::sun_true_longitude_of_date_deg(2_448_908.5);
+    assert!((lon - 199.909_88).abs() < 1e-5, "{lon}");
+}
+
+#[test]
+fn meeus_sun_is_normalized() {
+    for jd in [2_305_447.5, 2_451_545.0, 2_524_593.5] {
+        let lon = super::sun_true_longitude_of_date_deg(jd);
+        assert!((0.0..360.0).contains(&lon), "{jd}: {lon}");
+    }
+}

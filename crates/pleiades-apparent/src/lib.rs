@@ -96,7 +96,7 @@ pub use sidereal::{
 
 pub mod aberration;
 
-pub use aberration::AberrationOffset;
+pub use aberration::{sun_true_longitude_of_date_deg, AberrationOffset};
 
 pub mod lighttime;
 
