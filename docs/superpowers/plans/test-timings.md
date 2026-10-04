@@ -399,6 +399,31 @@ slows from about 58 s to 70–90 s with the two sharing four cores. The `test-fu
 `pleiades-validate` half, whose long pole is the stations gate, now ends about 50 s after the
 other `test-full` tasks, so a further cut has to shorten that suite.
 
+### FU-23 item (p), 2026-10-04
+
+With the tier down to a few minutes, the blocking `mise run ci` became the longer tier, and its
+nextest run (67 s on the `main` push CI run 37230900043) was set by two tests: the `pleiades-cli`
+crossings alias test (three full crossings gate runs, 47.8 s) and the `pleiades-eclipse`
+window-end test (42.4 s, see (q)). The nightly `test` step runs the same selection. (p) keeps one
+real crossings run and proves the two other names' routing by their extra-argument error.
+
+Two nightlies on `main` (`baf6b3903`) and two on the branch. The `main` runs rebuilt the whole
+workspace after #137 had changed `pleiades-jpl`, so nextest shared its cores with a longer compile
+than on the branch, which only rebuilt `pleiades-cli`'s tests; the tier totals (426 s against
+120–210 s) are therefore not comparable, and the per-test rows are the evidence. Seconds:
+
+| Test | `main` 1 (37233188362) | `main` 2 (37233194338) | Branch 1 (37234780388) | Branch 2 (37234786315) |
+|------|---:|---:|---:|---:|
+| `crossings_alias_dispatches_to_validate` | 46.1 | 49.8 | 5.6 | 13.9 |
+| `validate_eclipses_command_forwards_to_validate_crate` (unchanged, reference) | 9.0 | 10.2 | 4.8 | 12.5 |
+| `previous_eclipse_at_window_end_does_not_error` (unchanged) | 63.3 | 65.9 | 17.2 | 35.9 |
+| nextest run (`Summary`) | 81.5 | 84.4 | 26.3 | 54.0 |
+
+The crossings test fell from 46–50 s to 6–14 s, while the unchanged eclipses forwarding test,
+which does the same kind of work, took 0.5–1.4× its `main` time, so the cut is not a runner
+effect. The unchanged eclipse window-end test, last to finish, still set the length of the
+nextest run.
+
 ---
 
 ## Section 1: Timing Inventory
