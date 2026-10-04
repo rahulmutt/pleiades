@@ -133,5 +133,39 @@ pub fn precess_ecliptic_j2000_to_date(
     })
 }
 
+/// Rotates a Cartesian ecliptic vector `[x, y, z]` from the J2000 mean
+/// equinox/ecliptic into the mean equinox/ecliptic of date `jd_tt`, preserving
+/// its magnitude.
+///
+/// Precession is a rotation, so the same map applies to a position and to a
+/// velocity vector alike; this is what lets an osculating lunar orbit be formed
+/// in the of-date plane from a J2000 state (position and velocity differenced
+/// in J2000, then both rotated once). The zero vector is returned unchanged.
+///
+/// # Errors
+///
+/// Returns [`ApparentPlaceError::NonFiniteCorrection`] if any component is
+/// non-finite or the direction cannot be precessed.
+pub fn precess_ecliptic_vector_j2000_to_date(
+    v: [f64; 3],
+    jd_tt: f64,
+) -> Result<[f64; 3], ApparentPlaceError> {
+    let r = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
+    if !r.is_finite() {
+        return Err(ApparentPlaceError::NonFiniteCorrection {
+            stage: "precession",
+        });
+    }
+    if r == 0.0 {
+        return Ok(v);
+    }
+    let lon_deg = v[1].atan2(v[0]).to_degrees().rem_euclid(360.0);
+    let lat_deg = (v[2] / r).clamp(-1.0, 1.0).asin().to_degrees();
+    let p = precess_ecliptic_j2000_to_date(lon_deg, lat_deg, jd_tt)?;
+    let (sl, cl) = p.longitude_deg.to_radians().sin_cos();
+    let (sb, cb) = p.latitude_deg.to_radians().sin_cos();
+    Ok([r * cb * cl, r * cb * sl, r * sb])
+}
+
 #[cfg(test)]
 mod tests;

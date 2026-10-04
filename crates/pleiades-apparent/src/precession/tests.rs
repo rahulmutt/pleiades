@@ -158,3 +158,64 @@ fn overflow_epoch_fails_closed_in_both_directions() {
         "J2000->date: expected NonFiniteCorrection, got {err:?}"
     );
 }
+
+#[test]
+fn vector_precession_preserves_magnitude_and_matches_the_angular_form() {
+    // A Moon-scale vector well off the ecliptic, one century from J2000.
+    let v = [0.002_1, -0.001_3, 0.000_2];
+    let jd = 2_488_070.0;
+    let out = precess_ecliptic_vector_j2000_to_date(v, jd).unwrap();
+    let r_in = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
+    let r_out = (out[0] * out[0] + out[1] * out[1] + out[2] * out[2]).sqrt();
+    assert!((r_in - r_out).abs() < 1e-15, "magnitude {r_in} -> {r_out}");
+    let lon = v[1].atan2(v[0]).to_degrees().rem_euclid(360.0);
+    let lat = (v[2] / r_in).asin().to_degrees();
+    let p = precess_ecliptic_j2000_to_date(lon, lat, jd).unwrap();
+    let lon_out = out[1].atan2(out[0]).to_degrees().rem_euclid(360.0);
+    let lat_out = (out[2] / r_out).asin().to_degrees();
+    assert!(
+        (lon_out - p.longitude_deg).abs() < 1e-9,
+        "{lon_out} vs {}",
+        p.longitude_deg
+    );
+    assert!(
+        (lat_out - p.latitude_deg).abs() < 1e-9,
+        "{lat_out} vs {}",
+        p.latitude_deg
+    );
+    // Precession turns the vector by ~1.4 deg per century, so it must move.
+    assert!((lon_out - lon).abs() > 1.0);
+}
+
+#[test]
+fn vector_precession_is_a_rotation_so_it_commutes_with_scaling() {
+    // The same map must serve position and velocity vectors: f(k v) = k f(v).
+    let v = [-0.000_4, 0.000_35, 0.000_05];
+    let jd = 2_415_020.5;
+    let a = precess_ecliptic_vector_j2000_to_date(v, jd).unwrap();
+    let b = precess_ecliptic_vector_j2000_to_date([v[0] * 250.0, v[1] * 250.0, v[2] * 250.0], jd)
+        .unwrap();
+    for i in 0..3 {
+        assert!(
+            (a[i] * 250.0 - b[i]).abs() < 1e-12,
+            "component {i}: {} vs {}",
+            a[i] * 250.0,
+            b[i]
+        );
+    }
+}
+
+#[test]
+fn vector_precession_leaves_the_zero_vector_alone_and_rejects_non_finite() {
+    assert_eq!(
+        precess_ecliptic_vector_j2000_to_date([0.0; 3], 2_451_545.0).unwrap(),
+        [0.0; 3]
+    );
+    let err = precess_ecliptic_vector_j2000_to_date([f64::NAN, 0.0, 0.0], 2_451_545.0).unwrap_err();
+    assert!(matches!(
+        err,
+        ApparentPlaceError::NonFiniteCorrection {
+            stage: "precession"
+        }
+    ));
+}

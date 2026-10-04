@@ -1,5 +1,7 @@
 //! `ElpBackend` struct and `EphemerisBackend` implementation.
 
+use pleiades_apparent::precess_ecliptic_vector_j2000_to_date;
+use pleiades_apsides::{elements_from_state, points_from_elements, MU_EARTH_MOON_AU3_PER_DAY2};
 use pleiades_backend::{
     validate_observer_policy, validate_request_policy, validate_zodiac_policy, AccuracyClass,
     BackendCapabilities, BackendFamily, BackendId, BackendMetadata, BackendProvenance, BodyClaim,
@@ -28,8 +30,10 @@ pub struct ElpBackend;
 /// listed as Unsupported by this backend. Note: the osculating true apogee/perigee (True Lilith)
 /// and the osculating true node are served release-grade by `PackagedDataBackend` ahead of this
 /// backend in the composite routing chain, so the ELP-local `Unsupported` apsis claims are not a
-/// global gap, and this backend's `TrueNode` (Meeus's periodic-term-corrected mean node, ±0.14°
-/// from Swiss Ephemeris' osculating node — issue #58) is reached only by direct ELP consumers.
+/// global gap. This backend's own `TrueNode` is the osculating ascending node formed from the
+/// compact ELP Moon state (issue #127; it replaced Meeus's periodic-term-corrected mean node,
+/// which reached 17′ from Swiss Ephemeris); it is reached by direct ELP and artifact-free
+/// composite consumers and is held within 2′ of `SE_TRUE_NODE` by the `validate-true-node` gate.
 /// Likewise `MeanApogee`/`MeanPerigee` here are the raw mean longitude-of-perigee element with
 /// latitude 0, up to about 7′ in longitude and 5.1° in latitude from Swiss Ephemeris'
 /// `SE_MEAN_APOG` point; routed charts get the Swiss Ephemeris point from `pleiades-data` (#90).
@@ -94,32 +98,94 @@ impl ElpBackend {
         Self::ecliptic_of_date_to_j2000(longitude, latitude, Some(distance_au), jd_tt)
     }
 
-    /// Of-date longitude of a lunar point channel (node or mean apsis), straight
-    /// from the Meeus Ch. 47 polynomials (mean equinox of date). `None` for any
-    /// body that is not a lunar point channel.
-    fn point_longitude_of_date(body: &CelestialBody, days: f64) -> Option<Longitude> {
+    /// Of-date position of a lunar point channel in the mean ecliptic of date:
+    /// the mean node and mean apsides straight from the Meeus Ch. 47
+    /// polynomials at latitude 0 and no distance, the true node as the
+    /// osculating node with the orbit radius at the node. `None` for any body
+    /// that is not a lunar point channel, or when the osculating node is
+    /// undefined for the lunar state (a degenerate orbit, which the Moon never
+    /// presents in practice).
+    fn point_of_date(body: &CelestialBody, days: f64) -> Option<EclipticCoordinates> {
         let degrees = match body {
             CelestialBody::MeanNode => Self::mean_node_longitude(days),
-            CelestialBody::TrueNode => Self::true_node_longitude(days),
+            CelestialBody::TrueNode => return Self::osculating_true_node_of_date(days),
             CelestialBody::MeanApogee => Self::mean_apogee_longitude(days),
             CelestialBody::MeanPerigee => Self::mean_perigee_longitude(days),
             _ => return None,
         };
-        Some(Longitude::from_degrees(degrees))
+        Some(EclipticCoordinates::new(
+            Longitude::from_degrees(degrees),
+            Latitude::from_degrees(0.0),
+            None,
+        ))
     }
 
     /// J2000 boundary coordinates of a lunar point channel: the of-date point
-    /// `(lon, 0)` precessed back to J2000 exactly like the Moon. Expressed in
-    /// J2000 the point carries a small non-zero latitude (≈±0.003° in 2026, the
-    /// tilt between the two ecliptics); the consumer's forward J2000->date
-    /// precession restores `(lon, 0)`.
+    /// precessed back to J2000 exactly like the Moon. Expressed in J2000 the
+    /// point carries a small non-zero latitude (≈±0.003° in 2026, the tilt
+    /// between the two ecliptics); the consumer's forward J2000->date
+    /// precession restores the of-date point on the ecliptic.
     fn point_ecliptic_j2000(body: &CelestialBody, days: f64) -> Option<EclipticCoordinates> {
-        let longitude = Self::point_longitude_of_date(body, days)?;
+        let of_date = Self::point_of_date(body, days)?;
         Some(Self::ecliptic_of_date_to_j2000(
-            longitude,
-            Latitude::from_degrees(0.0),
-            None,
+            of_date.longitude,
+            of_date.latitude,
+            of_date.distance_au,
             crate::J2000 + days,
+        ))
+    }
+
+    /// Geocentric J2000 Cartesian position of the compact ELP Moon, AU.
+    fn moon_cartesian_j2000(days: f64) -> [f64; 3] {
+        let moon = Self::moon_ecliptic_coordinates(days);
+        let (sin_lon, cos_lon) = moon.longitude.degrees().to_radians().sin_cos();
+        let (sin_lat, cos_lat) = moon.latitude.degrees().to_radians().sin_cos();
+        let distance = moon
+            .distance_au
+            .expect("the ELP Moon series always carries a distance");
+        [
+            distance * cos_lat * cos_lon,
+            distance * cos_lat * sin_lon,
+            distance * sin_lat,
+        ]
+    }
+
+    /// The osculating ascending node of the geocentric lunar orbit, in the mean
+    /// ecliptic of date, with the orbit radius at the node as its distance.
+    ///
+    /// This is the same construction `PackagedDataBackend` uses for its
+    /// release-grade `TrueNode`, applied to the compact ELP Moon: the J2000
+    /// position is differenced over ±1e-4 day (Swiss Ephemeris'
+    /// `NODE_CALC_INTV`) for the velocity, position and velocity are rotated
+    /// once into the mean ecliptic of date, and the Keplerian node is formed
+    /// there (forming it in J2000 and rotating the point would misplace a
+    /// low-inclination node by ≈ tilt / sin i). Differencing in J2000 rather
+    /// than of-date keeps the precession rate out of the velocity.
+    ///
+    /// Against Swiss Ephemeris `SE_TRUE_NODE` over 1900–2100 the result sits
+    /// within 1.3′ (median 0.19′), set by the truncated Moon series; the
+    /// Meeus Ch. 47 periodic-term node it replaced reached 17.4′ (issue #127).
+    /// The chart layer's forward precession plus Δψ then reproduces
+    /// `SE_TRUE_NODE` with nutation on.
+    fn osculating_true_node_of_date(days: f64) -> Option<EclipticCoordinates> {
+        const HALF_STEP_DAYS: f64 = 1.0e-4;
+        let jd_tt = crate::J2000 + days;
+        let position = Self::moon_cartesian_j2000(days);
+        let before = Self::moon_cartesian_j2000(days - HALF_STEP_DAYS);
+        let after = Self::moon_cartesian_j2000(days + HALF_STEP_DAYS);
+        let velocity = [
+            (after[0] - before[0]) / (2.0 * HALF_STEP_DAYS),
+            (after[1] - before[1]) / (2.0 * HALF_STEP_DAYS),
+            (after[2] - before[2]) / (2.0 * HALF_STEP_DAYS),
+        ];
+        let position = precess_ecliptic_vector_j2000_to_date(position, jd_tt).ok()?;
+        let velocity = precess_ecliptic_vector_j2000_to_date(velocity, jd_tt).ok()?;
+        let elements = elements_from_state(position, velocity, MU_EARTH_MOON_AU3_PER_DAY2).ok()?;
+        let node = points_from_elements(&elements, false).ok()?.ascending;
+        Some(EclipticCoordinates::new(
+            Longitude::from_degrees(node.longitude_deg),
+            Latitude::from_degrees(node.latitude_deg),
+            Some(node.distance_au),
         ))
     }
 
@@ -145,51 +211,6 @@ impl ElpBackend {
     /// remains for direct ELP consumers as a documented approximation (#90).
     fn mean_apogee_longitude(days: f64) -> f64 {
         series::normalize_degrees(Self::mean_perigee_longitude(days) + 180.0)
-    }
-
-    /// Meeus Ch. 47 "true" node: the mean node plus five periodic terms in D,
-    /// M, M′ and F. This is an analytic approximation of the osculating node,
-    /// **not** the osculating node itself; against Swiss Ephemeris
-    /// `SE_TRUE_NODE` (same frame) it wanders by −0.137°…+0.141° across 2026
-    /// (issue #58). The routed chart chain serves the osculating node from
-    /// `PackagedDataBackend` instead; this channel remains for direct ELP
-    /// consumers as a documented approximation.
-    fn true_node_longitude(days: f64) -> f64 {
-        let t = days / 36_525.0;
-        let mean_node = Self::mean_node_longitude(days).to_radians();
-        let mean_elongation = series::normalize_degrees(
-            297.850_192_1
-                + (445_267.111_403_4
-                    + (-0.001_881_9 + (1.0 / 545_868.0 - t / 113_065_000.0) * t) * t)
-                    * t,
-        )
-        .to_radians();
-        let solar_anomaly = series::normalize_degrees(
-            357.529_109_2 + (35_999.050_290_9 + (-0.000_153_6 + t / 24_490_000.0) * t) * t,
-        )
-        .to_radians();
-        let lunar_anomaly = series::normalize_degrees(
-            134.963_396_4
-                + (477_198.867_505_5 + (0.008_741_4 + (1.0 / 69_699.9 + t / 14_712_000.0) * t) * t)
-                    * t,
-        )
-        .to_radians();
-        let latitude_argument = series::normalize_degrees(
-            93.272_095_0
-                + (483_202.017_523_3
-                    + (-0.003_653_9 + (-1.0 / 3_526_000.0 + t / 863_310_000.0) * t) * t)
-                    * t,
-        )
-        .to_radians();
-
-        series::normalize_degrees(
-            mean_node.to_degrees()
-                + (-1.4979 * (2.0 * (mean_elongation - latitude_argument)).sin()
-                    - 0.15 * solar_anomaly.sin()
-                    - 0.1226 * (2.0 * mean_elongation).sin()
-                    + 0.1176 * (2.0 * latitude_argument).sin()
-                    - 0.0801 * (2.0 * (lunar_anomaly - latitude_argument)).sin()),
-        )
     }
 
     fn ecliptic_for_body(body: CelestialBody, days: f64) -> Option<EclipticCoordinates> {
@@ -342,23 +363,27 @@ impl EphemerisBackend for ElpBackend {
                 ));
             }
             point => {
-                let Some(of_date_longitude) = Self::point_longitude_of_date(point, days) else {
-                    unreachable!("body support should be validated before position queries")
+                // Body support is validated above, so `None` here means the
+                // osculating node is undefined for the lunar state.
+                let Some(of_date) = Self::point_of_date(point, days) else {
+                    return Err(EphemerisError::new(
+                        EphemerisErrorKind::InvalidRequest,
+                        "the osculating lunar node is undefined for the ELP Moon state at this instant",
+                    ));
                 };
-                let of_date_latitude = Latitude::from_degrees(0.0);
                 // J2000 boundary, like the Moon.
                 result.ecliptic = Some(Self::ecliptic_of_date_to_j2000(
-                    of_date_longitude,
-                    of_date_latitude,
-                    None,
+                    of_date.longitude,
+                    of_date.latitude,
+                    of_date.distance_au,
                     crate::J2000 + days,
                 ));
                 // Mean-obliquity equatorial from the of-date point, like the Moon.
                 result.equatorial = Some(Self::ecliptic_point_to_equatorial(
-                    of_date_longitude,
-                    of_date_latitude,
+                    of_date.longitude,
+                    of_date.latitude,
                     req.instant,
-                    None,
+                    of_date.distance_au,
                 ));
             }
         }

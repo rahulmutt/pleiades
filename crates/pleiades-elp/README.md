@@ -13,6 +13,14 @@ element with latitude 0; they differ from Swiss Ephemeris' `SE_MEAN_APOG` point
 by up to about 7′ in longitude and 5.1° in latitude. The routed chart chain
 serves the Swiss Ephemeris point from `pleiades-data` instead.
 
+The `TrueNode` channel is the osculating ascending node formed from this
+backend's own Moon state (position differenced for velocity, node formed in the
+mean ecliptic of date). Against Swiss Ephemeris `SE_TRUE_NODE` over 1900–2100
+it stays within 1.3′ (median 0.19′), the truncated Moon series setting the
+floor; the `validate-true-node` gate holds it under 2′. The routed chart chain
+serves the packaged osculating node (arcsecond-class) from `pleiades-data`
+ahead of this one.
+
 ## Status
 
 Experimental, pre-1.0: breaking changes can land in any minor release. This backend returns mean geometric coordinates and rejects apparent and topocentric requests; the chart layer in `pleiades-core` applies those corrections on top of a backend. See the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
