@@ -121,10 +121,14 @@ pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
         LunarReferenceSample {
             body: CelestialBody::TrueNode,
             epoch: Instant::new(pleiades_types::JulianDay::from_days(crate::J2000), TimeScale::Tt),
-            longitude_deg: 123.926_171_368_400_46,
+            // Regression anchor captured from this implementation's osculating
+            // node (issue #127), not an independent reference: the Swiss
+            // Ephemeris pin is `true_node_matches_swiss_ephemeris_osculating_node_rows`
+            // (14.5″ away here through the Δψ path).
+            longitude_deg: 123.953_153_545,
             latitude_deg: 0.0,
-            distance_au: None,
-            note: "J2000 true node reference used to anchor the lunar point model",
+            distance_au: Some(0.002_445_209_430),
+            note: "J2000 osculating true node anchor for the lunar point model (regression anchor; Swiss Ephemeris SE_TRUE_NODE rows pin it independently)",
         },
         LunarReferenceSample {
             body: CelestialBody::MeanNode,
@@ -175,12 +179,14 @@ pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
         LunarReferenceSample {
             body: CelestialBody::TrueNode,
             epoch: Instant::new(pleiades_types::JulianDay::from_days(2_419_914.5), TimeScale::Tt),
-            // J2000 ecliptic boundary: the published of-date value (lon=0.876_3, lat=0.0)
-            // precessed back to J2000.
-            longitude_deg: 2.085_852_606,
-            latitude_deg: 0.001_378_820,
-            distance_au: None,
-            note: "Published 1913-05-27 true ascending node example used to anchor the lunar node model",
+            // J2000 ecliptic boundary of the osculating node at the epoch of the
+            // 1913-05-27 mean-node example; a regression anchor captured from this
+            // implementation (issue #127). Meeus's periodic-term node here was
+            // 2.085_852_606 (published of-date 0.876_3), 0.055° away.
+            longitude_deg: 2.030_621_625,
+            latitude_deg: 0.001_367_995,
+            distance_au: Some(0.002_691_726_712),
+            note: "1913-05-27 osculating true ascending node anchor at the epoch of the published mean-node example (regression anchor)",
         },
     ];
 
@@ -608,7 +614,7 @@ impl LunarReferenceEvidenceSummary {
     /// Returns the release-facing one-line lunar reference evidence summary.
     pub fn summary_line(&self) -> String {
         format!(
-            "lunar reference evidence: {} samples across {} bodies, epoch range {}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point anchors, including the mean apogee and mean perigee references, published 1913-05-27 true-node and 1959-12-07 mean-node examples, and a published 2021-03-05 mean-perigee example",
+            "lunar reference evidence: {} samples across {} bodies, epoch range {}, validated against the published 1992-04-12 Moon example plus J2000 lunar-point anchors, including the mean apogee and mean perigee references, published 1913-05-27 and 1959-12-07 mean-node examples, Swiss Ephemeris SE_TRUE_NODE osculating-node rows for the true node, and a published 2021-03-05 mean-perigee example",
             self.sample_count,
             self.body_count,
             crate::format_epoch_range(self.earliest_epoch, self.latest_epoch),

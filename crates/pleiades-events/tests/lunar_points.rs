@@ -1,7 +1,8 @@
 //! Lunar orbit points (mean and true node, mean apogee and perigee) in the
 //! geocentric frames (issue #118).
 //!
-//! The ELP backend serves the lunar points as directions, without a distance.
+//! The ELP backend serves the mean lunar points as directions, without a
+//! distance (its osculating true node carries the orbit radius at the node).
 //! The chart layer reduces them with precession and nutation only (no
 //! light-time, no aberration), and the event engine must evaluate them the
 //! same way instead of rejecting them for the missing distance. "Node minus
@@ -132,7 +133,28 @@ fn composite_lunar_points_mean_of_date_is_apparent_without_nutation() {
 }
 
 #[test]
-fn composite_lunar_point_position_has_no_distance() {
+fn composite_mean_lunar_point_position_has_no_distance() {
+    // The ELP mean node is a direction without a distance; the engine must
+    // serve it as such rather than reject it (issue #118).
+    let engine = EventEngine::new(composite());
+    for frame in [APPARENT, MEAN] {
+        let pos = engine
+            .position_at(CelestialBody::MeanNode, frame, tdb(ISSUE_118_JD))
+            .unwrap_or_else(|e| panic!("{frame:?}: {e}"));
+        let lon = engine
+            .longitude_at(CelestialBody::MeanNode, frame, tdb(ISSUE_118_JD))
+            .unwrap();
+        assert_eq!(pos.ecliptic.longitude, lon, "{frame:?}");
+        assert_eq!(pos.ecliptic.distance_au, None, "{frame:?}");
+        assert!(pos.ecliptic.latitude.degrees().is_finite());
+    }
+}
+
+#[test]
+fn composite_true_node_position_carries_the_orbit_radius_at_the_node() {
+    // Since issue #127 the ELP true node is the osculating node and carries
+    // the orbit radius at the node, like the packaged node; the engine passes
+    // that distance through unchanged in both geocentric frames.
     let engine = EventEngine::new(composite());
     for frame in [APPARENT, MEAN] {
         let pos = engine
@@ -142,7 +164,14 @@ fn composite_lunar_point_position_has_no_distance() {
             .longitude_at(CelestialBody::TrueNode, frame, tdb(ISSUE_118_JD))
             .unwrap();
         assert_eq!(pos.ecliptic.longitude, lon, "{frame:?}");
-        assert_eq!(pos.ecliptic.distance_au, None, "{frame:?}");
+        let distance = pos
+            .ecliptic
+            .distance_au
+            .unwrap_or_else(|| panic!("{frame:?}: the osculating node should carry a distance"));
+        assert!(
+            (0.0024..0.0028).contains(&distance),
+            "{frame:?}: node distance {distance} AU outside the lunar orbit range"
+        );
         assert!(pos.ecliptic.latitude.degrees().is_finite());
     }
 }

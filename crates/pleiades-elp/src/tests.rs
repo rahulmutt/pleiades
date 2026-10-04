@@ -979,7 +979,7 @@ fn published_eclipsewise_apparent_moon_example_matches_the_shared_mean_obliquity
 }
 
 #[test]
-fn published_true_node_example_matches_reference() {
+fn true_node_anchor_matches_the_osculating_node_at_1913() {
     let backend = ElpBackend::new();
     let instant = Instant::new(
         pleiades_types::JulianDay::from_days(2_419_914.5),
@@ -991,14 +991,18 @@ fn published_true_node_example_matches_reference() {
     let ecliptic = result.ecliptic.expect("ecliptic result should exist");
     let motion = result.motion.expect("motion should be populated");
 
-    // J2000 ecliptic boundary values (the backend emits J2000, not of-date).
-    // The published of-date values are lon=0.876_3, lat=0.0; precessed back to
-    // J2000 they shift by ~+1.21° in longitude and pick up a ~0.0014° latitude.
-    // `lunar_point_channels_round_trip_to_the_published_of_date_values` pins the
-    // of-date value itself.
-    assert!((ecliptic.longitude.degrees() - 2.085_852_606).abs() < 1e-6);
-    assert!((ecliptic.latitude.degrees() - 0.001_378_820).abs() < 1e-6);
-    assert_eq!(ecliptic.distance_au, None);
+    // J2000 ecliptic boundary values (the backend emits J2000, not of-date) of
+    // the osculating node at the epoch of Meeus's 1913-05-27 mean-node
+    // example. This is a regression anchor captured from this implementation
+    // (issue #127); the independent Swiss Ephemeris pin is
+    // `true_node_matches_swiss_ephemeris_osculating_node_rows`. Meeus's
+    // periodic-term node at this epoch (2.085_85° in J2000) sits 0.055° away.
+    assert!((ecliptic.longitude.degrees() - 2.030_621_625).abs() < 1e-6);
+    assert!((ecliptic.latitude.degrees() - 0.001_367_995).abs() < 1e-6);
+    let distance = ecliptic
+        .distance_au
+        .expect("the osculating node carries the orbit radius at the node");
+    assert!((distance - 0.002_691_726_712).abs() < 1e-9);
     assert!(motion
         .longitude_deg_per_day
         .expect("longitude speed should exist")
@@ -1012,8 +1016,124 @@ fn published_true_node_example_matches_reference() {
             .abs()
             < 1e-4
     );
-    assert_eq!(motion.distance_au_per_day, None);
+    assert!(motion
+        .distance_au_per_day
+        .expect("distance speed should exist")
+        .is_finite());
     assert_eq!(result.quality, QualityAnnotation::Approximate);
+}
+
+/// Swiss Ephemeris 2.10.03 Moshier `swe_nod_aps(SE_MOON, SE_NODBIT_OSCU)`
+/// ascending-node rows (nutation on), copied verbatim from
+/// `crates/pleiades-validate/data/nod-aps-corpus/nod-aps.csv` (`Moon,1,2,0,...`
+/// rows). For the Moon this is `SE_TRUE_NODE`. The same literal rows pin the
+/// packaged osculating node in `pleiades-data`; `pleiades-elp` cannot depend
+/// on `pleiades-validate` either. (jd_tt, lon_deg, lat_deg, dist_au)
+const SE_MOON_OSCULATING_NODE_ROWS: [(f64, f64, f64, f64); 8] = [
+    (2_415_100.5, 253.688_930_115, 0.0, 0.002_591_180),
+    (2_433_282.5, 12.557_322_345, 0.0, 0.002_703_927),
+    (2_441_683.5, 286.802_808_001, 0.0, 0.002_662_306),
+    (2_451_545.0, 123.953_312_512, 0.0, 0.002_445_371),
+    (2_459_000.5, 89.238_590_091, 0.0, 0.002_613_909),
+    (2_466_154.5, 72.822_192_397, 0.0, 0.002_701_149),
+    (2_477_476.5, 192.234_537_069, 0.0, 0.002_612_164),
+    (2_488_021.5, 354.954_487_171, 0.0, 0.002_733_866),
+];
+
+#[test]
+fn true_node_matches_swiss_ephemeris_osculating_node_rows() {
+    // Regression for issue #127: the Meeus Ch. 47 periodic-term node this
+    // channel used to serve reached 17.4′ from SE_TRUE_NODE (p50 3.2′) over
+    // 1900–2100; the osculating node formed from the ELP Moon stays within
+    // 1.3′ over the full 3177-row corpus (the `validate-true-node` gate holds
+    // it under 2′) and within 17.5″ on these eight rows. The Meeus node is
+    // 97″ off at J2000 alone, so this test discriminates the two models.
+    let backend = ElpBackend::new();
+    for (jd_tt, se_lon, se_lat, se_dist) in SE_MOON_OSCULATING_NODE_ROWS {
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(jd_tt), TimeScale::Tt);
+        let mean_j2000 = backend
+            .position(&mean_request_at(CelestialBody::TrueNode, instant))
+            .expect("true node query should work")
+            .ecliptic
+            .expect("ecliptic should exist");
+        // The chart path for a geometric orbit direction: precession + Δψ.
+        let apparent = pleiades_apparent::apparent_apsis_position(instant, mean_j2000)
+            .expect("apparent apsis path should succeed");
+        let lon_residual_arcsec =
+            signed_longitude_delta_degrees(se_lon, apparent.ecliptic.longitude.degrees()).abs()
+                * 3600.0;
+        let lat_residual_arcsec = (apparent.ecliptic.latitude.degrees() - se_lat).abs() * 3600.0;
+        let distance = apparent
+            .ecliptic
+            .distance_au
+            .expect("distance should survive the apparent path");
+        let dist_residual_rel = ((distance - se_dist) / se_dist).abs();
+        assert!(
+            lon_residual_arcsec < 40.0,
+            "JD {jd_tt}: longitude residual {lon_residual_arcsec}″ vs SE_TRUE_NODE"
+        );
+        assert!(
+            lat_residual_arcsec < 1e-3,
+            "JD {jd_tt}: latitude residual {lat_residual_arcsec}″ (node must lie on the ecliptic)"
+        );
+        assert!(
+            dist_residual_rel < 2e-4,
+            "JD {jd_tt}: distance residual {dist_residual_rel} relative"
+        );
+    }
+}
+
+#[test]
+fn true_node_oscillates_about_the_mean_node_and_lies_on_the_ecliptic_of_date() {
+    // The osculating node swings about the mean node with an amplitude near
+    // 1.5° (the Meeus periodic terms sum to ≈2°); a frame or sign slip would
+    // throw it far outside that. Forward-precessing the J2000 boundary point
+    // must land it back on the mean ecliptic of date, where it was formed.
+    let backend = ElpBackend::new();
+    for jd_tt in [
+        2_415_020.5,
+        2_430_000.5,
+        2_451_545.0,
+        2_461_041.5,
+        2_488_069.5,
+    ] {
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(jd_tt), TimeScale::Tt);
+        let true_node = backend
+            .position(&mean_request_at(CelestialBody::TrueNode, instant))
+            .expect("true node query should work");
+        let mean_node = backend
+            .position(&mean_request_at(CelestialBody::MeanNode, instant))
+            .expect("mean node query should work");
+        let true_ecliptic = true_node.ecliptic.expect("ecliptic should exist");
+        let mean_ecliptic = mean_node.ecliptic.expect("ecliptic should exist");
+        let separation = signed_longitude_delta_degrees(
+            mean_ecliptic.longitude.degrees(),
+            true_ecliptic.longitude.degrees(),
+        )
+        .abs();
+        assert!(
+            separation < 2.5,
+            "JD {jd_tt}: true node {separation}° from the mean node"
+        );
+        let of_date = pleiades_apparent::precess_ecliptic_j2000_to_date(
+            true_ecliptic.longitude.degrees(),
+            true_ecliptic.latitude.degrees(),
+            jd_tt,
+        )
+        .expect("forward precession should succeed");
+        assert!(
+            of_date.latitude_deg.abs() * 3600.0 < 1e-3,
+            "JD {jd_tt}: of-date latitude {}″",
+            of_date.latitude_deg * 3600.0
+        );
+        // The equatorial channel follows the of-date-point convention of
+        // every other ELP channel, distance included.
+        assert_equatorial_matches_of_date(
+            &true_ecliptic,
+            &true_node.equatorial.expect("equatorial should exist"),
+            instant,
+        );
+    }
 }
 
 #[test]
@@ -1384,8 +1504,11 @@ fn j2000_mean_and_true_nodes_are_available() {
         .position(&mean_request_at(CelestialBody::TrueNode, instant))
         .expect("true node query should work");
     let true_ecliptic = true_node.ecliptic.expect("true node ecliptic should exist");
-    assert!((true_ecliptic.longitude.degrees() - 123.926_171_368_400_46).abs() < 1e-9);
+    // Osculating node anchor (issue #127); Swiss Ephemeris SE_TRUE_NODE with
+    // nutation on reads 123.953_312_512° here, 14.5″ away through the Δψ path.
+    assert!((true_ecliptic.longitude.degrees() - 123.953_153_545).abs() < 1e-6);
     assert!(true_ecliptic.latitude.degrees().abs() < 1e-9);
+    assert!(true_ecliptic.distance_au.is_some());
     assert!(true_node.equatorial.is_some());
     let true_motion = true_node
         .motion
@@ -1401,7 +1524,10 @@ fn j2000_mean_and_true_nodes_are_available() {
             .abs()
             < 1e-6
     );
-    assert_eq!(true_motion.distance_au_per_day, None);
+    assert!(true_motion
+        .distance_au_per_day
+        .expect("true node distance speed should exist")
+        .is_finite());
 }
 
 #[test]
@@ -1703,7 +1829,9 @@ fn backend_supports_lunar_points() {
     assert!(theory
         .date_range_note
         .contains("2021-03-05 mean-perigee example"));
-    assert!(theory.date_range_note.contains("1913-05-27 true-node"));
+    assert!(theory
+        .date_range_note
+        .contains("Swiss Ephemeris SE_TRUE_NODE osculating-node rows"));
     assert!(theory.frame_note.contains("mean-obliquity"));
     let frame_summary = lunar_theory_frame_treatment_summary_details();
     assert_eq!(frame_summary.to_string(), frame_summary.summary_line());
@@ -2757,19 +2885,20 @@ fn elp_moon_round_trips_to_of_date_through_the_pipeline() {
     );
 }
 
-/// Published mean-equinox-OF-DATE reference longitudes for the lunar point
-/// channels (Meeus Ch. 47/50 worked examples, all referred to the equinox of
-/// date). They are far enough from J2000 that the J2000/of-date frame
-/// difference (≈1.4°/century of precession) is unmistakable.
+/// Published mean-equinox-OF-DATE reference longitudes for the mean lunar
+/// point channels (Meeus Ch. 47/50 worked examples, all referred to the
+/// equinox of date). They are far enough from J2000 that the J2000/of-date
+/// frame difference (≈1.4°/century of precession) is unmistakable. The
+/// osculating `TrueNode` has no published worked example; its frame checks
+/// live in `true_node_oscillates_about_the_mean_node_and_lies_on_the_ecliptic_of_date`.
 ///
 /// Each row is `(body, jd_tt, published of-date longitude, tolerance)`; the
 /// tolerance reflects how the published value was rounded (the mean-node
 /// examples are quoted at the crossing itself, so the polynomial is ~2e-4° off).
-fn published_of_date_lunar_points() -> [(CelestialBody, f64, f64, f64); 4] {
+fn published_of_date_lunar_points() -> [(CelestialBody, f64, f64, f64); 3] {
     [
-        // 1913-05-27: mean node crosses 0° Aries; true node 0.8763°.
+        // 1913-05-27: mean node crosses 0° Aries.
         (CelestialBody::MeanNode, 2_419_914.5, 0.0, 1e-3),
-        (CelestialBody::TrueNode, 2_419_914.5, 0.876_3, 1e-4),
         // 1959-12-07: mean node crosses 180° (quoted to the day; the
         // polynomial is 0.05° past the crossing at 0h, hence the 1e-1 that the
         // evidence slice also uses for mean-node rows).

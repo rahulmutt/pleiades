@@ -1995,10 +1995,24 @@ noise; latitude is 0 by construction), distance 1.58e-4 relative, vs ceilings
 diurnal aberration is applied to a geometric orbit direction (matches Swiss
 Ephemeris), fixing a pre-existing ~1° parallax shift of True Lilith in
 topocentric charts.
-· **Residual, documented not gated:** `ElpBackend`'s own `TrueNode` stays
-Meeus's periodic-term-corrected mean node (±0.14° vs the osculating node) for
-direct ELP consumers; its evidence rows cannot detect the gap because the 1913
-sample is Meeus's own worked value. Routed charts requesting `TrueNode`
+· **Residual, documented not gated (closed 2026-10-04, issue #127):**
+`ElpBackend`'s own `TrueNode` stayed Meeus's periodic-term-corrected mean node
+for direct ELP consumers, documented at ±0.14° from the 24 semi-monthly 2026
+samples of #58; its evidence rows could not detect the gap because the 1913
+sample was Meeus's own worked value. Issue #127 sampled it every two days
+across 1972–2099 and found 17.4′ (p50 3.2′, p99 13.2′, the same bound in every
+decade): the sparse sample had missed the ~27-day oscillation's extremes. The
+channel is now the osculating node formed from the ELP Moon (same construction
+as the packaged path; velocity by ±1e-4 day central difference, rotation into
+the mean ecliptic of date via the new shared
+`pleiades_apparent::precess_ecliptic_vector_j2000_to_date`), measured on the
+3177-row corpus at max 78″ (1.30′), p50 0.19′, p99 0.84′, insensitive to the
+differencing step (1e-4 to 1e-2 day). `validate-true-node` now measures both
+channels (ELP ceilings 120″ / 1″ / 6.4e-4 rel) and a blocking-tier
+`pleiades-elp` test pins the channel to the eight `SE_NODBIT_OSCU` Moon rows at
+≤40″ (measured 17.4″). The Meeus-example evidence rows for `TrueNode` became
+regression anchors captured from the implementation and are labelled as such.
+Routed charts requesting `TrueNode`
 outside 1900–2100 now fail with `OutOfRangeInstant` instead of receiving the
 ELP approximation (the router does not fall back on that kind; default
 charts already fail there because the Moon does). · **Build-env note:** the

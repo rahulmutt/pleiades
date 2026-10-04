@@ -42,7 +42,7 @@ gate, and 48 ayanamsas pass theirs — of 25 and 59 catalogued respectively.
 | Phase & magnitude | [`pleiades-events`](crates/pleiades-events) | `validate-pheno` | arcsecond-class |
 | Lunar occultations | [`pleiades-events`](crates/pleiades-events) | `validate-occultations` | timing seconds-of-time; position arcminute-class |
 | True (osculating) Lilith | [`pleiades-apsides`](crates/pleiades-apsides) | `validate-lilith` | arcminute-class |
-| True (osculating) Node | [`pleiades-data`](crates/pleiades-data) | `validate-true-node` | arcsecond-class (cross-theory) |
+| True (osculating) Node | [`pleiades-data`](crates/pleiades-data), [`pleiades-elp`](crates/pleiades-elp) | `validate-true-node` | arcsecond-class (cross-theory, packaged) / arcminute-class (ELP, ≤1.3′) |
 | Mean lunar node & apsides (Mean Lilith) | [`pleiades-data`](crates/pleiades-data) | `validate-mean-lunar-points` | sub-arcsecond |
 
 Crate names link to their docs.rs API docs where published, otherwise to the

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::path::Path;
 
 use pleiades_apparent::{
-    precess_ecliptic_date_to_j2000, precess_ecliptic_j2000_to_date, ApparentPlaceError,
+    precess_ecliptic_date_to_j2000, precess_ecliptic_vector_j2000_to_date, ApparentPlaceError,
 };
 use pleiades_apsides::{
     apsides, elements_from_state, mean_lunar_elements_of_date, points_from_elements,
@@ -308,21 +308,10 @@ impl PackagedDataBackend {
 }
 
 /// Rotates a J2000 mean-ecliptic vector into the mean ecliptic of date at
-/// `jd_tt`, preserving its magnitude. Precession is a rotation, so the same
-/// map applies to position and velocity vectors alike (the events engine's
-/// osculating path does the same).
+/// `jd_tt`, preserving its magnitude. The same map applies to position and
+/// velocity vectors alike; the ELP backend's osculating node shares it.
 fn rotate_j2000_to_mean_of_date(v: [f64; 3], jd_tt: f64) -> Result<[f64; 3], EphemerisError> {
-    let r = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
-    if r == 0.0 {
-        return Ok(v);
-    }
-    let lon_deg = v[1].atan2(v[0]).to_degrees().rem_euclid(360.0);
-    let lat_deg = (v[2] / r).asin().to_degrees();
-    let p =
-        precess_ecliptic_j2000_to_date(lon_deg, lat_deg, jd_tt).map_err(map_precession_error)?;
-    let (sl, cl) = p.longitude_deg.to_radians().sin_cos();
-    let (sb, cb) = p.latitude_deg.to_radians().sin_cos();
-    Ok([r * cb * cl, r * cb * sl, r * sb])
+    precess_ecliptic_vector_j2000_to_date(v, jd_tt).map_err(map_precession_error)
 }
 
 fn map_precession_error(e: ApparentPlaceError) -> EphemerisError {
