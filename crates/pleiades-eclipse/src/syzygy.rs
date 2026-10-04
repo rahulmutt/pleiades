@@ -70,9 +70,16 @@ fn find_one<B: EphemerisBackend>(
     end_jd: f64,
     out: &mut Vec<SyzygyEvent>,
 ) -> Result<(), EclipseError> {
-    let mut prev_jd = start_jd;
+    // Sample on a grid anchored to absolute multiples of STEP_DAYS rather than
+    // to `start_jd`, so every call that covers a given syzygy bisects the same
+    // bracket and refines to the bit-identical root. `eclipses_in_range` relies
+    // on this: the greatest-eclipse instant derived from the root must not move
+    // with the search range, or a bound placed exactly on it would admit the
+    // eclipse in one call and reject it in another. The first grid point may
+    // precede `start_jd` by up to one step; roots before `start_jd` are dropped.
+    let mut prev_jd = (start_jd / STEP_DAYS).floor() * STEP_DAYS;
     let mut prev_f = target(backend, prev_jd, syzygy)?;
-    let mut jd = start_jd + STEP_DAYS;
+    let mut jd = prev_jd + STEP_DAYS;
     while jd <= end_jd + STEP_DAYS {
         let f = target(backend, jd, syzygy)?;
         // A real syzygy crossing: sign change with the gap small enough that it

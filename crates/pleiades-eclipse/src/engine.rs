@@ -16,6 +16,12 @@ use pleiades_types::{Instant, JulianDay, Longitude, ObserverLocation, TimeScale}
 /// far sooner; this only guards against a pathological non-terminating walk).
 const MAX_LOCAL_SEARCH: usize = 4000;
 
+/// Half-width of the bracket around a syzygy in which `refine_greatest` looks
+/// for greatest eclipse. `eclipses_in_range` widens its syzygy scan by the same
+/// amount so that an eclipse whose greatest instant lies inside the requested
+/// range is found even when its syzygy falls just outside it.
+const GREATEST_BRACKET_DAYS: f64 = 0.25;
+
 /// Searches for global/geocentric eclipses over a chosen [`EphemerisBackend`].
 ///
 /// Backed by the packaged data, results are valid only within the
@@ -32,8 +38,14 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
     }
 
     /// Returns every eclipse admitted by `filter` with greatest eclipse in
-    /// `[start, end]`, in chronological order. Fails closed if either bound is
-    /// outside the supported window.
+    /// `[start, end]` (both bounds inclusive), in chronological order. Fails
+    /// closed if either bound is outside the supported window.
+    ///
+    /// Selection is by the greatest-eclipse instant, not by the new/full moon
+    /// that precedes or follows it by minutes, and that instant does not depend
+    /// on the range searched. Adjacent ranges that meet at an instant therefore
+    /// partition the eclipses between them, except that an eclipse whose
+    /// greatest instant falls exactly on the shared bound appears in both.
     pub fn eclipses_in_range(
         &self,
         start: Instant,
@@ -45,26 +57,35 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
         self.check_window(start_jd)?;
         self.check_window(end_jd)?;
 
-        // The syzygy scanner (`find_one`) probes one STEP_DAYS past its
-        // requested end for sign-change detection, and `sample_sun_moon` issues a
-        // light-time-retarded Sun query ~0.006 days before the nominal epoch.
-        // Together these mean:
+        // Greatest eclipse lies within GREATEST_BRACKET_DAYS of its syzygy, so a
+        // syzygy up to that far outside `[start, end]` can still carry an eclipse
+        // whose greatest instant is inside it. Scan that wider span, then select
+        // on the greatest instant below.
+        //
+        // The syzygy scanner (`find_one`) samples a grid of STEP_DAYS multiples
+        // that may begin one step before its requested start and probes one step
+        // past its requested end, and `sample_sun_moon` issues a light-time-
+        // retarded Sun query ~0.006 days before the nominal epoch. Together these
+        // mean:
         //   - At the END: the scanner queries up to `scan_end + STEP_DAYS`; the
         //     packaged backend has no data beyond WINDOW_END_JD, so we clamp
         //     `scan_end` to `WINDOW_END_JD - STEP_DAYS`.
-        //   - At the START: the retarded query falls `~light_time` before the
-        //     first sample; clamping `scan_start` to `WINDOW_START_JD + STEP_DAYS`
-        //     (> max light time ~0.006 d) keeps every retarded lookup within coverage.
+        //   - At the START: WINDOW_START_JD is itself a multiple of STEP_DAYS, so
+        //     clamping `scan_start` to `WINDOW_START_JD + STEP_DAYS` keeps the
+        //     first grid point at or after it, and the retarded query (~0.006 d
+        //     earlier) within coverage.
         // Both clamps are safe: no corpus eclipse falls within 0.5 d of either bound.
-        let scan_start = start_jd.max(WINDOW_START_JD + STEP_DAYS);
-        let scan_end = end_jd.min(WINDOW_END_JD - STEP_DAYS);
+        let scan_start = (start_jd - GREATEST_BRACKET_DAYS).max(WINDOW_START_JD + STEP_DAYS);
+        let scan_end = (end_jd + GREATEST_BRACKET_DAYS).min(WINDOW_END_JD - STEP_DAYS);
 
         let mut out = Vec::new();
         for event in find_syzygies(&self.backend, scan_start, scan_end)? {
-            if let Some(eclipse) = self.build(event.syzygy, event.julian_day)? {
-                if filter.admits(eclipse.kind) {
-                    out.push(eclipse);
-                }
+            let Some(eclipse) = self.build(event.syzygy, event.julian_day)? else {
+                continue;
+            };
+            let greatest_jd = eclipse.greatest_eclipse.julian_day.days();
+            if filter.admits(eclipse.kind) && (start_jd..=end_jd).contains(&greatest_jd) {
+                out.push(eclipse);
             }
         }
         Ok(out)
@@ -262,11 +283,14 @@ impl<B: EphemerisBackend> EclipseEngine<B> {
     }
 
     /// Golden-section minimize the Sun–Moon (or Moon–antisolar) separation in a
-    /// ±0.25-day bracket around the syzygy to find greatest eclipse.
+    /// ±GREATEST_BRACKET_DAYS bracket around the syzygy to find greatest eclipse.
     fn refine_greatest(&self, syzygy: Syzygy, syzygy_jd: f64) -> Result<f64, EclipseError> {
         use crate::geometry::separation_for;
         let phi = 0.618_033_988_75_f64;
-        let (mut a, mut b) = (syzygy_jd - 0.25, syzygy_jd + 0.25);
+        let (mut a, mut b) = (
+            syzygy_jd - GREATEST_BRACKET_DAYS,
+            syzygy_jd + GREATEST_BRACKET_DAYS,
+        );
         let mut c = b - (b - a) * phi;
         let mut d = a + (b - a) * phi;
         let mut fc = separation_for(syzygy, &sample_sun_moon(&self.backend, c)?);

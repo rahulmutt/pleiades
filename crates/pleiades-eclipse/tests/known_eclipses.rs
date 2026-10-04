@@ -132,3 +132,66 @@ fn apparent_vs_mean_eclipsed_longitude_delta() {
         "unexpected delta {delta_arcsec:.1}\" — correction may be inactive or wrong"
     );
 }
+
+const ONE_SECOND_DAYS: f64 = 1.0 / 86_400.0;
+
+/// Regression for issue #121: `eclipses_in_range` must select on greatest
+/// eclipse, not on the syzygy instant. Greatest eclipse and syzygy differ by
+/// minutes, so a range whose bound falls between the two used to lose (or
+/// wrongly keep) the eclipse depending on which side the syzygy lay.
+///
+/// With `g` the greatest-eclipse instant found from a wide search, each range
+/// that contains `g` at a bound must return the eclipse, and each range that
+/// stops one second short of `g` must not.
+fn assert_range_selects_on_greatest_eclipse(approx_jd: f64, kind: EclipseKind) {
+    let engine = EclipseEngine::new(packaged_backend());
+    let filter = match kind {
+        EclipseKind::Solar => EclipseFilter::SolarOnly,
+        EclipseKind::Lunar => EclipseFilter::LunarOnly,
+    };
+    let wide = engine
+        .eclipses_in_range(at(approx_jd - 2.0), at(approx_jd + 2.0), filter)
+        .unwrap();
+    assert_eq!(
+        wide.len(),
+        1,
+        "expected exactly one {kind:?} eclipse near JD {approx_jd}"
+    );
+    let g = wide[0].greatest_eclipse.julian_day.days();
+    assert!(
+        (g - approx_jd).abs() < 0.01,
+        "greatest eclipse {g} is not near the expected JD {approx_jd}"
+    );
+
+    let found = |start: f64, end: f64| -> Vec<f64> {
+        engine
+            .eclipses_in_range(at(start), at(end), filter)
+            .unwrap()
+            .into_iter()
+            .map(|e| e.greatest_eclipse.julian_day.days())
+            .collect()
+    };
+
+    assert_eq!(found(g - 1.0, g), vec![g], "[g - 1 d, g] must return it");
+    assert_eq!(found(g, g + 1.0), vec![g], "[g, g + 1 d] must return it");
+    assert!(
+        found(g - 1.0, g - ONE_SECOND_DAYS).is_empty(),
+        "[g - 1 d, g - 1 s] must not return it"
+    );
+    assert!(
+        found(g + ONE_SECOND_DAYS, g + 1.0).is_empty(),
+        "[g + 1 s, g + 1 d] must not return it"
+    );
+}
+
+#[test]
+fn range_selects_solar_eclipse_by_greatest_eclipse() {
+    // 2024-04-08 total solar eclipse; its syzygy falls ~211 s after greatest eclipse.
+    assert_range_selects_on_greatest_eclipse(2_460_409.262_8, EclipseKind::Solar);
+}
+
+#[test]
+fn range_selects_lunar_eclipse_by_greatest_eclipse() {
+    // 2025-03-14 total lunar eclipse; its syzygy falls before greatest eclipse.
+    assert_range_selects_on_greatest_eclipse(2_460_748.791_6, EclipseKind::Lunar);
+}
