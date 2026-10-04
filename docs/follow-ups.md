@@ -2615,9 +2615,8 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-04) · Items (a) to (f), (k) to (q), (s)
-and (u) are done, (g) and (j) are measured and not applied; (h) and (i)
-remain open.
+**Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) to (u)
+are done, (g) and (j) are measured and not applied; (h) and (i) remain open.
 Measurements, the two changes from #112 and the 2026-10-03 and 2026-10-04
 changes are in `docs/superpowers/plans/test-timings.md` (Section 0).
 
@@ -2863,6 +2862,31 @@ estimates from that run's timestamps, not measurements of a fix.
   37235480458 and 37235486708) against two on `main` (37233188362,
   37233194338) it took 0.2–0.3 s instead of 63–66 s, and no longer ends the
   nextest run. Table in the timings plan.
+- **(r) `release-smoke` ran its stages one after another on one thread.**
+  `mise run release-smoke` (`validate_release_smoke_at`) is the blocking
+  tier's long pole: about 100–200 s on CI, ending 10–24 s after nextest. It
+  ran the workspace audit, then the 23-gate numeric battery one gate at a
+  time, then the compatibility profile, artifact report, bundle render,
+  bundle verify and claim drift, all serially. The battery and the bundle
+  render are each 90–140 s locally and share nothing but thread-safe caches;
+  see (t) for where the render's time goes. → **Resolved 2026-10-04:** after
+  the workspace audit, the battery and the bundle render run on two scoped
+  threads, and the battery runs every gate on its own scoped thread
+  (`run_gates_concurrently` over the `NUMERIC_GATES` table, in the old
+  order). Errors keep their text and their order: the first failing gate in
+  battery order is reported, then the compatibility profile, artifact report,
+  bundle render, bundle verify and claim drift, as before. The one behaviour
+  change is that gates after a failing one still run. No gate sets
+  environment variables, changes the working directory or writes files; the
+  bundle writes only into its own output directory. The benchmark timings in
+  the throwaway smoke bundle are now taken under contention, which nothing
+  gates on. `tests::gate_battery` pins the first-error-in-order rule with
+  injected gates, including a first failure that finishes last. Locally on
+  24 cores under load from sibling sessions, alternating runs of the `main`
+  and branch binaries: 332 s and 175 s against 124 s and 86 s (load 94, 61,
+  78 and 39 at the starts). The branch's run is now about as long as the
+  bundle render alone, so the next cut is overlapping the render's two
+  serial computations from (t). CI measurement: pending.
 - **(s) Two `pleiades-cli` tests re-ran gates that `release-smoke` runs.** On
   the `main` push CI run 37238126985 the blocking-tier nextest's two slowest
   tests were `crossings_alias_dispatches_to_validate` (13.9 s, the one real
@@ -2885,6 +2909,19 @@ estimates from that run's timestamps, not measurements of a fix.
   35.3–35.6 s here), since both tests ran beside others; `release-smoke`,
   which shares the cores, took 95–97 s instead of 103–135 s and is now the
   blocking tier's only long pole. Table in the timings plan.
+- **(t) Where the release bundle render's time goes.** A throwaway probe of
+  `release-smoke` (load about 65, ratios only) put the battery at 95–144 s,
+  dominated by the aspects mean subset (37 s), crossings (34 s), eclipses
+  (23 s), occultations (22 s), helio-position (9 s) and the stations subset
+  (7 s), and the bundle render at about 97 s. Almost all of the render is two
+  per-process `OnceLock` computations it is the first to reach:
+  `build_validation_report(1)` (comparison plus benchmarks, via
+  `render_release_summary_text`, 33–54 s) and pleiades-data's
+  `packaged_artifact_fit_outlier_samples_for_current_artifact` (via
+  `render_validation_report_summary_text`, 40–52 s). Bundle verify,
+  compatibility profile, artifact report and claim drift take about 2.5 s
+  together. Nothing is computed twice in the process, so the fix is overlap,
+  not deduplication; (r) applies it.
 - **(u) The full stations gate is the nightly long pole.** After (e) chunked
   it, `stations_gate_passes_within_ceilings` still took about 105 s of
   `test-full-validate` on the 4-core runner, and nothing else in the tier ran

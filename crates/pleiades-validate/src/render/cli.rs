@@ -93,45 +93,175 @@ fn strip_golden_column(csv: &str) -> String {
     out
 }
 
-pub(crate) fn run_all_numeric_gates() -> Result<(), String> {
-    crate::validate_house_corpus().map_err(|e| format!("house gate failed: {e}"))?;
-    crate::validate_ayanamsa_corpus().map_err(|e| format!("ayanamsa gate failed: {e}"))?;
-    crate::validate_apparent_goldens().map_err(|e| format!("apparent gate failed: {e}"))?;
-    crate::validate_topocentric_goldens().map_err(|e| format!("topocentric gate failed: {e}"))?;
-    crate::corpus::production::run_corpus_gate().map_err(|e| format!("corpus gate failed: {e}"))?;
-    crate::validate_eclipse_corpus().map_err(|e| format!("eclipse gate failed: {e}"))?;
-    crate::validate_lilith_corpus().map_err(|e| format!("lilith gate failed: {e}"))?;
-    crate::validate_true_node_corpus().map_err(|e| format!("true-node gate failed: {e}"))?;
-    crate::validate_mean_lunar_points_corpus()
-        .map_err(|e| format!("mean-lunar-points gate failed: {e}"))?;
-    crate::validate_helio_position_corpus()
-        .map_err(|e| format!("helio-position gate failed: {e}"))?;
+/// One release-battery gate: the "… gate failed" prefix its error is reported
+/// under, and the gate itself with its error rendered through `Display`.
+type NumericGate = (&'static str, fn() -> Result<(), String>);
+
+/// The release gate's numeric battery, in reporting order.
+///
+/// Every error renders as `"{label}: {error}"`, byte-identical to the
+/// sequential `map_err(|e| format!("house gate failed: {e}"))` chain this
+/// table replaced.
+const NUMERIC_GATES: &[NumericGate] = &[
+    ("house gate failed", || {
+        crate::validate_house_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("ayanamsa gate failed", || {
+        crate::validate_ayanamsa_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("apparent gate failed", || {
+        crate::validate_apparent_goldens()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("topocentric gate failed", || {
+        crate::validate_topocentric_goldens()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("corpus gate failed", || {
+        crate::corpus::production::run_corpus_gate()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("eclipse gate failed", || {
+        crate::validate_eclipse_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("lilith gate failed", || {
+        crate::validate_lilith_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("true-node gate failed", || {
+        crate::validate_true_node_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("mean-lunar-points gate failed", || {
+        crate::validate_mean_lunar_points_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("helio-position gate failed", || {
+        crate::validate_helio_position_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
     // The full stations gate takes minutes; it runs as `mise run
     // gate-stations` (its own nightly job and a `release-gate` dependency).
     // The battery compares the mean/sid subset.
-    crate::validate_stations_corpus_subset()
-        .map_err(|e| format!("stations gate (mean/sid subset) failed: {e}"))?;
+    ("stations gate (mean/sid subset) failed", || {
+        crate::validate_stations_corpus_subset()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
     // The full aspects gate takes ~15 minutes as `mise run
     // gate-aspects` (18.5 as the in-crate test); it has its own nightly job and
     // is a `release-gate` dependency.
     // The battery compares the mean subset.
-    crate::validate_aspects_corpus_subset()
-        .map_err(|e| format!("aspects gate (mean subset) failed: {e}"))?;
-    crate::validate_equatorial_goldens().map_err(|e| format!("equatorial gate failed: {e}"))?;
-    crate::validate_equatorial_se_corpus()
-        .map_err(|e| format!("equatorial-se gate failed: {e}"))?;
-    crate::validate_frame_consistency()
-        .map_err(|e| format!("frame-consistency gate failed: {e}"))?;
-    crate::validate_angles_corpus().map_err(|e| format!("angles gate failed: {e}"))?;
-    crate::validate_crossings_corpus().map_err(|e| format!("crossings gate failed: {e}"))?;
-    crate::validate_rise_trans_corpus().map_err(|e| format!("rise-trans gate failed: {e}"))?;
-    crate::validate_eclipse_local_corpus()
-        .map_err(|e| format!("eclipses-local gate failed: {e}"))?;
-    crate::validate_fictitious_corpus().map_err(|e| format!("fictitious gate failed: {e}"))?;
-    crate::validate_nod_aps_corpus().map_err(|e| format!("nod-aps gate failed: {e}"))?;
-    crate::validate_pheno_corpus().map_err(|e| format!("pheno gate failed: {e}"))?;
-    crate::validate_occultations_corpus().map_err(|e| format!("occultations gate failed: {e}"))?;
-    Ok(())
+    ("aspects gate (mean subset) failed", || {
+        crate::validate_aspects_corpus_subset()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("equatorial gate failed", || {
+        crate::validate_equatorial_goldens()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("equatorial-se gate failed", || {
+        crate::validate_equatorial_se_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("frame-consistency gate failed", || {
+        crate::validate_frame_consistency()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("angles gate failed", || {
+        crate::validate_angles_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("crossings gate failed", || {
+        crate::validate_crossings_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("rise-trans gate failed", || {
+        crate::validate_rise_trans_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("eclipses-local gate failed", || {
+        crate::validate_eclipse_local_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("fictitious gate failed", || {
+        crate::validate_fictitious_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("nod-aps gate failed", || {
+        crate::validate_nod_aps_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("pheno gate failed", || {
+        crate::validate_pheno_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+    ("occultations gate failed", || {
+        crate::validate_occultations_corpus()
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }),
+];
+
+/// Runs the release gate's numeric battery, every gate on its own thread
+/// (FU-23 (r)).
+///
+/// The gates are independent: each reads its committed corpus and computes
+/// against the packaged data, sharing only thread-safe `OnceLock` caches; none
+/// sets environment variables, changes the working directory or writes files.
+/// Behaviour change from the sequential battery: a failing gate no longer
+/// stops the gates after it from running, but the reported error is still the
+/// first failure in battery order, so the outcome is unchanged.
+pub(crate) fn run_all_numeric_gates() -> Result<(), String> {
+    run_gates_concurrently(NUMERIC_GATES)
+}
+
+/// Runs each `(label, gate)` on its own scoped thread and returns the first
+/// error in slice order, rendered as `"{label}: {error}"`, regardless of which
+/// gate finished first. A panicking gate re-raises its panic on the caller.
+pub(crate) fn run_gates_concurrently<F>(gates: &[(&str, F)]) -> Result<(), String>
+where
+    F: Fn() -> Result<(), String> + Sync,
+{
+    let outcomes: Vec<Result<(), String>> = std::thread::scope(|scope| {
+        let handles: Vec<_> = gates
+            .iter()
+            .map(|(label, gate)| scope.spawn(move || gate().map_err(|e| format!("{label}: {e}"))))
+            .collect();
+        handles
+            .into_iter()
+            .map(|handle| {
+                handle
+                    .join()
+                    .unwrap_or_else(|payload| std::panic::resume_unwind(payload))
+            })
+            .collect()
+    });
+    outcomes.into_iter().collect()
 }
 
 fn render_compat_claims_audit() -> Result<String, String> {
@@ -172,10 +302,28 @@ fn validate_release_smoke_at(output_dir: impl AsRef<Path>) -> Result<(), String>
         return Err(format!("release smoke failed:\n{report}"));
     }
 
-    run_all_numeric_gates()?;
+    // The numeric battery and the bundle render are the two long poles and
+    // share nothing but thread-safe caches, so they overlap (FU-23 (r)); the
+    // render is the first to reach the comparison/benchmark report and the
+    // artifact fit-outlier samples. Errors are still reported in the old
+    // sequential order: battery, compatibility profile, artifact report,
+    // bundle render, bundle verify, claim drift.
+    let (battery, bundle) = std::thread::scope(|scope| {
+        let battery = scope.spawn(run_all_numeric_gates);
+        let bundle = scope.spawn(|| render_release_bundle(1, output_dir));
+        (
+            battery
+                .join()
+                .unwrap_or_else(|payload| std::panic::resume_unwind(payload)),
+            bundle
+                .join()
+                .unwrap_or_else(|payload| std::panic::resume_unwind(payload)),
+        )
+    });
+    battery?;
     verify_compatibility_profile().map_err(render_error)?;
     let _ = render_artifact_report().map_err(render_artifact_error)?;
-    let _ = render_release_bundle(1, output_dir).map_err(render_release_bundle_error)?;
+    let _ = bundle.map_err(render_release_bundle_error)?;
     let _ = verify_release_bundle(output_dir).map_err(render_release_bundle_error)?;
     crate::claims::check_claim_drift().map_err(|errors| {
         let messages: Vec<String> = errors.iter().map(|e| e.to_string()).collect();
