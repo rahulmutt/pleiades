@@ -2601,7 +2601,7 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) to (p) are
+**Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) to (q) are
 done, (g) and (j) are measured and not applied; (h) and (i) remain open.
 Measurements, the two changes from #112 and the 2026-10-03 and 2026-10-04
 changes are in `docs/superpowers/plans/test-timings.md` (Section 0).
@@ -2844,8 +2844,10 @@ estimates from that run's timestamps, not measurements of a fix.
   a single two-year `eclipses_in_range` scan at the window edges, mid-window
   and from an exact greatest-eclipse instant. A white-box test starts from a
   1-day span to drive the doubling. Locally, under load, the test went from
-  188.5 s to 0.15–0.8 s. Measured on nightly dispatches: see the timings
-  plan.
+  188.5 s to 0.15–0.8 s. On two nightlies dispatched on the branch (runs
+  37235480458 and 37235486708) against two on `main` (37233188362,
+  37233194338) it took 0.2–0.3 s instead of 63–66 s, and no longer ends the
+  nextest run. Table in the timings plan.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 
