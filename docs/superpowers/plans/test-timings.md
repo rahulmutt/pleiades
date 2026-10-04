@@ -300,6 +300,56 @@ half of `test-full` had already finished.
   `RegressionFinding` directly, and a new test pins that the default-corpus comparison has no
   notable regression.
 
+### FU-23 item (l), 2026-10-04
+
+With #130 and #132 on `main`, two nightlies on `main` (runs 37192969731 and 37192975951) put the
+two release-bundle verify families (`release_bundle_verify_a` and `_b`, 172 tests) across about
+90 s of a 190 s `pleiades-validate` lib suite. Each test is cheap apart from one
+`verify-release-bundle` call, and a throwaway timing patch around the checks in
+`verify_release_bundle_internal` showed that call re-rendering six summaries on every invocation
+(seconds at a load average of 80, so only the ratios matter): release-notes summary 4.2,
+packaged-artifact source-fit/hold-out sync 2.7, production profile 1.2–1.8, target thresholds 1.1,
+backend-matrix summary 0.8, scope envelopes 0.3–0.7. Every other check was already memoized or
+under 0.1 s.
+
+- **(l) memoize the six summaries.** All six depend only on compiled-in data (the embedded packaged
+  artifact, catalogs and profiles). Three already had identical `OnceLock` twins under
+  `posture::data::coverage`, so their `validated_*` wrappers in `render::summary::artifact` now
+  delegate to them; the release-notes summary, the backend-matrix summary and the target-threshold
+  summary (whose error text differs from its twin's) get their own per-process `OnceLock` around an
+  `_uncached` body, and `tests::render_memoization` pins each memoized value equal to its uncached
+  rendering. `workspace_provenance` (git state) and the validation report (already cached per
+  `rounds`; its 0.3–0.5 s is normalizing the text) are unchanged. Locally a full successful verify
+  went from about 11 s of checks to under 2.4 s at a load average of 65–95.
+
+  Measured on three nightlies dispatched on the branch (runs 37195011776, 37195017266,
+  37195539899; the first two ran concurrently with no branch `target` cache, so their `test` step
+  recompiled; the third restored the cache). The runners differed by up to 1.8× on the unchanged
+  nextest step, so the suite's absolute length is not comparable; the rows that isolate the change
+  are the verify families' span and how long the suite runs on after the stations gate. Seconds
+  from the lib suite's start unless noted:
+
+  | Phase | Before 1 (37192969731) | Before 2 (37192975951) | After 1 (37195011776) | After 2 (37195017266) | After 3 (37195539899) |
+  |-------|---:|---:|---:|---:|---:|
+  | `test`: nextest run (unchanged, runner-speed reference) | 40 | 40 | 45 | 63 | 73 |
+  | verify families (`_a` first to `_b` last) | 85–173 | 81–172 | 85–115 | 117–162 | 111–151 |
+  | verify families' span | 88 | 91 | 30 | 45 | 40 |
+  | full stations gate test done | 112 | 111 | 160 | 216 | 207 |
+  | `validate_gates` tests done | 191 | 189 | 169 | 223 | 219 |
+  | `pleiades-validate` lib suite | 191 | 189 | 169 | 224 | 219 |
+  | suite end after the stations gate | 79 | 78 | 9 | 7 | 12 |
+  | `test-full-ignored` ends | 140 | 140 | 168 | 207 | 217 |
+  | `nightly` job (wall-clock) | 319 | 309 | 416 | 526 | 343 |
+
+  The verify families went from about 90 s to 30–45 s on runners 1.1–1.8× slower, about a
+  quarter of their former cost after correcting for runner speed. Scaling each suite by its
+  runner's nextest ratio gives roughly 120–150 s against 190 s, a crude correction that only
+  supports "about a quarter to a third shorter". Before, the suite ran on for about 80 s after the
+  stations gate; now it ends within about 10 s of it, and the other half of `test-full` ends at
+  the same time. The long poles are now the stations gate (about 55 s after the battery on a fast
+  runner) and the `pleiades-cli` ignored tests in the other half, so a further cut needs both
+  halves to shrink.
+
 ---
 
 ## Section 1: Timing Inventory
