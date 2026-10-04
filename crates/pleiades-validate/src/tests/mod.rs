@@ -21,6 +21,7 @@ mod release_checklist;
 mod release_readme_audit;
 mod release_workspace_audit;
 mod render_catalog;
+mod render_memoization;
 mod render_packaged_artifact;
 mod render_request;
 mod report;

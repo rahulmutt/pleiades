@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 use std::fmt;
+use std::sync::OnceLock;
 
 use crate::*;
 
@@ -18,7 +19,17 @@ pub(crate) fn native_sidereal_posture_line(native_sidereal_count: usize) -> Stri
     }
 }
 
+/// Memoized per process: the summary depends only on compiled-in catalogs and
+/// profiles, and release-bundle verification re-renders it on every call
+/// (FU-23).
 pub(crate) fn render_backend_matrix_summary_text() -> String {
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(render_backend_matrix_summary_text_uncached)
+        .clone()
+}
+
+pub(crate) fn render_backend_matrix_summary_text_uncached() -> String {
     let release_profiles = match validated_release_profile_identifiers_for_report() {
         Ok(release_profiles) => release_profiles,
         Err(error) => return format!("Backend matrix summary unavailable ({error})"),

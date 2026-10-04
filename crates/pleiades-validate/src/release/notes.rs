@@ -1,5 +1,7 @@
 //! Release-notes, release-summary, and release-checklist text rendering.
 
+use std::sync::OnceLock;
+
 use crate::*;
 
 pub(crate) fn render_release_notes_text() -> String {
@@ -197,7 +199,17 @@ pub(crate) fn render_release_notes_text() -> String {
     text
 }
 
+/// Memoized per process: the summary depends only on compiled-in catalogs,
+/// profiles and reference corpora, and release-bundle verification re-renders
+/// it on every call (FU-23).
 pub(crate) fn render_release_notes_summary_text() -> String {
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(render_release_notes_summary_text_uncached)
+        .clone()
+}
+
+pub(crate) fn render_release_notes_summary_text_uncached() -> String {
     let profile = match validated_compatibility_profile_for_report() {
         Ok(profile) => profile,
         Err(error) => return format!("Release notes summary unavailable ({error})"),

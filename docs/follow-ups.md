@@ -2598,7 +2598,7 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) are done,
+**Status:** partly resolved (2026-10-04) · Items (a) to (f), (k) and (l) are done,
 (g) and (j) are measured and not applied; (h) and (i) remain open.
 Measurements, the two changes from #112 and the 2026-10-03 and 2026-10-04
 changes are in `docs/superpowers/plans/test-timings.md` (Section 0).
@@ -2753,6 +2753,24 @@ estimates from that run's timestamps, not measurements of a fix.
   table is in the timings plan. The new tail is `validate_gates`' shared
   crossings and occultations CLI runs, about 20 s, seeded late by libtest's
   name order.
+- **(l) Release-bundle verification re-rendered six summaries per call.**
+  On `main` after #130 (nightly runs 37192969731 and 37192975951) the 172
+  `release_bundle_verify_a`/`_b` tests spanned about 90 s of the 190 s
+  `pleiades-validate` lib suite, and each one's cost was its
+  `verify-release-bundle` call: the release-notes, backend-matrix and four
+  packaged-artifact summaries (target thresholds, source-fit/hold-out sync,
+  scope envelopes, production profile) were rendered again on every call. →
+  **Resolved 2026-10-04:** all six depend only on compiled-in data and are
+  now memoized per process (three by delegating to existing identical
+  `OnceLock` twins under `posture::data::coverage`, three with their own
+  `OnceLock`, pinned equal to the uncached rendering by
+  `tests::render_memoization`). On three branch nightlies (37195011776,
+  37195017266, 37195539899) the verify families took 30–45 s on runners
+  1.1–1.8× slower, and the suite now ends within about 10 s of the stations
+  gate instead of about 80 s after it; both halves of `test-full` now end
+  together. Table in the timings plan. The long poles are now the stations
+  gate and the `pleiades-cli` ignored tests, so a further cut needs both
+  halves to shrink.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 

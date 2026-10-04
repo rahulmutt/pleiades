@@ -1,5 +1,7 @@
 //! Packaged-artifact and source-audit policy summaries.
 
+use std::sync::OnceLock;
+
 use crate::*;
 
 pub(crate) fn format_vsop87_request_policy_summary() -> String {
@@ -127,7 +129,17 @@ pub(crate) fn validated_packaged_artifact_target_threshold_state_for_report() ->
     crate::posture::data::coverage::target::packaged_artifact_target_threshold_state_for_report()
 }
 
+/// Memoized per process: the summary depends only on the embedded packaged
+/// artifact, and release-bundle verification re-renders it on every call
+/// (FU-23).
 pub(crate) fn validated_packaged_artifact_target_threshold_summary_for_report() -> String {
+    static SUMMARY: OnceLock<String> = OnceLock::new();
+    SUMMARY
+        .get_or_init(validated_packaged_artifact_target_threshold_summary_uncached)
+        .clone()
+}
+
+pub(crate) fn validated_packaged_artifact_target_threshold_summary_uncached() -> String {
     // Repointed (Slice D, Task 14a2) from the pleiades-data inherent
     // `validated_summary_line` to `validate()` (kept in pleiades-data)
     // followed by the validate render copy in
@@ -148,22 +160,11 @@ pub(crate) fn validated_packaged_artifact_target_threshold_summary_for_report() 
 
 pub(crate) fn validated_packaged_artifact_target_threshold_scope_envelopes_summary_for_report(
 ) -> String {
-    let summary =
-        pleiades_data::packaged_artifact_target_threshold_scope_envelopes_summary_details();
-    match summary.validated_summary_line() {
-        Ok(line) => line,
-        Err(error) => format!("scope envelopes: unavailable ({error})"),
-    }
+    crate::posture::data::coverage::target::packaged_artifact_target_threshold_scope_envelopes_for_report()
 }
 
 pub(crate) fn validated_packaged_artifact_source_fit_holdout_sync_summary_for_report() -> String {
-    // Repointed (Slice D, Task 14a2) — see
-    // `validated_packaged_artifact_target_threshold_summary_for_report` above.
-    let summary = pleiades_data::packaged_artifact_source_fit_holdout_sync_summary_details();
-    match summary.validate() {
-        Ok(()) => crate::posture::data::coverage::target::packaged_artifact_source_fit_holdout_sync_summary_line(&summary),
-        Err(error) => format!("source-fit and hold-out sync: unavailable ({error})"),
-    }
+    crate::posture::data::coverage::target::packaged_artifact_source_fit_holdout_sync_summary_for_report()
 }
 
 pub(crate) fn validated_packaged_artifact_phase2_corpus_alignment_summary_for_report() -> String {
@@ -215,11 +216,8 @@ pub(crate) fn validated_packaged_artifact_generation_residual_bodies_summary_for
 }
 
 pub(crate) fn validated_packaged_artifact_production_profile_summary_for_report() -> String {
-    let summary = pleiades_data::packaged_artifact_production_profile_summary_details();
-    match summary.validated_summary_line() {
-        Ok(line) => line,
-        Err(error) => format!("Packaged artifact production profile draft: unavailable ({error})"),
-    }
+    crate::posture::data::coverage::profile::packaged_artifact_production_profile_summary_for_report(
+    )
 }
 
 pub(crate) fn format_packaged_artifact_storage_summary() -> String {
