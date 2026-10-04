@@ -751,6 +751,7 @@ fn backend_matrix_command_renders_the_implemented_catalog() {
     assert!(rendered.contains("source audit:"));
     assert!(rendered.contains("Sun: IMCCE/CELMECH VSOP87B VSOP87B.ear"));
     assert!(rendered.contains("Paul Schlyter-style mean orbital elements for planets"));
+    assert!(rendered.contains("Table 37.A periodic-term fit (Chapront, DE200) over 1885-2099"));
     assert!(rendered.contains("body source profiles:"));
     assert!(rendered.contains("VSOP87B.ear"));
     assert!(rendered.contains("geocentric planetary reduction against Earth coefficients"));

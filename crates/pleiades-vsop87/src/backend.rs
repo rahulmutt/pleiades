@@ -157,10 +157,6 @@ impl Vsop87Backend {
         HeliocentricCoordinates { xh, yh, zh }
     }
 
-    fn geocentric_coordinates(body: CelestialBody, days: f64) -> Option<HeliocentricCoordinates> {
-        Self::geocentric_coordinates_on(body, days, PlutoPath::for_julian_day(J2000 + days))
-    }
-
     pub(crate) fn geocentric_coordinates_on(
         body: CelestialBody,
         days: f64,
@@ -296,7 +292,7 @@ impl Vsop87Backend {
         Self::to_ecliptic(coords).to_equatorial(instant.mean_obliquity())
     }
 
-    fn motion(body: CelestialBody, days: f64) -> Option<Motion> {
+    pub(crate) fn motion(body: CelestialBody, days: f64, pluto_path: PlutoPath) -> Option<Motion> {
         // A symmetric one-day span gives stable chart-facing daily rates while
         // keeping the finite-difference mean geocentric model simple and
         // deterministic. These are finite-difference estimates of the same mean
@@ -305,9 +301,9 @@ impl Vsop87Backend {
         const HALF_SPAN_DAYS: f64 = 0.5;
         const FULL_SPAN_DAYS: f64 = HALF_SPAN_DAYS * 2.0;
 
-        // All samples take the centre instant's Pluto path, so a speed near the
-        // edge of the fit window never differences across the jump.
-        let pluto_path = PlutoPath::for_julian_day(J2000 + days);
+        // All samples take the centre instant's Pluto path (chosen by the
+        // caller), so a speed near the edge of the fit window never differences
+        // across the jump.
         let before = Self::to_ecliptic(Self::geocentric_coordinates_on(
             body.clone(),
             days - HALF_SPAN_DAYS,
@@ -406,7 +402,8 @@ impl EphemerisBackend for Vsop87Backend {
                         )
                     })
                     .chain([
-                        "Paul Schlyter-style mean orbital elements for planets outside the source-backed VSOP87 coefficient tables".to_string(),
+                        "Pluto: Meeus, Astronomical Algorithms, Table 37.A periodic-term fit (Chapront, DE200) over 1885-2099".to_string(),
+                        "Paul Schlyter-style mean orbital elements for planets outside the source-backed VSOP87 coefficient tables, and for Pluto outside 1885-2099".to_string(),
                         "Meeus-style coordinate transforms for geocentric reduction".to_string(),
                     ])
                     .collect(),
@@ -448,12 +445,17 @@ impl EphemerisBackend for Vsop87Backend {
         validate_observer_policy(req, BACKEND_LABEL, false)?;
 
         let days = Self::days_since_j2000(req.instant);
-        let geocentric = Self::geocentric_coordinates(req.body.clone(), days).ok_or_else(|| {
-            EphemerisError::new(
-                EphemerisErrorKind::UnsupportedBody,
-                format!("requested body is not implemented in {BACKEND_LABEL}"),
-            )
-        })?;
+        // One path choice per request, shared by the position, the speed and
+        // the quality annotation so they cannot disagree. Ignored for non-Pluto
+        // bodies.
+        let pluto_path = PlutoPath::for_julian_day(J2000 + days);
+        let geocentric = Self::geocentric_coordinates_on(req.body.clone(), days, pluto_path)
+            .ok_or_else(|| {
+                EphemerisError::new(
+                    EphemerisErrorKind::UnsupportedBody,
+                    format!("requested body is not implemented in {BACKEND_LABEL}"),
+                )
+            })?;
 
         let mut result = EphemerisResult::new(
             BackendId::new(PACKAGE_NAME),
@@ -469,16 +471,14 @@ impl EphemerisBackend for Vsop87Backend {
             Some(Vsop87BodySourceKind::TruncatedVsop87b)
             | Some(Vsop87BodySourceKind::MeanOrbitalElements)
             | None => QualityAnnotation::Approximate,
-            Some(Vsop87BodySourceKind::PeriodicTermFit) => {
-                match PlutoPath::for_julian_day(J2000 + days) {
-                    PlutoPath::PeriodicTermFit => QualityAnnotation::Exact,
-                    PlutoPath::MeanElements => QualityAnnotation::Approximate,
-                }
-            }
+            Some(Vsop87BodySourceKind::PeriodicTermFit) => match pluto_path {
+                PlutoPath::PeriodicTermFit => QualityAnnotation::Exact,
+                PlutoPath::MeanElements => QualityAnnotation::Approximate,
+            },
         };
         result.ecliptic = Some(Self::to_ecliptic(geocentric));
         result.equatorial = Some(Self::to_equatorial(geocentric, req.instant));
-        result.motion = Self::motion(req.body.clone(), days);
+        result.motion = Self::motion(req.body.clone(), days, pluto_path);
         Ok(result)
     }
 }

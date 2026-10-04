@@ -36,8 +36,8 @@ fn pluto_fit_lands_on_the_rounded_swiss_ephemeris_places() {
 }
 
 /// Ceilings for the packaged-reference sweep: ceil(1.5 × measured max), measured
-/// 2026-10-04 on a 10-day grid over 1900–2099 (7303 samples): 3.29″ longitude,
-/// 0.34″ latitude, 3.27e-4 AU. The packaged (DE440-fitted) Pluto is itself about
+/// 2026-10-04 by this test's own 30-day grid (2435 samples): 3.287″ longitude,
+/// 0.342″ latitude, 3.27e-4 AU. The packaged (DE440-fitted) Pluto is itself about
 /// 1″ from Swiss Ephemeris (`validate-helio-position`).
 const SWEEP_LON_CEILING_ARCSEC: f64 = 5.0;
 const SWEEP_LAT_CEILING_ARCSEC: f64 = 0.6;
@@ -251,4 +251,30 @@ fn meeus_table_37a_coefficients_are_pinned() {
         }
     }
     assert_eq!(hash, 0x800f_2aac_998a_fb08);
+}
+
+#[test]
+fn the_position_switches_path_exactly_at_each_window_bound() {
+    // The two paths sit ~0.4-0.6° apart, so a position that kept the wrong path
+    // on either side of a bound shows up as a missing jump.
+    for bound in [PLUTO_FIT_START_JD, PLUTO_FIT_END_JD] {
+        let longitude = |jd| {
+            pluto_at(jd, TimeScale::Tt)
+                .ecliptic
+                .expect("ecliptic")
+                .longitude
+                .degrees()
+        };
+        let jump = signed_longitude_delta_degrees(longitude(bound - 1e-4), longitude(bound)).abs();
+        assert!(jump > 0.1, "longitude jumped only {jump}° at {bound}");
+    }
+}
+
+#[test]
+fn the_speed_inside_the_window_differences_the_fit_even_next_to_a_bound() {
+    for jd in [PLUTO_FIT_START_JD + 0.25, PLUTO_FIT_END_JD - 0.5] {
+        let expected =
+            Vsop87Backend::motion(CelestialBody::Pluto, jd - J2000, PlutoPath::PeriodicTermFit);
+        assert_eq!(pluto_at(jd, TimeScale::Tt).motion, expected, "{jd}");
+    }
 }
