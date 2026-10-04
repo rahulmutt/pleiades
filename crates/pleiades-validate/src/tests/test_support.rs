@@ -90,16 +90,23 @@ pub(crate) fn occultations_gate_via_cli() -> &'static Result<String, String> {
     RENDERED.get_or_init(|| render_cli(&["validate-occultations"]))
 }
 
-/// `release-gate` dispatched through the CLI, once per test process.
+/// The release gate's numeric battery, run once per test process.
 ///
-/// One run is the whole numeric battery plus a bundle render and verify,
-/// about a minute on a CI runner. `release-gate-summary` and
-/// `release-smoke` validate with the same calls before rendering their own
-/// text, so the tests for those commands assert this shared run plus their
-/// pure renderers rather than validating again.
-pub(crate) fn release_gate_via_cli() -> &'static Result<String, String> {
-    static RENDERED: OnceLock<Result<String, String>> = OnceLock::new();
-    RENDERED.get_or_init(|| render_cli(&["release-gate"]))
+/// The battery is deterministic and takes over a minute, and the tests that
+/// assert its outcome (the `run_all_numeric_gates_includes_*` tests in
+/// `render::cli::tests` and the release-gate and release-smoke tests in
+/// `tests::release_checklist`) all read this one run. Re-running it per test
+/// bought no extra coverage and was about a quarter of the suite's CPU time;
+/// a second run seeded late by libtest's name order was the suite's serial
+/// tail (FU-23 (k)). `release-gate` and `release-smoke` compose this battery
+/// with a bundle render and verify, which the tests assert through
+/// [`pristine_release_bundle`]; the commands themselves run end to end in
+/// `mise run release-smoke` (blocking tier) and `mise run release-gate`.
+pub(crate) fn numeric_battery_outcome() -> Result<(), String> {
+    static OUTCOME: OnceLock<Result<(), String>> = OnceLock::new();
+    OUTCOME
+        .get_or_init(crate::render::cli::run_all_numeric_gates)
+        .clone()
 }
 
 pub(crate) fn stage_bundle_copy(prefix: &str) -> std::path::PathBuf {

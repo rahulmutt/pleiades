@@ -320,36 +320,48 @@ fn release_checklist_summary_command_renders_the_summary() {
 
 #[test]
 fn release_gate_command_aliases_the_release_checklist() {
-    // One shared `release-gate` run per process (FU-23 (d)).
-    // `release-gate-summary` makes the same `validate_release_gate` call
-    // before its own renderer, so only that renderer and its argument check
-    // are asserted here rather than validating a second time.
+    // `release-gate` validates (numeric battery, bundle render and verify)
+    // and then returns the release checklist text. Each part already runs
+    // once per process in this suite, so the test asserts those shared
+    // outcomes rather than dispatching the command, which would repeat the
+    // battery and the bundle on one thread at the end of libtest's name
+    // order (FU-23 (d), (k)). The arm itself is proven reached by its
+    // argument check, which names the command; the command runs end to end
+    // in `mise run release-smoke` (blocking tier) and `mise run release-gate`.
+    numeric_battery_outcome().expect("release-gate numeric battery should pass");
+    verify_release_bundle(&pristine_release_bundle().dir)
+        .expect("pristine release bundle should verify");
     let checklist = render_cli(&["release-checklist"]).expect("release checklist should render");
-    let gate = release_gate_via_cli()
-        .as_ref()
-        .expect("release gate should render");
     let checklist_summary = render_cli(&["release-checklist-summary"])
         .expect("release checklist summary should render");
 
-    assert_eq!(*gate, checklist);
+    assert_eq!(render_release_checklist_text(), checklist);
     assert_eq!(
         crate::release::notes::render_release_checklist_summary_text(),
         checklist_summary
     );
-    assert!(render_cli(&["release-gate", "extra"]).is_err());
-    assert!(render_cli(&["release-gate-summary", "extra"]).is_err());
+    assert_eq!(
+        render_cli(&["release-gate", "extra"]).expect_err("release-gate takes no arguments"),
+        "release-gate does not accept extra arguments"
+    );
+    assert_eq!(
+        render_cli(&["release-gate-summary", "extra"])
+            .expect_err("release-gate-summary takes no arguments"),
+        "release-gate-summary does not accept extra arguments"
+    );
 }
 
 #[test]
 fn release_smoke_command_renders_the_smoke_report() {
     // `release-smoke` validates with the same battery and bundle as
     // `release-gate` (`validate_release_gate_at` wraps
-    // `validate_release_smoke_at`), so the shared gate run stands in for the
-    // validation and only the smoke text is asserted here (FU-23 (d)). The
-    // command runs end to end in the blocking tier (`mise run release-smoke`).
-    release_gate_via_cli()
-        .as_ref()
-        .expect("release gate should pass");
+    // `validate_release_smoke_at`), so the shared battery outcome and the
+    // pristine bundle's verification stand in for the validation and only
+    // the smoke text is asserted here (FU-23 (d), (k)). The command runs end
+    // to end in the blocking tier (`mise run release-smoke`).
+    numeric_battery_outcome().expect("release-smoke numeric battery should pass");
+    verify_release_bundle(&pristine_release_bundle().dir)
+        .expect("pristine release bundle should verify");
     let rendered = crate::release::notes::render_release_smoke_text();
 
     assert!(rendered.contains("Release smoke"));
@@ -358,7 +370,10 @@ fn release_smoke_command_renders_the_smoke_report() {
     assert!(rendered.contains("artifact validation: ok"));
     assert!(rendered.contains("release bundle generation: ok"));
     assert!(rendered.contains("release bundle verification: ok"));
-    assert!(render_cli(&["release-smoke", "extra"]).is_err());
+    assert_eq!(
+        render_cli(&["release-smoke", "extra"]).expect_err("release-smoke takes no arguments"),
+        "release-smoke does not accept extra arguments"
+    );
 }
 
 #[test]

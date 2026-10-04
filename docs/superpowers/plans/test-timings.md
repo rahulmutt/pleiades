@@ -246,6 +246,58 @@ runs from 280 s to 347 s because libtest dispatches in name order.
 - **(a)** `release-smoke` left `release-gate`'s dependency list; the gate command performs the
   smoke checks itself. No measurement: it removes one battery run from the release procedure only.
 
+### FU-23 item (k), 2026-10-04
+
+In run 37183040722 the `pleiades-validate` lib suite ended about 100 s after the stations gate.
+libtest dispatches in name order, so `tests::release_checklist` came last, and its first test seeded
+`release_gate_via_cli` (`render_cli(&["release-gate"])`): a second full numeric battery (the first is
+`numeric_battery_outcome` in `render::cli::tests`) plus a second bundle render and verify (the first
+is `pristine_release_bundle`), about 45 s on one thread while the other three sat idle and the other
+half of `test-full` had already finished.
+
+- **(k) the release-gate tests assert the shared outcomes.** `numeric_battery_outcome` now lives in
+  `tests::test_support` (with `run_all_numeric_gates` made `pub(crate)`), and the release-gate and
+  release-smoke tests read it, call `verify_release_bundle` on the pristine bundle, compare the pure
+  checklist and smoke renderers, and check the three arms' extra-argument errors by text (the error
+  names the command, so the arm was reached). `release_gate_via_cli` is deleted. The lib suite now
+  runs the battery once and renders one bundle per process; the commands run end to end in
+  `mise run release-smoke` (blocking tier) and `mise run release-gate`. Locally the 15 tests that
+  read the battery or the release-gate run pass in one process with one battery (223 s at a load
+  average above 65, so no local timing is quoted).
+
+  Measured on CI by dispatching the nightly on the branch twice (runs 37186458265 and
+  37187128430, `ubuntu-latest`, 4 cores). "Before" is run 37183040722 (the (e)/(a) branch, same
+  suite otherwise). Both new runners were slower than the old one on every step this change does
+  not touch (the unchanged rows below), so the suite's absolute figure is confounded and the rows
+  that isolate the change are the release-gate pair and the tail after `validate_gates`. Seconds
+  from the lib suite's start unless noted:
+
+  | Phase | Before (37183040722) | After, run 1 (37186458265) | After, run 2 (37187128430) |
+  |-------|---------------------:|---------------------------:|---------------------------:|
+  | `test`: nextest run (unchanged) | 46 | 63 | 73 |
+  | `test-full-ignored`: `pleiades-cli` ignored tests (unchanged) | 133 | 161 | 164 |
+  | `test-full-ignored`: `pleiades-data` ignored tests (unchanged) | 67 | 75 | 76 |
+  | numeric battery tests done | 76 | 97 | 98 |
+  | full stations gate test done | 181 | 205 | 210 |
+  | `release_checklist` non-gate tests done | 235 | 271 | 276 |
+  | release-gate and release-smoke tests done | 282 | 276 | 280 |
+  | release-gate pair after the other `release_checklist` tests | 47 | 5 | 4.5 |
+  | `validate_gates` tests done | 270 | 300 | 305 |
+  | `pleiades-validate` lib suite | 282 | 300 | 305 |
+  | whole `ci-nightly` tier (wall-clock) | 460 | 496 | 430 |
+
+  The release-gate pair is the change: 47 s of battery, bundle render and verify on one thread
+  became 4.5 s (two `verify_release_bundle` calls on the pristine bundle plus renderer
+  comparisons). Before, the suite ended 12 s after `validate_gates`, waiting on that thread; now it
+  ends with `validate_gates`, whose shared crossings and occultations CLI runs (about 20 s, seeded
+  by libtest's name order after `release_checklist`) are the new tail. Run 2's tier is shorter
+  than run 1's only because run 1 had saved a `target` cache for the branch, so run 2 compiled
+  nothing for `test`. Both new runs failed on
+  `tests::comparison::regression_finding_has_a_displayable_summary_line`, which fails on `main`
+  for an unrelated reason (the default-corpus comparison has had no notable regression since #122
+  fixed VSOP87 Pluto, and no nightly has run `test-full` on `main` since); it fails in 0.07 s and
+  does not affect the timings above.
+
 ---
 
 ## Section 1: Timing Inventory

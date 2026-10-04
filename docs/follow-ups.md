@@ -2584,10 +2584,10 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-04) · Items (a) to (f) are done and (g)
-is measured; (h) and (i) remain open. Measurements, the two changes from
-#112 and the 2026-10-03 and 2026-10-04 changes are in
-`docs/superpowers/plans/test-timings.md` (Section 0).
+**Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) are done,
+(g) and (j) are measured and not applied; (h) and (i) remain open.
+Measurements, the two changes from #112 and the 2026-10-03 and 2026-10-04
+changes are in `docs/superpowers/plans/test-timings.md` (Section 0).
 
 **Where the time is:** nightly run 37119694132 (4-core GitHub runner) spent
 963 s in `ci-nightly`: 220 s building for `test`, 61 s running it, then
@@ -2719,7 +2719,26 @@ estimates from that run's timestamps, not measurements of a fix.
   test so it overlaps the bundle batch, or let the release-checklist tests
   assert the shared battery outcome plus a shared bundle render and verify
   and keep one cheap end-to-end dispatch check. Open; estimated saving about
-  45 s of nightly wall-clock.
+  45 s of nightly wall-clock. → **Resolved 2026-10-04:** the second option.
+  `numeric_battery_outcome` moved from `render::cli::tests` into
+  `tests::test_support`, so the release-gate and release-smoke tests assert
+  the same per-process battery run as the six `run_all_numeric_gates_*`
+  tests, plus `verify_release_bundle` on the pristine bundle (the gate's
+  other validation step, rendered once per process already) and the pure
+  checklist and smoke renderers; `release_gate_via_cli` is gone. The dispatch
+  arms are proven reached by their argument-check errors, which name the
+  command. The lib suite now runs the battery once and renders one bundle;
+  `release-gate` and `release-smoke` still run end to end in
+  `mise run release-smoke` (blocking tier) and `mise run release-gate`.
+  Measured on two nightlies dispatched on the branch (runs 37186458265 and
+  37187128430): the release-gate pair takes 5 s after the other
+  release-checklist tests instead of 47 s, and the lib suite now ends with
+  the `validate_gates` tests instead of 12 s after them. Both runners were
+  20–60 % slower than the "before" run on the unchanged steps, so the
+  suite's absolute figure (282 s → 300 and 305 s) is not comparable; the
+  table is in the timings plan. The new tail is `validate_gates`' shared
+  crossings and occultations CLI runs, about 20 s, seeded late by libtest's
+  name order.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 
