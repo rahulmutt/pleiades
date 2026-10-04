@@ -44,7 +44,13 @@ impl Endian {
         offset: usize,
     ) -> Result<(i32, i32), SpkError> {
         let first = self.i32_at(src, offset)?;
-        let second = self.i32_at(src, offset + 4)?;
+        let second_offset = offset.checked_add(4).ok_or_else(|| {
+            SpkError::new(
+                SpkErrorKind::Truncated,
+                "packed i32 pair offset overflowed a usize",
+            )
+        })?;
+        let second = self.i32_at(src, second_offset)?;
         Ok((first, second))
     }
 }

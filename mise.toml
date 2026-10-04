@@ -145,7 +145,7 @@ run = "cargo run -q -p pleiades-validate -- benchmark --rounds 5"
 description = "Run all fuzz targets for a short budget (local smoke; NOT part of ci or ci-nightly)."
 run = """
 set -euo pipefail
-for target in spk_kernel compression_framing compression_payload ingest_corpus; do
+for target in spk_kernel spk_evaluate compression_framing compression_payload ingest_corpus; do
   echo "── fuzzing $target ──"
   cargo "+$FUZZ_NIGHTLY" fuzz run "$target" -- -max_total_time=60
 done

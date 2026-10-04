@@ -34,12 +34,23 @@ fn push_packed_ints(buf: &mut Vec<u8>, a: i32, b: i32) {
 /// record; records 4.. = segment data arrays (each segment 8-byte aligned to a
 /// record boundary for simplicity).
 pub fn build_daf(segments: &[SegmentSpec]) -> Vec<u8> {
-    // Segment data starts at record 4 (1-based). Compute each segment's
+    build_daf_chain(&[segments])
+}
+
+/// Like [`build_daf`], but each group of segments gets its own summary record
+/// (followed by its name record), linked into one NEXT/PREV chain.
+///
+/// Layout: record 1 = file record; records 2, 4, .. = summary records; records
+/// 3, 5, .. = their name records; then the segment data arrays.
+pub fn build_daf_chain(groups: &[&[SegmentSpec]]) -> Vec<u8> {
+    let summary_record = |group: usize| 2 + 2 * group; // 1-based
+    let segments: Vec<&SegmentSpec> = groups.iter().flat_map(|g| g.iter()).collect();
+    // Segment data starts after the last name record. Compute each segment's
     // initial/final 1-based double addresses.
     let mut data_records: Vec<Vec<f64>> = Vec::new();
     let mut addresses: Vec<(i32, i32)> = Vec::new();
-    let mut next_record = 4usize; // 1-based record number for next data block
-    for seg in segments {
+    let mut next_record = summary_record(groups.len()); // 1-based record number for next data block
+    for seg in &segments {
         let first_addr = ((next_record - 1) * 128 + 1) as i32; // 1-based double address
         let final_addr = first_addr + seg.data.len() as i32 - 1;
         addresses.push((first_addr, final_addr));
@@ -58,41 +69,53 @@ pub fn build_daf(segments: &[SegmentSpec]) -> Vec<u8> {
     file_rec.extend_from_slice(&2i32.to_le_bytes()); // ND
     file_rec.extend_from_slice(&6i32.to_le_bytes()); // NI
     file_rec.extend_from_slice(&[b' '; 60]); // LOCIFN
+    let last_summary = summary_record(groups.len().saturating_sub(1)) as i32;
     file_rec.extend_from_slice(&2i32.to_le_bytes()); // FWARD (record 2)
-    file_rec.extend_from_slice(&2i32.to_le_bytes()); // BWARD (record 2)
+    file_rec.extend_from_slice(&last_summary.to_le_bytes()); // BWARD
     let free_addr = ((next_record - 1) * 128 + 1) as i32;
     file_rec.extend_from_slice(&free_addr.to_le_bytes()); // FREE
     file_rec.extend_from_slice(b"LTL-IEEE"); // LOCFMT (8)
     file_rec.resize(RECORD_BYTES, 0); // PRENUL/FTPSTR/PSTNUL — zero-filled is fine for the reader
 
-    // ---- Record 2: summary record ----
-    let mut sum_rec: Vec<u8> = Vec::with_capacity(RECORD_BYTES);
-    push_f64(&mut sum_rec, 0.0); // NEXT
-    push_f64(&mut sum_rec, 0.0); // PREV
-    push_f64(&mut sum_rec, segments.len() as f64); // NSUM
-    for (seg, (init_addr, final_addr)) in segments.iter().zip(&addresses) {
-        push_f64(&mut sum_rec, seg.start_et);
-        push_f64(&mut sum_rec, seg.stop_et);
-        push_packed_ints(&mut sum_rec, seg.target, seg.center);
-        push_packed_ints(&mut sum_rec, seg.frame, seg.data_type);
-        push_packed_ints(&mut sum_rec, *init_addr, *final_addr);
-    }
-    sum_rec.resize(RECORD_BYTES, 0);
-
-    // ---- Record 3: name record ----
-    let mut name_rec: Vec<u8> = Vec::with_capacity(RECORD_BYTES);
-    for seg in segments {
-        let mut name = seg.name.clone().into_bytes();
-        name.resize(40, b' ');
-        name_rec.extend_from_slice(&name[..40]);
-    }
-    name_rec.resize(RECORD_BYTES, 0);
-
-    // ---- Assemble ----
     let mut out = Vec::new();
     out.extend_from_slice(&file_rec);
-    out.extend_from_slice(&sum_rec);
-    out.extend_from_slice(&name_rec);
+
+    let mut addresses = addresses.iter();
+    for (group_index, group) in groups.iter().enumerate() {
+        // ---- Summary record ----
+        let next = if group_index + 1 < groups.len() {
+            summary_record(group_index + 1)
+        } else {
+            0
+        };
+        let prev = group_index.checked_sub(1).map_or(0, summary_record);
+        let mut sum_rec: Vec<u8> = Vec::with_capacity(RECORD_BYTES);
+        push_f64(&mut sum_rec, next as f64); // NEXT
+        push_f64(&mut sum_rec, prev as f64); // PREV
+        push_f64(&mut sum_rec, group.len() as f64); // NSUM
+        for (seg, (init_addr, final_addr)) in group.iter().zip(addresses.by_ref()) {
+            push_f64(&mut sum_rec, seg.start_et);
+            push_f64(&mut sum_rec, seg.stop_et);
+            push_packed_ints(&mut sum_rec, seg.target, seg.center);
+            push_packed_ints(&mut sum_rec, seg.frame, seg.data_type);
+            push_packed_ints(&mut sum_rec, *init_addr, *final_addr);
+        }
+        sum_rec.resize(RECORD_BYTES, 0);
+
+        // ---- Name record ----
+        let mut name_rec: Vec<u8> = Vec::with_capacity(RECORD_BYTES);
+        for seg in group.iter() {
+            let mut name = seg.name.clone().into_bytes();
+            name.resize(40, b' ');
+            name_rec.extend_from_slice(&name[..40]);
+        }
+        name_rec.resize(RECORD_BYTES, 0);
+
+        out.extend_from_slice(&sum_rec);
+        out.extend_from_slice(&name_rec);
+    }
+
+    // ---- Assemble data ----
     for block in data_records {
         for v in block {
             push_f64(&mut out, v);

@@ -9,7 +9,8 @@ use pleiades_compression::{CompressedArtifact, ARTIFACT_VERSION};
 // five-line standard algorithm. If either ever changes in the library, this
 // target stops reaching the codec and the framing target still covers the
 // public path — a silent-coverage-loss risk accepted deliberately, and pinned
-// by the assertion in the smoke-test step of this task.
+// by `harness_fnv1a64_matches_library` and `harness_framing_matches_real_encode`
+// in pleiades-compression's tests.
 const ARTIFACT_MAGIC: [u8; 8] = *b"PLDEPHEM";
 
 fn fnv1a64(bytes: &[u8]) -> u64 {

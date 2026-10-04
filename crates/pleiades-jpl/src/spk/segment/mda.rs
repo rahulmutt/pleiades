@@ -4,23 +4,10 @@
 //! difference-table dimension at 15; Type 21 stores it per segment as MAXDIM.
 
 use super::super::bytes::Endian;
-use super::super::daf::{addr_to_byte, SegmentDescriptor};
+use super::super::daf::SegmentDescriptor;
 use super::super::{ReadAt, SpkError, SpkErrorKind};
 use super::StateVector;
-
-fn read_doubles<R: ReadAt + ?Sized>(
-    src: &R,
-    endian: Endian,
-    addr: i32,
-    n: usize,
-) -> Result<Vec<f64>, SpkError> {
-    let mut out = Vec::with_capacity(n);
-    let base = addr_to_byte(addr);
-    for i in 0..n {
-        out.push(endian.f64_at(src, base + i * 8)?);
-    }
-    Ok(out)
-}
+use super::{addr_plus, count, read_doubles, segment_doubles, trailer_addr};
 
 /// Type 1: MAXDIM is fixed at 15 and not stored in the trailer.
 pub fn evaluate_mda<R: ReadAt + ?Sized>(
@@ -31,8 +18,11 @@ pub fn evaluate_mda<R: ReadAt + ?Sized>(
     maxdim: usize,
 ) -> Result<StateVector, SpkError> {
     // Trailer: [...epoch table (N)][...directory (N/100)][N]. Last word = N.
-    let numrec = read_doubles(src, endian, d.final_addr, 1)?[0] as usize;
-    decode(src, endian, d, et, maxdim, numrec)
+    let numrec = count(
+        read_doubles(src, endian, trailer_addr(d, 1)?, 1)?[0],
+        "record count",
+    )?;
+    decode(src, endian, d, et, maxdim, numrec, 1)
 }
 
 /// Type 21: MAXDIM stored just before NUMREC in the trailer.
@@ -42,16 +32,16 @@ pub fn evaluate_type21<R: ReadAt + ?Sized>(
     d: &SegmentDescriptor,
     et: f64,
 ) -> Result<StateVector, SpkError> {
-    let tail = read_doubles(src, endian, d.final_addr - 1, 2)?; // [MAXDIM, NUMREC]
-    let maxdim = tail[0] as usize;
-    let numrec = tail[1] as usize;
+    let tail = read_doubles(src, endian, trailer_addr(d, 2)?, 2)?; // [MAXDIM, NUMREC]
+    let maxdim = count(tail[0], "MAXDIM")?;
+    let numrec = count(tail[1], "record count")?;
     if maxdim == 0 || maxdim > 25 {
         return Err(SpkError::new(
             SpkErrorKind::Truncated,
             format!("bad MAXDIM {maxdim}"),
         ));
     }
-    decode(src, endian, d, et, maxdim, numrec)
+    decode(src, endian, d, et, maxdim, numrec, 2)
 }
 
 fn decode<R: ReadAt + ?Sized>(
@@ -61,15 +51,19 @@ fn decode<R: ReadAt + ?Sized>(
     et: f64,
     maxdim: usize,
     numrec: usize,
+    trailer_words: usize,
 ) -> Result<StateVector, SpkError> {
     let dlsize = 4 * maxdim + 11;
-    // NUMREC is read from untrusted kernel bytes; reject a record count that does
-    // not fit within the segment's declared address range so a crafted value
-    // cannot drive a giant allocation or read past the segment.
-    let seg_doubles = (d.final_addr as i64 - d.init_addr as i64 + 1).max(0) as usize;
+    // NUMREC is read from untrusted kernel bytes; reject a record count whose
+    // records and epoch table (the directory is omitted, so this is a lower
+    // bound on a valid layout) do not fit within the segment's declared address
+    // range, so a crafted value cannot drive a giant allocation or read past
+    // the segment.
+    let seg_doubles = segment_doubles(d)?;
     if numrec == 0
         || numrec
-            .checked_mul(dlsize)
+            .checked_mul(dlsize + 1)
+            .and_then(|used| used.checked_add(trailer_words))
             .is_none_or(|used| used > seg_doubles)
     {
         return Err(SpkError::new(
@@ -78,7 +72,7 @@ fn decode<R: ReadAt + ?Sized>(
         ));
     }
     // Epoch table begins right after the NUMREC records.
-    let epoch_table_addr = d.init_addr + (numrec * dlsize) as i32;
+    let epoch_table_addr = addr_plus(d.init_addr, numrec * dlsize)?;
     let epochs = read_doubles(src, endian, epoch_table_addr, numrec)?;
 
     // Find first record whose epoch >= et (linear scan; directory skip omitted
@@ -90,7 +84,7 @@ fn decode<R: ReadAt + ?Sized>(
             break;
         }
     }
-    let rec_addr = d.init_addr + (recno * dlsize) as i32;
+    let rec_addr = addr_plus(d.init_addr, recno * dlsize)?;
     let rec = read_doubles(src, endian, rec_addr, dlsize)?;
 
     // Unpack record.

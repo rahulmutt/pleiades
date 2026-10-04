@@ -1960,6 +1960,40 @@ fn harness_fnv1a64_matches_library() {
     }
 }
 
+/// `fuzz/fuzz_targets/compression_payload.rs` hardcodes the artifact magic and
+/// rebuilds the framing around its payload. Pin both against a real encode: if
+/// either drifts, that target silently stops reaching the codec.
+#[test]
+fn harness_framing_matches_real_encode() {
+    const HARNESS_ARTIFACT_MAGIC: [u8; 8] = *b"PLDEPHEM";
+    let artifact = CompressedArtifact::new(
+        ArtifactHeader::new("harness", "framing pin"),
+        vec![BodyArtifact::new(
+            CelestialBody::Sun,
+            vec![Segment::new(
+                Instant::new(JulianDay::from_days(0.0), TimeScale::Tt),
+                Instant::new(JulianDay::from_days(10.0), TimeScale::Tt),
+                vec![PolynomialChannel::linear(
+                    ChannelKind::Longitude,
+                    9,
+                    10.0,
+                    20.0,
+                )],
+            )],
+        )],
+    );
+    let encoded = artifact.encode().expect("artifact should encode");
+    assert_eq!(encoded[..8], HARNESS_ARTIFACT_MAGIC);
+
+    // The harness frame: magic, version (u16 LE), FNV-1a of the payload (u64 LE), payload.
+    let payload = &encoded[18..];
+    let mut framed = HARNESS_ARTIFACT_MAGIC.to_vec();
+    framed.extend_from_slice(&ARTIFACT_VERSION.to_le_bytes());
+    framed.extend_from_slice(&fnv1a64(payload).to_le_bytes());
+    framed.extend_from_slice(payload);
+    assert_eq!(framed, encoded);
+}
+
 mod codec_properties {
     use super::*;
     use proptest::prelude::*;

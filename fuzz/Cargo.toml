@@ -18,6 +18,8 @@ cargo-fuzz = true
 libfuzzer-sys = "0.4"
 pleiades-jpl = { path = "../crates/pleiades-jpl" }
 pleiades-compression = { path = "../crates/pleiades-compression" }
+pleiades-backend = { path = "../crates/pleiades-backend" }
+pleiades-types = { path = "../crates/pleiades-types" }
 
 [profile.release]
 debug = 1
@@ -25,6 +27,13 @@ debug = 1
 [[bin]]
 name = "spk_kernel"
 path = "fuzz_targets/spk_kernel.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "spk_evaluate"
+path = "fuzz_targets/spk_evaluate.rs"
 test = false
 doc = false
 bench = false

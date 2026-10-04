@@ -71,14 +71,14 @@ dependencies = [
 
 [[package]]
 name = "pleiades-backend"
-version = "0.5.3"
+version = "0.5.4"
 dependencies = [
  "pleiades-types",
 ]
 
 [[package]]
 name = "pleiades-compression"
-version = "0.5.3"
+version = "0.5.4"
 dependencies = [
  "pleiades-types",
 ]
@@ -88,13 +88,15 @@ name = "pleiades-fuzz"
 version = "0.0.0"
 dependencies = [
  "libfuzzer-sys",
+ "pleiades-backend",
  "pleiades-compression",
  "pleiades-jpl",
+ "pleiades-types",
 ]
 
 [[package]]
 name = "pleiades-jpl"
-version = "0.5.3"
+version = "0.5.4"
 dependencies = [
  "pleiades-backend",
  "pleiades-types",
@@ -102,7 +104,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-types"
-version = "0.5.3"
+version = "0.5.4"
 
 [[package]]
 name = "r-efi"
