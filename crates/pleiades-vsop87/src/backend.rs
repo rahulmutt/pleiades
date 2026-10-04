@@ -10,6 +10,7 @@ use pleiades_types::{
 };
 
 use crate::elements::OrbitalElements;
+use crate::pluto::PlutoPath;
 use crate::profiles::{body_source_profiles, source_kind_for_body, Vsop87BodySourceKind};
 use crate::tables;
 use crate::transforms::{
@@ -53,13 +54,12 @@ impl Vsop87Backend {
         Self::supported_bodies()
             .iter()
             .cloned()
-            .map(|body| match body {
-                CelestialBody::Pluto => BodyClaim::approximate(body),
-                other => BodyClaim::constrained(
-                    other,
+            .map(|body| {
+                BodyClaim::constrained(
+                    body,
                     AccuracyClass::Moderate,
                     ClaimEvidence::AlgorithmicModel,
-                ),
+                )
             })
             .collect()
     }
@@ -158,6 +158,14 @@ impl Vsop87Backend {
     }
 
     fn geocentric_coordinates(body: CelestialBody, days: f64) -> Option<HeliocentricCoordinates> {
+        Self::geocentric_coordinates_on(body, days, PlutoPath::for_julian_day(J2000 + days))
+    }
+
+    pub(crate) fn geocentric_coordinates_on(
+        body: CelestialBody,
+        days: f64,
+        pluto_path: PlutoPath,
+    ) -> Option<HeliocentricCoordinates> {
         if body == CelestialBody::Sun {
             return Some(Self::geocentric_sun_from_vsop87b(days));
         }
@@ -190,10 +198,17 @@ impl Vsop87Backend {
             });
         }
 
-        // Mean-element fallback (Pluto): heliocentric Pluto minus the same
+        // Pluto, which VSOP87 excludes: Meeus Table 37.A inside its window,
+        // the mean-element orbit outside it; either way minus the same
         // VSOP87B heliocentric Earth the table-backed planets use.
         let earth = Self::heliocentric_earth_from_vsop87b(days);
-        let target = Self::heliocentric_coordinates(Self::orbital_elements(body, days)?);
+        let target = match (&body, pluto_path) {
+            (CelestialBody::Pluto, PlutoPath::PeriodicTermFit) => {
+                let pluto = tables::pluto_meeus::pluto_lbr(J2000 + days);
+                spherical_lbr_to_cartesian(pluto.longitude_rad, pluto.latitude_rad, pluto.radius_au)
+            }
+            _ => Self::heliocentric_coordinates(Self::orbital_elements(body, days)?),
+        };
         Some(HeliocentricCoordinates {
             xh: target.xh - earth.xh,
             yh: target.yh - earth.yh,
@@ -290,11 +305,19 @@ impl Vsop87Backend {
         const HALF_SPAN_DAYS: f64 = 0.5;
         const FULL_SPAN_DAYS: f64 = HALF_SPAN_DAYS * 2.0;
 
-        let before = Self::to_ecliptic(Self::geocentric_coordinates(
+        // All samples take the centre instant's Pluto path, so a speed near the
+        // edge of the fit window never differences across the jump.
+        let pluto_path = PlutoPath::for_julian_day(J2000 + days);
+        let before = Self::to_ecliptic(Self::geocentric_coordinates_on(
             body.clone(),
             days - HALF_SPAN_DAYS,
+            pluto_path,
         )?);
-        let after = Self::to_ecliptic(Self::geocentric_coordinates(body, days + HALF_SPAN_DAYS)?);
+        let after = Self::to_ecliptic(Self::geocentric_coordinates_on(
+            body,
+            days + HALF_SPAN_DAYS,
+            pluto_path,
+        )?);
 
         let longitude_speed =
             signed_longitude_delta_degrees(before.longitude.degrees(), after.longitude.degrees())
@@ -445,8 +468,13 @@ impl EphemerisBackend for Vsop87Backend {
             | Some(Vsop87BodySourceKind::GeneratedBinaryVsop87b) => QualityAnnotation::Exact,
             Some(Vsop87BodySourceKind::TruncatedVsop87b)
             | Some(Vsop87BodySourceKind::MeanOrbitalElements)
-            | Some(Vsop87BodySourceKind::PeriodicTermFit)
             | None => QualityAnnotation::Approximate,
+            Some(Vsop87BodySourceKind::PeriodicTermFit) => {
+                match PlutoPath::for_julian_day(J2000 + days) {
+                    PlutoPath::PeriodicTermFit => QualityAnnotation::Exact,
+                    PlutoPath::MeanElements => QualityAnnotation::Approximate,
+                }
+            }
         };
         result.ecliptic = Some(Self::to_ecliptic(geocentric));
         result.equatorial = Some(Self::to_equatorial(geocentric, req.instant));

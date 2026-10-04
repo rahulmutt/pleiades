@@ -262,14 +262,7 @@ fn batch_query_covers_all_supported_vsop87_paths() {
     assert_eq!(results.len(), requests.len());
     for (request, result) in requests.iter().zip(results.iter()) {
         assert_eq!(result.body, request.body);
-        match result.body {
-            CelestialBody::Pluto => {
-                assert_eq!(result.quality, QualityAnnotation::Approximate);
-            }
-            _ => {
-                assert_eq!(result.quality, QualityAnnotation::Exact);
-            }
-        }
+        assert_eq!(result.quality, QualityAnnotation::Exact);
 
         let single = backend
             .position(request)
@@ -344,14 +337,7 @@ fn batch_query_preserves_supported_vsop87_paths_for_tdb_requests() {
     for (request, result) in requests.iter().zip(results.iter()) {
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant.scale, TimeScale::Tdb);
-        match result.body {
-            CelestialBody::Pluto => {
-                assert_eq!(result.quality, QualityAnnotation::Approximate);
-            }
-            _ => {
-                assert_eq!(result.quality, QualityAnnotation::Exact);
-            }
-        }
+        assert_eq!(result.quality, QualityAnnotation::Exact);
 
         let single = backend
             .position(request)
@@ -571,14 +557,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_reference_epoch() {
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Equatorial);
-        match result.body {
-            CelestialBody::Pluto => {
-                assert_eq!(result.quality, QualityAnnotation::Approximate);
-            }
-            _ => {
-                assert_eq!(result.quality, QualityAnnotation::Exact);
-            }
-        }
+        assert_eq!(result.quality, QualityAnnotation::Exact);
 
         let single = backend
             .position(request)
@@ -632,14 +611,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_ecliptic_reference_
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Ecliptic);
-        match result.body {
-            CelestialBody::Pluto => {
-                assert_eq!(result.quality, QualityAnnotation::Approximate);
-            }
-            _ => {
-                assert_eq!(result.quality, QualityAnnotation::Exact);
-            }
-        }
+        assert_eq!(result.quality, QualityAnnotation::Exact);
 
         let single = backend
             .position(request)
@@ -693,14 +665,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch() {
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Equatorial);
-        match result.body {
-            CelestialBody::Pluto => {
-                assert_eq!(result.quality, QualityAnnotation::Approximate);
-            }
-            _ => {
-                assert_eq!(result.quality, QualityAnnotation::Exact);
-            }
-        }
+        assert_eq!(result.quality, QualityAnnotation::Exact);
 
         let single = backend
             .position(request)
@@ -754,14 +719,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Equatorial);
-        match result.body {
-            CelestialBody::Pluto => {
-                assert_eq!(result.quality, QualityAnnotation::Approximate);
-            }
-            _ => {
-                assert_eq!(result.quality, QualityAnnotation::Exact);
-            }
-        }
+        assert_eq!(result.quality, QualityAnnotation::Exact);
 
         let single = backend
             .position(request)
@@ -855,14 +813,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Ecliptic);
-        match result.body {
-            CelestialBody::Pluto => {
-                assert_eq!(result.quality, QualityAnnotation::Approximate);
-            }
-            _ => {
-                assert_eq!(result.quality, QualityAnnotation::Exact);
-            }
-        }
+        assert_eq!(result.quality, QualityAnnotation::Exact);
 
         let single = backend
             .position(request)
@@ -1166,7 +1117,7 @@ fn batch_query_preserves_mixed_time_scales_and_values() {
 }
 
 #[test]
-fn vsop87_claims_majors_constrained_pluto_approximate() {
+fn vsop87_claims_every_body_constrained() {
     use pleiades_backend::{BodyClaimTier, CelestialBody, EphemerisBackend};
     let meta = Vsop87Backend::new().metadata();
     assert_eq!(
@@ -1175,7 +1126,7 @@ fn vsop87_claims_majors_constrained_pluto_approximate() {
     );
     assert_eq!(
         meta.claim_for(&CelestialBody::Pluto).map(|c| c.tier),
-        Some(BodyClaimTier::Approximate)
+        Some(BodyClaimTier::Constrained)
     );
     assert!(meta.release_grade_bodies().is_empty());
 }

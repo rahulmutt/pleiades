@@ -14,3 +14,6 @@ readme = "README.md"
 [dependencies]
 pleiades-backend = { workspace = true }
 pleiades-types = { workspace = true }
+
+[dev-dependencies]
+pleiades-data = { path = "../pleiades-data" }

@@ -71,7 +71,8 @@ pub struct Vsop87BodySource {
     pub provenance: &'static str,
     /// Series-fidelity class of this body's checked-in path: `Exact` means the
     /// generated table reproduces the full, untruncated VSOP87B series for the
-    /// body, while `Approximate` marks the mean-element Pluto fallback. This
+    /// body (`Exact` also marks Pluto's full published Table 37.A), while
+    /// `Approximate` marks a mean-element path. This
     /// describes source-reproduction fidelity, not observational position
     /// accuracy: the backend's chart-facing `BodyClaim` for these source-backed
     /// planets is still `Moderate`/constrained (see
@@ -557,9 +558,9 @@ pub(crate) fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
             Vsop87BodyCatalogEntry {
                 source_profile: source_profile(
                     CelestialBody::Pluto,
-                    Vsop87BodySourceKind::MeanOrbitalElements,
-                    "current approximate mean-element fallback special case until a Pluto-specific source path is selected",
-                    AccuracyClass::Approximate,
+                    Vsop87BodySourceKind::PeriodicTermFit,
+                    "Meeus Astronomical Algorithms Table 37.A periodic-term fit (Chapront, DE200), valid 1885-2099; mean-element fallback outside",
+                    AccuracyClass::Exact,
                 ),
                 source_specification: None,
                 canonical_sample: None,

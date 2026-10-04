@@ -15,7 +15,6 @@ use super::vsop87b_earth::SphericalLbr;
 /// Table 37.A, one row per term: argument multipliers `i, j, k` of J, S, P,
 /// then the longitude `A, B` (degrees), latitude `A, B` (degrees) and radius
 /// vector `A, B` (AU) coefficients of `A sin α + B cos α`.
-#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) const PLUTO_TERMS: [[f64; 9]; 43] = [
     [
         0.0, 0.0, 1.0, -19.799805, 19.850055, -5.452852, -14.974862, 6.6865439, 6.8951812,
@@ -148,7 +147,6 @@ pub(crate) const PLUTO_TERMS: [[f64; 9]; 43] = [
 
 /// Heliocentric ecliptic longitude, latitude (radians) and radius vector (AU)
 /// of Pluto at `jd_tt`, from Table 37.A (Meeus eq. 37 and the text before it).
-#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn pluto_lbr(jd_tt: f64) -> SphericalLbr {
     let t = (jd_tt - 2_451_545.0) / 36_525.0;
     let jupiter = 34.35 + 3_034.905_7 * t;

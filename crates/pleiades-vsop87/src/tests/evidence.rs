@@ -1662,10 +1662,10 @@ fn source_backed_and_fallback_body_profiles_are_exposed_for_reproducibility_tool
     );
     assert!(fallback_profiles
         .iter()
-        .all(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements));
+        .all(|profile| !profile.kind.is_vsop87b()));
     assert!(source_backed_profiles
         .iter()
-        .all(|profile| profile.kind != Vsop87BodySourceKind::MeanOrbitalElements));
+        .all(|profile| profile.kind.is_vsop87b()));
     assert_eq!(
         source_backed_profiles.len() + fallback_profiles.len(),
         body_source_profiles().len()
@@ -1716,7 +1716,7 @@ fn unified_body_catalog_keeps_profiles_specs_and_samples_aligned() {
         .count();
     let fallback = catalog
         .iter()
-        .filter(|entry| entry.source_profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
+        .filter(|entry| !entry.source_profile.kind.is_vsop87b())
         .count();
     assert_eq!(source_backed, 8);
     assert_eq!(fallback, 1);

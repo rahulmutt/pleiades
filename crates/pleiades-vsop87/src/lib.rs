@@ -40,17 +40,16 @@
 //! assert!(specs.iter().all(|spec| spec.date_range.contains("J2000 canonical reference sample")));
 //! ```
 //!
-//! Pluto still uses compact
-//! Keplerian orbital elements,
-//! a geocentric reduction step, and central-difference motion estimates so the
-//! workspace has an end-to-end tropical chart path while the remaining Pluto-
-//! specific source selection is added incrementally.
+//! Pluto, which the VSOP87 theory excludes, comes from the Meeus Table 37.A
+//! periodic-term fit over 1885–2099 (arcsecond class) and from mean Keplerian
+//! orbital elements outside that window, minus the same VSOP87B Earth.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
 mod backend;
 mod elements;
+mod pluto;
 mod profiles;
 mod tables;
 mod transforms;

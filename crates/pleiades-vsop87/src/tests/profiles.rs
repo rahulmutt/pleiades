@@ -12,8 +12,8 @@ fn body_source_profiles_validate_the_current_catalog_pairings() {
 
     let mut kind_drift = profile.clone();
     kind_drift.kind = match kind_drift.kind {
-        Vsop87BodySourceKind::MeanOrbitalElements => Vsop87BodySourceKind::GeneratedBinaryVsop87b,
-        _ => Vsop87BodySourceKind::MeanOrbitalElements,
+        Vsop87BodySourceKind::PeriodicTermFit => Vsop87BodySourceKind::MeanOrbitalElements,
+        _ => Vsop87BodySourceKind::PeriodicTermFit,
     };
     assert!(matches!(
         kind_drift.validate(),
@@ -141,12 +141,12 @@ fn body_source_profiles_identify_generated_binary_and_full_file_paths() {
         .iter()
         .find(|profile| profile.body == CelestialBody::Pluto)
         .expect("Pluto profile should exist");
-    assert_eq!(pluto.kind, Vsop87BodySourceKind::MeanOrbitalElements);
-    assert!(pluto.provenance.contains("fallback"));
+    assert_eq!(pluto.kind, Vsop87BodySourceKind::PeriodicTermFit);
+    assert!(pluto.provenance.contains("Table 37.A"));
     assert_eq!(pluto.summary_line(), pluto.to_string());
     assert!(pluto
         .summary_line()
-        .starts_with("Pluto: kind=mean orbital elements fallback, accuracy=Approximate"));
+        .starts_with("Pluto: kind=published periodic-term fit, accuracy=Exact"));
 }
 
 #[test]
