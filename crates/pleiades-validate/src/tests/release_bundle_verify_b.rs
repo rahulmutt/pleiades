@@ -792,8 +792,8 @@ fn verify_release_bundle_rejects_semantically_tampered_pluto_fallback_summary_fi
             "pleiades-release-bundle-semantic-pluto-fallback-summary",
             "pluto-fallback-summary.txt",
             "pluto fallback summary checksum (fnv1a-64):",
-            "Pluto remains an explicitly approximate fallback on the algorithmic (VSOP87) path; the packaged-data artifact ships Pluto as release-grade",
-            "Pluto remains an explicitly approximate fallback (drifted) on the algorithmic (VSOP87) path; the packaged-data artifact ships Pluto as release-grade",
+            "Pluto comes from the Meeus Table 37.A periodic-term fit on the algorithmic (VSOP87) path over 1885-2099, with mean elements outside; the packaged-data artifact ships Pluto as release-grade",
+            "Pluto comes from the Meeus Table 37.A periodic-term fit (drifted) on the algorithmic (VSOP87) path over 1885-2099, with mean elements outside; the packaged-data artifact ships Pluto as release-grade",
             "Pluto fallback summary no longer matches the current Pluto fallback posture",
         );
 }

@@ -16,7 +16,7 @@ pub struct Vsop87SourceDocumentationSummary {
     pub source_specification_count: usize,
     /// Number of source-backed body profiles described by the catalog.
     pub source_backed_profile_count: usize,
-    /// Bodies that still use a source-backed planetary path rather than the fallback mean-element path.
+    /// Bodies that still use a source-backed planetary path rather than a fallback (non-VSOP87B) path.
     pub source_backed_bodies: Vec<CelestialBody>,
     /// Public source files currently represented by the catalog.
     pub source_files: Vec<&'static str>,
@@ -32,9 +32,9 @@ pub struct Vsop87SourceDocumentationSummary {
     pub generated_binary_profile_count: usize,
     /// Number of truncated-slice body profiles.
     pub truncated_profile_count: usize,
-    /// Number of approximate fallback mean-element body profiles.
+    /// Number of fallback (non-VSOP87B) body profiles.
     pub fallback_profile_count: usize,
-    /// Bodies that still use the approximate fallback mean-element path.
+    /// Bodies that still use a fallback (non-VSOP87B) path.
     pub fallback_bodies: Vec<CelestialBody>,
     /// Unique date-range notes carried by the source specifications.
     pub date_ranges: Vec<&'static str>,
@@ -85,9 +85,9 @@ impl Vsop87SourceDocumentationSummary {
             format_celestial_bodies(&self.truncated_bodies)
         };
         let fallback_profile_label = if self.fallback_profile_count == 1 {
-            "approximate fallback mean-element body profile"
+            "fallback (non-VSOP87B) body profile"
         } else {
-            "approximate fallback mean-element body profiles"
+            "fallback (non-VSOP87B) body profiles"
         };
 
         format!(
@@ -390,7 +390,7 @@ pub struct Vsop87SourceDocumentationHealthSummary {
     pub source_files: Vec<&'static str>,
     /// Number of source-backed body profiles described by the catalog.
     pub source_backed_profile_count: usize,
-    /// Bodies that still use a source-backed planetary path rather than the fallback mean-element path.
+    /// Bodies that still use a source-backed planetary path rather than a fallback (non-VSOP87B) path.
     pub source_backed_bodies: Vec<CelestialBody>,
     /// Bodies in the current source-backed partition order.
     pub source_backed_partition_bodies: Vec<CelestialBody>,
@@ -408,9 +408,9 @@ pub struct Vsop87SourceDocumentationHealthSummary {
     pub vendored_full_file_profile_count: usize,
     /// Number of truncated-slice body profiles.
     pub truncated_profile_count: usize,
-    /// Number of approximate fallback mean-element body profiles.
+    /// Number of fallback (non-VSOP87B) body profiles.
     pub fallback_profile_count: usize,
-    /// Bodies that still use the approximate fallback mean-element path.
+    /// Bodies that still use a fallback (non-VSOP87B) path.
     pub fallback_bodies: Vec<CelestialBody>,
 }
 

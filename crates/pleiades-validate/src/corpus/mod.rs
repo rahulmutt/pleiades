@@ -312,7 +312,7 @@ pub fn release_grade_corpus() -> ValidationCorpus {
         .get_or_init(|| {
             let mut corpus = default_corpus();
             corpus.name = "JPL Horizons release-grade comparison window".to_string();
-            corpus.description = "Release-grade comparison corpus built from the checked-in JPL Horizons snapshot, with Pluto excluded from tolerance evidence because Pluto remains an approximate fallback.";
+            corpus.description = "Release-grade comparison corpus built from the checked-in JPL Horizons snapshot, with Pluto excluded from tolerance evidence.";
             corpus
                 .requests
                 .retain(|request| request.body != CelestialBody::Pluto);

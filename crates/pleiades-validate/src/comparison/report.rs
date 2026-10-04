@@ -753,7 +753,7 @@ fn comparison_tolerance_for_scope(
         },
         ComparisonToleranceScope::Pluto => ComparisonTolerance {
             backend_family: backend_family.clone(),
-            profile: "phase-1 Pluto approximate fallback evidence",
+            profile: "phase-1 Pluto periodic-term fit evidence",
             max_longitude_delta_deg: PLUTO_LONGITUDE_THRESHOLD_DEG,
             max_latitude_delta_deg: PLUTO_LATITUDE_THRESHOLD_DEG,
             max_distance_delta_au: Some(PLUTO_DISTANCE_THRESHOLD_AU),

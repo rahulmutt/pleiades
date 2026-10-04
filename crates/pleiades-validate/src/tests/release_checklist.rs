@@ -673,14 +673,15 @@ fn release_summary_command_renders_the_quick_overview() {
     assert!(rendered.contains("Zodiac policy:"));
     assert!(rendered.contains("notable regressions"));
     assert!(rendered.contains("outside-tolerance bodies"));
-    assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="));
+    assert!(rendered.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto (periodic-term fit)); limits="));
     assert!(rendered.contains("coverage=Luminaries: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence, bodies=2 (Sun, Moon), samples="));
     assert!(rendered.contains("window=JD 2415020.5 (TT) → JD 2453000.5 (TT)"));
     assert!(rendered.contains("frames=Ecliptic"));
     assert!(rendered.contains("Luminaries: Δlon≤7.500°, Δlat≤0.750°, Δdist=0.001 AU"));
     assert!(rendered.contains("Major planets: Δlon≤0.010°, Δlat≤0.010°, Δdist=0.001 AU"));
-    assert!(rendered
-        .contains("Pluto fallback (approximate): Δlon≤45.000°, Δlat≤1.000°, Δdist=0.250 AU"));
+    assert!(
+        rendered.contains("Pluto (periodic-term fit): Δlon≤0.010°, Δlat≤0.010°, Δdist=0.001 AU")
+    );
     assert!(rendered.contains("evidence=9 bodies"));
     assert!(rendered.contains("Body-class tolerance posture:"));
     assert!(rendered.contains("Expected tolerance status:"));

@@ -337,6 +337,7 @@ name = "pleiades-vsop87"
 version = "0.5.4"
 dependencies = [
  "pleiades-backend",
+ "pleiades-data",
  "pleiades-types",
 ]
 

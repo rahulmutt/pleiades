@@ -1112,6 +1112,10 @@ fn source_kind_display_labels_match_the_release_facing_labels() {
             Vsop87BodySourceKind::MeanOrbitalElements,
             "mean orbital elements fallback",
         ),
+        (
+            Vsop87BodySourceKind::PeriodicTermFit,
+            "published periodic-term fit",
+        ),
     ];
 
     for (kind, expected) in cases {

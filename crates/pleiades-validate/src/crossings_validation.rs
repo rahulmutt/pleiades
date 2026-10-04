@@ -46,10 +46,9 @@ const GEO_MOON_ARCSEC: f64 = 4.0;
 const GEO_PLANET_ARCSEC: f64 = 1.0;
 const HELIO_ARCSEC: f64 = 50.0;
 // Pluto meets a normal measured per-body ceiling like every other body (not a coverage
-// boundary or an exclusion). It is simply wider than the inner planets because VSOP87
-// excludes Pluto, so the backend serves it from a mean-element fallback instead: that
-// fallback is accurate for the corpus targets — measured max 0.697" (geo) / 3.530"
-// (helio) — so the ceiling is just Pluto's own 1.4x value like the other groups.
+// boundary or an exclusion). This gate runs on the packaged backend, whose Pluto is
+// fitted from JPL like every other body; the ceiling is simply wider than the inner
+// planets' — measured max 0.697" (geo) / 3.530" (helio) — at Pluto's own 1.4x value.
 const PLUTO_ARCSEC: f64 = 5.0;
 
 #[derive(Debug)]

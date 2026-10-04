@@ -402,7 +402,7 @@ fn validation_report_includes_corpus_metadata() {
             "Major planets: backend family=composite, profile=phase-1 full-file VSOP87B planetary evidence"
         ));
     assert!(report.contains(
-            "Pluto fallback (approximate): backend family=composite, profile=phase-1 Pluto approximate fallback evidence, bodies=0 (none), samples=0"
+            "Pluto (periodic-term fit): backend family=composite, profile=phase-1 Pluto periodic-term fit evidence, bodies=0 (none), samples=0"
         ));
     assert!(report.contains("Luminaries"));
     assert!(report.contains("Major planets"));

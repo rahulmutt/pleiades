@@ -227,7 +227,7 @@ fn cli_report_summary_lists_the_summary_command() {
     assert!(validation_report_summary.contains("margin Δlon="));
     assert!(validation_report_summary.contains("margin Δdist="));
     assert!(validation_report_summary.contains("Chart benchmark"));
-    assert!(validation_report_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto fallback (approximate)); limits="));
+    assert!(validation_report_summary.contains("Comparison tolerance policy: backend family=Composite; scopes=6 (Luminaries, Major planets, Lunar points, Asteroids, Custom bodies, Pluto (periodic-term fit)); limits="));
     assert!(validation_report_summary.contains("UTC convenience policy: built-in UTC convenience conversion is now provided by the pleiades-time crate (civil UTC/UT1 to TT/TDB, leap-second-exact UTC, tiered exact/observed/predicted, 1900-2100); direct backends still consume TT/TDB"));
     assert!(validation_report_summary.contains("Comparison tolerance audit"));
     assert!(validation_report_summary.contains("command: compare-backends-audit"));
@@ -330,7 +330,7 @@ fn cli_report_summary_lists_the_summary_command() {
     }));
     assert!(validation_report_summary.contains("Zodiac policy:"));
     assert!(validation_report_summary.contains(
-            "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.7.22, api-stability=pleiades-api-stability/0.3.0"
+            "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.7.23, api-stability=pleiades-api-stability/0.3.0"
         ));
     assert!(validation_report_summary
         .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
@@ -751,6 +751,7 @@ fn backend_matrix_command_renders_the_implemented_catalog() {
     assert!(rendered.contains("source audit:"));
     assert!(rendered.contains("Sun: IMCCE/CELMECH VSOP87B VSOP87B.ear"));
     assert!(rendered.contains("Paul Schlyter-style mean orbital elements for planets"));
+    assert!(rendered.contains("Table 37.A periodic-term fit (Chapront, DE200) over 1885-2099"));
     assert!(rendered.contains("body source profiles:"));
     assert!(rendered.contains("VSOP87B.ear"));
     assert!(rendered.contains("geocentric planetary reduction against Earth coefficients"));
@@ -764,7 +765,7 @@ fn backend_matrix_command_renders_the_implemented_catalog() {
     assert!(rendered.contains("Saturn: kind=generated binary VSOP87B, accuracy=Exact"));
     assert!(rendered.contains("Uranus: kind=generated binary VSOP87B, accuracy=Exact"));
     assert!(rendered.contains("Neptune: kind=generated binary VSOP87B, accuracy=Exact"));
-    assert!(rendered.contains("Pluto: kind=mean orbital elements fallback, accuracy=Approximate"));
+    assert!(rendered.contains("Pluto: kind=published periodic-term fit, accuracy=Exact"));
     assert!(rendered.contains("Meeus-style truncated lunar orbit formulas"));
     assert!(rendered.contains("NASA/JPL Horizons API vector tables (DE441)"));
     assert!(rendered.contains("interpolation quality checks:"));
@@ -772,7 +773,7 @@ fn backend_matrix_command_renders_the_implemented_catalog() {
     assert!(rendered.contains("interpolation, bracket span"));
     assert!(rendered.contains("TDB"));
     assert!(rendered.contains("VSOP87 planetary backend"));
-    assert!(rendered.contains("Pluto remains the current approximate mean-element fallback special case until a Pluto-specific source path is selected"));
+    assert!(rendered.contains("Pluto comes from the Meeus Table 37.A periodic-term fit over 1885-2099, with mean elements outside"));
     assert!(rendered.contains("ELP lunar backend (Moon and lunar nodes)"));
     assert!(rendered.contains("specification summary: ELP lunar theory specification:"));
     assert!(rendered.contains("compact lunar and lunar-point formulas provide the current deterministic baseline while documented production lunar-theory ingestion remains open"));
@@ -892,7 +893,7 @@ fn backend_matrix_summary_command_renders_the_summary() {
     assert!(rendered.contains("Accuracy classes:"));
     assert!(rendered.contains("Exact: 1"));
     assert!(rendered.contains("Approximate: 4"));
-    assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 approximate fallback mean-element body profile (Pluto); source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep"));
+    assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback (non-VSOP87B) body profile (Pluto); source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep"));
     assert!(rendered.contains(
             "source-backed breakdown: 8 generated binary bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file bodies (none), 0 truncated slice bodies (none)"
         ));
@@ -932,7 +933,8 @@ fn backend_matrix_summary_command_renders_the_summary() {
     assert!(rendered.contains("Catalog posture: house systems="));
     assert!(rendered.contains("Target house scope:"));
     assert!(rendered.contains("Target ayanamsa scope:"));
-    assert!(rendered.contains("Pluto fallback: Pluto remains an explicitly approximate fallback"));
+    assert!(rendered
+        .contains("Pluto fallback: Pluto comes from the Meeus Table 37.A periodic-term fit"));
     assert!(rendered.contains(&reference_snapshot_boundary_epoch_coverage_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_sparse_boundary_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_pre_bridge_boundary_summary_for_report()));
@@ -947,7 +949,7 @@ fn backend_matrix_summary_command_renders_the_summary() {
     assert!(rendered.contains("VSOP87 canonical J2000 interim outliers: none"));
     assert!(rendered.contains("VSOP87 canonical J2000 equatorial companion evidence: 8 samples"));
     assert!(rendered.contains("VSOP87 canonical J1900 batch parity:"));
-    assert!(rendered.contains("quality counts: Exact=8, Interpolated=0, Approximate=1, Unknown=0"));
+    assert!(rendered.contains("quality counts: Exact=9, Interpolated=0, Approximate=0, Unknown=0"));
     assert!(rendered.contains("generated binary VSOP87B"));
     assert!(rendered.contains("generated binary VSOP87B; VSOP87B."));
     assert!(rendered.contains("max Δlon="));

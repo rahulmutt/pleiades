@@ -2857,3 +2857,20 @@ These change query shape or numerics and need their own design with the
 gates as arbiter.
 
 **Severity:** performance · **Opened:** 2026-10-04
+
+---
+
+## FU-26: Pluto source path for the algorithmic backends (issue #129)
+
+**Status:** resolved (2026-10-04) · Spec
+`docs/superpowers/specs/2026-10-04-vsop87-pluto-periodic-fit-design.md`.
+`Vsop87Backend` serves Pluto from the Meeus Table 37.A periodic-term fit
+(Chapront, DE200) over 1885–2099 and from the mean-element orbit outside.
+Against the packaged DE440-fitted Pluto over 1900–2099 the fit measures
+max 3.29″ longitude, 0.34″ latitude, 3.27e-4 AU (the mean elements measured
+35.7′ against Swiss Ephemeris); a blocking test holds it at 5″ / 0.6″ /
+5e-4 AU. Pluto's claim is now `Constrained` like every other VSOP87 body; its
+result quality is `Exact` inside the window and `Approximate` outside.
+**Known limitation:** Pluto jumps by up to about 0.6° at each window edge.
+A longer-window fit would remove it at the cost of a much larger table.
+**Severity:** accuracy (closed) · **Opened:** 2026-10-04

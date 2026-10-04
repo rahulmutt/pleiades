@@ -10,6 +10,7 @@ use pleiades_types::{
 };
 
 use crate::elements::OrbitalElements;
+use crate::pluto::PlutoPath;
 use crate::profiles::{body_source_profiles, source_kind_for_body, Vsop87BodySourceKind};
 use crate::tables;
 use crate::transforms::{
@@ -53,13 +54,12 @@ impl Vsop87Backend {
         Self::supported_bodies()
             .iter()
             .cloned()
-            .map(|body| match body {
-                CelestialBody::Pluto => BodyClaim::approximate(body),
-                other => BodyClaim::constrained(
-                    other,
+            .map(|body| {
+                BodyClaim::constrained(
+                    body,
                     AccuracyClass::Moderate,
                     ClaimEvidence::AlgorithmicModel,
-                ),
+                )
             })
             .collect()
     }
@@ -157,7 +157,11 @@ impl Vsop87Backend {
         HeliocentricCoordinates { xh, yh, zh }
     }
 
-    fn geocentric_coordinates(body: CelestialBody, days: f64) -> Option<HeliocentricCoordinates> {
+    pub(crate) fn geocentric_coordinates_on(
+        body: CelestialBody,
+        days: f64,
+        pluto_path: PlutoPath,
+    ) -> Option<HeliocentricCoordinates> {
         if body == CelestialBody::Sun {
             return Some(Self::geocentric_sun_from_vsop87b(days));
         }
@@ -190,10 +194,17 @@ impl Vsop87Backend {
             });
         }
 
-        // Mean-element fallback (Pluto): heliocentric Pluto minus the same
+        // Pluto, which VSOP87 excludes: Meeus Table 37.A inside its window,
+        // the mean-element orbit outside it; either way minus the same
         // VSOP87B heliocentric Earth the table-backed planets use.
         let earth = Self::heliocentric_earth_from_vsop87b(days);
-        let target = Self::heliocentric_coordinates(Self::orbital_elements(body, days)?);
+        let target = match (&body, pluto_path) {
+            (CelestialBody::Pluto, PlutoPath::PeriodicTermFit) => {
+                let pluto = tables::pluto_meeus::pluto_lbr(J2000 + days);
+                spherical_lbr_to_cartesian(pluto.longitude_rad, pluto.latitude_rad, pluto.radius_au)
+            }
+            _ => Self::heliocentric_coordinates(Self::orbital_elements(body, days)?),
+        };
         Some(HeliocentricCoordinates {
             xh: target.xh - earth.xh,
             yh: target.yh - earth.yh,
@@ -281,7 +292,7 @@ impl Vsop87Backend {
         Self::to_ecliptic(coords).to_equatorial(instant.mean_obliquity())
     }
 
-    fn motion(body: CelestialBody, days: f64) -> Option<Motion> {
+    pub(crate) fn motion(body: CelestialBody, days: f64, pluto_path: PlutoPath) -> Option<Motion> {
         // A symmetric one-day span gives stable chart-facing daily rates while
         // keeping the finite-difference mean geocentric model simple and
         // deterministic. These are finite-difference estimates of the same mean
@@ -290,11 +301,19 @@ impl Vsop87Backend {
         const HALF_SPAN_DAYS: f64 = 0.5;
         const FULL_SPAN_DAYS: f64 = HALF_SPAN_DAYS * 2.0;
 
-        let before = Self::to_ecliptic(Self::geocentric_coordinates(
+        // All samples take the centre instant's Pluto path (chosen by the
+        // caller), so a speed near the edge of the fit window never differences
+        // across the jump.
+        let before = Self::to_ecliptic(Self::geocentric_coordinates_on(
             body.clone(),
             days - HALF_SPAN_DAYS,
+            pluto_path,
         )?);
-        let after = Self::to_ecliptic(Self::geocentric_coordinates(body, days + HALF_SPAN_DAYS)?);
+        let after = Self::to_ecliptic(Self::geocentric_coordinates_on(
+            body,
+            days + HALF_SPAN_DAYS,
+            pluto_path,
+        )?);
 
         let longitude_speed =
             signed_longitude_delta_degrees(before.longitude.degrees(), after.longitude.degrees())
@@ -331,7 +350,7 @@ impl EphemerisBackend for Vsop87Backend {
             .count();
         let fallback_count = source_profiles
             .iter()
-            .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
+            .filter(|profile| !profile.kind.is_vsop87b())
             .count();
 
         let vendored_path_label = pluralize_body_path(vendored_count);
@@ -346,23 +365,23 @@ impl EphemerisBackend for Vsop87Backend {
             provenance: BackendProvenance {
                 summary: if generated_count == 0 && truncated_count == 0 {
                     format!(
-                        "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
+                        "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {fallback_count} fallback (non-VSOP87B) {fallback_path_label}, and geocentric reduction."
                     )
                 } else if vendored_count == 0 && truncated_count == 0 {
                     format!(
-                        "Mixed pure-Rust planetary backend: {generated_count} generated binary VSOP87B {generated_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
+                        "Mixed pure-Rust planetary backend: {generated_count} generated binary VSOP87B {generated_path_label}, {fallback_count} fallback (non-VSOP87B) {fallback_path_label}, and geocentric reduction."
                     )
                 } else if generated_count > 0 && truncated_count == 0 {
                     format!(
-                        "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {generated_count} generated binary VSOP87B {generated_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
+                        "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {generated_count} generated binary VSOP87B {generated_path_label}, {fallback_count} fallback (non-VSOP87B) {fallback_path_label}, and geocentric reduction."
                     )
                 } else if generated_count == 0 {
                     format!(
-                        "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {truncated_count} source-backed truncated VSOP87B {truncated_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
+                        "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {truncated_count} source-backed truncated VSOP87B {truncated_path_label}, {fallback_count} fallback (non-VSOP87B) {fallback_path_label}, and geocentric reduction."
                     )
                 } else {
                     format!(
-                        "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {generated_count} generated binary VSOP87B {generated_path_label}, {truncated_count} source-backed truncated VSOP87B {truncated_path_label}, {fallback_count} fallback mean-element {fallback_path_label}, and geocentric reduction."
+                        "Mixed pure-Rust planetary backend: {vendored_count} vendored full-file VSOP87B {vendored_path_label}, {generated_count} generated binary VSOP87B {generated_path_label}, {truncated_count} source-backed truncated VSOP87B {truncated_path_label}, {fallback_count} fallback (non-VSOP87B) {fallback_path_label}, and geocentric reduction."
                     )
                 },
                 data_sources: crate::source_specifications()
@@ -383,7 +402,8 @@ impl EphemerisBackend for Vsop87Backend {
                         )
                     })
                     .chain([
-                        "Paul Schlyter-style mean orbital elements for planets outside the source-backed VSOP87 coefficient tables".to_string(),
+                        "Pluto: Meeus, Astronomical Algorithms, Table 37.A periodic-term fit (Chapront, DE200) over 1885-2099".to_string(),
+                        "Paul Schlyter-style mean orbital elements for planets outside the source-backed VSOP87 coefficient tables, and for Pluto outside 1885-2099".to_string(),
                         "Meeus-style coordinate transforms for geocentric reduction".to_string(),
                     ])
                     .collect(),
@@ -425,12 +445,17 @@ impl EphemerisBackend for Vsop87Backend {
         validate_observer_policy(req, BACKEND_LABEL, false)?;
 
         let days = Self::days_since_j2000(req.instant);
-        let geocentric = Self::geocentric_coordinates(req.body.clone(), days).ok_or_else(|| {
-            EphemerisError::new(
-                EphemerisErrorKind::UnsupportedBody,
-                format!("requested body is not implemented in {BACKEND_LABEL}"),
-            )
-        })?;
+        // One path choice per request, shared by the position, the speed and
+        // the quality annotation so they cannot disagree. Ignored for non-Pluto
+        // bodies.
+        let pluto_path = PlutoPath::for_julian_day(J2000 + days);
+        let geocentric = Self::geocentric_coordinates_on(req.body.clone(), days, pluto_path)
+            .ok_or_else(|| {
+                EphemerisError::new(
+                    EphemerisErrorKind::UnsupportedBody,
+                    format!("requested body is not implemented in {BACKEND_LABEL}"),
+                )
+            })?;
 
         let mut result = EphemerisResult::new(
             BackendId::new(PACKAGE_NAME),
@@ -446,10 +471,14 @@ impl EphemerisBackend for Vsop87Backend {
             Some(Vsop87BodySourceKind::TruncatedVsop87b)
             | Some(Vsop87BodySourceKind::MeanOrbitalElements)
             | None => QualityAnnotation::Approximate,
+            Some(Vsop87BodySourceKind::PeriodicTermFit) => match pluto_path {
+                PlutoPath::PeriodicTermFit => QualityAnnotation::Exact,
+                PlutoPath::MeanElements => QualityAnnotation::Approximate,
+            },
         };
         result.ecliptic = Some(Self::to_ecliptic(geocentric));
         result.equatorial = Some(Self::to_equatorial(geocentric, req.instant));
-        result.motion = Self::motion(req.body.clone(), days);
+        result.motion = Self::motion(req.body.clone(), days, pluto_path);
         Ok(result)
     }
 }
