@@ -32,8 +32,19 @@ struct Term {
     eps_d: f64,
 }
 
-fn table() -> Result<Vec<Term>, ApparentPlaceError> {
-    parse_table(NUTATION_CSV, NUTATION_CSV_CHECKSUM)
+/// The embedded term table, parsed and checksum-verified once per process.
+///
+/// Every apparent place evaluates nutation at least once, so re-parsing the
+/// CSV per call was a measurable share of a cheap body's apparent sample
+/// (issue #128). The outcome, error included, is cached: the embedded bytes
+/// cannot change at run time.
+fn table() -> Result<&'static [Term], ApparentPlaceError> {
+    static TABLE: std::sync::OnceLock<Result<Vec<Term>, ApparentPlaceError>> =
+        std::sync::OnceLock::new();
+    match TABLE.get_or_init(|| parse_table(NUTATION_CSV, NUTATION_CSV_CHECKSUM)) {
+        Ok(terms) => Ok(terms.as_slice()),
+        Err(error) => Err(*error),
+    }
 }
 
 /// Parse the IAU-1980 nutation term table from `csv`, rejecting input whose
@@ -99,7 +110,7 @@ pub fn nutation(jd_tt: f64) -> Result<Nutation, ApparentPlaceError> {
     let terms = table()?;
     let mut psi = 0.0_f64; // in 0.0001"
     let mut eps = 0.0_f64; // in 0.0001"
-    for term in &terms {
+    for term in terms {
         let mut arg_deg = 0.0;
         for (i, mult) in term.multipliers.iter().enumerate() {
             arg_deg += mult * args[i];

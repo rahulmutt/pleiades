@@ -9,9 +9,10 @@
 
 use crate::crossings::{body_label, CrossingFrame};
 use crate::ephemeris::{
-    geocentric_apparent_ecliptic, geocentric_apparent_lunar_point,
-    geocentric_mean_of_date_ecliptic, geocentric_mean_of_date_lunar_point, heliocentric_j2000,
-    heliocentric_of_date, is_lunar_point, j2000_spherical, read_mean_place,
+    apparent_lunar_point_of, geocentric_apparent_ecliptic, geocentric_apparent_ecliptic_from,
+    geocentric_apparent_lunar_point, geocentric_mean_of_date_ecliptic,
+    geocentric_mean_of_date_lunar_point, heliocentric_j2000, heliocentric_of_date, is_lunar_point,
+    j2000_spherical, mean_place_of_date, read_mean_place,
 };
 use crate::error::EventError;
 use crate::state_vector::spherical_rates;
@@ -274,10 +275,21 @@ pub(crate) fn sampled_place<B: EphemerisBackend>(
     julian_day: f64,
 ) -> Result<SampledPlace, EventError> {
     let label = body_label(body);
+    // The geocentric frames read the mean place once and reduce that same
+    // read, instead of reading it again inside the reduction (issue #128);
+    // the backend is deterministic, so the place is bit-identical.
     let (base, base_motion, tropical) = match reference.frame {
         CrossingFrame::GeocentricApparentOfDate => {
             let (mean, motion) = read_mean_place(backend, body.clone(), label, julian_day)?;
-            let apparent = geocentric_apparent(backend, body, label, julian_day)?;
+            let apparent = if is_lunar_point(body) {
+                apparent_lunar_point_of(mean, label, julian_day)?
+            } else {
+                // A body without a distance gets no seed, so the reduction's
+                // own read fails with `MissingDistance` exactly as before.
+                let seed = mean.2.map(|distance| (mean.0, mean.1, distance));
+                geocentric_apparent_ecliptic_from(backend, body.clone(), label, julian_day, seed)
+                    .map(with_distance)?
+            };
             (mean, motion, apparent)
         }
         CrossingFrame::Heliocentric => {
@@ -293,7 +305,13 @@ pub(crate) fn sampled_place<B: EphemerisBackend>(
         }
         CrossingFrame::GeocentricMeanOfDate => {
             let (mean, motion) = read_mean_place(backend, body.clone(), label, julian_day)?;
-            let of_date = geocentric_mean_of_date(backend, body, label, julian_day)?;
+            if !is_lunar_point(body) && mean.2.is_none() {
+                return Err(EventError::MissingDistance {
+                    body_label: label,
+                    julian_day,
+                });
+            }
+            let of_date = mean_place_of_date(mean, label, julian_day)?;
             (mean, motion, of_date)
         }
     };

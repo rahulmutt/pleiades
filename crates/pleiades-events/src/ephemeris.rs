@@ -3,6 +3,7 @@
 //! mean-of-date, and heliocentric.
 
 use crate::error::EventError;
+use crate::solar::sun_true_longitude_of_date_deg;
 use crate::state_vector::cartesian_velocity;
 use pleiades_apparent::nutation::nutation;
 use pleiades_apparent::{
@@ -105,9 +106,27 @@ pub(crate) fn geocentric_apparent_ecliptic<B: EphemerisBackend>(
     body_label: &'static str,
     julian_day: f64,
 ) -> Result<(f64, f64, f64), EventError> {
-    let (lon, lat, dist) = read_mean_ecliptic(backend, body.clone(), body_label, julian_day)?;
+    geocentric_apparent_ecliptic_from(backend, body, body_label, julian_day, None)
+}
+
+/// [`geocentric_apparent_ecliptic`], reusing `mean_at_instant` — the body's
+/// mean J2000 place at `julian_day`, already read from the same backend — in
+/// place of a fresh backend read at that instant. The result is bit-identical
+/// either way (the backend is deterministic); passing the place saves one
+/// backend query for a caller that read it anyway (issue #128).
+pub(crate) fn geocentric_apparent_ecliptic_from<B: EphemerisBackend>(
+    backend: &B,
+    body: CelestialBody,
+    body_label: &'static str,
+    julian_day: f64,
+    mean_at_instant: Option<EclipticTriple>,
+) -> Result<(f64, f64, f64), EventError> {
     let instant = Instant::new(JulianDay::from_days(julian_day), TimeScale::Tdb);
     if body == CelestialBody::Sun {
+        let (lon, lat, dist) = match mean_at_instant {
+            Some(mean) => mean,
+            None => read_mean_ecliptic(backend, body.clone(), body_label, julian_day)?,
+        };
         let j2000 = EclipticCoordinates::new(
             Longitude::from_degrees(lon),
             Latitude::from_degrees(lat),
@@ -126,24 +145,33 @@ pub(crate) fn geocentric_apparent_ecliptic<B: EphemerisBackend>(
     }
 
     // General body: the Sun's true longitude of date feeds only the provenance
-    // aberration estimate (the light-time re-query carries aberration, #93), plus
-    // a light-time-retarded body query closure. The closure propagates
+    // aberration estimate (the light-time re-query carries aberration, #93),
+    // and this engine discards the provenance, so the backend-free Meeus Sun
+    // serves it: querying the backend for the Sun here cost about one Sun
+    // evaluation per sample, more than the whole sample for a cheap body
+    // (issue #128). It never reaches a returned position.
+    //
+    // The light-time loop's first query is at `instant` itself, so a mean
+    // place the caller already read answers it. The closure propagates
     // `EventError` verbatim (its own error type), so the combined error is
     // `ApparentLightTimeError<EventError>`, which we flatten back to
     // `EventError::Backend` — preserving fail-closed on missing reads.
-    let sun_true_lon =
-        geocentric_apparent_longitude_deg(backend, CelestialBody::Sun, "Sun", julian_day)?;
+    let sun_true_lon = sun_true_longitude_of_date_deg(julian_day);
+    let mut first_query = mean_at_instant;
     let apparent = apparent_position::<_, EventError>(
         instant,
         sun_true_lon,
         DEFAULT_MAX_ITERATIONS,
         |retarded: Instant| {
-            let (l, b, d) = read_mean_ecliptic(
-                backend,
-                body.clone(),
-                body_label,
-                retarded.julian_day.days(),
-            )?;
+            let (l, b, d) = match first_query.take() {
+                Some(mean) => mean,
+                None => read_mean_ecliptic(
+                    backend,
+                    body.clone(),
+                    body_label,
+                    retarded.julian_day.days(),
+                )?,
+            };
             Ok(EclipticCoordinates::new(
                 Longitude::from_degrees(l),
                 Latitude::from_degrees(b),
@@ -185,12 +213,23 @@ pub(crate) fn geocentric_mean_of_date_ecliptic<B: EphemerisBackend>(
     julian_day: f64,
 ) -> Result<EclipticTriple, EventError> {
     let (lon, lat, dist) = read_mean_ecliptic(backend, body, body_label, julian_day)?;
+    let (lon, lat, _) = mean_place_of_date((lon, lat, None), body_label, julian_day)?;
+    Ok((lon, lat, dist))
+}
+
+/// A mean J2000 place already read from the backend, precessed to the mean
+/// ecliptic and equinox of date; the distance passes through unchanged.
+pub(crate) fn mean_place_of_date(
+    (lon, lat, distance): MeanPlace,
+    body_label: &'static str,
+    julian_day: f64,
+) -> Result<MeanPlace, EventError> {
     let precessed = precess_ecliptic_j2000_to_date(lon, lat, julian_day)
         .map_err(|e| EventError::Backend(format!("{body_label} precession failed: {e}")))?;
     Ok((
         precessed.longitude_deg.rem_euclid(360.0),
         precessed.latitude_deg,
-        dist,
+        distance,
     ))
 }
 
@@ -213,7 +252,17 @@ pub(crate) fn geocentric_apparent_lunar_point<B: EphemerisBackend>(
     body_label: &'static str,
     julian_day: f64,
 ) -> Result<MeanPlace, EventError> {
-    let ((lon, lat, distance), _) = read_mean_place(backend, body, body_label, julian_day)?;
+    let (mean, _) = read_mean_place(backend, body, body_label, julian_day)?;
+    apparent_lunar_point_of(mean, body_label, julian_day)
+}
+
+/// [`geocentric_apparent_lunar_point`] of a mean J2000 direction already read
+/// from the backend.
+pub(crate) fn apparent_lunar_point_of(
+    (lon, lat, distance): MeanPlace,
+    body_label: &'static str,
+    julian_day: f64,
+) -> Result<MeanPlace, EventError> {
     let instant = Instant::new(JulianDay::from_days(julian_day), TimeScale::Tdb);
     let j2000 = EclipticCoordinates::new(
         Longitude::from_degrees(lon),
@@ -239,14 +288,8 @@ pub(crate) fn geocentric_mean_of_date_lunar_point<B: EphemerisBackend>(
     body_label: &'static str,
     julian_day: f64,
 ) -> Result<MeanPlace, EventError> {
-    let ((lon, lat, distance), _) = read_mean_place(backend, body, body_label, julian_day)?;
-    let precessed = precess_ecliptic_j2000_to_date(lon, lat, julian_day)
-        .map_err(|e| EventError::Backend(format!("{body_label} precession failed: {e}")))?;
-    Ok((
-        precessed.longitude_deg.rem_euclid(360.0),
-        precessed.latitude_deg,
-        distance,
-    ))
+    let (mean, _) = read_mean_place(backend, body, body_label, julian_day)?;
+    mean_place_of_date(mean, body_label, julian_day)
 }
 
 /// Heliocentric J2000 ecliptic state of a body: `P_helio = P_geo − S_geo`,
