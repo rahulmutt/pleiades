@@ -431,12 +431,16 @@ fn release_summary_commands_render_compact_reports() {
 
     // `release-gate` and `release-gate-summary` are both passthroughs to
     // pleiades-validate, and each runs the numeric battery plus a bundle
-    // render and verify (about a minute on a CI runner). One real run covers
-    // the passthrough; the summary variant's routing is proven by its
+    // render and verify (about a minute on a CI runner, and this test's long
+    // pole). pleiades-validate's `release_gate_command_aliases_the_release_checklist`
+    // pins what the gate returns, and `mise run release-gate` runs it end to
+    // end, so here only the routing is checked: by each command's
     // extra-argument error, which pleiades-validate raises before validating
-    // (FU-23 (d)).
-    let release_gate = render_cli(&["release-gate"]).expect("release gate should render");
-    assert_eq!(release_gate, release_checklist);
+    // (FU-23 (d), (o)).
+    assert_eq!(
+        render_cli(&["release-gate", "extra"]).unwrap_err(),
+        "release-gate does not accept extra arguments"
+    );
     assert_eq!(
         render_cli(&["release-gate-summary", "extra"]).unwrap_err(),
         "release-gate-summary does not accept extra arguments"

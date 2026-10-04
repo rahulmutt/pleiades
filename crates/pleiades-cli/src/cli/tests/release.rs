@@ -191,16 +191,22 @@ fn bundle_release_commands_reject_duplicate_output_arguments() {
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn bundle_release_commands_accept_output_alias() {
-    let bundle_dir = unique_temp_dir("pleiades-cli-release-bundle-output-alias");
-    let bundle_dir_string = bundle_dir.display().to_string();
-
-    render_cli(&["bundle-release", "--output", &bundle_dir_string])
-        .expect("bundle-release should accept --output alias");
+    // Both commands read their directory through `parse_release_bundle_output_dir`.
+    // Verifying the shared pristine bundle through `--output` covers the alias
+    // end to end; rendering a second bundle just to name its directory with
+    // `--output` cost a full bundle render (about 30 s, FU-23 (o)).
+    // `bundle-release`'s acceptance of the alias is proven by the parser's
+    // missing-value error, which names the flag it matched.
+    let bundle_dir_string = pristine_release_bundle().dir.display().to_string();
     let verified = render_cli(&["verify-release-bundle", "--output", &bundle_dir_string])
         .expect("verify-release-bundle should accept --output alias");
 
     assert!(verified.contains("Release bundle"));
     assert!(verified.contains("bundle-manifest.checksum.txt"));
 
-    let _ = std::fs::remove_dir_all(&bundle_dir);
+    assert_eq!(
+        render_cli(&["bundle-release", "--output"])
+            .expect_err("bundle-release --output needs a value"),
+        "missing value for --output"
+    );
 }
