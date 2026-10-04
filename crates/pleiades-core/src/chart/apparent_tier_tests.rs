@@ -273,3 +273,48 @@ fn apparent_chart_fails_closed_when_backend_cannot_serve_the_sun() {
     assert_eq!(placement.position.apparent, Apparentness::Mean);
     assert!(placement.apparent.is_none());
 }
+
+/// Swiss Ephemeris 2.10 (Moshier) apparent ecliptic place of date for Pluto,
+/// quoted in issue #119: `(JD TT, longitude deg, latitude deg, distance AU)`.
+const SWISS_EPHEMERIS_PLUTO_APPARENT: [(f64, f64, f64, f64); 3] = [
+    (2_451_545.0, 251.4547, 10.8552, 31.064),
+    (2_460_763.5, 303.5051, -3.4414, 35.639),
+    (2_444_405.5, 199.0216, 17.3892, 29.718),
+];
+
+#[test]
+fn issue_119_pluto_apparent_place_on_composite_is_within_a_degree_of_swiss_ephemeris() {
+    // Issue #119 measured the composite's Pluto 110-114 deg from Swiss
+    // Ephemeris at every epoch tried, in the wrong sign. Mean Keplerian
+    // elements deliver about a degree over the 20th-21st centuries, which is
+    // what the backend's `Approximate` claim promises.
+    let engine = ChartEngine::new(composite_backend());
+    for (jd_tt, lon, lat, dist) in SWISS_EPHEMERIS_PLUTO_APPARENT {
+        let instant = Instant::new(JulianDay::from_days(jd_tt), TimeScale::Tt);
+        let snapshot = engine
+            .chart(&ChartRequest::new(instant).with_bodies(vec![CelestialBody::Pluto]))
+            .expect("apparent Pluto chart succeeds");
+        let ecliptic = snapshot
+            .placement_for(&CelestialBody::Pluto)
+            .expect("Pluto is placed")
+            .position
+            .ecliptic
+            .expect("ecliptic coordinates");
+        let residual = signed_difference_deg(ecliptic.longitude.degrees(), lon);
+        assert!(
+            residual.abs() < 1.0,
+            "JD {jd_tt}: Pluto apparent longitude {:.4} deg is {residual:+.4} deg from Swiss Ephemeris",
+            ecliptic.longitude.degrees()
+        );
+        assert!(
+            (ecliptic.latitude.degrees() - lat).abs() < 1.0,
+            "JD {jd_tt}: Pluto apparent latitude {:.4} deg vs Swiss Ephemeris {lat:.4}",
+            ecliptic.latitude.degrees()
+        );
+        let distance = ecliptic.distance_au.expect("Pluto carries a distance");
+        assert!(
+            (distance - dist).abs() < 0.5,
+            "JD {jd_tt}: Pluto distance {distance:.3} AU vs Swiss Ephemeris {dist:.3}"
+        );
+    }
+}

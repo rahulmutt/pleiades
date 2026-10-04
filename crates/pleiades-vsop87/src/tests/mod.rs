@@ -7,6 +7,7 @@ use crate::source_docs::{
 mod backend;
 mod documentation;
 mod evidence;
+mod pluto;
 mod profiles;
 
 #[test]
