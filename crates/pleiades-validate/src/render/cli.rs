@@ -106,8 +106,9 @@ pub(crate) fn run_all_numeric_gates() -> Result<(), String> {
         .map_err(|e| format!("mean-lunar-points gate failed: {e}"))?;
     crate::validate_helio_position_corpus()
         .map_err(|e| format!("helio-position gate failed: {e}"))?;
-    // The full stations gate takes minutes; it runs as `validate-stations`
-    // and in nightly `test-full`. The battery compares the mean/sid subset.
+    // The full stations gate takes minutes; it runs as `mise run
+    // gate-stations` (its own nightly job and a `release-gate` dependency).
+    // The battery compares the mean/sid subset.
     crate::validate_stations_corpus_subset()
         .map_err(|e| format!("stations gate (mean/sid subset) failed: {e}"))?;
     // The full aspects gate takes ~15 minutes as `mise run

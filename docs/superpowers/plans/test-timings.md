@@ -473,6 +473,30 @@ ends about 35 s after nextest and is the blocking tier's only long pole, which (
 
 ---
 
+### FU-23 item (u), 2026-10-04
+
+The full stations gate test was `test-full-validate`'s long pole. (u) makes it opt-in
+(`PLEIADES_FULL_STATIONS_GATE=1`) and runs the gate as `mise run gate-stations` in its own
+nightly job. Two nightlies on `main` (`91b13290d`) and two on the branch, seconds. The branch
+runs recompiled `test`'s binaries and the `main` runs did not, so compare rows, not the tier:
+
+| Row | `main` 1 (37238629089) | `main` 2 (37238636089) | Branch 1 (37242175532) | Branch 2 (37242183836) |
+|-----|---:|---:|---:|---:|
+| `test-build` | 1 | 3 | 90 | 91 |
+| `test-full-build` | 87 | 85 | 80 | 81 |
+| `test-full-ignored-bins` (reference) | 85 | 83 | 84 | 87 |
+| `test-full-ignored-libs` | 73 | 68 | 71 | 70 |
+| `test-full-validate` | 150 | 141 | 126 | 121 |
+| `test-full-validate` end after the last other half | 65 | 58 | 42 | 33 |
+| `stations-gate` job (gate step) | — | — | 110 (60) | 105 (52) |
+| nightly tier | 238 | 229 | 296 | 293 |
+
+`test-full-validate` is 20–25 s shorter, less than the gate's own ~105 s: the gate's pool shared
+the four cores with the rest of the lib suite, and another test now ends the suite. The new job
+finishes well inside `aspects-gate`'s ~3.5 minutes.
+
+---
+
 ## Section 1: Timing Inventory
 
 Slowest 40 tests ranked slowest-first. All times from clean isolated single-crate runs.

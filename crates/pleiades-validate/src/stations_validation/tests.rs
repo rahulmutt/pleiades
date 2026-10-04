@@ -241,8 +241,17 @@ fn manifest_parses_rows_and_checksum() {
     }
 }
 
+// Opt-in: the full gate was nightly `test-full-validate`'s long pole (~105 s
+// on the 4-core runner, FU-23 (u)). `mise run gate-stations` runs it (its own
+// nightly job and a `release-gate` dependency).
 #[test]
 fn stations_gate_passes_within_ceilings() {
+    if std::env::var("PLEIADES_FULL_STATIONS_GATE").as_deref() != Ok("1") {
+        eprintln!(
+            "stations_gate_passes_within_ceilings: skipped; set PLEIADES_FULL_STATIONS_GATE=1 to run the full gate"
+        );
+        return;
+    }
     let report = validate_stations_corpus().expect("stations gate passes");
     eprintln!("{}", report.summary_line());
     for line in report.series_lines() {
