@@ -30,8 +30,20 @@ pub struct DafFile {
 }
 
 /// Converts a 1-based DAF double address to a byte offset.
-pub(crate) fn addr_to_byte(addr: i32) -> usize {
-    ((addr as i64 - 1) * 8) as usize
+///
+/// Addresses come from untrusted summary records, so a non-positive address
+/// is an error rather than a wrapped offset.
+pub(crate) fn addr_to_byte(addr: i32) -> Result<usize, SpkError> {
+    usize::try_from(addr)
+        .ok()
+        .and_then(|a| a.checked_sub(1))
+        .and_then(|zero_based| zero_based.checked_mul(8))
+        .ok_or_else(|| {
+            SpkError::new(
+                SpkErrorKind::Truncated,
+                format!("DAF address {addr} is out of range"),
+            )
+        })
 }
 
 fn offset_overflow() -> SpkError {
@@ -114,8 +126,9 @@ impl DafFile {
             let nsum = endian.f64_at(src, try_add(base, 16)?)? as usize; // 3rd double
             let name_base = record_byte(try_add(rec_no, 1)?)?; // name record follows summary record
             for k in 0..nsum {
-                // skip NEXT/PREV/NSUM, then k summaries
-                let s = try_add(base, try_mul(try_add(3, try_mul(k, ss)?)?, 8)?)?;
+                // skip NEXT/PREV/NSUM, then k summaries of ss doubles each
+                let summary_doubles = try_add(3, try_mul(k, ss)?)?;
+                let s = try_add(base, try_mul(summary_doubles, 8)?)?;
                 let start_et = endian.f64_at(src, s)?;
                 let stop_et = endian.f64_at(src, try_add(s, 8)?)?;
                 let (target, center) = endian.packed_i32_pair_at(src, try_add(s, 16)?)?;
@@ -145,7 +158,9 @@ impl DafFile {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::spk::test_support::{build_daf, type2_record, type2_segment_data, SegmentSpec};
+    use crate::spk::test_support::{
+        build_daf, build_daf_chain, type2_record, type2_segment_data, SegmentSpec,
+    };
 
     /// Same synthetic-segment shape used by `backend.rs` and
     /// `cross_check_tests.rs`; duplicated locally per this crate's existing
@@ -213,6 +228,27 @@ mod tests {
     }
 
     #[test]
+    fn multi_record_summary_chain_parses_and_evaluates() {
+        // The visited-record guard must not reject a valid chain longer than
+        // one summary record (real DE440 fits in one, so nothing else covers it).
+        let first = [const_seg(10, 0, [1.0e8, 0.0, 0.0])];
+        let second = [
+            const_seg(399, 3, [0.0, 2.0e4, 0.0]),
+            const_seg(301, 3, [0.0, 0.0, 3.8e5]),
+        ];
+        let blob = build_daf_chain(&[&first, &second]);
+        let src: &[u8] = &blob;
+        let daf = DafFile::parse(src).expect("a two-record summary chain must parse");
+        let targets: Vec<i32> = daf.segments.iter().map(|s| s.target).collect();
+        assert_eq!(targets, [10, 399, 301]);
+
+        let sun = crate::spk::segment::evaluate(src, daf.endian, &daf.segments[0], 0.0).unwrap();
+        assert_eq!(sun.position_km, [1.0e8, 0.0, 0.0]);
+        let moon = crate::spk::segment::evaluate(src, daf.endian, &daf.segments[2], 0.0).unwrap();
+        assert_eq!(moon.position_km, [0.0, 0.0, 3.8e5]);
+    }
+
+    #[test]
     fn parses_descriptor_fields_from_synthetic_daf() {
         let rec = type2_record(0.0, 1.0, &[1.0, 0.0], &[2.0, 0.0], &[3.0, 0.0]);
         let data = type2_segment_data(-1.0, 2.0, rec.len(), &[rec]);
@@ -239,7 +275,7 @@ mod tests {
         assert_eq!(seg.stop_et, 10.0);
         assert_eq!(seg.name, "MARS BARYCENTER");
         // Data array round-trips through the recorded addresses.
-        assert_eq!(addr_to_byte(seg.init_addr) % 8, 0);
+        assert_eq!(addr_to_byte(seg.init_addr).unwrap() % 8, 0);
         assert!(seg.final_addr > seg.init_addr);
     }
 }

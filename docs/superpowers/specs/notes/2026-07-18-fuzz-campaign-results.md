@@ -151,3 +151,30 @@ Worth recording as a process lesson: the array pin had been verified functionall
 did install both toolchains, and a cold-start teardown test confirmed it) but nobody ran
 `mise run ci`. When a repo's own policy linter constrains the *shape* of a config file, "the
 tool accepts it" is not sufficient evidence.
+
+## Addendum (2026-10-04): `spk_evaluate`, the fifth target (issue #29)
+
+The segment-evaluation gap named above is closed. `spk_evaluate` loads the fuzzer's bytes as
+a kernel and, when it loads, calls the public `position()` for the Sun, Moon, Mars and Ceres
+at three epochs, so the mutator reaches the Chebyshev (Type 2/3) and modified-difference
+(Type 1/21) decoders. Its seeds (`fuzz/corpus/spk_evaluate/`) are three structurally valid
+kernels whose chains resolve through each of the four decoders.
+
+The decoders were hardened in the same change before the campaign: every count and address
+read from a segment is bounded by the segment's own declared size and the input length
+before any read or allocation. Unhardened, an `RSIZE` of 1e15 aborted the process on an
+8 PB allocation; the reproducers live in `pleiades-jpl/src/spk/segment/hardening_tests.rs`.
+
+Local campaign, 600 s, `nightly-2026-10-01`, fresh scratch corpus seeded from the three
+committed seeds:
+
+```
+#3029383 DONE cov: 680 ft: 2701 corp: 428/2543Kb lim: 9216 exec/s: 5040 rss: 465Mb
+```
+
+No crash, panic, OOM or timeout. Twice the edges `spk_kernel` saturated at (344), as
+expected for a target that gets past `DafFile::parse`. In this sandbox, libFuzzer's at-exit
+LeakSanitizer pass fails ("does not work under ptrace") and writes an empty `crash-da39…`
+artifact after the run finishes; the committed `spk_kernel` seed fails identically, and the
+same input exits 0 with `ASAN_OPTIONS=detect_leaks=0`. It is an environment artifact, not a
+finding; the daily GitHub Actions campaign is the run of record.

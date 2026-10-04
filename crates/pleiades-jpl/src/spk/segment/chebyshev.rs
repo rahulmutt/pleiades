@@ -1,24 +1,13 @@
 //! SPK Type 2 (position) and Type 3 (position+velocity) Chebyshev decoders.
 
 use super::super::bytes::Endian;
-use super::super::daf::{addr_to_byte, SegmentDescriptor};
+use super::super::daf::SegmentDescriptor;
 use super::super::{ReadAt, SpkError, SpkErrorKind};
 use super::StateVector;
+use super::{addr_plus, count, malformed, read_doubles, segment_doubles, trailer_addr};
 
-/// Reads `n` consecutive doubles starting at 1-based DAF address `addr`.
-fn read_doubles<R: ReadAt + ?Sized>(
-    src: &R,
-    endian: Endian,
-    addr: i32,
-    n: usize,
-) -> Result<Vec<f64>, SpkError> {
-    let mut out = Vec::with_capacity(n);
-    let base = addr_to_byte(addr);
-    for i in 0..n {
-        out.push(endian.f64_at(src, base + i * 8)?);
-    }
-    Ok(out)
-}
+/// Trailer words after the records: INIT, INTLEN, RSIZE, N.
+const TRAILER_WORDS: usize = 4;
 
 /// Evaluates a Chebyshev series and its derivative at `s` in [-1, 1].
 /// Returns (value, d value / d s).
@@ -65,13 +54,28 @@ fn read_trailer<R: ReadAt + ?Sized>(
     endian: Endian,
     d: &SegmentDescriptor,
 ) -> Result<Trailer, SpkError> {
+    let seg_doubles = segment_doubles(d)?;
     // Last 4 doubles: INIT, INTLEN, RSIZE, N at final_addr-3 .. final_addr.
-    let t = read_doubles(src, endian, d.final_addr - 3, 4)?;
+    let t = read_doubles(src, endian, trailer_addr(d, TRAILER_WORDS)?, TRAILER_WORDS)?;
+    let rsize = count(t[2], "RSIZE")?;
+    let n = count(t[3], "record count")?;
+    // N records of RSIZE doubles, then the trailer, must fill the segment's
+    // own declared range; this bounds every later record read.
+    let fits = n
+        .checked_mul(rsize)
+        .and_then(|records| records.checked_add(TRAILER_WORDS))
+        .is_some_and(|used| used <= seg_doubles);
+    if !fits {
+        return Err(malformed(format!(
+            "SPK Chebyshev segment of {n} records of {rsize} doubles is \
+             inconsistent with segment size"
+        )));
+    }
     Ok(Trailer {
         init: t[0],
         intlen: t[1],
-        rsize: t[2] as usize,
-        n: t[3] as usize,
+        rsize,
+        n,
     })
 }
 
@@ -117,8 +121,15 @@ fn evaluate_chebyshev<R: ReadAt + ?Sized>(
             "empty chebyshev segment",
         ));
     }
+    if (tr.rsize - 2) % sets != 0 {
+        return Err(malformed(format!(
+            "SPK Chebyshev RSIZE {} does not split into {sets} coefficient sets",
+            tr.rsize
+        )));
+    }
     let recno = select_record(&tr, et);
-    let rec_addr = d.init_addr + (recno * tr.rsize) as i32;
+    // recno < N, so this offset lies inside the segment checked above.
+    let rec_addr = addr_plus(d.init_addr, recno * tr.rsize)?;
     let rec = read_doubles(src, endian, rec_addr, tr.rsize)?;
     let mid = rec[0];
     let radius = rec[1];
