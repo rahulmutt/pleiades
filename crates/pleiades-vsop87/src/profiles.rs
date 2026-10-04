@@ -8,6 +8,7 @@ use std::sync::OnceLock;
 
 /// Calculation family currently used for an individual VSOP87 backend body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Vsop87BodySourceKind {
     /// Heliocentric spherical coordinates are evaluated from a checked-in VSOP87B
     /// coefficient slice.
@@ -23,6 +24,10 @@ pub enum Vsop87BodySourceKind {
     /// remaining Pluto-specific source path is modeled separately as an
     /// explicit special case.
     MeanOrbitalElements,
+    /// Heliocentric spherical coordinates are evaluated from a published
+    /// periodic-term fit inside its validity window (Pluto: Meeus Table 37.A,
+    /// 1885–2099), with the mean-element orbit outside it.
+    PeriodicTermFit,
 }
 
 impl Vsop87BodySourceKind {
@@ -33,7 +38,18 @@ impl Vsop87BodySourceKind {
             Self::VendoredVsop87b => "vendored full-file VSOP87B",
             Self::GeneratedBinaryVsop87b => "generated binary VSOP87B",
             Self::MeanOrbitalElements => "mean orbital elements fallback",
+            Self::PeriodicTermFit => "published periodic-term fit",
         }
+    }
+
+    /// Whether this kind is evaluated from a vendored VSOP87B source file, the
+    /// split between [`source_backed_body_profiles`] and
+    /// [`fallback_body_profiles`].
+    pub const fn is_vsop87b(self) -> bool {
+        matches!(
+            self,
+            Self::TruncatedVsop87b | Self::VendoredVsop87b | Self::GeneratedBinaryVsop87b
+        )
     }
 }
 
@@ -183,14 +199,13 @@ pub fn body_source_profiles() -> Vec<Vsop87BodySource> {
         .collect()
 }
 
-/// Returns the source-backed VSOP87 body profiles used by [`crate::Vsop87Backend`].
-///
-/// This is the public reproducibility-friendly subset of [`body_source_profiles()`]
-/// that excludes the remaining mean-element Pluto fallback.
+/// Returns the source-backed VSOP87 body profiles used by [`crate::Vsop87Backend`]:
+/// the bodies evaluated from a vendored VSOP87B source file (Sun through
+/// Neptune), the reproducibility subset the table regenerator covers.
 pub fn source_backed_body_profiles() -> Vec<Vsop87BodySource> {
     body_catalog_entries()
         .iter()
-        .filter(|entry| entry.source_profile.kind != Vsop87BodySourceKind::MeanOrbitalElements)
+        .filter(|entry| entry.source_profile.kind.is_vsop87b())
         .map(|entry| entry.source_profile.clone())
         .collect()
 }
@@ -198,8 +213,8 @@ pub fn source_backed_body_profiles() -> Vec<Vsop87BodySource> {
 /// Returns the canonical body order for the source-backed VSOP87 profiles.
 ///
 /// The returned order is the same reproducibility order used by the source
-/// catalog and release-facing summaries: Sun through Neptune, excluding the
-/// mean-element Pluto fallback.
+/// catalog and release-facing summaries: Sun through Neptune, excluding Pluto,
+/// which the VSOP87B files do not cover.
 pub fn source_backed_body_order() -> Vec<CelestialBody> {
     source_backed_body_profiles()
         .into_iter()
@@ -207,14 +222,15 @@ pub fn source_backed_body_order() -> Vec<CelestialBody> {
         .collect()
 }
 
-/// Returns the fallback VSOP87 body profiles used by [`crate::Vsop87Backend`].
+/// Returns the VSOP87 backend's body profiles outside the VSOP87B files.
 ///
-/// The current catalog keeps Pluto in this separate mean-element bucket until a
-/// Pluto-specific source path is selected.
+/// The VSOP87 theory excludes Pluto, so Pluto is the one body here; it is
+/// served from a published periodic-term fit (or mean elements outside the
+/// fit's window), not from a VSOP87B source file.
 pub fn fallback_body_profiles() -> Vec<Vsop87BodySource> {
     body_catalog_entries()
         .iter()
-        .filter(|entry| entry.source_profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
+        .filter(|entry| !entry.source_profile.kind.is_vsop87b())
         .map(|entry| entry.source_profile.clone())
         .collect()
 }

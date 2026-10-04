@@ -258,3 +258,18 @@ fn canonical_epoch_error_envelope_matches_the_public_sample_catalog() {
     );
     assert_eq!(summary.validate(), Ok(()));
 }
+
+#[test]
+fn only_vsop87b_kinds_count_as_source_backed() {
+    assert!(Vsop87BodySourceKind::TruncatedVsop87b.is_vsop87b());
+    assert!(Vsop87BodySourceKind::VendoredVsop87b.is_vsop87b());
+    assert!(Vsop87BodySourceKind::GeneratedBinaryVsop87b.is_vsop87b());
+    assert!(!Vsop87BodySourceKind::MeanOrbitalElements.is_vsop87b());
+    assert!(!Vsop87BodySourceKind::PeriodicTermFit.is_vsop87b());
+    assert!(source_backed_body_profiles()
+        .iter()
+        .all(|profile| profile.kind.is_vsop87b()));
+    assert!(fallback_body_profiles()
+        .iter()
+        .all(|profile| !profile.kind.is_vsop87b()));
+}

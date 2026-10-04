@@ -331,7 +331,7 @@ impl EphemerisBackend for Vsop87Backend {
             .count();
         let fallback_count = source_profiles
             .iter()
-            .filter(|profile| profile.kind == Vsop87BodySourceKind::MeanOrbitalElements)
+            .filter(|profile| !profile.kind.is_vsop87b())
             .count();
 
         let vendored_path_label = pluralize_body_path(vendored_count);
@@ -445,6 +445,7 @@ impl EphemerisBackend for Vsop87Backend {
             | Some(Vsop87BodySourceKind::GeneratedBinaryVsop87b) => QualityAnnotation::Exact,
             Some(Vsop87BodySourceKind::TruncatedVsop87b)
             | Some(Vsop87BodySourceKind::MeanOrbitalElements)
+            | Some(Vsop87BodySourceKind::PeriodicTermFit)
             | None => QualityAnnotation::Approximate,
         };
         result.ecliptic = Some(Self::to_ecliptic(geocentric));
