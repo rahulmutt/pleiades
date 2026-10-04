@@ -2820,8 +2820,10 @@ estimates from that run's timestamps, not measurements of a fix.
   output. → **Resolved 2026-10-04:** one real `crossings` run remains, as the
   blocking tier's guard that the crossings gate passes; the routing of all
   three names is checked by the extra-argument error that `pleiades-validate`
-  raises before running the gate, as in (d) and (o). Measured on nightly
-  dispatches: see the timings plan.
+  raises before running the gate, as in (d) and (o). Measured on two
+  nightlies dispatched on the branch (runs 37234780388 and 37234786315)
+  against two on `main` (37233188362, 37233194338): the test took 6–14 s
+  instead of 46–50 s. Table in the timings plan.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 
