@@ -331,6 +331,66 @@ impl Vsop87Backend {
             distance_speed,
         ))
     }
+
+    /// One request's result. `with_motion` adds the finite-difference speed,
+    /// which costs two more geocentric evaluations than the place itself.
+    fn compute(
+        &self,
+        req: &EphemerisRequest,
+        with_motion: bool,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        validate_zodiac_policy(req, BACKEND_LABEL, &[ZodiacMode::Tropical])?;
+
+        validate_request_policy(
+            req,
+            BACKEND_LABEL,
+            &[TimeScale::Tt, TimeScale::Tdb],
+            &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
+            true,
+            false,
+        )?;
+
+        validate_observer_policy(req, BACKEND_LABEL, false)?;
+
+        let days = Self::days_since_j2000(req.instant);
+        // One path choice per request, shared by the position, the speed and
+        // the quality annotation so they cannot disagree. Ignored for non-Pluto
+        // bodies.
+        let pluto_path = PlutoPath::for_julian_day(J2000 + days);
+        let geocentric = Self::geocentric_coordinates_on(req.body.clone(), days, pluto_path)
+            .ok_or_else(|| {
+                EphemerisError::new(
+                    EphemerisErrorKind::UnsupportedBody,
+                    format!("requested body is not implemented in {BACKEND_LABEL}"),
+                )
+            })?;
+
+        let mut result = EphemerisResult::new(
+            BackendId::new(PACKAGE_NAME),
+            req.body.clone(),
+            req.instant,
+            req.frame,
+            req.zodiac_mode.clone(),
+            req.apparent,
+        );
+        result.quality = match source_kind_for_body(req.body.clone()) {
+            Some(Vsop87BodySourceKind::VendoredVsop87b)
+            | Some(Vsop87BodySourceKind::GeneratedBinaryVsop87b) => QualityAnnotation::Exact,
+            Some(Vsop87BodySourceKind::TruncatedVsop87b)
+            | Some(Vsop87BodySourceKind::MeanOrbitalElements)
+            | None => QualityAnnotation::Approximate,
+            Some(Vsop87BodySourceKind::PeriodicTermFit) => match pluto_path {
+                PlutoPath::PeriodicTermFit => QualityAnnotation::Exact,
+                PlutoPath::MeanElements => QualityAnnotation::Approximate,
+            },
+        };
+        result.ecliptic = Some(Self::to_ecliptic(geocentric));
+        result.equatorial = Some(Self::to_equatorial(geocentric, req.instant));
+        if with_motion {
+            result.motion = Self::motion(req.body.clone(), days, pluto_path);
+        }
+        Ok(result)
+    }
 }
 
 impl EphemerisBackend for Vsop87Backend {
@@ -431,54 +491,13 @@ impl EphemerisBackend for Vsop87Backend {
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
-        validate_zodiac_policy(req, BACKEND_LABEL, &[ZodiacMode::Tropical])?;
+        self.compute(req, true)
+    }
 
-        validate_request_policy(
-            req,
-            BACKEND_LABEL,
-            &[TimeScale::Tt, TimeScale::Tdb],
-            &[CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
-            true,
-            false,
-        )?;
-
-        validate_observer_policy(req, BACKEND_LABEL, false)?;
-
-        let days = Self::days_since_j2000(req.instant);
-        // One path choice per request, shared by the position, the speed and
-        // the quality annotation so they cannot disagree. Ignored for non-Pluto
-        // bodies.
-        let pluto_path = PlutoPath::for_julian_day(J2000 + days);
-        let geocentric = Self::geocentric_coordinates_on(req.body.clone(), days, pluto_path)
-            .ok_or_else(|| {
-                EphemerisError::new(
-                    EphemerisErrorKind::UnsupportedBody,
-                    format!("requested body is not implemented in {BACKEND_LABEL}"),
-                )
-            })?;
-
-        let mut result = EphemerisResult::new(
-            BackendId::new(PACKAGE_NAME),
-            req.body.clone(),
-            req.instant,
-            req.frame,
-            req.zodiac_mode.clone(),
-            req.apparent,
-        );
-        result.quality = match source_kind_for_body(req.body.clone()) {
-            Some(Vsop87BodySourceKind::VendoredVsop87b)
-            | Some(Vsop87BodySourceKind::GeneratedBinaryVsop87b) => QualityAnnotation::Exact,
-            Some(Vsop87BodySourceKind::TruncatedVsop87b)
-            | Some(Vsop87BodySourceKind::MeanOrbitalElements)
-            | None => QualityAnnotation::Approximate,
-            Some(Vsop87BodySourceKind::PeriodicTermFit) => match pluto_path {
-                PlutoPath::PeriodicTermFit => QualityAnnotation::Exact,
-                PlutoPath::MeanElements => QualityAnnotation::Approximate,
-            },
-        };
-        result.ecliptic = Some(Self::to_ecliptic(geocentric));
-        result.equatorial = Some(Self::to_equatorial(geocentric, req.instant));
-        result.motion = Self::motion(req.body.clone(), days, pluto_path);
-        Ok(result)
+    fn position_without_motion(
+        &self,
+        req: &EphemerisRequest,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        self.compute(req, false)
     }
 }
