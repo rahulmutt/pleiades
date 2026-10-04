@@ -451,6 +451,28 @@ eclipse test leaving the tail.
 
 ---
 
+### FU-23 item (s), 2026-10-04
+
+After (p) and (q) the two slowest tests of the blocking nextest run were the `pleiades-cli`
+tests that re-ran the crossings gate (once) and the eclipses gate (twice), both of which also
+run in the same tier in `release-smoke`'s numeric battery. (s) makes both routing-only checks.
+Blocking CI push runs, seconds (`main` runs from the #142, #143 and #145 merges; branch runs
+are the PR's push and pull_request runs; "crates" is how many first-party crates compiled):
+
+| Row | `main` 37236829050 | `main` 37237229337 | `main` 37238126985 | Branch 37241883754 | Branch 37241893893 |
+|-----|---:|---:|---:|---:|---:|
+| `crossings_alias_dispatches_to_validate` | 13.1 | 12.5 | 13.9 | 0.02 | 0.02 |
+| `validate_eclipses_command_forwards_to_validate_crate` | 11.7 | 8.7 | 12.9 | 0.03 | 0.01 |
+| `snapshot_reconstruction_covers_only_constrained_asteroids` (reference) | 9.6 | 6.3 | 5.8 | 9.3 | 7.7 |
+| nextest run (`Summary`) | 59.4 | 30.7 | 35.7 | 35.6 | 35.3 |
+| `release-smoke` task | 103 | 135 | 200 | 97 | 95 |
+| crates compiled | 1 | 4 | many | 1 | 1 |
+
+The saving is CPU, not nextest wall-clock: both tests ran beside others. `release-smoke` now
+ends about 35 s after nextest and is the blocking tier's only long pole, which (r) targets.
+
+---
+
 ## Section 1: Timing Inventory
 
 Slowest 40 tests ranked slowest-first. All times from clean isolated single-crate runs.

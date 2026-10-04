@@ -2874,7 +2874,13 @@ estimates from that run's timestamps, not measurements of a fix.
   `validate_eclipse_corpus` the CLI arms call. The trade-off is that a
   crossings or eclipses regression now surfaces as a `release-smoke` failure
   ("crossings gate failed: ..." or "eclipse gate failed: ...") rather than as
-  a named nextest test. Measured: pending.
+  a named nextest test. Measured on the PR's two CI runs (37241883754,
+  37241893893) against three `main` push runs: the two tests took 0.01–0.03 s
+  instead of 12.5–13.9 s and 8.7–12.9 s, about 21–27 s of runner CPU per
+  blocking run. The nextest wall-clock did not move (30.7–35.7 s on `main`,
+  35.3–35.6 s here), since both tests ran beside others; `release-smoke`,
+  which shares the cores, took 95–97 s instead of 103–135 s and is now the
+  blocking tier's only long pole. Table in the timings plan.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 
