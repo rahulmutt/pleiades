@@ -491,9 +491,44 @@ runs recompiled `test`'s binaries and the `main` runs did not, so compare rows, 
 | `stations-gate` job (gate step) | — | — | 110 (60) | 105 (52) |
 | nightly tier | 238 | 229 | 296 | 293 |
 
-`test-full-validate` is 20–25 s shorter, less than the gate's own ~105 s: the gate's pool shared
-the four cores with the rest of the lib suite, and another test now ends the suite. The new job
-finishes well inside `aspects-gate`'s ~3.5 minutes.
+The branch rows suggested `test-full-validate` 20–25 s shorter, but that was runner noise: on
+`main` after the merge (run 37243856918, unchanged rows 36.0 s nextest and 84 s
+`test-full-ignored-bins`, as on `main` 1 here) it took 148.8 s and ended 65 s after the other
+halves, as before. The stations gate was not what set the lib suite's length; see the (r) table
+below and FU-23 (v). The new job finishes well inside `aspects-gate`'s ~3.5 minutes.
+
+---
+
+### FU-23 item (r), 2026-10-04
+
+`release-smoke` ran the numeric battery and the release bundle render one after the other on one
+thread; (r) runs them concurrently and every battery gate on its own thread. Blocking CI, seconds.
+"Smoke run" is from the end of `audit` (which builds the same binary) to the end of
+`release-smoke`. The two reruns compiled nothing and are the like-for-like pair:
+
+| Row | `main` 37242317883 | `main` 37242920889 | `main` 37242920889 #2 | Branch 37243391521 | Branch 37243388887 | Branch 37243388887 #2 |
+|-----|---:|---:|---:|---:|---:|---:|
+| crates compiled | 1 | 2 | 0 | 2 | 2 | 0 |
+| smoke run | 93 | 105 | 68 | 47 | 119 | 65 |
+| smoke end after nextest | 30 | 27 | 31 | 6 | 14 | 17 |
+| nextest (`Summary`) | 35.0 | 25.1 | 33.5 | 19.2 | 32.8 | 40.5 |
+| check step | 95 | 138 | 71 | 96 | 159 | 66 |
+
+The smoke itself is 2–3× faster when it has the cores (47 s), but the 4-core tier is CPU-bound:
+on the warm pair the battery's threads slow nextest by 7 s and the step gains 5 s. Locally on 24
+cores the smoke went 332 s / 175 s → 124 s / 86 s (alternating, loaded machine).
+
+Nightly, two runs on `main` (`0fe122848`) and two on the branch, all compiling the same one crate.
+`main` 2 ran on a runner about 1.6× faster (see the reference rows), so compare `main` 1:
+
+| Row | `main` 1 (37243856918) | `main` 2 (37243863667) | Branch 1 (37243858701) | Branch 2 (37243865748) |
+|-----|---:|---:|---:|---:|
+| nextest (reference) | 36.0 | 22.2 | 34.8 | 35.4 |
+| `test-full-ignored-bins` (reference) | 84 | 50 | 84 | 85 |
+| `test-full-validate` | 148.8 | 86.1 | 148.9 | 148.6 |
+| `test-full-validate` end after the last other half | 65 | 36 | 65 | 64 |
+
+No nightly change from (r). The `main` rows also show that (u) did not shorten the lib suite.
 
 ---
 

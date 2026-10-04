@@ -15,6 +15,7 @@ pub(crate) mod test_support;
 mod comparison;
 mod compatibility;
 mod corpus;
+mod gate_battery;
 mod release_bundle_verify_a;
 mod release_bundle_verify_b;
 mod release_checklist;
