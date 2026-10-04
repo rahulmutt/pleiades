@@ -2488,7 +2488,10 @@ The gate runs in two tiers (2026-10-02):
 - **Full gate** (`validate-stations`, and the
   `stations_gate_passes_within_ceilings` test in nightly `test-full`, which
   `release-gate` depends on): all 15 series, 5542 stations, 173 s in release
-  and 339 s in the dev profile.
+  and 339 s in the dev profile. Since FU-23 (u) (2026-10-04) it runs as
+  `mise run gate-stations` in its own nightly job `stations-gate` and as a
+  `release-gate` dependency; the test is opt-in
+  (`PLEIADES_FULL_STATIONS_GATE=1`).
 
 **Open items:**
 
@@ -2612,8 +2615,9 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-04) · Items (a) to (f), (k) to (q) and
-(s) are done, (g) and (j) are measured and not applied; (h) and (i) remain open.
+**Status:** partly resolved (2026-10-04) · Items (a) to (f), (k) to (q), (s)
+and (u) are done, (g) and (j) are measured and not applied; (h) and (i)
+remain open.
 Measurements, the two changes from #112 and the 2026-10-03 and 2026-10-04
 changes are in `docs/superpowers/plans/test-timings.md` (Section 0).
 
@@ -2881,6 +2885,29 @@ estimates from that run's timestamps, not measurements of a fix.
   35.3–35.6 s here), since both tests ran beside others; `release-smoke`,
   which shares the cores, took 95–97 s instead of 103–135 s and is now the
   blocking tier's only long pole. Table in the timings plan.
+- **(u) The full stations gate is the nightly long pole.** After (e) chunked
+  it, `stations_gate_passes_within_ceilings` still took about 105 s of
+  `test-full-validate` on the 4-core runner, and nothing else in the tier ran
+  that long: on `main` nightlies 37238629089 and 37238636089
+  `test-full-validate` ran 150 s and 141 s and ended 62–75 s after the other
+  `test-full` halves. → **Resolved 2026-10-04:** the test skips itself unless
+  `PLEIADES_FULL_STATIONS_GATE=1`, as the full aspects gate test does. The
+  full gate runs as `mise run gate-stations` (`validate-stations`) in a
+  nightly job of its own, `stations-gate` (30-minute cap, 20-minute step,
+  own failure-issue template `.github/stations-gate-failure-issue.md`),
+  beside `nightly` and `aspects-gate`, and is a `release-gate` dependency.
+  The mean/sid subset still runs in the release battery (blocking
+  `release-smoke`) and as its own lib test. No other lib test runs the full
+  gate. Measured on two nightlies dispatched on the branch (runs 37242175532
+  and 37242183836) against two on `main` (37238629089, 37238636089):
+  `test-full-validate` 141–150 s → 121–126 s, and it now ends 33–42 s after
+  the other `test-full` halves instead of 58–65 s; the `stations-gate` job
+  took under 2 minutes (gate step 52–60 s) and finishes well before
+  `aspects-gate`. The saving is smaller than the gate's ~105 s because the
+  gate's pool shared the cores with the rest of the suite; something else
+  now ends the lib suite. The tier totals (229–238 s against 293–296 s) are
+  not comparable: the branch runs had to recompile `test`'s binaries (90 s
+  `test-build` against 1–3 s). Table in the timings plan.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 

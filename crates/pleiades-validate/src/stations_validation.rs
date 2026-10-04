@@ -50,8 +50,8 @@ const SECONDS_PER_DAY: f64 = 86_400.0;
 /// count are always verified against the whole corpus.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Scope {
-    /// Every series: `validate-stations` and the gate test (nightly
-    /// `test-full`).
+    /// Every series: `validate-stations` (`mise run gate-stations`) and the
+    /// opt-in `PLEIADES_FULL_STATIONS_GATE=1` gate test.
     Full,
     /// The `mean` and `sid` series only, for the release battery
     /// (`run_all_numeric_gates`), where the full 1900–2100 scan is too slow.
@@ -784,8 +784,9 @@ fn validate_scoped(
 /// series scan in ten-year windows on a pool of one thread per core, so the
 /// wall-clock is about 343 s of CPU spread over the cores: about 105 s on
 /// the 4-core nightly runner (2026-10-04; 178 s with one thread per series,
-/// where the longest series set the length). Run by `validate-stations` and
-/// by the nightly `test-full` tier.
+/// where the longest series set the length). Run by `validate-stations` as
+/// `mise run gate-stations` (its own nightly job and a `release-gate`
+/// dependency) and by the opt-in `PLEIADES_FULL_STATIONS_GATE=1` test.
 pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {
     validate(CORPUS_CSV, MANIFEST)
 }

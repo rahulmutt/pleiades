@@ -118,6 +118,9 @@ depends = ["doctest", "test", "test-full-build"]
 # wait on a shared gate run from idling a core was measured on the nightly
 # runner and made both halves of `test-full` slower, since the two halves
 # already share the cores (FU-23 (j) in docs/follow-ups.md).
+# The full aspects and stations gate tests skip themselves here (opt-in env
+# vars); they run as `gate-aspects` / `gate-stations`, each its own nightly job
+# and a `release-gate` dependency (FU-23 (u)).
 run = "cargo test -p pleiades-validate --lib --bins --tests -- --include-ignored"
 
 [tasks.test-full-ignored-bins]
@@ -225,7 +228,7 @@ run = "cargo run -q -p pleiades-validate -- release-smoke"
 # `validate_release_smoke_at`: numeric battery, bundle render and verify), so
 # the dependency ran that battery twice per gate (FU-23 (a)). `ci` keeps
 # `release-smoke` as the blocking tier's smoke run.
-depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "claims-audit", "gate-aspects"]
+depends = ["fmt", "lint", "test-full", "benchmark", "audit", "package-check", "claims-audit", "gate-aspects", "gate-stations"]
 run = "cargo run -q -p pleiades-validate -- release-gate"
 
 [tasks.ci]
@@ -256,6 +259,14 @@ run = "cargo run -q -p pleiades-validate -- validate-corpus"
 # nightly.yml `aspects-gate`) and is a `release-gate` dependency. The mean
 # subset runs in the release battery (`release-smoke`).
 run = "cargo run -q -p pleiades-validate -- validate-aspects"
+
+[tasks.gate-stations]
+# Full planetary-stations gate (every corpus series, ~2 min on the 4-core
+# runner): nightly `test-full-validate`'s long pole (FU-23 (u)), so it has its
+# own nightly job (.github/workflows/nightly.yml `stations-gate`) and is a
+# `release-gate` dependency. The mean/sid subset runs in the release battery
+# (`release-smoke`).
+run = "cargo run -q -p pleiades-validate -- validate-stations"
 
 [tasks.compat-claims-audit]
 run = "cargo run -q -p pleiades-validate -- compat-claims-audit"
