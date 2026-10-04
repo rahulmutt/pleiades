@@ -6,8 +6,9 @@ use pleiades_types::{Instant, Longitude, ZodiacMode};
 ///
 /// Tropical mode returns the input unchanged. Sidereal mode subtracts the
 /// resolved ayanamsa for the provided instant. The longitude is taken to be
-/// on the mean equinox; for an apparent (true-equinox) longitude use
-/// [`sidereal_longitude_of_true_equinox`] so nutation comes off first.
+/// on the mean equinox; the chart layer moves an apparent (true-equinox)
+/// longitude to the mean equinox first, so nutation does not move a body
+/// through a sidereal zodiac (issue #120).
 ///
 /// # Example
 ///
