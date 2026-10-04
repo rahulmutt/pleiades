@@ -58,3 +58,35 @@ fn pluto_mean_elements_land_within_a_degree_of_swiss_ephemeris() {
         );
     }
 }
+
+/// Meeus, Astronomical Algorithms (2nd ed.), Example 37.a: 1992-10-13 0h TD.
+#[test]
+fn meeus_table_37a_reproduces_example_37a() {
+    let lbr = crate::tables::pluto_meeus::pluto_lbr(2_448_908.5);
+    assert_degrees_close(
+        lbr.longitude_rad.to_degrees().rem_euclid(360.0),
+        232.740_71,
+        1e-5,
+    );
+    assert_close(lbr.latitude_rad.to_degrees(), 14.587_82, 1e-5);
+    assert_close(lbr.radius_au, 29.711_111, 1e-6);
+}
+
+#[test]
+fn meeus_table_37a_coefficients_are_pinned() {
+    // FNV-1a/64 over the little-endian IEEE-754 bits of all 387 coefficients,
+    // row-major. Pinned from the transcription that agrees row for row with
+    // two independent implementations of Table 37.A.
+    let terms = &crate::tables::pluto_meeus::PLUTO_TERMS;
+    assert_eq!(terms.len(), 43);
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for row in terms {
+        for value in row {
+            for byte in value.to_bits().to_le_bytes() {
+                hash ^= u64::from(byte);
+                hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+            }
+        }
+    }
+    assert_eq!(hash, 0x800f_2aac_998a_fb08);
+}
