@@ -246,6 +246,25 @@ runs from 280 s to 347 s because libtest dispatches in name order.
 - **(a)** `release-smoke` left `release-gate`'s dependency list; the gate command performs the
   smoke checks itself. No measurement: it removes one battery run from the release procedure only.
 
+### FU-23 item (k), 2026-10-04
+
+In run 37183040722 the `pleiades-validate` lib suite ended about 100 s after the stations gate.
+libtest dispatches in name order, so `tests::release_checklist` came last, and its first test seeded
+`release_gate_via_cli` (`render_cli(&["release-gate"])`): a second full numeric battery (the first is
+`numeric_battery_outcome` in `render::cli::tests`) plus a second bundle render and verify (the first
+is `pristine_release_bundle`), about 45 s on one thread while the other three sat idle and the other
+half of `test-full` had already finished.
+
+- **(k) the release-gate tests assert the shared outcomes.** `numeric_battery_outcome` now lives in
+  `tests::test_support` (with `run_all_numeric_gates` made `pub(crate)`), and the release-gate and
+  release-smoke tests read it, call `verify_release_bundle` on the pristine bundle, compare the pure
+  checklist and smoke renderers, and check the three arms' extra-argument errors by text (the error
+  names the command, so the arm was reached). `release_gate_via_cli` is deleted. The lib suite now
+  runs the battery once and renders one bundle per process; the commands run end to end in
+  `mise run release-smoke` (blocking tier) and `mise run release-gate`. Locally the 15 tests that
+  read the battery or the release-gate run pass in one process with one battery (223 s at a load
+  average above 65, so no local timing is quoted).
+
 ---
 
 ## Section 1: Timing Inventory

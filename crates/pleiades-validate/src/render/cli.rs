@@ -93,7 +93,7 @@ fn strip_golden_column(csv: &str) -> String {
     out
 }
 
-fn run_all_numeric_gates() -> Result<(), String> {
+pub(crate) fn run_all_numeric_gates() -> Result<(), String> {
     crate::validate_house_corpus().map_err(|e| format!("house gate failed: {e}"))?;
     crate::validate_ayanamsa_corpus().map_err(|e| format!("ayanamsa gate failed: {e}"))?;
     crate::validate_apparent_goldens().map_err(|e| format!("apparent gate failed: {e}"))?;
@@ -2992,22 +2992,12 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,tropical
 
     // `run_all_numeric_gates` is the actual release gate battery (backing
     // `release-smoke` / `release-gate`); there is no separate gate-names
-    // list in this codebase, so this test calls the real private function
-    // directly (accessible here via `super`, since this `mod tests` lives
-    // inside `render::cli` itself) to prove the rise-trans and local-eclipse
-    // gates are wired into the release set and the full numeric battery
-    // still passes with both included.
-    //
-    // The battery is deterministic and takes over a minute, and six tests
-    // below assert its outcome. It therefore runs once per test process and
-    // every test asserts that one shared result (the same per-process
-    // `OnceLock` sharing as the release-bundle fixtures in
-    // `tests::test_support`); re-running it per test bought no extra coverage
-    // and was about a quarter of the suite's CPU time.
-    fn numeric_battery_outcome() -> Result<(), String> {
-        static OUTCOME: std::sync::OnceLock<Result<(), String>> = std::sync::OnceLock::new();
-        OUTCOME.get_or_init(super::run_all_numeric_gates).clone()
-    }
+    // list in this codebase, so the tests below assert the real battery to
+    // prove the rise-trans and local-eclipse gates are wired into the
+    // release set and the full numeric battery still passes with both
+    // included. The battery runs once per test process; see
+    // `tests::test_support::numeric_battery_outcome`.
+    use crate::tests::test_support::numeric_battery_outcome;
 
     #[test]
     fn run_all_numeric_gates_includes_rise_trans_and_passes() {
