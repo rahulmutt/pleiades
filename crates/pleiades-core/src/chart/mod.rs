@@ -15,6 +15,8 @@ mod apparent_motion_tests;
 #[cfg(test)]
 mod apparent_tier_tests;
 mod aspects;
+#[cfg(test)]
+mod bit_identity_tests;
 mod errors;
 mod houses;
 mod motion;
