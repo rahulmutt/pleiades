@@ -759,7 +759,11 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             zodiac_mode: zodiac_mode.clone(),
             apparent: Apparentness::Mean,
         };
-        let result = self.backend.position(&req)?;
+        // Every caller reads the place only: the light-time re-queries, the
+        // speed-difference mean places and the geocentric Sun / lunar-point
+        // reads. The motion-free entry point skips a finite-difference speed
+        // the backend would compute and this discards (issue #128).
+        let result = self.backend.position_without_motion(&req)?;
         result.ecliptic.ok_or_else(|| {
             EphemerisError::new(
                 EphemerisErrorKind::InvalidRequest,

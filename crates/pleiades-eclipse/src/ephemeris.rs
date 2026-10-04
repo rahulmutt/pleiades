@@ -53,8 +53,9 @@ fn read<B: EphemerisBackend>(
     body_label: &'static str,
     julian_day: f64,
 ) -> Result<(f64, f64, f64), EclipseError> {
+    // The eclipse geometry reads the place only (issue #128).
     let result = backend
-        .position(&request(body, julian_day))
+        .position_without_motion(&request(body, julian_day))
         .map_err(|e| EclipseError::Backend(e.to_string()))?;
     let ecliptic = result.ecliptic.ok_or(EclipseError::MissingCoordinates {
         body_label,

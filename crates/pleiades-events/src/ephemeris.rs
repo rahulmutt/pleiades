@@ -34,6 +34,36 @@ type EclipticTriple = (f64, f64, f64);
 /// the backend reports one.
 pub(crate) type MeanPlace = (f64, f64, Option<f64>);
 
+/// Reads `body` through `position` (with motion) or through
+/// `position_without_motion` (without), so the two share one decode.
+fn query_mean_place<B: EphemerisBackend>(
+    backend: &B,
+    body: CelestialBody,
+    body_label: &'static str,
+    julian_day: f64,
+    with_motion: bool,
+) -> Result<(MeanPlace, Option<Motion>), EventError> {
+    let request = request(body, julian_day);
+    let result = if with_motion {
+        backend.position(&request)
+    } else {
+        backend.position_without_motion(&request)
+    }
+    .map_err(|e| EventError::Backend(e.to_string()))?;
+    let ecliptic = result.ecliptic.ok_or(EventError::MissingCoordinates {
+        body_label,
+        julian_day,
+    })?;
+    Ok((
+        (
+            ecliptic.longitude.degrees(),
+            ecliptic.latitude.degrees(),
+            ecliptic.distance_au,
+        ),
+        result.motion,
+    ))
+}
+
 /// Mean/J2000 geocentric ecliptic place as the backend serves it: longitude
 /// and latitude in degrees, the distance in AU when the backend reports one,
 /// and the backend's motion for that place, when it reports one.
@@ -47,21 +77,19 @@ pub(crate) fn read_mean_place<B: EphemerisBackend>(
     body_label: &'static str,
     julian_day: f64,
 ) -> Result<(MeanPlace, Option<Motion>), EventError> {
-    let result = backend
-        .position(&request(body, julian_day))
-        .map_err(|e| EventError::Backend(e.to_string()))?;
-    let ecliptic = result.ecliptic.ok_or(EventError::MissingCoordinates {
-        body_label,
-        julian_day,
-    })?;
-    Ok((
-        (
-            ecliptic.longitude.degrees(),
-            ecliptic.latitude.degrees(),
-            ecliptic.distance_au,
-        ),
-        result.motion,
-    ))
+    query_mean_place(backend, body, body_label, julian_day, true)
+}
+
+/// [`read_mean_place`] for a caller that discards the motion: the place is
+/// bit-identical, and the backend skips any extra evaluations its motion
+/// would cost (issue #128).
+pub(crate) fn read_mean_place_without_motion<B: EphemerisBackend>(
+    backend: &B,
+    body: CelestialBody,
+    body_label: &'static str,
+    julian_day: f64,
+) -> Result<MeanPlace, EventError> {
+    Ok(query_mean_place(backend, body, body_label, julian_day, false)?.0)
 }
 
 /// Mean/J2000 geocentric ecliptic `(longitude_deg, latitude_deg, distance_au)`
@@ -88,7 +116,13 @@ pub(crate) fn read_mean_ecliptic<B: EphemerisBackend>(
     body_label: &'static str,
     julian_day: f64,
 ) -> Result<EclipticTriple, EventError> {
-    Ok(read_mean_ecliptic_with_motion(backend, body, body_label, julian_day)?.0)
+    let (lon, lat, distance) =
+        read_mean_place_without_motion(backend, body, body_label, julian_day)?;
+    let distance = distance.ok_or(EventError::MissingDistance {
+        body_label,
+        julian_day,
+    })?;
+    Ok((lon, lat, distance))
 }
 
 /// Geocentric apparent-of-date ecliptic (longitude_deg, latitude_deg, distance_au)
@@ -252,7 +286,7 @@ pub(crate) fn geocentric_apparent_lunar_point<B: EphemerisBackend>(
     body_label: &'static str,
     julian_day: f64,
 ) -> Result<MeanPlace, EventError> {
-    let (mean, _) = read_mean_place(backend, body, body_label, julian_day)?;
+    let mean = read_mean_place_without_motion(backend, body, body_label, julian_day)?;
     apparent_lunar_point_of(mean, body_label, julian_day)
 }
 
@@ -288,7 +322,7 @@ pub(crate) fn geocentric_mean_of_date_lunar_point<B: EphemerisBackend>(
     body_label: &'static str,
     julian_day: f64,
 ) -> Result<MeanPlace, EventError> {
-    let (mean, _) = read_mean_place(backend, body, body_label, julian_day)?;
+    let mean = read_mean_place_without_motion(backend, body, body_label, julian_day)?;
     mean_place_of_date(mean, body_label, julian_day)
 }
 
