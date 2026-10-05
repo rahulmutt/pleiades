@@ -30,6 +30,15 @@ set -euo pipefail
 # not in this clone (a shallow checkout, a force-pushed branch), the script
 # changes no mtime at all, which is exactly the behaviour without it.
 #
+# The marker says "everything in this `target` was built from <commit>", but a
+# job writes it whether or not it rebuilt every artifact the cache carries. It
+# is therefore only true for the artifacts the saving job builds. A job must
+# not trust the marker of a cache saved by a job that builds less than it
+# does: the blocking job never builds pleiades-validate's test binaries, so the
+# nightly, which does, keeps its own cache lineage and drops the marker of any
+# other entry (.github/workflows/nightly.yml, FU-23 (w)). Jobs that build a
+# subset of what the saver built (blocking, the gate jobs) may restore either.
+#
 # Usage: cargo-cache-mtimes.sh [target-dir]
 # Run from the repository root, after the cache restore and before any cargo
 # invocation. Exits non-zero only on a usage or git error.
