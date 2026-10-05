@@ -308,29 +308,35 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             let mut snapshot = calculate_houses(&house_request).map_err(map_house_error)?;
 
             if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. }) {
+                // `calculate_houses` works on the true equinox of date
+                // (apparent sidereal time, true obliquity) whatever the
+                // bodies' apparentness, so Δψ comes off every cusp and angle
+                // before the ayanamsa, as it does for an apparent placement
+                // (issue #157).
+                let delta_psi_arcsec =
+                    pleiades_apparent::nutation::nutation(request.instant.julian_day.days())
+                        .map_err(|e| {
+                            map_apparent_error(pleiades_apparent::ApparentLightTimeError::Apparent(
+                                e,
+                            ))
+                        })?
+                        .delta_psi_arcsec;
+                let to_sidereal = |longitude| {
+                    sidereal::sidereal_longitude_of_true_equinox(
+                        longitude,
+                        delta_psi_arcsec,
+                        request.instant,
+                        &request.zodiac_mode,
+                    )
+                };
                 for cusp in &mut snapshot.cusps {
-                    *cusp = sidereal_longitude(*cusp, request.instant, &request.zodiac_mode)?;
+                    *cusp = to_sidereal(*cusp)?;
                 }
-                snapshot.angles.ascendant = sidereal_longitude(
-                    snapshot.angles.ascendant,
-                    request.instant,
-                    &request.zodiac_mode,
-                )?;
-                snapshot.angles.descendant = sidereal_longitude(
-                    snapshot.angles.descendant,
-                    request.instant,
-                    &request.zodiac_mode,
-                )?;
-                snapshot.angles.midheaven = sidereal_longitude(
-                    snapshot.angles.midheaven,
-                    request.instant,
-                    &request.zodiac_mode,
-                )?;
-                snapshot.angles.imum_coeli = sidereal_longitude(
-                    snapshot.angles.imum_coeli,
-                    request.instant,
-                    &request.zodiac_mode,
-                )?;
+                let angles = &mut snapshot.angles;
+                angles.ascendant = to_sidereal(angles.ascendant)?;
+                angles.descendant = to_sidereal(angles.descendant)?;
+                angles.midheaven = to_sidereal(angles.midheaven)?;
+                angles.imum_coeli = to_sidereal(angles.imum_coeli)?;
             }
 
             Some(snapshot)

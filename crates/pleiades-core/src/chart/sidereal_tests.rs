@@ -1,4 +1,4 @@
-//! Sidereal placements of an apparent chart (issue #120).
+//! Sidereal placements, cusps and angles of a chart (issues #120, #141, #157).
 //!
 //! A sidereal longitude is the longitude on the **mean** equinox of date minus
 //! the mean ayanamsa: the Swiss Ephemeris `SEFLG_SIDEREAL` convention, and the
@@ -11,7 +11,10 @@ use pleiades_apparent::nutation::nutation;
 use pleiades_ayanamsa::sidereal_offset;
 use pleiades_backend::{Apparentness, CompositeBackend, ZodiacMode};
 use pleiades_elp::ElpBackend;
-use pleiades_types::{Ayanamsa, CelestialBody, Instant, JulianDay, TimeScale};
+use pleiades_types::{
+    Ayanamsa, CelestialBody, HouseSystem, Instant, JulianDay, Latitude, Longitude,
+    ObserverLocation, TimeScale,
+};
 use pleiades_vsop87::Vsop87Backend;
 
 use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
@@ -242,4 +245,117 @@ fn sidereal_mean_speed_drops_by_the_rate_of_the_ayanamsa() {
             "{body:?}: tropical − sidereal speed is {drop}, expected {expected_drop} deg/day"
         );
     }
+}
+
+// Issue #157: #120 moved body placements to the mean equinox before the
+// ayanamsa, but house cusps and angles, which `pleiades-houses` computes on
+// the true equinox, still had the ayanamsa alone subtracted and so kept Δψ.
+
+/// J2000.0 TT, the first instant of issue #157's reproduction.
+const ISSUE_157_JD_TT: f64 = 2_451_545.0;
+
+/// Swiss Ephemeris (Moshier) `swe_houses_ex` Porphyry ascendant under
+/// `SEFLG_SIDEREAL` / `SIDM_LAHIRI` at [`ISSUE_157_JD_TT`] for the issue's
+/// observer: the 71.843421° the chart reported plus the 13.80″ the issue
+/// measured it below Swiss Ephemeris.
+const ISSUE_157_SWISS_EPHEMERIS_LAHIRI_ASCENDANT_DEG: f64 = 71.843_421 + 13.80 / 3600.0;
+
+fn issue_157_request() -> ChartRequest {
+    ChartRequest::new(tt(ISSUE_157_JD_TT))
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(13.0827),
+            Longitude::from_degrees(80.2707),
+            None,
+        ))
+        .with_house_system(HouseSystem::Porphyry)
+        .with_bodies(vec![CelestialBody::Sun])
+}
+
+fn issue_157_charts(apparentness: Apparentness) -> (ChartSnapshot, ChartSnapshot) {
+    let engine = ChartEngine::new(composite_backend());
+    let request = issue_157_request().with_apparentness(apparentness);
+    let tropical = engine.chart(&request).expect("tropical chart succeeds");
+    let sidereal = engine
+        .chart(&request.with_zodiac_mode(lahiri()))
+        .expect("sidereal chart succeeds");
+    (tropical, sidereal)
+}
+
+fn ascendant_deg(snapshot: &ChartSnapshot) -> f64 {
+    snapshot
+        .houses
+        .as_ref()
+        .expect("houses are computed")
+        .angles
+        .ascendant
+        .degrees()
+}
+
+/// The cusps and the four angles of a chart's houses, labelled.
+fn house_longitudes_deg(snapshot: &ChartSnapshot) -> Vec<(String, f64)> {
+    let houses = snapshot.houses.as_ref().expect("houses are computed");
+    let angles = [
+        ("ascendant", houses.angles.ascendant),
+        ("descendant", houses.angles.descendant),
+        ("midheaven", houses.angles.midheaven),
+        ("imum coeli", houses.angles.imum_coeli),
+    ];
+    houses
+        .cusps
+        .iter()
+        .enumerate()
+        .map(|(index, cusp)| (format!("cusp {}", index + 1), cusp.degrees()))
+        .chain(
+            angles
+                .into_iter()
+                .map(|(name, angle)| (name.to_owned(), angle.degrees())),
+        )
+        .collect()
+}
+
+#[test]
+fn issue_157_sidereal_ascendant_matches_swiss_ephemeris_lahiri() {
+    let (_, sidereal) = issue_157_charts(Apparentness::Apparent);
+    let residual =
+        wrap_arcsec(ascendant_deg(&sidereal) - ISSUE_157_SWISS_EPHEMERIS_LAHIRI_ASCENDANT_DEG);
+    assert!(
+        residual.abs() < 0.5,
+        "sidereal ascendant is {residual:+.3}\" from Swiss Ephemeris Lahiri"
+    );
+}
+
+#[test]
+fn sidereal_cusps_and_angles_shift_by_the_ayanamsa_plus_nutation_in_longitude() {
+    // Houses sit on the true equinox whatever the bodies' apparentness, so
+    // both chart kinds take Δψ off them.
+    let expected_deg = lahiri_deg(ISSUE_157_JD_TT) + delta_psi_deg(ISSUE_157_JD_TT);
+    assert!(delta_psi_deg(ISSUE_157_JD_TT).abs() * 3600.0 > 13.0);
+    for apparentness in [Apparentness::Apparent, Apparentness::Mean] {
+        let (tropical, sidereal) = issue_157_charts(apparentness);
+        let tropical = house_longitudes_deg(&tropical);
+        let sidereal = house_longitudes_deg(&sidereal);
+        assert_eq!(tropical.len(), 16);
+        for ((name, tropical_deg), (_, sidereal_deg)) in tropical.iter().zip(&sidereal) {
+            let residual = wrap_arcsec(tropical_deg - sidereal_deg - expected_deg);
+            assert!(
+                residual.abs() < 1e-6,
+                "{apparentness:?} {name}: tropical − sidereal differs from ayanamsa + Δψ by {residual:+.6}\""
+            );
+        }
+    }
+}
+
+#[test]
+fn sidereal_ascendant_and_sun_share_one_offset_from_the_tropical_chart() {
+    // The issue's in-chart symptom: tropical − sidereal was 23.857056° for the
+    // ascendant and 23.853188° for the Sun, 13.9″ (−Δψ) apart.
+    let (tropical, sidereal) = issue_157_charts(Apparentness::Apparent);
+    let ascendant_shift = ascendant_deg(&tropical) - ascendant_deg(&sidereal);
+    let sun_shift = longitude_deg(&tropical, &CelestialBody::Sun)
+        - longitude_deg(&sidereal, &CelestialBody::Sun);
+    let residual = wrap_arcsec(ascendant_shift - sun_shift);
+    assert!(
+        residual.abs() < 1e-6,
+        "ascendant and Sun sidereal offsets differ by {residual:+.6}\""
+    );
 }
