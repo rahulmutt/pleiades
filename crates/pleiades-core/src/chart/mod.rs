@@ -59,7 +59,7 @@ use pleiades_apparent::{
 use pleiades_backend::{
     Apparentness, EphemerisBackend, EphemerisError, EphemerisErrorKind, EphemerisRequest,
 };
-use pleiades_houses::{calculate_houses, house_for_longitude, HouseRequest};
+use pleiades_houses::{calculate_houses, house_for_longitude, sign_anchored_cusps, HouseRequest};
 use pleiades_types::{
     CelestialBody, CoordinateFrame, Instant, JulianDay, Motion, ObserverLocation, ZodiacMode,
 };
@@ -331,14 +331,24 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                         &request.zodiac_mode,
                     )
                 };
-                for cusp in &mut snapshot.cusps {
-                    *cusp = to_sidereal(*cusp)?;
-                }
                 let angles = &mut snapshot.angles;
                 angles.ascendant = to_sidereal(angles.ascendant)?;
                 angles.descendant = to_sidereal(angles.descendant)?;
                 angles.midheaven = to_sidereal(angles.midheaven)?;
                 angles.imum_coeli = to_sidereal(angles.imum_coeli)?;
+                // That shift is rigid, which carries the cusps of a system
+                // anchored to an angle or to the sky into the sidereal
+                // zodiac. Whole Sign and Equal (1=Aries) are anchored to the
+                // sign boundaries instead, so theirs are rebuilt on the
+                // sidereal ones from the sidereal ascendant (issue #180).
+                match sign_anchored_cusps(system, angles.ascendant) {
+                    Some(cusps) => snapshot.cusps = cusps.into(),
+                    None => {
+                        for cusp in &mut snapshot.cusps {
+                            *cusp = to_sidereal(*cusp)?;
+                        }
+                    }
+                }
             }
 
             Some(snapshot)

@@ -788,6 +788,46 @@ fn vehlow_equal_houses(ascendant: Longitude) -> [Longitude; 12] {
     })
 }
 
+/// The cusps of a house system anchored to the zodiac's sign boundaries, or
+/// `None` for a system anchored elsewhere.
+///
+/// Two built-in systems take their cusps from the signs themselves:
+/// [`HouseSystem::WholeSign`] starts at 0° of the sign holding `ascendant`,
+/// and [`HouseSystem::EqualAries`] starts at 0° Aries whatever the ascendant.
+/// Their cusps therefore belong to the zodiac `ascendant` is expressed in.
+/// [`calculate_houses`] works in the tropical zodiac; a caller moving a
+/// snapshot into another zodiac (a sidereal chart) passes the ascendant in
+/// that zodiac here to get these systems' cusps on its sign boundaries.
+///
+/// Every other system is anchored to an angle or to the sky, so its cusps
+/// move rigidly with the zodiac's origin and need no such step.
+///
+/// # Example
+///
+/// ```
+/// use pleiades_houses::sign_anchored_cusps;
+/// use pleiades_types::{HouseSystem, Longitude};
+///
+/// // A sidereal ascendant at 16.76° Taurus.
+/// let ascendant = Longitude::from_degrees(46.76);
+/// let whole_sign = sign_anchored_cusps(&HouseSystem::WholeSign, ascendant).unwrap();
+/// assert_eq!(whole_sign[0].degrees(), 30.0);
+/// assert_eq!(whole_sign[11].degrees(), 0.0);
+///
+/// let equal_aries = sign_anchored_cusps(&HouseSystem::EqualAries, ascendant).unwrap();
+/// assert_eq!(equal_aries[0].degrees(), 0.0);
+///
+/// // Porphyry is anchored to the angles.
+/// assert!(sign_anchored_cusps(&HouseSystem::Porphyry, ascendant).is_none());
+/// ```
+pub fn sign_anchored_cusps(system: &HouseSystem, ascendant: Longitude) -> Option<[Longitude; 12]> {
+    match system {
+        HouseSystem::EqualAries => Some(equal_aries_houses()),
+        HouseSystem::WholeSign => Some(whole_sign_houses(ascendant)),
+        _ => None,
+    }
+}
+
 fn equal_aries_houses() -> [Longitude; 12] {
     core::array::from_fn(|index| Longitude::from_degrees((index as f64) * 30.0))
 }
