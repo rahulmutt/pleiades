@@ -1,4 +1,4 @@
-//! `EventEngine::aspects_in_range` and `next_aspect`: both sides of an
+//! `EventEngine::aspects_in_range`, `next_aspect` and `previous_aspect`: both sides of an
 //! angle, retrograde loops, settled instants, chaining, guards and window
 //! edges.
 
@@ -233,6 +233,141 @@ fn next_aspect_is_the_first_in_range_and_chains() {
         assert!((jd(&found) - jd(expected)).abs() < TWO_SECONDS, "{found:?}");
         after = jd(&found);
     }
+}
+
+// Issue #168 (d).
+
+fn previous(
+    first: CelestialBody,
+    second: CelestialBody,
+    angle_deg: f64,
+    before_jd: f64,
+) -> Option<AspectEvent> {
+    EventEngine::new(packaged_backend())
+        .previous_aspect(
+            first,
+            second,
+            Angle::from_degrees(angle_deg),
+            GEO,
+            tdb(before_jd),
+        )
+        .expect("previous_aspect")
+}
+
+/// Walks `expected` backward from `before_jd`, stepping two seconds behind
+/// each event found.
+fn assert_walks_backward(
+    first: CelestialBody,
+    second: CelestialBody,
+    angle_deg: f64,
+    expected: &[AspectEvent],
+    mut before_jd: f64,
+) {
+    for want in expected.iter().rev() {
+        let found = previous(first.clone(), second.clone(), angle_deg, before_jd)
+            .unwrap_or_else(|| panic!("nothing before {before_jd}, want {want:?}"));
+        assert!(jd(&found) <= before_jd, "{found:?}");
+        assert!(
+            (jd(&found) - jd(want)).abs() < TWO_SECONDS,
+            "{found:?} vs {want:?}"
+        );
+        assert_exact(std::slice::from_ref(&found), angle_deg);
+        before_jd = jd(&found) - TWO_SECONDS;
+    }
+}
+
+#[test]
+fn previous_aspect_walks_a_year_of_lunar_squares_backward() {
+    // 24 events, 16 days to a search chunk: every chunk seam is crossed.
+    let (start, end) = (J2000, J2000 + 366.0);
+    let in_range = aspects(
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        90.0,
+        GEO,
+        start,
+        end,
+    );
+    assert_eq!(in_range.len(), 24, "{in_range:?}");
+    assert_walks_backward(
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        90.0,
+        &in_range,
+        end,
+    );
+}
+
+#[test]
+fn previous_aspect_walks_a_retrograde_loop_backward() {
+    // The Jupiter–Saturn triple conjunction of 1980–81.
+    let (start, end) = (J2000 - 7_200.0, J2000 - 6_500.0);
+    let in_range = aspects(
+        CelestialBody::Jupiter,
+        CelestialBody::Saturn,
+        0.0,
+        GEO,
+        start,
+        end,
+    );
+    assert_eq!(in_range.len(), 3, "{in_range:?}");
+    assert_walks_backward(
+        CelestialBody::Jupiter,
+        CelestialBody::Saturn,
+        0.0,
+        &in_range,
+        end,
+    );
+}
+
+#[test]
+fn previous_aspect_returns_nothing_for_a_pair_that_never_reaches_the_angle() {
+    // Mercury is never 60 degrees from the Sun.
+    assert_eq!(
+        previous(
+            CelestialBody::Sun,
+            CelestialBody::Mercury,
+            60.0,
+            WINDOW_START_JD + 400.0
+        ),
+        None
+    );
+}
+
+#[test]
+fn previous_aspect_guards_match_next_aspect() {
+    let engine = EventEngine::new(packaged_backend());
+    let call = |first: CelestialBody, second: CelestialBody, angle_deg: f64, before_jd: f64| {
+        engine.previous_aspect(
+            first,
+            second,
+            Angle::from_degrees(angle_deg),
+            GEO,
+            tdb(before_jd),
+        )
+    };
+    assert!(matches!(
+        call(CelestialBody::Sun, CelestialBody::Moon, 181.0, J2000),
+        Err(EventError::InvalidAspect { .. })
+    ));
+    assert!(matches!(
+        call(CelestialBody::Sun, CelestialBody::Sun, 0.0, J2000),
+        Err(EventError::InvalidAspect { .. })
+    ));
+    assert!(matches!(
+        call(CelestialBody::Sun, CelestialBody::Moon, 0.0, 2_000_000.0),
+        Err(EventError::OutOfWindow { .. })
+    ));
+    // The window's first instant has nothing before it.
+    assert_eq!(
+        call(
+            CelestialBody::Sun,
+            CelestialBody::Moon,
+            0.0,
+            WINDOW_START_JD
+        ),
+        Ok(None)
+    );
 }
 
 #[test]

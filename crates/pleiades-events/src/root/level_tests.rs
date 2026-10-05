@@ -1,8 +1,8 @@
 //! The level-crossing scanner on synthetic functions.
 
 use super::{
-    crossings_in_range, first_level_crossing_after, level_crossings_in_range, wrap180,
-    REFINE_TOLERANCE_DAYS,
+    crossings_in_range, first_level_crossing_after, last_level_crossing_before,
+    level_crossings_in_range, wrap180, LEVEL_CHUNK_STEPS, REFINE_TOLERANCE_DAYS,
 };
 use crate::error::EventError;
 use std::cell::Cell;
@@ -163,4 +163,92 @@ fn samples_stay_within_one_step_before_and_two_after_the_range() {
     level_crossings_in_range(d, &[0.0], lo, hi, step).unwrap();
     assert_eq!(earliest.get(), lo - step);
     assert!(latest.get() < hi + 2.0 * step, "{}", latest.get());
+}
+
+// The backward search (issue #168 (d)) runs the forward scanner over chunks
+// of `LEVEL_CHUNK_STEPS` steps, latest first.
+
+/// A sawtooth separation climbing 1 deg/day through 0 at `T0 + 10 + 360k`.
+fn sawtooth(jd: f64) -> Result<f64, EventError> {
+    Ok(wrap180(jd - T0 - 10.0))
+}
+
+#[test]
+fn last_level_crossing_is_the_last_one_in_range() {
+    // A range of many chunks holding three roots.
+    let (lo, hi, step) = (T0, T0 + 1000.0, 1.0);
+    let all = level_crossings_in_range(sawtooth, &[0.0], lo, hi, step).unwrap();
+    assert_roots(&all, &[T0 + 10.0, T0 + 370.0, T0 + 730.0]);
+    let last = last_level_crossing_before(sawtooth, &[0.0], lo, hi, step).unwrap();
+    assert_settled(last.expect("three roots in range"), T0 + 730.0);
+    // Ending before a root finds the one before it; before the first, none.
+    let earlier = last_level_crossing_before(sawtooth, &[0.0], lo, T0 + 729.0, step).unwrap();
+    assert_settled(earlier.expect("two roots in range"), T0 + 370.0);
+    assert_eq!(
+        last_level_crossing_before(sawtooth, &[0.0], lo, T0 + 9.0, step).unwrap(),
+        None
+    );
+}
+
+#[test]
+fn last_level_crossing_finds_both_sides_of_a_turn_back() {
+    // The pair overshoots the level by 0.0004 deg inside one step: two roots
+    // 0.2 day either side of the peak, in the second chunk back (the seam is
+    // at T0 + 12). The later one is the last.
+    let d = parabola(T0 + 6.9, 0.0004);
+    let last = last_level_crossing_before(d, &[0.0], T0, T0 + 140.0, 2.0).unwrap();
+    assert_settled(last.expect("two roots in range"), T0 + 7.1);
+}
+
+#[test]
+fn last_level_crossing_is_not_lost_at_a_chunk_seam() {
+    // Put a chunk seam within the bisection tolerance of the root, on either
+    // side of it and exactly on it. A root just below a seam settles just
+    // above it, in neither chunk's own range.
+    let step = 1.0;
+    let root = T0 + 10.0;
+    let chunk = LEVEL_CHUNK_STEPS * step;
+    for seam_offset_s in [-0.4, -0.2, -0.01, 0.0, 0.01, 0.2, 0.4] {
+        for chunks_above in [1.0, 2.0] {
+            let seam = root + seam_offset_s / 86_400.0;
+            let hi = seam + chunks_above * chunk;
+            let last = last_level_crossing_before(sawtooth, &[0.0], T0, hi, step).unwrap();
+            assert_settled(
+                last.unwrap_or_else(|| panic!("root lost with a seam {seam_offset_s} s from it")),
+                root,
+            );
+        }
+    }
+}
+
+#[test]
+fn last_level_crossing_samples_stay_within_the_forward_scanners_bounds() {
+    let (lo, hi, step) = (T0, T0 + 500.3, 2.0);
+    let earliest = Cell::new(f64::INFINITY);
+    let latest = Cell::new(f64::NEG_INFINITY);
+    let d = |jd: f64| {
+        earliest.set(earliest.get().min(jd));
+        latest.set(latest.get().max(jd));
+        // Never reaches the level: the search walks the whole range.
+        Ok(5.0)
+    };
+    assert_eq!(
+        last_level_crossing_before(d, &[0.0], lo, hi, step).unwrap(),
+        None
+    );
+    assert_eq!(earliest.get(), lo - step);
+    assert!(latest.get() < hi + 2.0 * step, "{}", latest.get());
+}
+
+#[test]
+fn last_level_crossing_on_an_empty_range_still_samples_its_start() {
+    assert_eq!(
+        last_level_crossing_before(sawtooth, &[0.0], T0 + 20.0, T0, 1.0).unwrap(),
+        None
+    );
+    let failing = |_: f64| Err(EventError::Backend("boom".into()));
+    assert_eq!(
+        last_level_crossing_before(failing, &[0.0], T0 + 20.0, T0, 1.0),
+        Err(EventError::Backend("boom".into()))
+    );
 }
