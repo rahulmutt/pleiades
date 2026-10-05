@@ -3102,3 +3102,30 @@ result quality is `Exact` inside the window and `Approximate` outside.
 **Known limitation:** Pluto jumps by up to about 0.6° at each window edge.
 A longer-window fit would remove it at the cost of a much larger table.
 **Severity:** accuracy (closed) · **Opened:** 2026-10-04
+
+---
+
+## FU-27: Speed step of the algorithmic backends (issue #140)
+
+**Status:** resolved (2026-10-05) · `Vsop87Backend` and `ElpBackend`
+differenced the position over ±0.5 day for their speed channels, which biases
+a speed by h²/6 · λ‴: up to 7″/day for Mercury near inferior conjunction and
+30″/day for the Moon. Every speed read from these backends carried it, and
+Mercury's stations on the VSOP87/ELP composite sat up to 265 s from the zero
+of the true speed. Both series are analytic, so the step is now short:
+±0.005 day for VSOP87 and ±0.02 day for ELP, still two extra series
+evaluations per query (the FU-25 cost is unchanged).
+
+Measured against a fourth-order stencil of each backend's own positions
+(2000 instants per body): Mercury 7.1″/day → 0.0008″/day, every other
+VSOP87 body below 0.0002″/day, the Moon 30″/day → 0.05″/day, the ELP
+osculating node 5.7″/day → about 0.1″/day. The ELP step is longer because
+the node is formed from a differenced Moon velocity and a shorter step
+amplifies its noise (0.2″/day at ±0.005 day, where the Moon alone would
+reach 0.004″/day). Composite Mercury stations over 2000–2010 now sit within
+0.33 s of the packaged backend's (263 s before); a blocking test holds 2000
+at 5 s, and a unit test in each backend holds the speed against the stencil.
+
+Positions are unchanged. The ±0.5-day span in `pleiades-apparent` is also
+unchanged: it differences only the small, smooth apparent-place correction.
+**Severity:** accuracy (closed) · **Opened:** 2026-10-05

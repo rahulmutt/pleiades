@@ -293,12 +293,15 @@ impl Vsop87Backend {
     }
 
     pub(crate) fn motion(body: CelestialBody, days: f64, pluto_path: PlutoPath) -> Option<Motion> {
-        // A symmetric one-day span gives stable chart-facing daily rates while
-        // keeping the finite-difference mean geocentric model simple and
-        // deterministic. These are finite-difference estimates of the same mean
-        // geocentric model, not apparent velocities from a full VSOP87/light-time
-        // reduction.
-        const HALF_SPAN_DAYS: f64 = 0.5;
+        // The speed of the mean geocentric place, as a central difference of the
+        // series. The series is analytic, so the step only has to balance the
+        // truncation h²/6 · λ‴ against rounding: against a fourth-order stencil
+        // of the same positions, ±0.005 day holds Mercury within 0.001″/day
+        // and every other body within 0.0002″/day, where the ±0.5 day used
+        // before read Mercury up to 7″/day off near inferior conjunction
+        // (issue #140). These are not apparent velocities; the chart and event
+        // layers add the rate of the apparent-place correction.
+        const HALF_SPAN_DAYS: f64 = 0.005;
         const FULL_SPAN_DAYS: f64 = HALF_SPAN_DAYS * 2.0;
 
         // All samples take the centre instant's Pluto path (chosen by the

@@ -2,12 +2,15 @@
 //! chaining, bodies that never station, guards and window edges.
 
 use pleiades_backend::test_backend::LinearSunMoon;
+use pleiades_backend::CompositeBackend;
 use pleiades_data::packaged_backend;
+use pleiades_elp::ElpBackend;
 use pleiades_events::{
     CrossingFrame, CrossingReference, EventEngine, EventError, Station, StationKind, WINDOW_END_JD,
     WINDOW_START_JD,
 };
 use pleiades_types::{Ayanamsa, CelestialBody, Instant, JulianDay, TimeScale, ZodiacMode};
+use pleiades_vsop87::Vsop87Backend;
 
 const GEO: CrossingFrame = CrossingFrame::GeocentricApparentOfDate;
 const MEAN: CrossingFrame = CrossingFrame::GeocentricMeanOfDate;
@@ -238,6 +241,35 @@ fn a_sidereal_station_is_shifted_by_the_ayanamsa_rate() {
             t.kind
         );
     }
+}
+
+// Issue #140: the algorithmic backends differenced the position over ±0.5 day,
+// which biased Mercury's speed by up to 7″/day and put its stations on the
+// VSOP87/ELP composite up to 265 s from the zero of the true speed. Over 2000
+// the composite then sat up to 239 s from the packaged backend; it now sits
+// within 0.33 s (and within the same 0.33 s over 2000–2010).
+#[test]
+fn composite_mercury_stations_match_the_packaged_backend() {
+    let composite = EventEngine::new(CompositeBackend::new(
+        ElpBackend::new(),
+        Vsop87Backend::new(),
+    ));
+    let (start, end) = (J2000, J2000 + 366.0);
+    let found = composite
+        .stations_in_range(CelestialBody::Mercury, GEO, tdb(start), tdb(end))
+        .expect("stations");
+    let packaged = stations(CelestialBody::Mercury, GEO, start, end);
+    assert_eq!(found.len(), 6, "{found:?}");
+    assert_eq!(found.len(), packaged.len());
+    let mut worst_seconds = 0.0_f64;
+    for (composite, packaged) in found.iter().zip(&packaged) {
+        assert_eq!(composite.kind, packaged.kind);
+        worst_seconds = worst_seconds.max(((jd(composite) - jd(packaged)) * 86_400.0).abs());
+    }
+    assert!(
+        worst_seconds < 5.0,
+        "composite - packaged reaches {worst_seconds} s"
+    );
 }
 
 #[test]

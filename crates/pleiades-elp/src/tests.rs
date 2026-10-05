@@ -1023,6 +1023,74 @@ fn true_node_anchor_matches_the_osculating_node_at_1913() {
     assert_eq!(result.quality, QualityAnnotation::Approximate);
 }
 
+// Issue #140: a ±0.5-day difference of the position biased the speed by
+// h²/6 · λ‴, up to 29″/day for the Moon. The reference here is a fourth-order
+// stencil of the backend's own positions.
+#[test]
+fn speed_is_the_derivative_of_the_position() {
+    // Not the backend's own ±0.02-day samples, so the node's noise is not
+    // shared between the speed and its reference.
+    const STENCIL_STEP_DAYS: f64 = 0.03;
+    let backend = ElpBackend::new();
+    let ecliptic_at = |body: &CelestialBody, jd: f64| {
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(jd), TimeScale::Tt);
+        backend
+            .position(&mean_request_at(body.clone(), instant))
+            .expect("position")
+    };
+    let stencil = |values: [f64; 4]| {
+        let [far_before, before, after, far_after] = values;
+        (far_before - 8.0 * before + 8.0 * after - far_after) / (12.0 * STENCIL_STEP_DAYS)
+    };
+
+    // The osculating node is formed from a differenced Moon velocity, so its
+    // speed and the stencil are both noisier than the Moon's.
+    for (body, tolerance_arcsec_per_day) in [
+        (CelestialBody::Moon, 0.1),
+        (CelestialBody::MeanNode, 0.001),
+        (CelestialBody::TrueNode, 0.5),
+    ] {
+        // Every 3.7 days over two years: all phases of the anomalistic and
+        // synodic months.
+        for step in 0..200 {
+            let jd = J2000 + 3.7 * f64::from(step);
+            let centre = ecliptic_at(&body, jd);
+            let centre_longitude = centre.ecliptic.expect("ecliptic").longitude.degrees();
+            let motion = centre.motion.expect("motion");
+            let samples = [-2.0, -1.0, 1.0, 2.0].map(|steps| {
+                ecliptic_at(&body, jd + steps * STENCIL_STEP_DAYS)
+                    .ecliptic
+                    .expect("ecliptic")
+            });
+            let expected_longitude = stencil(samples.map(|sample| {
+                signed_longitude_delta_degrees(centre_longitude, sample.longitude.degrees())
+            }));
+            let expected_latitude = stencil(samples.map(|sample| sample.latitude.degrees()));
+
+            let longitude_error =
+                (motion.longitude_deg_per_day.expect("speed") - expected_longitude) * 3600.0;
+            let latitude_error =
+                (motion.latitude_deg_per_day.expect("speed") - expected_latitude) * 3600.0;
+            assert!(
+                longitude_error.abs() < tolerance_arcsec_per_day,
+                "{body} longitude speed off by {longitude_error}″/day at {jd}"
+            );
+            assert!(
+                latitude_error.abs() < tolerance_arcsec_per_day,
+                "{body} latitude speed off by {latitude_error}″/day at {jd}"
+            );
+            if let Some(speed) = motion.distance_au_per_day {
+                let expected = stencil(samples.map(|sample| sample.distance_au.expect("distance")));
+                assert!(
+                    (speed - expected).abs() < 1e-9,
+                    "{body} distance speed off by {} AU/day at {jd}",
+                    speed - expected
+                );
+            }
+        }
+    }
+}
+
 /// Swiss Ephemeris 2.10.03 Moshier `swe_nod_aps(SE_MOON, SE_NODBIT_OSCU)`
 /// ascending-node rows (nutation on), copied verbatim from
 /// `crates/pleiades-validate/data/nod-aps-corpus/nod-aps.csv` (`Moon,1,2,0,...`
@@ -1481,7 +1549,7 @@ fn j2000_mean_and_true_nodes_are_available() {
         .expect("mean node query should work");
     let mean_ecliptic = mean.ecliptic.expect("mean node ecliptic should exist");
     // At J2000 the of-date and J2000 frames coincide, so the point sits on the
-    // ecliptic to rounding; the ±0.5-day motion samples straddle J2000, which
+    // ecliptic to rounding; the motion samples straddle J2000, which
     // is why the latitude speed is only near zero.
     assert!((mean_ecliptic.longitude.degrees() - 125.044_547_9).abs() < 1e-9);
     assert!(mean_ecliptic.latitude.degrees().abs() < 1e-9);
