@@ -2629,9 +2629,9 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-04) · Items (a) to (f) and (k) to (u)
-are done, (g) and (j) are measured and not applied; (h), (i) and (v) remain
-open.
+**Status:** partly resolved (2026-10-05) · Items (a) to (f) and (k) to (u)
+and (w) are done, (g) and (j) are measured and not applied; (h), (i) and (v)
+remain open.
 Measurements, the two changes from #112 and the 2026-10-03 and 2026-10-04
 changes are in `docs/superpowers/plans/test-timings.md` (Section 0).
 
@@ -2907,10 +2907,10 @@ estimates from that run's timestamps, not measurements of a fix.
   check step went 71 s → 66 s, `release-smoke` now ends 17 s after nextest
   instead of 31 s, and nextest itself went 33.5 s → 40.5 s because the
   battery's threads share its cores. Where the smoke had the cores to itself
-  (branch 37243391521) it ran in 47 s against 93–105 s on `main`. Nightly:
-  no change (`test-full-validate` 148.6–148.9 s against 148.8 s on a `main`
-  run of equal runner speed, runs 37243856918, 37243858701, 37243865748).
-  Table in the timings plan.
+  (branch 37243391521) it ran in 47 s against 93–105 s on `main`. The
+  nightly comparison recorded at merge time (runs 37243856918, 37243858701,
+  37243865748: no change) is void: all those runs executed a stale
+  `pleiades-validate` test binary, see (w). Table in the timings plan.
 - **(s) Two `pleiades-cli` tests re-ran gates that `release-smoke` runs.** On
   the `main` push CI run 37238126985 the blocking-tier nextest's two slowest
   tests were `crossings_alias_dispatches_to_validate` (13.9 s, the one real
@@ -2959,18 +2959,50 @@ estimates from that run's timestamps, not measurements of a fix.
   beside `nightly` and `aspects-gate`, and is a `release-gate` dependency.
   The mean/sid subset still runs in the release battery (blocking
   `release-smoke`) and as its own lib test. No other lib test runs the full
-  gate. The two branch nightlies (runs 37242175532 and 37242183836) showed
-  `test-full-validate` at 121–126 s against 141–150 s on `main`, but that
-  did not hold up: on `main` after the merge (run 37243856918, a runner of
-  the same speed by the unchanged rows) it ran 148.8 s and again ended 65 s
-  after the other `test-full` halves. So the saving was runner noise, and
-  the stations gate was not what set the lib suite's length; the job move
-  takes about 105 s of CPU off the tier's four cores but not its wall-clock.
-  The `stations-gate` job takes under 2 minutes (gate step 52–60 s) and
-  finishes well before `aspects-gate`. **Open (v):** find what ends the
+  gate. Measured on two nightlies dispatched on the branch (runs 37242175532
+  and 37242183836, which compiled the test binary fresh): `test-full-validate`
+  141–150 s → 121–126 s, ending 33–42 s after the other `test-full` halves
+  instead of 58–65 s. A `main` nightly after the merge (37243856918) seemed to
+  contradict this (148.8 s), and the entry briefly called the saving runner
+  noise; that run executed a stale test binary that still ran the full gate,
+  see (w). The `stations-gate` job takes under 2 minutes (gate step 52–60 s)
+  and finishes well before `aspects-gate`. **Open (v):** find what ends the
   `pleiades-validate` lib suite now, with per-test times
   (`RUSTC_BOOTSTRAP=1 <test binary> -Z unstable-options --report-time`).
   Table in the timings plan.
+- **(w) Nightlies ran a stale `pleiades-validate` test binary.** Found by the
+  (v) probe: on nightly 37273128160 the opt-in
+  `stations_gate_passes_within_ceilings` ran the full gate (29.6 s) although
+  the code since (u) returns at once without `PLEIADES_FULL_STATIONS_GATE`.
+  Cargo's fingerprint files on run 37274340732 showed the lib test binary was
+  built on 2026-10-04 at 22:05, by the `main` nightly at `91b13290d`, before
+  (s), (u) and (r). The cause is in (b)'s design: `cargo-cache-mtimes.sh`
+  writes its marker ("this `target` was built from HEAD") in every job, but a
+  job only rebuilds the artifacts it builds. The blocking job never builds
+  `pleiades-validate`'s test binaries, so the entry it saves carries an older
+  copy forward under a newer marker; a nightly restoring that entry diffs
+  only from the newer commit, floors the older changes, and cargo judges the
+  old binary fresh. A source file the old binary never depended on (a module
+  added since) cannot make it dirty either. So since #117 (2026-10-03) a
+  nightly restoring a blocking job's entry ran `pleiades-validate`'s own
+  tests (lib, bin and integration test binaries) from an older commit: they
+  could pass on code whose current tests fail. Other crates' tests were not
+  affected: the blocking job's nextest build compiles every one of their test
+  binaries. → **Resolved 2026-10-05:** the nightly job saves its `target`
+  under its own `-nightly-` key lineage and restores that first; when it
+  falls back to another job's entry it deletes the marker before the mtime
+  script runs, so the workspace crates rebuild (third-party crates still come
+  from the cache). The blocking and gate jobs are unchanged: they build a
+  subset of what the nightly builds, so either lineage's marker is valid for
+  them. The script's header states the rule. Verified on two nightlies
+  dispatched on the branch: the first (37281912451) restored a blocking
+  entry, dropped its marker, recompiled `pleiades-validate`'s test binaries
+  and passed, the first fresh run of those tests on `main`'s content since
+  the bug (so the stale binaries hid no failure); the second (37282616242)
+  restored the first one's `-nightly-` entry, kept its marker, rebuilt
+  nothing and passed. On fresh binaries `test-full-validate` took 96 s and
+  121 s, ending 22–29 s after the other `test-full` halves, against about
+  149 s and 65 s on the stale runs.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 

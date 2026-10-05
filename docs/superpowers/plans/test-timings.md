@@ -491,11 +491,10 @@ runs recompiled `test`'s binaries and the `main` runs did not, so compare rows, 
 | `stations-gate` job (gate step) | — | — | 110 (60) | 105 (52) |
 | nightly tier | 238 | 229 | 296 | 293 |
 
-The branch rows suggested `test-full-validate` 20–25 s shorter, but that was runner noise: on
-`main` after the merge (run 37243856918, unchanged rows 36.0 s nextest and 84 s
-`test-full-ignored-bins`, as on `main` 1 here) it took 148.8 s and ended 65 s after the other
-halves, as before. The stations gate was not what set the lib suite's length; see the (r) table
-below and FU-23 (v). The new job finishes well inside `aspects-gate`'s ~3.5 minutes.
+`test-full-validate` is 20–25 s shorter on the branch, whose runs compiled the test binary fresh.
+A `main` run after the merge (37243856918, 148.8 s) seemed to contradict this and was briefly
+read as runner noise, but it executed a stale test binary that still ran the full gate (FU-23
+(w)). The new job finishes well inside `aspects-gate`'s ~3.5 minutes.
 
 ---
 
@@ -528,7 +527,8 @@ Nightly, two runs on `main` (`0fe122848`) and two on the branch, all compiling t
 | `test-full-validate` | 148.8 | 86.1 | 148.9 | 148.6 |
 | `test-full-validate` end after the last other half | 65 | 36 | 65 | 64 |
 
-No nightly change from (r). The `main` rows also show that (u) did not shorten the lib suite.
+**Void:** every run in this nightly table executed a stale `pleiades-validate` test binary
+built at `91b13290d` (FU-23 (w)), so it measures neither (r) nor (u).
 
 ---
 

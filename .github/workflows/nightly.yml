@@ -25,7 +25,8 @@ jobs:
           install: false
 
       # Same two caches as ci.yml (see the explanation there): immutable tools,
-      # rolled-forward `target` shared with the blocking job.
+      # and a rolled-forward `target`. This job's `target` entries form their
+      # own `-nightly-` lineage; see "Restore cached workspace builds".
       - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
@@ -37,14 +38,28 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-tools-
 
+      # A `target` entry's marker (cargo-cache-mtimes.sh) is only valid for the
+      # artifacts the saving job built. The blocking job never builds
+      # pleiades-validate's test binaries, so an entry it saved carries those
+      # forward from an older build under a newer marker, and the mtime script
+      # would judge them fresh: nightlies ran stale pleiades-validate tests
+      # that way (FU-23 (w)). So this job prefers its own `-nightly-` entries,
+      # which it saves below, and falls back to any entry only without its
+      # marker (next step), which rebuilds the workspace crates.
       - name: Restore cached workspace builds
+        id: restore-target
         uses: actions/cache/restore@v4
         with:
           path: target
-          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-${{ github.run_id }}
+          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-nightly-${{ github.run_id }}
           restore-keys: |
+            ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-nightly-
             ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-
             ${{ runner.os }}-target-
+
+      - name: Distrust another job's cache marker
+        if: ${{ !contains(steps.restore-target.outputs.cache-matched-key, '-nightly-') }}
+        run: rm -f target/ci-built-from-commit
 
       - name: Install mise-managed tools
         run: mise install
@@ -66,12 +81,14 @@ jobs:
         run: mise run ci-nightly
 
       # The nightly tier builds everything `test-full` needs, so its entry is
-      # the richest one the blocking job can restore.
+      # the richest one the blocking job can restore (its `-<hash>-` restore
+      # key matches this lineage too), and its marker is valid for every
+      # artifact the blocking and gate jobs build.
       - name: Save workspace builds
         uses: actions/cache/save@v4
         with:
           path: target
-          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-${{ github.run_id }}
+          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-nightly-${{ github.run_id }}
 
       - name: Open/update tracking issue on failure
         if: failure()
