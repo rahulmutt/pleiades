@@ -2637,9 +2637,9 @@ performance · **Opened:** 2026-10-02
 
 ## FU-23: Remaining `test-full` / nightly wall-clock
 
-**Status:** partly resolved (2026-10-05) · Items (a) to (f) and (k) to (u)
-and (w) are done, (g) and (j) are measured and not applied; (h), (i) and (v)
-remain open.
+**Status:** partly resolved (2026-10-05) · Items (a) to (f) and (k) to (w)
+are done, (g), (j) and (v) are measured and not applied; (h) and (i) remain
+open.
 Measurements, the two changes from #112 and the 2026-10-03 and 2026-10-04
 changes are in `docs/superpowers/plans/test-timings.md` (Section 0).
 
@@ -2974,10 +2974,26 @@ estimates from that run's timestamps, not measurements of a fix.
   contradict this (148.8 s), and the entry briefly called the saving runner
   noise; that run executed a stale test binary that still ran the full gate,
   see (w). The `stations-gate` job takes under 2 minutes (gate step 52–60 s)
-  and finishes well before `aspects-gate`. **Open (v):** find what ends the
-  `pleiades-validate` lib suite now, with per-test times
-  (`RUSTC_BOOTSTRAP=1 <test binary> -Z unstable-options --report-time`).
-  Table in the timings plan.
+  and finishes well before `aspects-gate`. Table in the timings plan.
+- **(v) What ends the `pleiades-validate` lib suite after (u)?** → **Measured
+  2026-10-05, nothing applied:** a throwaway probe branch ran the lib test
+  binary with libtest's `--report-time` (`RUSTC_BOOTSTRAP=1 <binary>
+  --include-ignored -Z unstable-options --report-time`) and rebuilt the
+  timeline from the CI log timestamps (start = finish − duration). On fresh
+  binaries (nightlies 37283336199 and 37283347399, after (w)) the suite ran
+  118–123 s for 462–482 s of test time, with all four libtest threads
+  occupied from 5 s until the last 5 s; the last tests are 6–10 s CLI
+  dispatch checks. There is no serial tail left, and the suite ends 23–34 s
+  after the other `test-full` halves. Part of the occupancy is waiting, not
+  work: `artifact::tests::render_artifact_summary_includes_span_caps` (87–93
+  s) is the first to reach the packaged-artifact fit-outlier samples (see
+  (t)), `fit_channel_outlier_summary_for_report_matches_details` waits 40–46
+  s on the same `OnceLock`, and two `run_all_numeric_gates_*` tests wait
+  23–26 s on the shared battery. Computing the fit-outlier samples per body
+  in parallel (`pleiades-data`) is the remaining lever, worth perhaps
+  10–30 s on a nightly tier that is now about 3.5 minutes and no longer the
+  slower tier; not done. (The first probe runs, which seemed to show the
+  stations gate still running, found (w) instead.)
 - **(w) Nightlies ran a stale `pleiades-validate` test binary.** Found by the
   (v) probe: on nightly 37273128160 the opt-in
   `stations_gate_passes_within_ceilings` ran the full gate (29.6 s) although
