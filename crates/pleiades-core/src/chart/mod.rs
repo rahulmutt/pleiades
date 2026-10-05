@@ -405,6 +405,13 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             })
         });
 
+        // The zodiac the chart layer itself moves a placement into: a sidereal
+        // one the backend does not serve natively. Its step moves the speed as
+        // well as the longitude.
+        let chart_sidereal_mode = (matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
+            && !native_sidereal)
+            .then_some(&request.zodiac_mode);
+
         let placements = request
             .bodies
             .iter()
@@ -472,6 +479,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                                     speed_suns.as_ref().map_or(&[], |suns| suns.as_slice()),
                                     &backend_zodiac_mode,
                                     &request.body_observer,
+                                    chart_sidereal_mode,
                                 );
                             }
                             Some(outcome.provenance)
@@ -491,6 +499,23 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                     position.apparent = Apparentness::Mean;
                     None
                 };
+                // A mean placement (requested, or the fallback above) reports the
+                // backend's longitude less the ayanamsa, so its speed is the
+                // backend's less the ayanamsa's rate (issue #141). An apparent
+                // placement's speed took the sidereal step in `apparent_motion`.
+                if let (None, Some(zodiac_mode)) = (&apparent, chart_sidereal_mode) {
+                    if let Some(speed) = position
+                        .motion
+                        .as_mut()
+                        .and_then(|motion| motion.longitude_deg_per_day.as_mut())
+                    {
+                        *speed -= sidereal::ayanamsa_rate_deg_per_day(
+                            request.instant,
+                            zodiac_mode,
+                            HALF_SPAN_DAYS,
+                        )?;
+                    }
+                }
                 // Opt-in chart-layer topocentric correction (diurnal parallax + diurnal aberration).
                 // Operates on the tropical apparent ecliptic produced above; the sidereal
                 // ayanamsa re-apply (when requested) happens once below, after this block.
@@ -669,13 +694,19 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         }
     }
 
-    /// Apparent minus mean place of a body at one instant of the speed difference.
+    /// Reported minus mean place of a body at one instant of the speed difference.
+    ///
+    /// The reported place is the apparent place, moved into `chart_sidereal_mode`
+    /// when the chart layer applies a sidereal zodiac: nutation in longitude
+    /// and the ayanamsa come off, exactly as they come off the placement's
+    /// longitude, so their rates come off its speed (issue #141).
     fn correction_sample(
         &self,
         body: &CelestialBody,
         sun: &SunSample,
         zodiac_mode: &ZodiacMode,
         body_observer: &Option<ObserverLocation>,
+        chart_sidereal_mode: Option<&ZodiacMode>,
     ) -> Result<CorrectionSample, EphemerisError> {
         // The mean place the backend's speed describes: the same query the
         // chart's position batch makes. It also answers the apparent
@@ -690,13 +721,23 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             body_observer,
             Some(mean),
         )?;
+        let mut reported = apparent.ecliptic;
+        if let Some(sidereal_mode) = chart_sidereal_mode {
+            reported.longitude = sidereal::sidereal_longitude_of_true_equinox(
+                reported.longitude,
+                apparent.provenance.nutation_longitude_arcsec,
+                sun.instant,
+                sidereal_mode,
+            )?;
+        }
         Ok(CorrectionSample {
             julian_day: sun.instant.julian_day.days(),
-            correction: Correction::between(&apparent.ecliptic, &mean),
+            correction: Correction::between(&reported, &mean),
         })
     }
 
-    /// Speed of a body's apparent place, from the backend's `mean` speed.
+    /// Speed of a body's apparent place, from the backend's `mean` speed, in
+    /// `chart_sidereal_mode` when the chart layer applies a sidereal zodiac.
     ///
     /// `suns` holds the instants before, at and after the chart instant. The
     /// correction is differenced centrally over the outer two; when the backend
@@ -711,10 +752,17 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         suns: &[Option<SunSample>],
         zodiac_mode: &ZodiacMode,
         body_observer: &Option<ObserverLocation>,
+        chart_sidereal_mode: Option<&ZodiacMode>,
     ) -> Option<Motion> {
         let sample = |sun: &Option<SunSample>| {
-            self.correction_sample(body, sun.as_ref()?, zodiac_mode, body_observer)
-                .ok()
+            self.correction_sample(
+                body,
+                sun.as_ref()?,
+                zodiac_mode,
+                body_observer,
+                chart_sidereal_mode,
+            )
+            .ok()
         };
         let [earlier, centre, later] = suns else {
             return None;

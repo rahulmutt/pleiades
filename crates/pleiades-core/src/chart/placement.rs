@@ -17,9 +17,14 @@ pub struct BodyPlacement {
     /// rate of the apparent-place correction, differenced over ±0.5 day. When
     /// it is `Mean`, both are the backend's own values.
     ///
-    /// Two chart-layer steps move the longitude without moving the speed:
-    /// the topocentric correction and the sidereal ayanamsa. `position.motion`
-    /// is always the speed of the geocentric tropical place.
+    /// In a sidereal chart the longitude speed is the sidereal one, as
+    /// `pleiades-events` and Swiss Ephemeris report it: it is lower than the
+    /// tropical speed by the ayanamsa's rate (about 3.8e-5 deg/day) and, for
+    /// an apparent placement, by the rate of the nutation in longitude the
+    /// sidereal step removes (issue #141).
+    ///
+    /// One chart-layer step moves the longitude without moving the speed: the
+    /// topocentric correction. `position.motion` is always a geocentric speed.
     pub position: EphemerisResult,
     /// The body's zodiac sign in the requested mode, when ecliptic longitude is available.
     pub sign: Option<ZodiacSign>,

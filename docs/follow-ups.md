@@ -2321,7 +2321,7 @@ availability
 
 ## FU-18: Sidereal conventions differ from Swiss Ephemeris and the chart layer (issue #88)
 
-**Status:** open ((a) resolved 2026-10-04 under issue #120; (b), (c), (d) open) · **Opened:** 2026-10-01
+**Status:** open ((a) resolved 2026-10-04 under issue #120; (e) resolved 2026-10-05 under issue #141; (b), (c), (d) open) · **Opened:** 2026-10-01
 
 Issue #88 gave `pleiades-events` sidereal crossings: the longitude on the mean
 equinox of date minus the mean ayanamsa. The chart layer (`pleiades-core`
@@ -2378,6 +2378,20 @@ Swiss Ephemeris itself.
   three). The sidereal Moon ceiling (1″) rests on 16 rows (2 per ayanamsa and
   frame), while the tropical Moon groups measure 2.6″, so a regeneration
   with more Moon rows should expect a ceiling near 4″.
+- **(e) A sidereal chart reported the tropical speed.** → **Resolved
+  2026-10-05 (issue #141):** `position.motion` is now the rate of the
+  longitude the placement reports. An apparent sidereal placement's speed
+  drops by the rate of the ayanamsa plus the removed Δψ (the sidereal step is
+  folded into the correction the chart differences, with no extra backend
+  query), and a mean one by the ayanamsa's rate. On the VSOP87/ELP composite
+  at J2000.0 the chart's Lahiri speeds sit within 3e-6 deg/day of the three
+  Swiss Ephemeris values the issue quoted (4.0e-5 to 4.4e-5 before), and on
+  the packaged backend the chart and `EventEngine::position_at` sidereal
+  speeds agree within 1e-9 deg/day. Near a station the old difference moved
+  the chart's retrograde flag against the station finder by about 0.4 min
+  (Mercury) to 1.9 h (Pluto). A mean chart's speed follows its longitude, so
+  it shares (b)'s frame mix. The topocentric correction still moves the
+  longitude only.
 
 Fixing (b) changes chart output and needs its own decision, a regenerated
 chart golden and a gate against a Swiss Ephemeris sidereal position corpus;
@@ -2386,7 +2400,7 @@ Ephemeris values the issue quoted.
 
 **Severity:** (a) convention, up to about 17″ (resolved); (b) frame correctness, growing
 with distance from J2000; (c) convention, up to about 20″, star-anchored
-ayanamsas only
+ayanamsas only; (e) speed convention, 3.8e-5 deg/day (resolved)
 
 ## FU-19: Civil datetime from a TT or TDB instant (issue #87)
 

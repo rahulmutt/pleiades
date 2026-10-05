@@ -54,6 +54,41 @@ pub fn sidereal_longitude(
     }
 }
 
+/// Rate at which the requested zodiac mode's ayanamsa grows at `instant`, in
+/// degrees per day: what [`sidereal_longitude`] takes off a longitude speed.
+/// Zero in tropical mode.
+///
+/// The ayanamsa is differenced centrally over ±`half_span_days`. It is smooth
+/// and nearly linear (general precession, about 3.8e-5 deg/day), so the span
+/// carries no measurable truncation.
+pub(super) fn ayanamsa_rate_deg_per_day(
+    instant: Instant,
+    zodiac_mode: &ZodiacMode,
+    half_span_days: f64,
+) -> Result<f64, EphemerisError> {
+    let ayanamsa = match zodiac_mode {
+        ZodiacMode::Tropical => return Ok(0.0),
+        ZodiacMode::Sidereal { ayanamsa } => ayanamsa,
+        _ => {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "unsupported zodiac mode",
+            ))
+        }
+    };
+    let ayanamsa_deg = |offset_days: f64| {
+        sidereal_offset(ayanamsa, super::offset_instant(instant, offset_days))
+            .map(|offset| offset.degrees())
+            .ok_or_else(|| {
+                EphemerisError::new(
+                    EphemerisErrorKind::InvalidRequest,
+                    "sidereal conversion requires an ayanamsa with reference offset metadata",
+                )
+            })
+    };
+    Ok((ayanamsa_deg(half_span_days)? - ayanamsa_deg(-half_span_days)?) / (2.0 * half_span_days))
+}
+
 /// Converts a longitude on the **true** equinox of date (an apparent place)
 /// into the requested zodiac mode.
 ///

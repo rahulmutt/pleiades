@@ -8,9 +8,12 @@ use pleiades_backend::{
 use pleiades_core::{ChartEngine, ChartRequest};
 use pleiades_data::packaged_backend;
 use pleiades_events::{
-    CrossingFrame, EclipticPosition, EventEngine, EventError, WINDOW_END_JD, WINDOW_START_JD,
+    CrossingFrame, CrossingReference, EclipticPosition, EventEngine, EventError, WINDOW_END_JD,
+    WINDOW_START_JD,
 };
-use pleiades_types::{Apparentness, CelestialBody, Instant, JulianDay, Motion, TimeScale};
+use pleiades_types::{
+    Apparentness, Ayanamsa, CelestialBody, Instant, JulianDay, Motion, TimeScale, ZodiacMode,
+};
 
 const GEO: CrossingFrame = CrossingFrame::GeocentricApparentOfDate;
 const HELIO: CrossingFrame = CrossingFrame::Heliocentric;
@@ -259,6 +262,54 @@ fn speed_is_continuous_across_the_zero_degree_wrap() {
     // Heliocentric Mars moves 0.43–0.64 deg/day and changes slowly.
     assert!((0.4..0.7).contains(&on), "speed on the seam {on}");
     assert!((on - before).abs() < 0.01, "seam {on} vs before {before}");
+}
+
+// Issue #141: a sidereal chart reported the tropical speed while position_at
+// subtracted the rate of the ayanamsa (and of the removed nutation), so the
+// two layers disagreed by about 3.8e-5 deg/day for the same request.
+#[test]
+fn sidereal_position_and_speed_match_the_chart_layer() {
+    let bodies = [
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        CelestialBody::Saturn,
+        CelestialBody::Pluto,
+    ];
+    let engine = EventEngine::new(packaged_backend());
+    let lahiri = CrossingReference::sidereal(GEO, Ayanamsa::Lahiri);
+    for jd in [2_451_545.0, 2_460_000.5] {
+        let request = ChartRequest::new(tdb(jd))
+            .with_bodies(bodies.to_vec())
+            .with_zodiac_mode(ZodiacMode::Sidereal {
+                ayanamsa: Ayanamsa::Lahiri,
+            })
+            .with_apparentness(Apparentness::Apparent);
+        let chart = ChartEngine::new(packaged_backend())
+            .chart(&request)
+            .expect("chart");
+        for body in &bodies {
+            let placed = &chart.placement_for(body).expect("placed").position;
+            assert_eq!(placed.apparent, Apparentness::Apparent, "{body:?} {jd}");
+            let chart_longitude = placed.ecliptic.expect("chart ecliptic").longitude;
+            let chart_speed = placed
+                .motion
+                .and_then(|motion| motion.longitude_deg_per_day)
+                .expect("chart speed");
+            let pos = engine
+                .position_at(body.clone(), lahiri.clone(), tdb(jd))
+                .expect("position");
+            let longitude_gap = wrap(pos.ecliptic.longitude.degrees() - chart_longitude.degrees());
+            assert!(
+                longitude_gap.abs() < 1e-9,
+                "{body:?} {jd} lon {longitude_gap}"
+            );
+            let speed_gap = pos.motion.longitude_deg_per_day.expect("speed") - chart_speed;
+            assert!(
+                speed_gap.abs() < 1e-9,
+                "{body:?} {jd}: events - chart sidereal speed = {speed_gap} deg/day"
+            );
+        }
+    }
 }
 
 #[test]
