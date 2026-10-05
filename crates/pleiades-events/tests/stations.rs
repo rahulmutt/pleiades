@@ -318,7 +318,7 @@ fn guards_match_position_at() {
     );
     let err = engine
         .stations_in_range(
-            CelestialBody::Mars,
+            CelestialBody::Sun,
             CrossingReference::sidereal(HELIO, Ayanamsa::Lahiri),
             tdb(J2000),
             tdb(J2000 + 30.0),
@@ -328,6 +328,17 @@ fn guards_match_position_at() {
         matches!(err, EventError::UnsupportedFrame { .. }),
         "{err:?}"
     );
+}
+
+#[test]
+fn a_planet_never_stations_in_the_heliocentric_sidereal_zodiac() {
+    // Supported since issue #106; the ayanamsa's rate (3.8e-5 deg/day) is far
+    // below any planet's heliocentric speed, so there is still no station.
+    let lahiri = CrossingReference::sidereal(HELIO, Ayanamsa::Lahiri);
+    for body in [CelestialBody::Mercury, CelestialBody::Pluto] {
+        let found = stations(body.clone(), lahiri.clone(), J2000, J2000 + 1100.0);
+        assert!(found.is_empty(), "{body:?}: {found:?}");
+    }
 }
 
 #[test]

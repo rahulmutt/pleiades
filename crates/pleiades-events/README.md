@@ -37,8 +37,9 @@ a `CrossingReference`, which adds a zodiac:
 A sidereal longitude is the longitude on the mean equinox of date minus the
 mean ayanamsa, the Swiss Ephemeris `SEFLG_SIDEREAL` convention: nutation does
 not move a body through a sidereal zodiac. The ayanamsa is evaluated at every
-trial instant of the search. The heliocentric frame is tropical only, and an
-ayanamsa without offset data is an error, never a silent tropical result. For
+trial instant of the search. The heliocentric frame takes a sidereal zodiac by
+the same rule (Swiss Ephemeris `SEFLG_HELCTR | SEFLG_TRUEPOS | SEFLG_SIDEREAL`).
+An ayanamsa without offset data is an error, never a silent tropical result. For
 the star-anchored ayanamsa classes (`TrueStar` and `Galactic`) the mean
 ayanamsa is used in every frame, whereas Swiss Ephemeris's apparent sidereal
 positions add the anchoring star's annual aberration (up to about 20″) to the

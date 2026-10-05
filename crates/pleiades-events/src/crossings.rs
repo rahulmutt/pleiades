@@ -96,8 +96,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///
     /// `reference` is a [`CrossingFrame`] (tropical zodiac) or a
     /// [`CrossingReference`] carrying a sidereal zodiac; `target` is read in
-    /// that zodiac. A sidereal zodiac in the heliocentric frame, and an
-    /// ayanamsa with no offset data, are [`EventError::UnsupportedFrame`].
+    /// that zodiac. An ayanamsa with no offset data is
+    /// [`EventError::UnsupportedFrame`].
     pub fn longitude_crossings_in_range(
         &self,
         body: CelestialBody,
@@ -148,8 +148,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///
     /// `reference` is a [`CrossingFrame`] (tropical zodiac) or a
     /// [`CrossingReference`] carrying a sidereal zodiac; `target` is read in
-    /// that zodiac. A sidereal zodiac in the heliocentric frame, and an
-    /// ayanamsa with no offset data, are [`EventError::UnsupportedFrame`].
+    /// that zodiac. An ayanamsa with no offset data is
+    /// [`EventError::UnsupportedFrame`].
     ///
     /// ```
     /// use pleiades_data::packaged_backend;
@@ -219,8 +219,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///
     /// `reference` is a [`CrossingFrame`] (tropical zodiac) or a
     /// [`CrossingReference`] carrying a sidereal zodiac; `target` is read in
-    /// that zodiac. A sidereal zodiac in the heliocentric frame, and an
-    /// ayanamsa with no offset data, are [`EventError::UnsupportedFrame`].
+    /// that zodiac. An ayanamsa with no offset data is
+    /// [`EventError::UnsupportedFrame`].
     pub fn previous_longitude_crossing(
         &self,
         body: CelestialBody,

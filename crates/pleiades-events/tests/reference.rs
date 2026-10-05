@@ -221,39 +221,186 @@ fn sidereal_longitude_is_the_mean_equinox_longitude_minus_the_ayanamsa() {
 }
 
 #[test]
-fn heliocentric_sidereal_is_unsupported() {
+fn heliocentric_sidereal_is_the_mean_equinox_longitude_minus_the_ayanamsa() {
+    // The heliocentric place is on the true equinox of date, so the sidereal
+    // longitude removes Δψ and the ayanamsa, as in the apparent frame.
     let engine = EventEngine::new(packaged_backend());
-    let t = tdb(2_451_545.0);
-    let target = Longitude::from_degrees(0.0);
-    let reference = lahiri(HELIO);
-    for err in [
-        engine
-            .longitude_at(CelestialBody::Mars, &reference, t)
-            .unwrap_err(),
-        engine
-            .position_at(CelestialBody::Mars, &reference, t)
-            .unwrap_err(),
-        engine
-            .next_longitude_crossing(CelestialBody::Mars, target, &reference, t)
-            .unwrap_err(),
-        engine
-            .previous_longitude_crossing(CelestialBody::Mars, target, &reference, t)
-            .unwrap_err(),
-        engine
-            .longitude_crossings_in_range(
-                CelestialBody::Mars,
-                target,
-                &reference,
-                t,
-                tdb(2_451_645.0),
-            )
-            .unwrap_err(),
+    for body in [
+        CelestialBody::Mercury,
+        CelestialBody::Mars,
+        CelestialBody::Jupiter,
+        CelestialBody::Pluto,
     ] {
+        for jd in [2_420_000.5, 2_451_545.0, 2_480_000.5] {
+            let tropical = engine.position_at(body.clone(), HELIO, tdb(jd)).unwrap();
+            let sidereal = engine
+                .position_at(body.clone(), lahiri(HELIO), tdb(jd))
+                .unwrap();
+            let delta_psi_deg = nutation(jd).unwrap().delta_psi_arcsec / 3600.0;
+            let expected = tropical.ecliptic.longitude.degrees()
+                - delta_psi_deg
+                - ayanamsa_deg(&Ayanamsa::Lahiri, jd);
+            let longitude = sidereal.ecliptic.longitude.degrees();
+            assert!(
+                wrap(longitude - expected).abs() < 1e-10,
+                "{body:?} {jd} heliocentric sidereal"
+            );
+            assert!((0.0..360.0).contains(&longitude));
+            assert_eq!(sidereal.ecliptic.latitude, tropical.ecliptic.latitude);
+            assert_eq!(sidereal.ecliptic.distance_au, tropical.ecliptic.distance_au);
+            assert_eq!(sidereal.frame, HELIO);
+            assert_eq!(
+                sidereal.zodiac,
+                ZodiacMode::Sidereal {
+                    ayanamsa: Ayanamsa::Lahiri
+                }
+            );
+            let direct = engine
+                .longitude_at(body.clone(), lahiri(HELIO), tdb(jd))
+                .unwrap();
+            assert_eq!(direct.degrees(), longitude);
+        }
+    }
+}
+
+#[test]
+fn heliocentric_sidereal_matches_swiss_ephemeris() {
+    // pyswisseph 2.10.03 with sepl_18.se1, Mars at JD 2460026.99 TDB (issue
+    // #106): SEFLG_HELCTR | SEFLG_TRUEPOS | SEFLG_SIDEREAL (Lahiri) gives
+    // 102.140706. The tropical places differ by 0.07″ at this instant.
+    let engine = EventEngine::new(packaged_backend());
+    let longitude = engine
+        .longitude_at(CelestialBody::Mars, lahiri(HELIO), tdb(2_460_026.99))
+        .unwrap();
+    let error_arcsec = wrap(longitude.degrees() - 102.140_706) * 3600.0;
+    assert!(error_arcsec.abs() < 0.2, "error {error_arcsec}″");
+}
+
+#[test]
+fn heliocentric_sidereal_speed_is_the_tropical_speed_minus_the_shift_rate() {
+    const PRECESSION_DEG_PER_DAY: f64 = 3.82e-5;
+    let engine = EventEngine::new(packaged_backend());
+    let speed = |reference: CrossingReference, jd: f64| {
+        engine
+            .position_at(CelestialBody::Mars, reference, tdb(jd))
+            .unwrap()
+            .motion
+            .longitude_deg_per_day
+            .expect("speed")
+    };
+    for jd in [2_430_000.5, 2_451_545.0, 2_470_000.5] {
+        let drop = speed(HELIO.into(), jd) - speed(lahiri(HELIO), jd);
+        let delta_psi_rate = (nutation(jd + 0.5).unwrap().delta_psi_arcsec
+            - nutation(jd - 0.5).unwrap().delta_psi_arcsec)
+            / 3600.0;
+        let expected = PRECESSION_DEG_PER_DAY + delta_psi_rate;
         assert!(
-            matches!(err, EventError::UnsupportedFrame { .. }),
-            "{err:?}"
+            (drop - expected).abs() < 2.0e-6,
+            "jd {jd}: drop {drop:e} vs expected {expected:e}"
         );
     }
+}
+
+#[test]
+fn heliocentric_sidereal_crossings_land_on_the_target() {
+    let engine = EventEngine::new(packaged_backend());
+    let reference = lahiri(HELIO);
+    let start = tdb(2_451_545.0);
+    let target_deg = 137.5;
+    let target = Longitude::from_degrees(target_deg);
+    let residual = |instant: Instant| {
+        let lon = engine
+            .longitude_at(CelestialBody::Mars, &reference, instant)
+            .unwrap();
+        wrap(lon.degrees() - target_deg)
+    };
+
+    let next = engine
+        .next_longitude_crossing(CelestialBody::Mars, target, &reference, start)
+        .unwrap()
+        .expect("next crossing");
+    assert_eq!(next.frame, HELIO);
+    assert!(next.instant.julian_day.days() > start.julian_day.days());
+    assert!(residual(next.instant).abs() < 1.0e-5);
+
+    let previous = engine
+        .previous_longitude_crossing(CelestialBody::Mars, target, &reference, start)
+        .unwrap()
+        .expect("previous crossing");
+    assert!(previous.instant.julian_day.days() < start.julian_day.days());
+    assert!(residual(previous.instant).abs() < 1.0e-5);
+
+    // Mars circles the Sun in 687 days: one pass of the target per orbit.
+    let in_range = engine
+        .longitude_crossings_in_range(
+            CelestialBody::Mars,
+            target,
+            &reference,
+            start,
+            tdb(2_451_545.0 + 2.0 * 687.0),
+        )
+        .unwrap();
+    assert_eq!(in_range.len(), 2);
+    assert_eq!(in_range[0].instant, next.instant);
+
+    // The sidereal target is the tropical one moved by the ayanamsa and Δψ
+    // at the crossing, so the tropical finder lands on the same instant.
+    let jd = next.instant.julian_day.days();
+    let tropical_target = target_deg
+        + ayanamsa_deg(&Ayanamsa::Lahiri, jd)
+        + nutation(jd).unwrap().delta_psi_arcsec / 3600.0;
+    let tropical = engine
+        .next_longitude_crossing(
+            CelestialBody::Mars,
+            Longitude::from_degrees(tropical_target),
+            HELIO,
+            start,
+        )
+        .unwrap()
+        .expect("tropical crossing");
+    let apart_s = (tropical.instant.julian_day.days() - jd) * 86_400.0;
+    assert!(apart_s.abs() < 1.0, "{apart_s} s apart");
+}
+
+#[test]
+fn heliocentric_sidereal_still_rejects_the_sun_moon_and_lunar_points() {
+    let engine = EventEngine::new(packaged_backend());
+    let t = tdb(2_451_545.0);
+    let reference = lahiri(HELIO);
+    for body in [
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        CelestialBody::TrueNode,
+    ] {
+        for err in [
+            engine
+                .longitude_at(body.clone(), &reference, t)
+                .unwrap_err(),
+            engine.position_at(body.clone(), &reference, t).unwrap_err(),
+            engine
+                .next_longitude_crossing(body.clone(), Longitude::from_degrees(0.0), &reference, t)
+                .unwrap_err(),
+        ] {
+            assert!(
+                matches!(err, EventError::UnsupportedFrame { .. }),
+                "{body:?}: {err:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_heliocentric_ayanamsa_without_offset_data_is_unsupported() {
+    let engine = EventEngine::new(packaged_backend());
+    let reference =
+        CrossingReference::sidereal(HELIO, Ayanamsa::Custom(CustomAyanamsa::new("no data")));
+    let err = engine
+        .longitude_at(CelestialBody::Mars, &reference, tdb(2_451_545.0))
+        .unwrap_err();
+    assert!(
+        matches!(err, EventError::UnsupportedFrame { .. }),
+        "{err:?}"
+    );
 }
 
 #[test]

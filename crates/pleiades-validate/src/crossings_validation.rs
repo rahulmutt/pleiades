@@ -176,7 +176,7 @@ fn arcsec_ceiling_for(reference: &CrossingReference, body: &CelestialBody) -> f6
 }
 
 /// Reads a corpus row's `frame` and `zodiac` fields. `None` for an unknown
-/// name, and for a sidereal heliocentric row (that frame is tropical only).
+/// name.
 pub(crate) fn parse_reference(frame: &str, zodiac: &str) -> Option<CrossingReference> {
     let frame = match frame {
         "geo" => CrossingFrame::GeocentricApparentOfDate,
@@ -192,9 +192,6 @@ pub(crate) fn parse_reference(frame: &str, zodiac: &str) -> Option<CrossingRefer
         "DeLuce" => Ayanamsa::DeLuce,
         _ => return None,
     };
-    if frame == CrossingFrame::Heliocentric {
-        return None;
-    }
     Some(CrossingReference::sidereal(frame, ayanamsa))
 }
 
@@ -436,8 +433,14 @@ geo,Sun,10.000000,2416000.500000,fwd,2416195.301931810,tropical,PLEIADES
         }
         assert!(parse_reference("geo", "Nonesuch").is_none());
         assert!(parse_reference("lunar", "tropical").is_none());
-        // The heliocentric frame is tropical only.
-        assert!(parse_reference("helio", "Lahiri").is_none());
+        // The heliocentric frame takes a sidereal zodiac since issue #106.
+        assert_eq!(
+            parse_reference("helio", "Lahiri"),
+            Some(CrossingReference::sidereal(
+                CrossingFrame::Heliocentric,
+                Ayanamsa::Lahiri
+            ))
+        );
     }
 
     #[test]
