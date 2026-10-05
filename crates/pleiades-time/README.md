@@ -8,6 +8,9 @@ Day, leap seconds, Delta-T, and TT/TDB with typed conversion provenance.
 - `from_terrestrial` converts a TT or TDB `Instant` back to a civil UTC or UT1
   datetime, rounded to the millisecond. A UTC result inside an inserted leap
   second is returned as `23:59:60.x`.
+- `civil_from_tt` and `civil_from_tdb` pick the scale for you: UTC from
+  1972-01-01 on, UT1 before, with `CivilConversion::scale` reporting which.
+  Use them for event instants, which can fall anywhere in the window.
 
 Both cover 1900–2100 and report the same `ConversionProvenance`: `exact` for
 UTC inside the leap-second table (from 1972), `observed` or `predicted` where

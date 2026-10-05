@@ -2430,6 +2430,14 @@ one second late in TT. `:60` is now accepted only at a real insertion.
   `from_terrestrial` returns `BeyondHorizon` for it. The window check applies
   after rounding and is not clamped.
 
+**Update 2026-10-05 (issue #107):** `utc_civil_from_tdb` fails before 1972,
+so a caller listing events across 1900–2100 had to branch on
+`UtcBeforeLeapEpoch` and call the UT1 inverse itself. `civil_from_tt` and
+`civil_from_tdb` do that: UTC from the first UTC instant on, UT1 before,
+with `CivilConversion::scale` reporting which. Past the end of the window
+they return the UTC error and do not fall back to UT1. The strict
+conveniences are unchanged.
+
 ## FU-20: READMEs described an older release than the one published (issue #86)
 
 **Status:** resolved (2026-10-02) · Bounded change, no spec or plan document.
