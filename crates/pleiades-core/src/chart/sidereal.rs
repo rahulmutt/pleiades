@@ -89,8 +89,8 @@ pub(super) fn ayanamsa_rate_deg_per_day(
     Ok((ayanamsa_deg(half_span_days)? - ayanamsa_deg(-half_span_days)?) / (2.0 * half_span_days))
 }
 
-/// Converts a longitude on the **true** equinox of date (an apparent place)
-/// into the requested zodiac mode.
+/// Converts a longitude on the **true** equinox of date (an apparent place,
+/// a house cusp or an angle) into the requested zodiac mode.
 ///
 /// A sidereal longitude is referred to the mean equinox of date, so nutation
 /// in longitude (`nutation_longitude_arcsec`, Δψ) is removed before the
