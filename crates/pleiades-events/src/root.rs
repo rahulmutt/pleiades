@@ -131,8 +131,10 @@ where
 /// [`crossings_in_range`], so the two agree on the root to within the
 /// bisection tolerance, not bit for bit.
 ///
-/// `f` is always evaluated at the anchor `hi_jd` once, even on an empty or
-/// inverted range, so a backend error there propagates.
+/// `f` is always evaluated once, even on an empty range, so a backend error
+/// propagates. On an inverted range that one sample is taken at `lo_jd`, not
+/// at the anchor: callers clamp `lo_jd` into the window their backend
+/// serves, and an `hi_jd` below it may lie outside.
 pub(crate) fn last_crossing_before<F>(
     mut f: F,
     lo_jd: f64,
@@ -142,6 +144,10 @@ pub(crate) fn last_crossing_before<F>(
 where
     F: FnMut(f64) -> Result<f64, EventError>,
 {
+    if hi_jd < lo_jd {
+        f(lo_jd)?;
+        return Ok(None);
+    }
     let mut cur_jd = hi_jd;
     let mut cur_f = f(cur_jd)?;
     while cur_jd > lo_jd {
@@ -442,8 +448,28 @@ mod tests {
         assert!(matches!(err, EventError::Backend(_)));
     }
 
+    // On an inverted range the one sample is taken at `lo`, the end inside
+    // the caller's clamp: `hi` may lie outside what the backend serves.
+    #[test]
+    fn backward_inverted_range_samples_only_the_low_end() {
+        let t0 = 2_451_545.0;
+        let mut sampled = Vec::new();
+        let none = last_crossing_before(
+            |t| {
+                sampled.push(t);
+                Ok(t - t0)
+            },
+            t0,
+            t0 - 5.0,
+            0.5,
+        )
+        .unwrap();
+        assert_eq!(none, None);
+        assert_eq!(sampled, [t0]);
+    }
+
     // Fail-closed parity with `crossings_in_range`: on an empty/inverted range
-    // (`hi < lo`, loop never runs) the anchor is still evaluated once, so a
+    // (`hi < lo`, loop never runs) the range is still sampled once, so a
     // backend error there must surface rather than being swallowed into
     // `Ok(None)`.
     #[test]

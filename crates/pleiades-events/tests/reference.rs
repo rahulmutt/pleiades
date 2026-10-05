@@ -592,6 +592,30 @@ fn previous_equals_the_last_crossing_in_range_in_the_new_references() {
     }
 }
 
+// A backward search from the first instants of the window has nothing to
+// find. It must say so, not sample the body at `before`, which lies outside
+// the one-step clamp and which the backend cannot serve there (the apparent
+// place reads a light-time before the packaged range).
+#[test]
+fn previous_crossing_at_the_window_start_is_none() {
+    let engine = EventEngine::new(packaged_backend());
+    for before in [
+        WINDOW_START_JD,
+        WINDOW_START_JD + 0.001,
+        WINDOW_START_JD + 1.5,
+    ] {
+        let previous = engine
+            .previous_longitude_crossing(
+                CelestialBody::Mars,
+                Longitude::from_degrees(100.0),
+                APPARENT,
+                tdb(before),
+            )
+            .unwrap_or_else(|error| panic!("before {before}: {error}"));
+        assert!(previous.is_none(), "before {before}: {previous:?}");
+    }
+}
+
 #[test]
 fn position_longitude_is_bit_identical_to_longitude_at_in_every_new_reference() {
     let engine = EventEngine::new(packaged_backend());
