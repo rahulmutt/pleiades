@@ -1,4 +1,4 @@
-//! `EventEngine::stations_in_range` and `next_station`: settled instants,
+//! `EventEngine::stations_in_range`, `next_station` and `previous_station`: settled instants,
 //! chaining, bodies that never station, guards and window edges.
 
 use pleiades_backend::test_backend::LinearSunMoon;
@@ -115,6 +115,74 @@ fn next_station_is_the_first_in_range_and_chains() {
         // Handing a returned instant back finds the following station.
         after = next.instant;
     }
+}
+
+// Issue #167 (b). The backward search reads the speed's sign at `before`, as
+// the forward one reads it at `after`.
+
+/// Half a second, in days: the bisection tolerance.
+const TOLERANCE: f64 = 0.5 / 86_400.0;
+
+fn previous(body: CelestialBody, before_jd: f64) -> Option<Station> {
+    EventEngine::new(packaged_backend())
+        .previous_station(body, GEO, tdb(before_jd))
+        .expect("previous_station")
+}
+
+#[test]
+fn previous_station_walks_the_range_backward() {
+    let in_range = stations(CelestialBody::Mercury, GEO, J2000, J2000 + 366.0);
+    assert_eq!(in_range.len(), 6);
+    let mut before = J2000 + 366.0;
+    for expected in in_range.iter().rev() {
+        let found = previous(CelestialBody::Mercury, before).expect("a station in 2000");
+        // The same station, located on a grid anchored at the other end.
+        assert_eq!(found.kind, expected.kind);
+        assert!(
+            (jd(&found) - jd(expected)).abs() <= TOLERANCE,
+            "{found:?} vs {expected:?}"
+        );
+        // Stepping back past the station finds the one before it.
+        before = jd(&found) - TWO_SECONDS;
+    }
+}
+
+#[test]
+fn previous_station_at_a_returned_instant_is_that_station() {
+    for station in stations(CelestialBody::Mercury, GEO, J2000, J2000 + 366.0) {
+        let again = previous(CelestialBody::Mercury, jd(&station)).expect("the station itself");
+        assert_eq!(again.kind, station.kind);
+        let trail = jd(&station) - jd(&again);
+        assert!(
+            (0.0..=TOLERANCE).contains(&trail),
+            "{again:?} vs {station:?}"
+        );
+    }
+}
+
+#[test]
+fn previous_station_returns_nothing_for_a_body_that_never_stations() {
+    assert_eq!(previous(CelestialBody::Sun, WINDOW_START_JD + 400.0), None);
+}
+
+#[test]
+fn previous_station_guards_match_next_station() {
+    let engine = EventEngine::new(packaged_backend());
+    assert!(matches!(
+        engine.previous_station(CelestialBody::Mars, GEO, tdb(2_000_000.0)),
+        Err(EventError::OutOfWindow { .. })
+    ));
+    assert!(matches!(
+        engine.previous_station(CelestialBody::Sun, HELIO, tdb(J2000)),
+        Err(EventError::UnsupportedFrame { .. })
+    ));
+    // The window's first instant has nothing before it.
+    assert_eq!(
+        engine
+            .previous_station(CelestialBody::Mercury, GEO, tdb(WINDOW_START_JD))
+            .expect("previous_station at the window start"),
+        None
+    );
 }
 
 #[test]

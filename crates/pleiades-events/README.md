@@ -51,15 +51,18 @@ Mean-of-date and sidereal crossings are gated by `validate-crossings`.
 
 ## Stations
 
-`EventEngine::stations_in_range(body, reference, start, end)` and
-`EventEngine::next_station(body, reference, after)` find the instants a body's
-longitude speed changes sign. A `Station` carries the TDB instant, the
+`EventEngine::stations_in_range(body, reference, start, end)`,
+`EventEngine::next_station(body, reference, after)` and
+`EventEngine::previous_station(body, reference, before)` find the instants a
+body's longitude speed changes sign. A `Station` carries the TDB instant, the
 longitude there, and a `StationKind` (`TurnsRetrograde` or `TurnsDirect`).
 
 A station is a sign change of the speed `position_at` reports in the same
 frame and zodiac, so `position_at` just before and at a returned instant
 always disagree in direction. A returned instant can be handed back to
-`next_station`, which then returns the following station. The zodiac matters:
+`next_station`, which then returns the following station, or to
+`previous_station`, which returns that same station (step back a second for
+the one before it). The zodiac matters:
 a sidereal speed is lower by the ayanamsa's rate, which moves a slow planet's
 station by minutes to hours.
 

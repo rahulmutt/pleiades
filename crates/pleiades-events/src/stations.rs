@@ -8,7 +8,7 @@ use crate::crossings::{body_label, CrossingFrame, EventEngine};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::position::place_and_motion;
 use crate::reference::{check_supported, CrossingReference};
-use crate::root::{crossings_in_range, first_crossing_after};
+use crate::root::{crossings_in_range, first_crossing_after, last_crossing_before};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale, ZodiacMode};
 
@@ -250,6 +250,71 @@ impl<B: EphemerisBackend> EventEngine<B> {
         )?;
         root.filter(|&jd| jd > after_jd)
             .map(|jd| self.station_at(&body, &reference, jd))
+            .transpose()
+    }
+
+    /// The last station of `body` that has happened by `before`, or `None`.
+    ///
+    /// Early-terminating: the search walks backward from `before` and stops
+    /// at the first station found. It finds the station
+    /// `stations_in_range(body, reference, WINDOW_START, before).last()`
+    /// finds and agrees with it on the instant to within the 0.5 s bisection
+    /// tolerance; its scan is anchored at `before`, the range's at its
+    /// start, so the two are not bit-identical.
+    ///
+    /// Whether a station has happened by `before` is read from the sign of
+    /// the speed AT `before`, as
+    /// [`previous_longitude_crossing`](Self::previous_longitude_crossing)
+    /// reads its crossings. A returned [`Station::instant`] trails its
+    /// station by less than the tolerance and never precedes it, so handing
+    /// it back as `before` returns that same station, at an instant no later
+    /// than `before`. To step back to the station before it, move `before`
+    /// back by a second.
+    ///
+    /// For a body that never stations the search runs to the start of the
+    /// 1900–2100 window before returning `None`.
+    ///
+    /// The window-edge clamp (a station within one step of either end of
+    /// the window is not reported), accuracy, step and errors are those of
+    /// [`EventEngine::stations_in_range`].
+    ///
+    /// ```
+    /// use pleiades_data::packaged_backend;
+    /// use pleiades_events::{CrossingFrame, EventEngine, StationKind};
+    /// use pleiades_types::{CelestialBody, Instant, JulianDay, TimeScale};
+    ///
+    /// // Mercury's last station before J2000: it turned direct on 25 November 1999.
+    /// let engine = EventEngine::new(packaged_backend());
+    /// let before = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+    /// let station = engine
+    ///     .previous_station(CelestialBody::Mercury, CrossingFrame::GeocentricApparentOfDate, before)
+    ///     .unwrap()
+    ///     .expect("Mercury stations six times a year");
+    /// assert_eq!(station.kind, StationKind::TurnsDirect);
+    /// let days = 2_451_545.0 - station.instant.julian_day.days();
+    /// assert!((35.0..40.0).contains(&days), "{days}");
+    /// ```
+    pub fn previous_station(
+        &self,
+        body: CelestialBody,
+        reference: impl Into<CrossingReference>,
+        before: Instant,
+    ) -> Result<Option<Station>, EventError> {
+        let reference = reference.into();
+        let before_jd = before.julian_day.days();
+        self.check_window(before_jd)?;
+        check_supported(&body, &reference, before_jd, "stations are")?;
+        let step = step_days(&body);
+        // Same clamps as `stations_in_range` over `[WINDOW_START, before]`.
+        let scan_start = WINDOW_START_JD + step;
+        let scan_end = before_jd.min(WINDOW_END_JD - step);
+        let root = last_crossing_before(
+            |jd| longitude_speed(&self.backend, &body, &reference, jd),
+            scan_start,
+            scan_end,
+            step,
+        )?;
+        root.map(|jd| self.station_at(&body, &reference, jd))
             .transpose()
     }
 }
