@@ -27,8 +27,8 @@
 //! -1.3 s, Saturn -2.8 s, Neptune +11.0 s), and Pluto's -56.6 s mean
 //! (turning retrograde about -65 s, turning direct about -48 s in the
 //! probe) is not explained by the 4.32 s convention. It is well inside
-//! Pluto's 2000 s ceiling and is recorded as an open observation (FU-21
-//! item (f) in `docs/follow-ups.md`).
+//! Pluto's 2000 s ceiling and is recorded as an open observation (issue #167,
+//! item (f)).
 //!
 //! True node. Its speed hovers near zero for days, so a station instant is
 //! ill-conditioned, and whether a graze crosses zero depends on the

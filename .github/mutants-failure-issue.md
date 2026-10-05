@@ -38,7 +38,7 @@ Most likely causes, by exit code:
 
 Per `docs/superpowers/specs/2026-07-18-devkit-phase3-mutants-slice-design.md`,
 mutation score is report-only and gates nothing; the surviving-mutant backlog
-lives in `docs/follow-ups.md` as FU-9.
+is tracked in issue #162.
 
 This issue is updated rather than duplicated on repeat failures, and closed
 automatically when a run next completes.

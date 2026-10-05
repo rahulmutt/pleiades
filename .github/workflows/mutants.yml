@@ -31,8 +31,8 @@ jobs:
     # 1,415 mutants (191 missed, 1,160 caught, 64 unviable) in the three
     # baseline crates; the remaining ~6m is fixed checkout/mise-install/
     # cache/upload overhead that does not scale with mutant count.
-    # pleiades-houses adds a measured 1,205 mutants (whole-crate run recorded
-    # in the FU-9 "houses Catalog + thresholds" entry in docs/follow-ups.md:
+    # pleiades-houses adds a measured 1,205 mutants (whole-crate run of the
+    # FU-9 "houses Catalog + thresholds" slice:
     # 1,205 tested / 36 missed / 1,145 caught / 24 unviable / 0 timeout),
     # growing the set to 2,620 (~1.85x baseline). Scaling only the testing
     # phase projects ~18-19m testing + the same ~6m fixed overhead, i.e.

@@ -554,8 +554,8 @@ fn asc_geometry_equivalent_mutants_are_documented() {
     //     reachable boundary difference is ~1.4e-10 — below the 1e-9 parity
     //     tolerance. An adversarial input sitting exactly on the threshold
     //     could exceed it, so these two are best read as "not proven
-    //     equivalent, not currently killable", and are flagged as such in the
-    //     docs/follow-ups.md note rather than asserted to be unreachable.
+    //     equivalent, not currently killable", and are flagged as such here
+    //     rather than asserted to be unreachable.
     //
     // 5 + 6 + 2 = 13, matching the measured `mutants.out/missed.txt`.
     //

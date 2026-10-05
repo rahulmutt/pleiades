@@ -7,8 +7,8 @@ set -euo pipefail
 # source file against the mtime of the unit's dep-info file in `target`.
 # Registry crates are fingerprinted by checksum, so the cache serves them, but
 # a fresh CI checkout gives every tracked file a brand-new mtime and cargo
-# rebuilds every first-party crate on every run (FU-23 (b) in
-# docs/follow-ups.md: about 200 s of the blocking job on a 4-core runner).
+# rebuilds every first-party crate on every run (FU-23 (b): about 200 s of the
+# blocking job on a 4-core runner).
 #
 # Restoring each file's last-commit time (git-restore-mtime) is the usual fix,
 # but it is unsafe with a cache that may come from another branch: a file whose

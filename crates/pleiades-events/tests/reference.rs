@@ -75,7 +75,7 @@ fn sun_mean_of_date_differs_from_apparent_by_aberration_and_nutation() {
 
 #[test]
 fn mean_frame_reads_succeed_at_the_range_start() {
-    // No light-time re-query, so the range-start failure of FU-17(c) does
+    // No light-time re-query, so the range-start failure of issue #163 (c) does
     // not apply to the mean frame.
     let engine = EventEngine::new(packaged_backend());
     for body in [CelestialBody::Mars, CelestialBody::Moon] {
@@ -684,7 +684,7 @@ fn one_reference_serves_many_calls_by_borrow() {
 fn sidereal_apparent_chart_agrees_with_the_crossing_reference() {
     // Issue #120: both read a sidereal longitude on the mean equinox of date
     // minus the mean ayanamsa, so a crossing the engine finds sits on the
-    // chart's own longitude. The mean chart still differs (FU-18 (b)).
+    // chart's own longitude. The mean chart still differs (issue #164 (b)).
     let engine = EventEngine::new(packaged_backend());
     let chart_engine = ChartEngine::new(packaged_backend());
     let bodies = [
@@ -726,7 +726,7 @@ fn sidereal_apparent_chart_agrees_with_the_crossing_reference() {
     }
 }
 
-/// Diagnostic for FU-18 (b): how a sidereal mean chart differs from a
+/// Diagnostic for issue #164 (b): how a sidereal mean chart differs from a
 /// sidereal crossing reference (the apparent case is asserted above). Run with
 /// `cargo test -p pleiades-events --test reference measure_chart_sidereal_conventions -- --nocapture --ignored`
 #[test]

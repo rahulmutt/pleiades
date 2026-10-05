@@ -53,7 +53,7 @@ fn with_distance((lon, lat, dist): (f64, f64, f64)) -> EclipticTriple {
 /// `SEFLG_SIDEREAL` convention, and a sidereal `pleiades-core` apparent chart
 /// follows it too (issue #120). A sidereal `pleiades-core` *mean* chart
 /// subtracts the ayanamsa from the backend's J2000 longitude and differs by
-/// the precession since J2000 (FU-18 (b)).
+/// the precession since J2000 (issue #164, item (b)).
 ///
 /// The mean ayanamsa is used in every frame. For the star-anchored ayanamsa
 /// classes (`TrueStar` and `Galactic`) Swiss Ephemeris's apparent sidereal

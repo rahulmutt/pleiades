@@ -24,7 +24,7 @@
 //!
 //! §R2 note: MEAN_MOON's measured longitude max came in at 0.561″ — far
 //! below the plan's 120″ Moon-mean-correction trigger — so that follow-up
-//! does not fire; no `docs/follow-ups.md` entry is needed for this category.
+//! does not fire; no follow-up issue is needed for this category.
 
 /// Measured max 0.658″ on 2026-07-07 corpus; ceiling ~1.4×.
 pub const MEAN_PLANET_LONGITUDE_ARCSEC: f64 = 1.0;
