@@ -51,7 +51,10 @@ fn main() {
     while jd <= JD_END_TT {
         for (label, num) in BODIES {
             let (ra, dec) = se_radec(jd, *num);
-            println!("{jd:.1},{label},{ra:.9},{dec:.9}");
+            // Two decimals: the epochs step by 1826.25 days, and one decimal
+            // stored `.25`/`.75` as `.2`/`.8`, 0.05 day from the instant
+            // computed (issue #171).
+            println!("{jd:.2},{label},{ra:.9},{dec:.9}");
         }
         jd += STEP_DAYS;
     }
