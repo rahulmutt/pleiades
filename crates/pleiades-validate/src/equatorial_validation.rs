@@ -294,14 +294,43 @@ const SE_MANIFEST: &str = include_str!(concat!(
     "/data/equatorial-se-corpus/manifest.txt"
 ));
 
-// Loose parity ceilings — set to ceil(measured_max * 1.5), measured 2026-06-30 over 400 rows.
-// The Moon dominates: Moshier(SE corpus) vs DE440(our packaged Moon) diverges significantly
-// at century-scale offsets from J2000.  max measured: RA 2642.637" (Moon@2435114.2),
-// Dec 1202.920" (Moon@2460681.8).  Planets stay well under 100".  These ceilings catch
-// gross convention/sign/units errors; a radians-vs-degrees or sign flip would exceed them
-// by orders of magnitude.
-const SE_RA_CEILING_ARCSEC: f64 = 4000.0; // measured max 2642.637" (Moon, cos-δ-wt)
-const SE_DEC_CEILING_ARCSEC: f64 = 1810.0; // measured max 1202.920" (Moon)
+/// One body's parity ceilings: `(label, RA ceiling, Dec ceiling)` in
+/// arcseconds, RA weighted by cos δ.
+type SeCeilings = (&'static str, f64, f64);
+
+/// Per-body parity ceilings, each about 1.5 times the maximum measured
+/// 2026-10-05 over the body's 40 rows (in the trailing comment, RA / Dec).
+/// The residual is Moshier (the corpus) against the DE440-sourced packaged
+/// backend, so it is a cross-theory floor, not an accuracy claim; the Horizons
+/// gate holds sub-arcsecond accuracy.
+///
+/// Until issue #171 one pair of ceilings, 4000″ / 1810″, covered every body.
+/// They were sized to a 2643″ Moon residual that was an artefact: the corpus
+/// stored its `.25` / `.75` day epochs with one decimal, so half the rows
+/// were compared 0.05 day from the instant Swiss Ephemeris computed, and a
+/// 1000″ regression in any planet would have passed.
+const SE_CEILINGS_ARCSEC: [SeCeilings; 10] = [
+    ("Sun", 0.45, 0.08),     // 0.300 / 0.049
+    ("Moon", 2.4, 2.1),      // 1.562 / 1.369
+    ("Mercury", 0.50, 0.12), // 0.327 / 0.077
+    ("Venus", 0.72, 0.19),   // 0.477 / 0.123
+    ("Mars", 0.60, 0.37),    // 0.399 / 0.246
+    ("Jupiter", 0.56, 0.21), // 0.371 / 0.137
+    ("Saturn", 1.3, 1.1),    // 0.804 / 0.688
+    ("Uranus", 0.58, 0.26),  // 0.385 / 0.170
+    ("Neptune", 3.3, 0.91),  // 2.181 / 0.604
+    ("Pluto", 1.3, 0.81),    // 0.861 / 0.535
+];
+
+/// The `(RA, Dec)` ceilings for a corpus body label. A body without ceilings
+/// is an error, never an unchecked row.
+fn se_ceilings(label: &str) -> Result<(f64, f64), EquatorialSeError> {
+    SE_CEILINGS_ARCSEC
+        .iter()
+        .find(|(body, _, _)| *body == label)
+        .map(|&(_, ra, dec)| (ra, dec))
+        .ok_or_else(|| EquatorialSeError::UnknownBody(label.to_string()))
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct EquatorialSeReport {
@@ -369,7 +398,7 @@ impl fmt::Display for EquatorialSeError {
             Self::MissingEquatorial { jd_tt, body } =>
                 write!(f, "equatorial-se ({body} @ {jd_tt}): equatorial channel absent"),
             Self::CeilingExceeded { jd_tt, body, axis, residual, ceiling } =>
-                write!(f, "equatorial-se ({body} @ {jd_tt}) {axis}: residual {residual:.2}\u{2033} > ceiling {ceiling:.1}\u{2033}"),
+                write!(f, "equatorial-se ({body} @ {jd_tt}) {axis}: residual {residual:.3}\u{2033} > ceiling {ceiling:.2}\u{2033}"),
         }
     }
 }
@@ -483,22 +512,23 @@ pub fn validate_equatorial_se_corpus() -> Result<EquatorialSeReport, EquatorialS
         let cos_dec = se_dec.to_radians().cos();
         let ra_resid = wrap_deg(eq.right_ascension.degrees() - se_ra).abs() * cos_dec * 3600.0;
         let dec_resid = (eq.declination.degrees() - se_dec).abs() * 3600.0;
-        if ra_resid > SE_RA_CEILING_ARCSEC {
+        let (ra_ceiling, dec_ceiling) = se_ceilings(label)?;
+        if ra_resid > ra_ceiling {
             return Err(EquatorialSeError::CeilingExceeded {
                 jd_tt: *jd,
                 body: label.clone(),
                 axis: "ra",
                 residual: ra_resid,
-                ceiling: SE_RA_CEILING_ARCSEC,
+                ceiling: ra_ceiling,
             });
         }
-        if dec_resid > SE_DEC_CEILING_ARCSEC {
+        if dec_resid > dec_ceiling {
             return Err(EquatorialSeError::CeilingExceeded {
                 jd_tt: *jd,
                 body: label.clone(),
                 axis: "dec",
                 residual: dec_resid,
-                ceiling: SE_DEC_CEILING_ARCSEC,
+                ceiling: dec_ceiling,
             });
         }
         max_ra = max_ra.max(ra_resid);
@@ -520,6 +550,58 @@ pub fn validate_equatorial_se_corpus() -> Result<EquatorialSeReport, EquatorialS
 mod se_tests {
     use super::*;
 
+    /// The corpus rows as `(jd_tt text, body label)`.
+    fn corpus_rows() -> Vec<(&'static str, &'static str)> {
+        SE_CSV
+            .lines()
+            .map(str::trim)
+            .filter(|line| !(line.starts_with('#') || line.is_empty() || line.starts_with("jd_tt")))
+            .map(|line| {
+                let mut columns = line.split(',');
+                (
+                    columns.next().expect("jd_tt column"),
+                    columns.next().expect("body column"),
+                )
+            })
+            .collect()
+    }
+
+    // Issue #171: the reference tool steps 1826.25 days from JD 2415025.5 and
+    // once printed that with one decimal, so half the corpus named an instant
+    // 0.05 day from the one Swiss Ephemeris computed.
+    #[test]
+    fn corpus_epochs_are_the_instants_the_reference_tool_computed() {
+        let rows = corpus_rows();
+        assert_eq!(rows.len(), 400);
+        for (jd_text, body) in rows {
+            let jd: f64 = jd_text.parse().expect("jd_tt parses");
+            let steps = (jd - 2_415_025.5) / 1_826.25;
+            assert_eq!(steps, steps.round(), "{body} at {jd_text}");
+            assert!((0.0..40.0).contains(&steps), "{body} at {jd_text}");
+        }
+    }
+
+    #[test]
+    fn every_corpus_body_has_its_own_ceilings() {
+        for (_, body) in corpus_rows() {
+            se_ceilings(body).unwrap_or_else(|error| panic!("{error}"));
+        }
+        assert_eq!(
+            se_ceilings("Ceres"),
+            Err(EquatorialSeError::UnknownBody("Ceres".to_string()))
+        );
+    }
+
+    #[test]
+    fn no_ceiling_would_pass_an_arcminute_regression() {
+        // The point of per-body ceilings: the old global pair let a 1000″
+        // planet error through.
+        for (body, ra, dec) in SE_CEILINGS_ARCSEC {
+            assert!(ra > 0.0 && ra < 4.0, "{body} RA ceiling {ra}");
+            assert!(dec > 0.0 && dec < 4.0, "{body} Dec ceiling {dec}");
+        }
+    }
+
     /// Diagnostic: scan the whole corpus without ceilings to print actual max residuals.
     /// Run with `cargo test -p pleiades-validate equatorial_validation::se_tests::measure -- --nocapture --ignored`
     #[test]
@@ -528,6 +610,7 @@ mod se_tests {
         let engine = ChartEngine::new(PackagedDataBackend::new());
         let (mut max_ra, mut max_dec) = (0.0_f64, 0.0_f64);
         let (mut max_ra_ctx, mut max_dec_ctx) = (String::new(), String::new());
+        let mut by_body = std::collections::BTreeMap::<String, (f64, f64)>::new();
         for line in SE_CSV.lines() {
             let t = line.trim();
             if t.starts_with('#') || t.is_empty() || t.starts_with("jd_tt") {
@@ -561,14 +644,19 @@ mod se_tests {
             let cos_dec = se_dec.to_radians().cos();
             let ra_r = wrap_deg(eq.right_ascension.degrees() - se_ra).abs() * cos_dec * 3600.0;
             let dec_r = (eq.declination.degrees() - se_dec).abs() * 3600.0;
+            let body_max = by_body.entry(label.clone()).or_default();
+            *body_max = (body_max.0.max(ra_r), body_max.1.max(dec_r));
             if ra_r > max_ra {
                 max_ra = ra_r;
-                max_ra_ctx = format!("{label}@{jd:.1}");
+                max_ra_ctx = format!("{label}@{jd}");
             }
             if dec_r > max_dec {
                 max_dec = dec_r;
-                max_dec_ctx = format!("{label}@{jd:.1}");
+                max_dec_ctx = format!("{label}@{jd}");
             }
+        }
+        for (label, (ra, dec)) in &by_body {
+            eprintln!("{label}: max RA {ra:.3}\" Dec {dec:.3}\"");
         }
         eprintln!("max RA  residual: {max_ra:.3}\" at {max_ra_ctx}");
         eprintln!("max Dec residual: {max_dec:.3}\" at {max_dec_ctx}");
@@ -577,8 +665,11 @@ mod se_tests {
     #[test]
     fn equatorial_se_parity_passes() {
         let report =
-            validate_equatorial_se_corpus().expect("equatorial-se parity within loose ceilings");
-        assert!(report.rows_validated >= 1, "fail-closed floor");
+            validate_equatorial_se_corpus().expect("equatorial-se parity within its ceilings");
+        assert_eq!(report.rows_validated, 400);
+        // The largest per-body ceilings bound the report's maxima.
+        assert!(report.max_residual_ra_arcsec < 3.3);
+        assert!(report.max_residual_dec_arcsec < 2.1);
         eprintln!("{}", report.summary_line());
     }
 }
