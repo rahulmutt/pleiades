@@ -144,7 +144,7 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "pleiades-apparent"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "pleiades-time",
  "pleiades-types",
@@ -167,7 +167,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-backend"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "pleiades-types",
  "serde",
@@ -189,7 +189,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-compression"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "pleiades-types",
  "proptest",
@@ -199,7 +199,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-core"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "pleiades-apparent",
  "pleiades-ayanamsa",
@@ -215,7 +215,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-data"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "pleiades-apparent",
  "pleiades-apsides",
@@ -226,7 +226,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-eclipse"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "pleiades-apparent",
  "pleiades-backend",
@@ -238,7 +238,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-elp"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "pleiades-apparent",
  "pleiades-apsides",
@@ -248,7 +248,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-events"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "pleiades-apparent",
  "pleiades-apsides",
@@ -268,7 +268,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-fict"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "pleiades-apparent",
  "pleiades-backend",
@@ -277,7 +277,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-houses"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "pleiades-apparent",
  "pleiades-time",
@@ -286,7 +286,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-jpl"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "pleiades-backend",
  "pleiades-types",
@@ -297,7 +297,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-time"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "pleiades-types",
  "proptest",
@@ -334,7 +334,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-vsop87"
-version = "0.5.4"
+version = "0.6.0"
 dependencies = [
  "pleiades-backend",
  "pleiades-data",

@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.7.1] - 2026-10-05
+
+### Added
+
+- Civil_from_tt and civil_from_tdb pick UTC or UT1 by era ([#107](https://github.com/rahulmutt/pleiades/pull/107)) ([#153](https://github.com/rahulmutt/pleiades/pull/153)) ([e8fe718](https://github.com/rahulmutt/pleiades/commit/e8fe718a90e70facdce4e419f208e77a2eb3dedc))
+
 ## [0.7.0] - 2026-10-03
 
 ### Breaking Changes

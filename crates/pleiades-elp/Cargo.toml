@@ -1,7 +1,7 @@
 [package]
 name = "pleiades-elp"
 description = "Compact Meeus-style lunar baseline backend (Moon, nodes, apogee/perigee) for the pleiades astrology workspace."
-version = "0.5.4"
+version = "0.5.5"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true

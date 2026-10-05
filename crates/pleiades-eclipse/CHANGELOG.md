@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.7.1] - 2026-10-05
+
+### Fixed
+
+- Select eclipses_in_range by greatest eclipse, not syzygy ([#121](https://github.com/rahulmutt/pleiades/pull/121)) ([#125](https://github.com/rahulmutt/pleiades/pull/125)) ([e7f3b56](https://github.com/rahulmutt/pleiades/commit/e7f3b5678c309b684495e43f917dc678a23bb828))
+
+### Performance
+
+- Search outward from the query instant in next/previous_eclipse (FU-23 (q)) ([#143](https://github.com/rahulmutt/pleiades/pull/143)) ([83b91c6](https://github.com/rahulmutt/pleiades/commit/83b91c669bc393c984a01d1a41be02ac9ea50f03))
+- Motion-free mean-place reads and a backend-free chart aberration Sun (FU-25, #128) ([#149](https://github.com/rahulmutt/pleiades/pull/149)) ([457497d](https://github.com/rahulmutt/pleiades/commit/457497dd534e26862e8b0a81f7aa1c0ab741c85f))
+
 ## [0.7.0] - 2026-10-03
 
 ### Breaking Changes
