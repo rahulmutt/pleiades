@@ -360,6 +360,64 @@ fn sidereal_ascendant_and_sun_share_one_offset_from_the_tropical_chart() {
     );
 }
 
+// Issue #179: the `ascmc` chart points (Vertex, equatorial ascendant,
+// co-ascendants, polar ascendant, and their own copy of the four angles)
+// stayed tropical in a sidereal chart, beside sidereal cusps and angles.
+
+/// The ecliptic longitudes of a chart's `ascmc` points, labelled. ARMC is a
+/// right ascension and is not among them.
+fn asc_mc_longitudes_deg(snapshot: &ChartSnapshot) -> Vec<(&'static str, f64)> {
+    let points = snapshot.asc_mc().expect("houses are computed");
+    [
+        ("ascendant", points.ascendant),
+        ("midheaven", points.midheaven),
+        ("descendant", points.descendant),
+        ("imum coeli", points.imum_coeli),
+        ("vertex", points.vertex),
+        ("antivertex", points.antivertex),
+        ("equatorial ascendant", points.equatorial_ascendant),
+        ("co-ascendant (Koch)", points.coascendant_koch),
+        ("co-ascendant (Munkasey)", points.coascendant_munkasey),
+        ("polar ascendant", points.polar_ascendant),
+    ]
+    .map(|(name, longitude)| (name, longitude.degrees()))
+    .to_vec()
+}
+
+#[test]
+fn sidereal_asc_mc_points_shift_by_the_ayanamsa_plus_nutation_in_longitude() {
+    let expected_deg = lahiri_deg(ISSUE_157_JD_TT) + delta_psi_deg(ISSUE_157_JD_TT);
+    for apparentness in [Apparentness::Apparent, Apparentness::Mean] {
+        let (tropical, sidereal) = issue_157_charts(apparentness);
+        let tropical_points = asc_mc_longitudes_deg(&tropical);
+        let sidereal_points = asc_mc_longitudes_deg(&sidereal);
+        for ((name, tropical_deg), (_, sidereal_deg)) in
+            tropical_points.iter().zip(&sidereal_points)
+        {
+            let residual = wrap_arcsec(tropical_deg - sidereal_deg - expected_deg);
+            assert!(
+                residual.abs() < 1e-6,
+                "{apparentness:?} {name}: tropical − sidereal differs from ayanamsa + Δψ by {residual:+.6}\""
+            );
+        }
+        // ARMC is a right ascension: the zodiac does not move it.
+        let armc = |snapshot: &ChartSnapshot| snapshot.asc_mc().expect("houses").armc;
+        assert_eq!(armc(&tropical), armc(&sidereal));
+    }
+}
+
+#[test]
+fn sidereal_asc_mc_angles_are_the_snapshots_angles() {
+    // One snapshot must not report two ascendants.
+    let (_, sidereal) = issue_157_charts(Apparentness::Apparent);
+    let houses = sidereal.houses.as_ref().expect("houses are computed");
+    let points = houses.asc_mc;
+    assert_eq!(points.ascendant, houses.angles.ascendant);
+    assert_eq!(points.descendant, houses.angles.descendant);
+    assert_eq!(points.midheaven, houses.angles.midheaven);
+    assert_eq!(points.imum_coeli, houses.angles.imum_coeli);
+}
+
 // Issue #180: Whole Sign and Equal (1=Aries) cusps sit on the zodiac's sign
 // boundaries, so in a sidereal chart they are the sidereal boundaries. A
 // rigid shift of the tropical cusps, right for every ascendant-anchored

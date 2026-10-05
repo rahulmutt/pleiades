@@ -460,6 +460,10 @@ impl ChartSnapshot {
 
     /// The full Swiss-Ephemeris `ascmc` chart points, present only when the
     /// snapshot carries computed houses.
+    ///
+    /// Their longitudes are in the snapshot's zodiac, like the cusps and
+    /// angles: sidereal in a sidereal chart. ARMC is a right ascension and is
+    /// the same in every zodiac.
     pub fn asc_mc(&self) -> Option<&pleiades_houses::AscMc> {
         self.houses.as_ref().map(|h| &h.asc_mc)
     }
