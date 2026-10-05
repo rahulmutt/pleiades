@@ -210,58 +210,33 @@ pub(crate) fn build_chart_instant(
     }
 }
 
-fn parse_civil(value: Option<&str>) -> Result<CivilDateTime, String> {
-    let raw = value.ok_or_else(|| "--civil requires a YYYY-MM-DDTHH:MM:SS value".to_string())?;
+/// Parses the `YYYY-MM-DDTHH:MM:SS` value of `flag`.
+pub(crate) fn parse_civil(value: Option<&str>, flag: &str) -> Result<CivilDateTime, String> {
+    let raw = value.ok_or_else(|| format!("{flag} requires a YYYY-MM-DDTHH:MM:SS value"))?;
     let (date, time) = raw
         .split_once('T')
-        .ok_or_else(|| format!("--civil value '{raw}' must be YYYY-MM-DDTHH:MM:SS"))?;
+        .ok_or_else(|| format!("{flag} value '{raw}' must be YYYY-MM-DDTHH:MM:SS"))?;
     let d: Vec<&str> = date.split('-').collect();
     let t: Vec<&str> = time.split(':').collect();
     if d.len() != 3 || t.len() != 3 {
-        return Err(format!("--civil value '{raw}' must be YYYY-MM-DDTHH:MM:SS"));
+        return Err(format!("{flag} value '{raw}' must be YYYY-MM-DDTHH:MM:SS"));
     }
-    let year = d[0].parse::<i32>().map_err(|_| {
-        format!(
-            "--civil: invalid year '{}' (expected YYYY-MM-DDTHH:MM:SS)",
-            d[0]
-        )
-    })?;
-    let month = d[1].parse::<u8>().map_err(|_| {
-        format!(
-            "--civil: invalid month '{}' (expected YYYY-MM-DDTHH:MM:SS)",
-            d[1]
-        )
-    })?;
-    let day = d[2].parse::<u8>().map_err(|_| {
-        format!(
-            "--civil: invalid day '{}' (expected YYYY-MM-DDTHH:MM:SS)",
-            d[2]
-        )
-    })?;
-    let hour = t[0].parse::<u8>().map_err(|_| {
-        format!(
-            "--civil: invalid hour '{}' (expected YYYY-MM-DDTHH:MM:SS)",
-            t[0]
-        )
-    })?;
-    let minute = t[1].parse::<u8>().map_err(|_| {
-        format!(
-            "--civil: invalid minute '{}' (expected YYYY-MM-DDTHH:MM:SS)",
-            t[1]
-        )
-    })?;
-    let second = t[2].parse::<f64>().map_err(|_| {
-        format!(
-            "--civil: invalid second '{}' (expected YYYY-MM-DDTHH:MM:SS)",
-            t[2]
-        )
-    })?;
+    let invalid = |field: &str, value: &str| {
+        format!("{flag}: invalid {field} '{value}' (expected YYYY-MM-DDTHH:MM:SS)")
+    };
+    let year = d[0].parse::<i32>().map_err(|_| invalid("year", d[0]))?;
+    let month = d[1].parse::<u8>().map_err(|_| invalid("month", d[1]))?;
+    let day = d[2].parse::<u8>().map_err(|_| invalid("day", d[2]))?;
+    let hour = t[0].parse::<u8>().map_err(|_| invalid("hour", t[0]))?;
+    let minute = t[1].parse::<u8>().map_err(|_| invalid("minute", t[1]))?;
+    let second = t[2].parse::<f64>().map_err(|_| invalid("second", t[2]))?;
     Ok(CivilDateTime::new(year, month, day, hour, minute, second))
 }
 
-/// The routed backend chain behind `chart`: packaged data first, so release-grade
-/// derived points (lunar nodes and apsides) win over the lower-tier ELP channels.
-fn default_chart_backend() -> RoutingBackend {
+/// The routed backend chain behind `chart` and the event commands: packaged data
+/// first, so release-grade derived points (lunar nodes and apsides) win over the
+/// lower-tier ELP channels.
+pub(crate) fn default_chart_backend() -> RoutingBackend {
     RoutingBackend::new(vec![
         Box::new(PackagedDataBackend::new()),
         Box::new(CompositeBackend::new(
@@ -480,7 +455,7 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
                     .ok_or_else(|| "missing value for --house-system".to_string())?;
                 house_system = Some(parse_house_system(label)?);
             }
-            "--civil" => civil = Some(parse_civil(iter.next())?),
+            "--civil" => civil = Some(parse_civil(iter.next(), "--civil")?),
             "--civil-scale" => {
                 civil_scale = match iter.next() {
                     Some("utc") => TimeScale::Utc,

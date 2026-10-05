@@ -60,6 +60,11 @@ Commands:
 
 Commands:
 {}
+  stations               List the instants bodies turn retrograde or direct
+    --body <name> ...  (--from <instant> --to <instant> | (--next|--previous) --at <instant>)
+  aspects                List the instants pairs of bodies reach exact separations
+    --pair <first>,<second> ... --angle <degrees> ...  (--from <instant> --to <instant> | (--next|--previous) --at <instant>)
+    <instant>            A TDB Julian day or a civil YYYY-MM-DDTHH:MM:SS datetime (UTC from 1972, UT1 before); see `stations --help`
   chart                  Render a basic chart report
     --tt|--tdb|--utc|--ut1  Tag the chart instant with a time scale
     --tt-offset-seconds <seconds>  Caller-supplied TT offset for UTC/UT1-tagged instants
