@@ -214,7 +214,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// A crossing within the 0.5 s bisection tolerance of `before` may land
     /// on either side: given an instant this engine returned, the result is
     /// either the crossing that instant describes or the one before it (see
-    /// FU-13 in `docs/follow-ups.md`). Step `before` back by a second to
+    /// issue #159). Step `before` back by a second to
     /// skip the described crossing for certain.
     ///
     /// `reference` is a [`CrossingFrame`] (tropical zodiac) or a

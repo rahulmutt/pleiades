@@ -490,7 +490,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                             // fall back to the mean position already stored in
                             // `position.ecliptic`; leave it and the sign unchanged so
                             // the chart succeeds. `position.apparent` records the
-                            // downgrade; see FU-24 in docs/follow-ups.md.
+                            // downgrade; see issue #170.
                             position.apparent = Apparentness::Mean;
                             None
                         }

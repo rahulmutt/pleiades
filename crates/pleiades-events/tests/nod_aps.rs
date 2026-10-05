@@ -230,8 +230,8 @@ fn fictitious_bodies_compose_through_the_chain() {
 /// sub-day finite-difference sampling: the velocity estimate straddles an
 /// epoch-bracket seam and comes out non-physical, so the engine fails closed
 /// with a typed error instead of returning garbage orbital points. SE
-/// small-body parity here is a documented coverage bound (follow-up filed in
-/// docs/follow-ups.md by a later task).
+/// small-body parity here is a documented coverage bound (issues #158 and
+/// #160).
 #[test]
 fn snapshot_only_asteroids_fail_closed() {
     let engine = engine();

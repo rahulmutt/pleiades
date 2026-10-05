@@ -15,8 +15,7 @@
 //! would therefore mean nothing for a slow pair near a station, so the gate
 //! bounds the time residual multiplied by the corpus's relative speed at
 //! the event: the separation residual, in arcseconds. The largest time
-//! residual per pair is reported by the gate and recorded in
-//! `docs/follow-ups.md` (FU-22), with no ceiling of its own.
+//! residual per pair is reported by the gate, with no ceiling of its own.
 //!
 //! The longitude ceiling bounds the difference of either body's longitude
 //! at the event. It includes the body's motion over the time residual.

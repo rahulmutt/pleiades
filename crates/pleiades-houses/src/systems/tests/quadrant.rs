@@ -624,8 +624,7 @@ fn solve_placidian_cusp_fails_closed_when_the_iteration_does_not_converge() {
 
 /// FU-9 quadrant/projection residual: 3 surviving mutants, each an EQUIVALENT
 /// MUTANT left visible (no `#[mutants::skip]`), enumerated with a reachability
-/// argument. Confirmed by the authoritative scoped run recorded in
-/// `docs/follow-ups.md`.
+/// argument. Confirmed by an authoritative scoped cargo-mutants run.
 ///
 /// --- validate_topocentric_observer (1) ---
 /// (VT-1) 618:5 `-> Ok(())`. `validated_obliquity` calls `validate_observer`
