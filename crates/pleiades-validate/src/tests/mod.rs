@@ -19,6 +19,7 @@ mod gate_battery;
 mod release_bundle_verify_a;
 mod release_bundle_verify_b;
 mod release_checklist;
+mod release_fuzz_toolchain_audit;
 mod release_readme_audit;
 mod release_workspace_audit;
 mod render_catalog;

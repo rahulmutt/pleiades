@@ -148,6 +148,8 @@ pub(crate) use release::bundle_verify_helpers::{
     ensure_request_surface_summary_matches_current_rendering,
 };
 #[cfg(test)]
+pub(crate) use release::fuzz_toolchain_audit::audit_fuzz_nightly_text;
+#[cfg(test)]
 pub(crate) use release::readme_audit::{audit_readme_crate_lists, audit_readme_release_series};
 #[cfg(test)]
 pub(crate) use release::workspace_audit::{

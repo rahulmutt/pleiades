@@ -1877,8 +1877,13 @@ open survivor count.
 
 ## FU-10: `mise.toml` Tera `{{arg()}}` templating is deprecated repo-wide
 
-**Status:** open · Opened 2026-07-18 during the devkit Phase 3 cargo-mutants
-slice final review.
+**Status:** resolved (2026-10-05, issue #30 item 6) · Opened 2026-07-18 during
+the devkit Phase 3 cargo-mutants slice final review. Both tasks now declare
+their arguments in a `usage` field and read them as `$usage_<name>`; no
+`{{arg()}}` template is left in `mise.toml`. The same change added the
+`fuzz-toolchain.nightly-drift` workspace-audit rule (issue #30 item 5), which
+fails `mise run audit` when `FUZZ_NIGHTLY` in `mise.toml` and the channel in
+`fuzz/rust-toolchain.toml` differ.
 
 **What:** `mise.toml`'s `[tasks.mutants-crate]` (`{{arg(name="crate")}}`) and
 the pre-existing `[tasks.fuzz-target]` (`{{arg(name="target")}}`,
@@ -1906,8 +1911,7 @@ fixed opportunistically in this slice because migrating one task in isolation
 while leaving `fuzz-target` on the old form would create exactly that
 inconsistency.
 
-**Severity:** low — maintenance (known removal date, no current breakage) ·
-**Opened:** 2026-07-18
+**Severity:** low — maintenance (closed) · **Opened:** 2026-07-18
 
 ## FU-11: Sidereal-time consumers outside the house layer, and the ΔT extrapolation gap
 

@@ -15,7 +15,8 @@
 # `cd fuzz && cargo fuzz run`), but provisions nothing the pipeline uses.
 # That file must repeat the same date string — mise's Tera templating can't
 # reach into a file rustup reads directly — so it carries a comment pointing
-# back here; keep both dates identical on a bump.
+# back here; keep both dates identical on a bump. `mise run audit` fails with
+# `fuzz-toolchain.nightly-drift` when they differ.
 # The nightly's rustc version must be >= `[workspace.package] rust-version`
 # (cargo refuses to build the fuzz targets otherwise), so a stable-toolchain
 # bump below needs this date checked too. A nightly reports the version it
@@ -189,7 +190,11 @@ done
 
 [tasks.fuzz-target]
 description = "Run one fuzz target for an explicit budget: mise run fuzz-target <name> <seconds>."
-run = "cargo \"+$FUZZ_NIGHTLY\" fuzz run {{arg(name=\"target\")}} -- -max_total_time={{arg(name=\"seconds\")}}"
+usage = '''
+arg "<target>" help="Fuzz target name, as listed by `cargo fuzz list`"
+arg "<seconds>" help="libFuzzer -max_total_time budget"
+'''
+run = 'cargo "+$FUZZ_NIGHTLY" fuzz run "${usage_target?}" -- -max_total_time="${usage_seconds?}"'
 
 [tasks.mutants]
 description = "Mutation testing baseline over the pure-logic crates (report-only; NOT part of ci or ci-nightly)."
@@ -217,7 +222,8 @@ cargo mutants \
 
 [tasks.mutants-crate]
 description = "Mutation testing for one crate: mise run mutants-crate <name>."
-run = "cargo mutants --test-tool nextest --test-workspace=false --baseline run -p {{arg(name=\"crate\")}}"
+usage = 'arg "<crate>" help="Workspace crate to mutate, for example pleiades-types"'
+run = 'cargo mutants --test-tool nextest --test-workspace=false --baseline run -p "${usage_crate?}"'
 
 [tasks.release-smoke]
 run = "cargo run -q -p pleiades-validate -- release-smoke"
