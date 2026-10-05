@@ -12,7 +12,7 @@ use pleiades_backend::{
 };
 use pleiades_elp::ElpBackend;
 use pleiades_types::{
-    CelestialBody, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude, TimeRange,
+    CelestialBody, EclipticCoordinates, Instant, JulianDay, Latitude, Longitude, Motion, TimeRange,
     TimeScale,
 };
 use pleiades_vsop87::Vsop87Backend;
@@ -241,6 +241,48 @@ impl EphemerisBackend for MoonOnlyChartBackend {
             Latitude::from_degrees(0.0),
             Some(0.0026),
         ));
+        result.motion = Some(Motion::new(Some(13.2), Some(0.0), Some(0.0)));
+        Ok(result)
+    }
+}
+
+/// [`MoonOnlyChartBackend`]'s Moon, plus a Sun: the same chart's backend with
+/// the Sun the pre-#128 apparent pipeline queried for its aberration term.
+struct MoonAndSunChartBackend;
+
+impl EphemerisBackend for MoonAndSunChartBackend {
+    fn metadata(&self) -> BackendMetadata {
+        let mut metadata = MoonOnlyChartBackend.metadata();
+        metadata.body_claims.push(BodyClaim::constrained(
+            CelestialBody::Sun,
+            AccuracyClass::Approximate,
+            ClaimEvidence::AlgorithmicModel,
+        ));
+        metadata
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        matches!(body, CelestialBody::Moon | CelestialBody::Sun)
+    }
+
+    fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        if request.body != CelestialBody::Sun {
+            return MoonOnlyChartBackend.position(request);
+        }
+        let mut result = EphemerisResult::new(
+            BackendId::new("moon-only-chart"),
+            request.body.clone(),
+            request.instant,
+            request.frame,
+            request.zodiac_mode.clone(),
+            request.apparent,
+        );
+        result.quality = QualityAnnotation::Approximate;
+        result.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(280.0),
+            Latitude::from_degrees(0.0),
+            Some(1.0),
+        ));
         Ok(result)
     }
 }
@@ -259,6 +301,18 @@ fn apparent_chart_needs_no_sun_from_the_backend() {
     let placement = snapshot.placement_for(&CelestialBody::Moon).unwrap();
     assert_eq!(placement.position.apparent, Apparentness::Apparent);
     assert!(placement.apparent.is_some());
+
+    // The placement equals the same chart on a backend that does serve the
+    // Sun (spec section 3). Provenance is excluded: its aberration estimate
+    // came from the backend Sun before #128.
+    let with_sun = ChartEngine::new(MoonAndSunChartBackend)
+        .chart(&ChartRequest::new(instant).with_bodies(vec![CelestialBody::Moon]))
+        .expect("an apparent chart with a Sun source");
+    let with_sun = with_sun.placement_for(&CelestialBody::Moon).unwrap();
+    assert_eq!(placement.position.apparent, with_sun.position.apparent);
+    assert_eq!(placement.position.ecliptic, with_sun.position.ecliptic);
+    assert!(placement.position.motion.is_some());
+    assert_eq!(placement.position.motion, with_sun.position.motion);
 
     // The explicit mean request still works and is reported as mean.
     let snapshot = engine
