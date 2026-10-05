@@ -317,6 +317,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// chart layer does. A backend may serve it without a distance (issue
     /// #118).
     ///
+    /// An apparent place of a body other than the Sun is read a light-time
+    /// before `instant`, so within a light-time of the window start it is
+    /// [`EventError::OutOfWindow`] (issue #163).
+    ///
     /// ```
     /// use pleiades_data::packaged_backend;
     /// use pleiades_events::{CrossingFrame, EventEngine};

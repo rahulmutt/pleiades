@@ -13,7 +13,15 @@ pub const WINDOW_END_JD: f64 = 2_488_069.5;
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum EventError {
-    /// A requested instant falls outside the 1900–2100 CE window.
+    /// A requested instant falls outside the 1900–2100 CE window, or cannot
+    /// be served from inside it.
+    ///
+    /// The second case is an apparent geocentric place within a light-time
+    /// of the window start: the body is read a light-time before the
+    /// instant (1.3 s for the Moon, up to about 0.3 day for Pluto), which
+    /// there falls before the window. The Sun, the lunar points and the
+    /// mean-of-date and heliocentric frames need no such read and are served
+    /// from the window's first instant.
     OutOfWindow {
         /// The out-of-window instant, as a Julian Day.
         julian_day: f64,
