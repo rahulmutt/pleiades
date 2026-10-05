@@ -12,7 +12,7 @@
 //! # Minimum supported Rust version
 //!
 //! This crate, and every other published `pleiades-*` crate, requires **Rust
-//! 1.98.1** or later. The MSRV is declared once as `rust-version` in the
+//! 1.99.0** or later. The MSRV is declared once as `rust-version` in the
 //! workspace `Cargo.toml` and must match the toolchain pinned in `mise.toml`;
 //! `mise run audit` fails the build if the two disagree. Raising it is treated
 //! as a breaking change and released as one.
