@@ -150,6 +150,8 @@ pub(crate) use release::bundle_verify_helpers::{
 #[cfg(test)]
 pub(crate) use release::fuzz_toolchain_audit::audit_fuzz_nightly_text;
 #[cfg(test)]
+pub(crate) use release::package_check_audit::audit_package_check_crate_list;
+#[cfg(test)]
 pub(crate) use release::readme_audit::{audit_readme_crate_lists, audit_readme_release_series};
 #[cfg(test)]
 pub(crate) use release::workspace_audit::{
