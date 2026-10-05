@@ -2,12 +2,13 @@
 //! crossing engine root-finds on: geocentric apparent-of-date, geocentric
 //! mean-of-date, and heliocentric.
 
-use crate::error::EventError;
+use crate::error::{EventError, WINDOW_START_JD};
 use crate::state_vector::cartesian_velocity;
 use pleiades_apparent::nutation::nutation;
 use pleiades_apparent::{
     apparent_apsis_position, apparent_position, apparent_sun_position,
-    precess_ecliptic_j2000_to_date, sun_true_longitude_of_date_deg, DEFAULT_MAX_ITERATIONS,
+    precess_ecliptic_j2000_to_date, sun_true_longitude_of_date_deg, ApparentLightTimeError,
+    DEFAULT_MAX_ITERATIONS,
 };
 use pleiades_backend::{EphemerisBackend, EphemerisRequest};
 use pleiades_types::{
@@ -196,6 +197,14 @@ pub(crate) fn geocentric_apparent_ecliptic_from<B: EphemerisBackend>(
         sun_true_lon,
         DEFAULT_MAX_ITERATIONS,
         |retarded: Instant| {
+            // The body is read a light-time before `instant`. Within a
+            // light-time of the window start that read falls before the
+            // window: the instant cannot be served, and says so with the
+            // window error, not with whatever the backend makes of an epoch
+            // outside its range (issue #163).
+            if retarded.julian_day.days() < WINDOW_START_JD {
+                return Err(EventError::OutOfWindow { julian_day });
+            }
             let (l, b, d) = match first_query.take() {
                 Some(mean) => mean,
                 None => read_mean_ecliptic(
@@ -212,7 +221,10 @@ pub(crate) fn geocentric_apparent_ecliptic_from<B: EphemerisBackend>(
             ))
         },
     )
-    .map_err(|e| EventError::Backend(format!("{body_label} apparent place failed: {e}")))?;
+    .map_err(|e| match e {
+        ApparentLightTimeError::Query(window @ EventError::OutOfWindow { .. }) => window,
+        e => EventError::Backend(format!("{body_label} apparent place failed: {e}")),
+    })?;
     let distance_au = apparent.ecliptic.distance_au.ok_or_else(|| {
         EventError::Backend(format!("{body_label} apparent place missing distance"))
     })?;

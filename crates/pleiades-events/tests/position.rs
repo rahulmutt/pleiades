@@ -224,6 +224,66 @@ fn window_edges_use_a_one_sided_difference() {
     }
 }
 
+// Issue #163 (c): an apparent place reads the body a light-time before the
+// instant. Within a light-time of the window start that read falls before the
+// window, and used to surface as an untyped backend error.
+#[test]
+fn an_apparent_read_reaching_before_the_window_is_out_of_window() {
+    let engine = EventEngine::new(packaged_backend());
+    // Light-time: 1.3 s for the Moon, minutes for Mars, hours for Pluto.
+    for body in [
+        CelestialBody::Moon,
+        CelestialBody::Mars,
+        CelestialBody::Pluto,
+    ] {
+        for call in ["longitude_at", "position_at"] {
+            let result = match call {
+                "longitude_at" => engine
+                    .longitude_at(body.clone(), GEO, tdb(WINDOW_START_JD))
+                    .map(|_| ()),
+                _ => engine
+                    .position_at(body.clone(), GEO, tdb(WINDOW_START_JD))
+                    .map(|_| ()),
+            };
+            assert_eq!(
+                result,
+                Err(EventError::OutOfWindow {
+                    julian_day: WINDOW_START_JD
+                }),
+                "{body:?} {call}"
+            );
+        }
+        // A day in, every body's retarded read is inside the window.
+        engine
+            .longitude_at(body.clone(), GEO, tdb(WINDOW_START_JD + 1.0))
+            .unwrap_or_else(|error| panic!("{body:?} a day in: {error}"));
+    }
+    // The Moon's light-time is 1.3 s: ten seconds in is enough.
+    engine
+        .longitude_at(
+            CelestialBody::Moon,
+            GEO,
+            tdb(WINDOW_START_JD + 10.0 / 86_400.0),
+        )
+        .expect("the Moon ten seconds in");
+}
+
+#[test]
+fn reads_without_a_light_time_are_served_at_the_window_start() {
+    let engine = EventEngine::new(packaged_backend());
+    let mean = CrossingFrame::GeocentricMeanOfDate;
+    for (body, frame) in [
+        (CelestialBody::Sun, GEO),
+        (CelestialBody::Mars, mean),
+        (CelestialBody::Moon, mean),
+        (CelestialBody::Mars, HELIO),
+    ] {
+        engine
+            .longitude_at(body.clone(), frame, tdb(WINDOW_START_JD))
+            .unwrap_or_else(|error| panic!("{body:?} {frame:?}: {error}"));
+    }
+}
+
 #[test]
 fn backend_without_motion_gives_none_speeds() {
     let engine = EventEngine::new(StripMotion {
