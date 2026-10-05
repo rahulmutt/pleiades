@@ -145,13 +145,54 @@ mod tests {
     fn aberration_shifts_by_v_over_c_transverse() {
         // Point on +x, observer velocity on +y: shift ≈ |v|/c radians toward +y.
         let v = 0.0172; // ~Earth orbital speed, AU/day
-        let p = aberrate([2.0, 0.0, 0.0], [0.0, v, 0.0]);
+        let p = aberrate([2.0, 0.0, 0.0], [0.0, v, 0.0]).expect("finite point");
         let expected = (v / LIGHT_SPEED_AU_PER_DAY).atan();
         let got = p[1].atan2(p[0]);
         assert!((got - expected).abs() < 1e-9);
         // Distance preserved.
         let r = (p[0] * p[0] + p[1] * p[1] + p[2] * p[2]).sqrt();
         assert!((r - 2.0).abs() < 1e-12);
+    }
+
+    // Issue #161: a point at the observer has no direction. `(z / r).asin()`
+    // and `1 / r` used to turn it into a NaN longitude and latitude.
+
+    fn assert_degenerate<T: std::fmt::Debug>(result: Result<T, EventError>) {
+        assert!(
+            matches!(result, Err(EventError::DegenerateNodAps { .. })),
+            "{result:?}"
+        );
+    }
+
+    #[test]
+    fn a_point_at_the_observer_is_degenerate_not_nan() {
+        assert_degenerate(cartesian_to_raw([0.0; 3]));
+        assert_degenerate(aberrate([0.0; 3], [0.0, 0.0172, 0.0]));
+        // Components too small for their squares to be representable.
+        assert_degenerate(cartesian_to_raw([1e-200, 0.0, 1e-200]));
+    }
+
+    #[test]
+    fn a_non_finite_point_is_degenerate_not_nan() {
+        for bad in [f64::NAN, f64::INFINITY] {
+            assert_degenerate(cartesian_to_raw([1.0, bad, 0.0]));
+            assert_degenerate(aberrate([1.0, bad, 0.0], [0.0, 0.0172, 0.0]));
+        }
+        // Finite components whose norm overflows.
+        assert_degenerate(cartesian_to_raw([1e200, 1e200, 0.0]));
+        // A finite point with a non-finite observer velocity.
+        assert_degenerate(aberrate([2.0, 0.0, 0.0], [f64::NAN, 0.0, 0.0]));
+    }
+
+    #[test]
+    fn cartesian_to_raw_reads_a_pole_and_an_ordinary_point() {
+        let pole = cartesian_to_raw([0.0, 0.0, -3.0]).expect("pole");
+        assert_eq!(pole.lat_deg, -90.0);
+        assert_eq!(pole.dist_au, 3.0);
+        let point = cartesian_to_raw([0.0, 2.0, 0.0]).expect("point");
+        assert_eq!(point.lon_deg, 90.0);
+        assert_eq!(point.lat_deg, 0.0);
+        assert_eq!(point.dist_au, 2.0);
     }
 
     #[test]
@@ -252,22 +293,37 @@ fn scale3(a: [f64; 3], s: f64) -> [f64; 3] {
     [a[0] * s, a[1] * s, a[2] * s]
 }
 
-fn cartesian_to_raw(p: [f64; 3]) -> RawPoint {
+/// The length of `p`, or [`EventError::DegenerateNodAps`] when it is zero or
+/// not finite: such a vector has no direction, and dividing by its length
+/// would put NaN into a longitude and latitude (issue #161). No in-scope body
+/// produces one; geocentric distances are AU-scale.
+fn direction_norm(p: [f64; 3]) -> Result<f64, EventError> {
     let r = norm3(p);
-    RawPoint {
+    if r.is_finite() && r > 0.0 {
+        Ok(r)
+    } else {
+        Err(EventError::DegenerateNodAps {
+            detail: format!("point at distance {r} AU from the observer has no direction"),
+        })
+    }
+}
+
+fn cartesian_to_raw(p: [f64; 3]) -> Result<RawPoint, EventError> {
+    let r = direction_norm(p)?;
+    Ok(RawPoint {
         lon_deg: p[1].atan2(p[0]).to_degrees().rem_euclid(360.0),
         lat_deg: (p[2] / r).asin().to_degrees(),
         dist_au: r,
-    }
+    })
 }
 
 /// First-order annual aberration: rotate the unit direction by v⊥/c, keep the
 /// distance (SE applies `swi_aberr_light` to each returned point).
-fn aberrate(p: [f64; 3], v_obs_au_day: [f64; 3]) -> [f64; 3] {
-    let r = norm3(p);
+fn aberrate(p: [f64; 3], v_obs_au_day: [f64; 3]) -> Result<[f64; 3], EventError> {
+    let r = direction_norm(p)?;
     let u = scale3(p, 1.0 / r);
     let shifted = add3(u, scale3(v_obs_au_day, 1.0 / LIGHT_SPEED_AU_PER_DAY));
-    scale3(shifted, r / norm3(shifted))
+    Ok(scale3(shifted, r / direction_norm(shifted)?))
 }
 
 fn apsis_to_raw(p: &ApsisPoint) -> RawPoint {
@@ -454,8 +510,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
             } else {
                 add3(helio, sun_geo)
             };
-            let aberrated = aberrate(geo, v_obs);
-            let mut raw = cartesian_to_raw(aberrated);
+            let aberrated = aberrate(geo, v_obs)?;
+            let mut raw = cartesian_to_raw(aberrated)?;
             raw.lon_deg = (raw.lon_deg + dpsi_deg).rem_euclid(360.0);
             *o = raw;
         }
@@ -661,7 +717,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
             } else {
                 add3(v, recenter)
             };
-            *o = cartesian_to_raw(aberrate(geo, v_obs));
+            *o = cartesian_to_raw(aberrate(geo, v_obs)?)?;
         }
         if *body == CelestialBody::Sun {
             // SE zeroes the Sun's node slots: it forms the Sun's points from
@@ -698,7 +754,7 @@ fn rotate_j2000_to_true_of_date(v: [f64; 3], jd: f64) -> Result<[f64; 3], EventE
     if r == 0.0 {
         return Ok(v);
     }
-    let raw = cartesian_to_raw(v);
+    let raw = cartesian_to_raw(v)?;
     let precessed = precess_ecliptic_j2000_to_date(raw.lon_deg, raw.lat_deg, jd)
         .map_err(|e| EventError::Backend(format!("precession failed: {e}")))?;
     let dpsi_deg = nutation(jd)
