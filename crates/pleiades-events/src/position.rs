@@ -11,7 +11,7 @@
 //! | geocentric mean of date | backend mean J2000 place and its motion | precessed to the mean equinox of date |
 //! | heliocentric | planet minus Sun in J2000, rates from Cartesian velocities | true equinox of date |
 //! | either geocentric frame, lunar orbit point | backend mean J2000 direction and its motion | precessed, plus Δψ in the apparent frame; no light-time, no aberration |
-//! | any geocentric frame, sidereal zodiac | as the frame | the frame's place − Δψ (apparent only) − mean ayanamsa |
+//! | any frame, sidereal zodiac | as the frame | the frame's place − Δψ (apparent and heliocentric) − mean ayanamsa |
 //!
 //! The heliocentric place is geometric — no light-time, no aberration — in the
 //! true ecliptic and equinox of date, i.e. Swiss Ephemeris
@@ -182,8 +182,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///
     /// With a sidereal [`CrossingReference`] the longitude is the frame's
     /// longitude on the mean equinox of date minus the mean ayanamsa. The
-    /// speed drops by the ayanamsa's rate, and in the apparent frame it also
-    /// changes by the rate of the removed nutation in longitude.
+    /// speed drops by the ayanamsa's rate, and in the apparent and
+    /// heliocentric frames it also changes by the rate of the removed
+    /// nutation in longitude.
     ///
     /// Longitude and latitude are degrees, distance is AU; speeds are per day.
     /// The speed is the backend's own speed plus the rate of the frame or
@@ -197,8 +198,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// The same as [`EventEngine::longitude_at`]:
     /// [`EventError::OutOfWindow`] outside the packaged 1900–2100 window,
     /// [`EventError::UnsupportedFrame`] for a heliocentric Sun, Moon or lunar
-    /// orbit point, for a sidereal zodiac in the heliocentric frame, and for a
-    /// sidereal ayanamsa with no finite offset data,
+    /// orbit point and for a sidereal ayanamsa with no finite offset data,
     /// [`EventError::MissingCoordinates`] when the backend returns no ecliptic
     /// place, [`EventError::MissingDistance`] when a body other than a lunar
     /// orbit point comes without a distance, and [`EventError::Backend`] for a

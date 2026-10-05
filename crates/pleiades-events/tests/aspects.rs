@@ -439,13 +439,42 @@ fn out_of_window_instants_and_undefined_frames_fail_closed() {
     assert!(matches!(
         range(
             sidereal_helio,
+            CelestialBody::Sun,
             CelestialBody::Mars,
-            CelestialBody::Saturn,
             J2000,
             J2000 + 30.0
         ),
         Err(EventError::UnsupportedFrame { .. })
     ));
+}
+
+// The ayanamsa and the nutation come off both longitudes, so a sidereal
+// zodiac moves the reported longitudes and not the heliocentric events
+// (issue #106).
+#[test]
+fn heliocentric_sidereal_aspects_are_the_tropical_events() {
+    let lahiri = CrossingReference::sidereal(HELIO, Ayanamsa::Lahiri);
+    let find = |reference: CrossingReference| {
+        aspects(
+            CelestialBody::Mars,
+            CelestialBody::Jupiter,
+            0.0,
+            reference,
+            J2000,
+            J2000 + 3652.0,
+        )
+    };
+    let tropical = find(HELIO.into());
+    let sidereal = find(lahiri.clone());
+    assert_eq!(sidereal.len(), 5, "{sidereal:?}");
+    assert_exact(&sidereal, 0.0);
+    for (s, t) in sidereal.iter().zip(&tropical) {
+        assert!((jd(s) - jd(t)).abs() * 86_400.0 < 1.0, "{s:?} vs {t:?}");
+        let shift = (t.first_longitude.degrees() - s.first_longitude.degrees()).rem_euclid(360.0);
+        assert!((23.0..25.0).contains(&shift), "{shift}");
+        assert_eq!(s.frame, HELIO);
+        assert_eq!(s.zodiac, lahiri.zodiac);
+    }
 }
 
 #[test]

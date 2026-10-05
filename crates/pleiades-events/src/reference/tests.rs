@@ -52,6 +52,7 @@ fn sampled_place_agrees_with_ecliptic_in() {
         CrossingReference::tropical(CrossingFrame::GeocentricMeanOfDate),
         CrossingReference::sidereal(CrossingFrame::GeocentricApparentOfDate, Ayanamsa::Lahiri),
         CrossingReference::sidereal(CrossingFrame::GeocentricMeanOfDate, Ayanamsa::Lahiri),
+        CrossingReference::sidereal(CrossingFrame::Heliocentric, Ayanamsa::Lahiri),
     ];
     for reference in &references {
         for (body, label, jd) in CASES {

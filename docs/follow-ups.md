@@ -2402,6 +2402,15 @@ chart golden and a gate against a Swiss Ephemeris sidereal position corpus;
 (a) was fixed under issue #120 without a corpus, pinned to the four Swiss
 Ephemeris values the issue quoted.
 
+**Update 2026-10-05 (issue #106):** the heliocentric frame was tropical only
+in `pleiades-events`. It now takes a sidereal zodiac by the same rule as the
+apparent frame: its place is on the true equinox of date, so Δψ and then the
+mean ayanamsa come off the longitude (Swiss Ephemeris
+`SEFLG_HELCTR | SEFLG_TRUEPOS | SEFLG_SIDEREAL`). One Swiss Ephemeris value
+pins it (Mars, Lahiri, JD 2460026.99, within 0.2″); `validate-crossings` has
+no heliocentric sidereal rows, so there is no corpus gate for it yet. (c)
+applies to it unchanged.
+
 **Severity:** (a) convention, up to about 17″ (resolved); (b) frame correctness, growing
 with distance from J2000; (c) convention, up to about 20″, star-anchored
 ayanamsas only; (e) speed convention, 3.8e-5 deg/day (resolved)

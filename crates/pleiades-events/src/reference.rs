@@ -64,7 +64,10 @@ fn with_distance((lon, lat, dist): (f64, f64, f64)) -> EclipticTriple {
 /// an offset moves a crossing time by about 8 minutes for the Sun and by hours
 /// for a slow planet such as Saturn, more near a station.
 ///
-/// The heliocentric frame is tropical only.
+/// The heliocentric frame follows the same rule (issue #106): its place is on
+/// the true equinox of date, so nutation in longitude comes off before the
+/// ayanamsa does. This is Swiss Ephemeris
+/// `SEFLG_HELCTR | SEFLG_TRUEPOS | SEFLG_SIDEREAL`.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
@@ -161,9 +164,6 @@ pub(crate) fn check_supported(
     }
     match &reference.zodiac {
         ZodiacMode::Tropical => Ok(()),
-        ZodiacMode::Sidereal { .. } if heliocentric => Err(unsupported(
-            "a sidereal zodiac is not supported in the heliocentric frame",
-        )),
         ZodiacMode::Sidereal { ayanamsa } => ayanamsa_deg(ayanamsa, julian_day).map(|_| ()),
         _ => Err(unsupported("unsupported zodiac mode")),
     }
@@ -182,20 +182,16 @@ fn in_zodiac(
         _ => return Err(unsupported("unsupported zodiac mode")),
     };
     // Nutation slides the equinox along the ecliptic, so removing Δψ from a
-    // true-equinox longitude gives the mean-equinox longitude exactly.
+    // true-equinox longitude gives the mean-equinox longitude exactly. The
+    // heliocentric place is on the true equinox too (`heliocentric_of_date`).
     let nutation_deg = match reference.frame {
-        CrossingFrame::GeocentricApparentOfDate => {
+        CrossingFrame::GeocentricApparentOfDate | CrossingFrame::Heliocentric => {
             nutation(julian_day)
                 .map_err(|e| EventError::Backend(format!("sidereal nutation failed: {e}")))?
                 .delta_psi_arcsec
                 / 3600.0
         }
         CrossingFrame::GeocentricMeanOfDate => 0.0,
-        CrossingFrame::Heliocentric => {
-            return Err(unsupported(
-                "a sidereal zodiac is not supported in the heliocentric frame",
-            ))
-        }
     };
     let shift = nutation_deg + ayanamsa_deg(ayanamsa, julian_day)?;
     Ok(((lon - shift).rem_euclid(360.0), lat, dist))
