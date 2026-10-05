@@ -5,6 +5,7 @@ pub(crate) mod bundle_manifest;
 pub(crate) mod bundle_verify;
 pub(crate) mod bundle_verify_helpers;
 mod checklist;
+pub(crate) mod fuzz_toolchain_audit;
 pub(crate) mod notes;
 pub(crate) mod readme_audit;
 pub(crate) mod workspace_audit;

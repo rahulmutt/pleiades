@@ -8,11 +8,13 @@ use crate::*;
 
 use pleiades_core::{EphemerisError, EphemerisErrorKind};
 
+use super::fuzz_toolchain_audit::audit_fuzz_nightly_text;
 use super::readme_audit::{audit_readme_crate_lists, audit_readme_release_series};
 
 /// A deterministic workspace audit that checks for mandatory native build hooks
 /// in the first-party crates, lockfile, and pinned tooling manifest, plus
-/// publish metadata for publishable crates and README drift from the manifests.
+/// publish metadata for publishable crates, README drift from the manifests,
+/// and drift between the two copies of the fuzz nightly date.
 #[derive(Clone, Debug)]
 pub struct WorkspaceAuditReport {
     /// Workspace root used for the scan.
@@ -1172,6 +1174,15 @@ fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Er
             &text,
             workspace_rust_version(&workspace_root),
         ));
+        let fuzz_toolchain_path = workspace_root.join("fuzz").join("rust-toolchain.toml");
+        if fuzz_toolchain_path.is_file() {
+            violations.extend(audit_fuzz_nightly_text(
+                &tool_manifest_path,
+                &text,
+                &fuzz_toolchain_path,
+                &fs::read_to_string(&fuzz_toolchain_path)?,
+            ));
+        }
     } else {
         violations.push(WorkspaceAuditViolation {
             path: tool_manifest_path.clone(),

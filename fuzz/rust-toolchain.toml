@@ -17,6 +17,8 @@
 # the single other place this date string appears outside frozen plan/spec
 # docs. There is no automated way to single-source it: mise's Tera
 # templating renders `[tools]`/`[tasks]` values in mise.toml itself, not
-# arbitrary files that rustup reads directly.
+# arbitrary files that rustup reads directly. The workspace audit
+# (`mise run audit`, blocking CI) compares the two and fails with
+# `fuzz-toolchain.nightly-drift` when they differ.
 [toolchain]
 channel = "nightly-2026-10-01"
