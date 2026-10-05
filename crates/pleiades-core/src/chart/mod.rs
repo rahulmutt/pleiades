@@ -20,6 +20,8 @@ mod aspects;
 #[cfg(test)]
 mod bit_identity_tests;
 mod errors;
+#[cfg(test)]
+mod house_placement_tests;
 mod houses;
 mod motion;
 mod observer;
@@ -462,12 +464,6 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. }) {
                     position.zodiac_mode = request.zodiac_mode.clone();
                 }
-                let house = houses.as_ref().and_then(|snapshot| {
-                    position
-                        .ecliptic
-                        .as_ref()
-                        .map(|coords| house_for_longitude(coords.longitude, &snapshot.cusps))
-                });
                 let apparent = if let Some(sun_lon) = sun_true_longitude_of_date {
                     let outcome = self.apparent_place(
                         &body,
@@ -629,6 +625,16 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                     .as_ref()
                     .map(|coords| pleiades_types::ZodiacSign::from_longitude(coords.longitude))
                     .or(sign);
+                // The house is likewise the house of the longitude the
+                // placement reports, in the zodiac the cusps are in: the
+                // steps above move a body by the precession since J2000 and
+                // more, enough to carry it across a cusp (issue #182).
+                let house = houses.as_ref().and_then(|snapshot| {
+                    position
+                        .ecliptic
+                        .as_ref()
+                        .map(|coords| house_for_longitude(coords.longitude, &snapshot.cusps))
+                });
                 Ok(BodyPlacement {
                     body,
                     position,
