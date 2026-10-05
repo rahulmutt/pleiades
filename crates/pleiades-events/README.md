@@ -105,8 +105,9 @@ osculating apogee are found but not gated.
 
 ## Aspects
 
-`EventEngine::aspects_in_range(first, second, angle, reference, start, end)`
-and `EventEngine::next_aspect(first, second, angle, reference, after)` find
+`EventEngine::aspects_in_range(first, second, angle, reference, start, end)`,
+`EventEngine::next_aspect(first, second, angle, reference, after)` and
+`EventEngine::previous_aspect(first, second, angle, reference, before)` find
 the instants the ecliptic separation of two bodies equals an angle. An
 `AspectEvent` carries the TDB instant and both longitudes.
 
@@ -116,6 +117,9 @@ the first body is 90° ahead of the second and the moments it is 90° behind,
 and the two longitudes say which. The moment a pair enters a 3° orb of a
 square is the exact moment of the 87° or 93° separation. A returned instant
 can be handed back to `next_aspect`, which then returns the following event.
+`previous_aspect` returns the last event at or before an instant; an event
+within the 0.5 s tolerance of that instant may fall on either side, so step
+back a second from a returned instant to reach the event before it.
 
 A pair that approaches an angle and turns back before reaching it returns
 nothing. A sidereal zodiac changes the reported longitudes, not the instants:

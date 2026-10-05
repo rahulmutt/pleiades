@@ -9,7 +9,9 @@
 use crate::crossings::{body_label, CrossingFrame, EventEngine};
 use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
 use crate::reference::{check_supported, ecliptic_in, CrossingReference};
-use crate::root::{first_level_crossing_after, level_crossings_in_range, wrap180};
+use crate::root::{
+    first_level_crossing_after, last_level_crossing_before, level_crossings_in_range, wrap180,
+};
 use crate::stations::step_days;
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{Angle, CelestialBody, Instant, JulianDay, Longitude, TimeScale, ZodiacMode};
@@ -313,6 +315,73 @@ impl<B: EphemerisBackend> EventEngine<B> {
         )?;
         root.filter(|&jd| jd > after_jd)
             .map(|jd| self.aspect_at(&first, &second, angle, &reference, jd))
+            .transpose()
+    }
+
+    /// The last instant at or before `before` at which the ecliptic
+    /// separation of `first` and `second` equals `angle`, or `None`.
+    ///
+    /// The event `aspects_in_range(first, second, angle, reference,
+    /// WINDOW_START, before).last()` finds, located without scanning the
+    /// whole range: the search walks backward from `before` in chunks and
+    /// stops at the first chunk that holds an event. The two agree on the
+    /// instant to within the 0.5 s bisection tolerance, not bit for bit.
+    ///
+    /// An event within that tolerance of `before` may land on either side:
+    /// given an [`AspectEvent::instant`] this engine returned, the result is
+    /// either that event or the one before it. Step `before` back by a second
+    /// to skip the described event for certain. (The crossing and station
+    /// searches decide this by the sign at `before`; the aspect scanner does
+    /// not yet.)
+    ///
+    /// For a pair that never reaches the angle (the Sun and Mercury at 60
+    /// degrees) the search runs to the start of the 1900–2100 window before
+    /// returning `None`.
+    ///
+    /// The meaning of `angle`, the accuracy, the limits and the errors are
+    /// those of [`EventEngine::aspects_in_range`].
+    ///
+    /// ```
+    /// use pleiades_data::packaged_backend;
+    /// use pleiades_events::{CrossingFrame, EventEngine};
+    /// use pleiades_types::{Angle, CelestialBody, Instant, JulianDay, TimeScale};
+    ///
+    /// // The last full Moon before J2000: 22 December 1999.
+    /// let engine = EventEngine::new(packaged_backend());
+    /// let before = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb);
+    /// let full_moon = engine
+    ///     .previous_aspect(
+    ///         CelestialBody::Sun,
+    ///         CelestialBody::Moon,
+    ///         Angle::from_degrees(180.0),
+    ///         CrossingFrame::GeocentricApparentOfDate,
+    ///         before,
+    ///     )
+    ///     .unwrap()
+    ///     .expect("the Moon is full every month");
+    /// let days = 2_451_545.0 - full_moon.instant.julian_day.days();
+    /// assert!((9.5..10.5).contains(&days), "{days}");
+    /// ```
+    pub fn previous_aspect(
+        &self,
+        first: CelestialBody,
+        second: CelestialBody,
+        angle: Angle,
+        reference: impl Into<CrossingReference>,
+        before: Instant,
+    ) -> Result<Option<AspectEvent>, EventError> {
+        let reference = reference.into();
+        let before_jd = before.julian_day.days();
+        let search =
+            self.aspect_search(&first, &second, angle, &reference, [before_jd, before_jd])?;
+        let root = last_level_crossing_before(
+            |jd| separation(&self.backend, &first, &second, &reference, jd),
+            &search.levels,
+            search.earliest,
+            before_jd.min(search.latest),
+            search.step,
+        )?;
+        root.map(|jd| self.aspect_at(&first, &second, angle, &reference, jd))
             .transpose()
     }
 }

@@ -374,6 +374,58 @@ where
         .next())
 }
 
+/// Steps per chunk of [`last_level_crossing_before`]'s backward walk.
+pub(crate) const LEVEL_CHUNK_STEPS: f64 = 64.0;
+
+/// The last instant in `[lo_jd, hi_jd]` at which `d` equals one of `levels`,
+/// or `None`. The backward twin of [`first_level_crossing_after`].
+///
+/// The level scanner only runs forward, because it needs the samples either
+/// side of a step to split it at a turning point. So this walks the range in
+/// chunks of [`LEVEL_CHUNK_STEPS`] steps, latest first, runs the forward scan
+/// over each and returns the last crossing of the first chunk that holds
+/// one: the cost follows the distance back to the crossing, not the length
+/// of the range.
+///
+/// Every chunk after the first reaches one step past its upper seam. The
+/// forward scan keeps a crossing only if its settled instant lies in the
+/// scanned range, so a crossing just below a seam, which settles just above
+/// it, is in neither neighbouring chunk's own range.
+///
+/// Limits: those of [`level_crossings_in_range`], and its upper end: a
+/// crossing within the bisection tolerance of `hi_jd` may settle past it and
+/// go unreported. `d` is sampled within the same bounds, `[lo_jd −
+/// step_days, hi_jd + 2·step_days)`, and at `lo_jd` even on an empty range.
+pub(crate) fn last_level_crossing_before<F>(
+    mut d: F,
+    levels: &[f64],
+    lo_jd: f64,
+    hi_jd: f64,
+    step_days: f64,
+) -> Result<Option<f64>, EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    if hi_jd <= lo_jd {
+        // The forward scan's own sample of an empty range.
+        d(lo_jd)?;
+        return Ok(None);
+    }
+    let chunk_days = LEVEL_CHUNK_STEPS * step_days;
+    let mut chunk_hi = hi_jd;
+    let mut scan_hi = hi_jd;
+    while chunk_hi > lo_jd {
+        let chunk_lo = (chunk_hi - chunk_days).max(lo_jd);
+        let roots = scan_levels(&mut d, levels, chunk_lo, scan_hi, step_days, false)?;
+        if let Some(&last) = roots.last() {
+            return Ok(Some(last));
+        }
+        chunk_hi = chunk_lo;
+        scan_hi = chunk_lo + step_days;
+    }
+    Ok(None)
+}
+
 #[cfg(test)]
 mod level_tests;
 
