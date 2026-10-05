@@ -17,6 +17,14 @@ fn shared_command_help_is_kept_in_sync_with_the_validation_binary() {
         "cli should remain the only binary with the chart command"
     );
     assert!(
+        cli_commands.remove("stations"),
+        "cli should remain the only binary with the stations command"
+    );
+    assert!(
+        cli_commands.remove("aspects"),
+        "cli should remain the only binary with the aspects command"
+    );
+    assert!(
         cli_commands.remove("generate-spk-corpus"),
         "cli should remain the only binary with the generate-spk-corpus command"
     );

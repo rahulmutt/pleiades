@@ -10,6 +10,7 @@ use pleiades_validate::{
 };
 
 use crate::commands::chart::render_chart;
+use crate::commands::events::{render_aspects, render_stations};
 use crate::commands::fixture_golden::render_fixture_golden;
 use crate::commands::generate_artifact::render_generate_artifact;
 use crate::commands::packaged_artifact::{
@@ -869,6 +870,8 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
             render_validation_report_summary(rounds).map_err(render_error)
         }
         Some("chart") => render_chart(&args[1..]),
+        Some("stations") => render_stations(&args[1..]),
+        Some("aspects") => render_aspects(&args[1..]),
         Some("generate-spk-corpus") => render_spk_corpus(&args[1..]),
         Some("generate-fixture-golden") => render_fixture_golden(&args[1..]),
         Some("generate-artifact") => render_generate_artifact(&args[1..]),

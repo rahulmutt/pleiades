@@ -181,8 +181,10 @@ dependencies = [
  "pleiades-core",
  "pleiades-data",
  "pleiades-elp",
+ "pleiades-events",
  "pleiades-fict",
  "pleiades-jpl",
+ "pleiades-time",
  "pleiades-validate",
  "pleiades-vsop87",
 ]

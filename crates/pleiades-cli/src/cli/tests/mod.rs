@@ -3,6 +3,7 @@
 mod artifact_and_workspace;
 mod chart;
 mod compare_backends;
+mod events;
 mod help;
 mod misc;
 mod profile;
