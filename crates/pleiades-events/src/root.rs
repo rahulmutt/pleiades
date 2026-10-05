@@ -49,8 +49,24 @@ where
     Ok(hi)
 }
 
-/// All roots of `f` in `[lo_jd, hi_jd]`, ascending. `step_days` must be small
+/// Whether `f` crosses zero between two samples: a sign change whose jump is
+/// small enough to be a zero-crossing and not the ±180 wrap seam.
+fn brackets_crossing(f_earlier: f64, f_later: f64) -> bool {
+    (f_earlier <= 0.0) != (f_later <= 0.0) && (f_earlier - f_later).abs() < 180.0
+}
+
+/// All roots of `f` in `(lo_jd, hi_jd]`, ascending. `step_days` must be small
 /// enough to separate the closest expected crossings for the body in question.
+///
+/// The grid is anchored at `lo_jd` and its last interval is cut short at
+/// `hi_jd`, so `f` is never evaluated outside the range and each end decides
+/// membership by the sign of `f` there, exactly: a crossing is in range when
+/// `f` carries its pre-crossing sign at `lo_jd` and its post-crossing sign at
+/// `hi_jd`. Comparing a refined root against an end instead would drop or
+/// repeat a crossing within the bisection tolerance of it. With
+/// [`bisect`] returning the settled end of its bracket, ranges that share an
+/// end therefore partition the crossings, whatever that end is, including an
+/// instant this module returned (issue #159).
 pub(crate) fn crossings_in_range<F>(
     mut f: F,
     lo_jd: f64,
@@ -63,30 +79,22 @@ where
     let mut out = Vec::new();
     let mut prev_jd = lo_jd;
     let mut prev_f = f(prev_jd)?;
-    let mut jd = lo_jd + step_days;
-    while jd <= hi_jd + step_days {
+    while prev_jd < hi_jd {
+        let jd = (prev_jd + step_days).min(hi_jd);
         let f_jd = f(jd)?;
-        // Real crossing: sign change whose function jump is small enough to be a
-        // zero-crossing rather than the ±180 wrap seam.
-        if (prev_f <= 0.0) != (f_jd <= 0.0) && (prev_f - f_jd).abs() < 180.0 {
-            let root = bisect(&mut f, prev_jd, prev_f, jd)?;
-            if root >= lo_jd && root <= hi_jd {
-                out.push(root);
-            }
+        if brackets_crossing(prev_f, f_jd) {
+            out.push(bisect(&mut f, prev_jd, prev_f, jd)?);
         }
         prev_jd = jd;
         prev_f = f_jd;
-        jd += step_days;
     }
     Ok(out)
 }
 
-/// The first root of `f` strictly greater than `lo_jd`, or `None` if there is no
-/// root in `[lo_jd, hi_jd]`. Early-terminating twin of [`crossings_in_range`]: it
-/// brackets by stepping and returns as soon as the first zero-crossing is refined,
-/// instead of scanning the whole window. Uses the identical wrap-seam (`< 180.0`)
-/// guard and bisection tolerance, so the returned root matches
-/// `crossings_in_range(..).first()` for the same arguments.
+/// The first root of `f` in `(lo_jd, hi_jd]`, or `None`. Early-terminating
+/// twin of [`crossings_in_range`]: the same grid, guard and tolerance, so the
+/// returned root is `crossings_in_range(..).first()` for the same arguments,
+/// found without scanning the rest of the range.
 pub(crate) fn first_crossing_after<F>(
     mut f: F,
     lo_jd: f64,
@@ -98,36 +106,33 @@ where
 {
     let mut prev_jd = lo_jd;
     let mut prev_f = f(prev_jd)?;
-    let mut jd = lo_jd + step_days;
-    while jd <= hi_jd + step_days {
+    while prev_jd < hi_jd {
+        let jd = (prev_jd + step_days).min(hi_jd);
         let f_jd = f(jd)?;
-        if (prev_f <= 0.0) != (f_jd <= 0.0) && (prev_f - f_jd).abs() < 180.0 {
-            let root = bisect(&mut f, prev_jd, prev_f, jd)?;
-            if root >= lo_jd && root <= hi_jd {
-                return Ok(Some(root));
-            }
+        if brackets_crossing(prev_f, f_jd) {
+            return bisect(&mut f, prev_jd, prev_f, jd).map(Some);
         }
         prev_jd = jd;
         prev_f = f_jd;
-        jd += step_days;
     }
     Ok(None)
 }
 
-/// The last root of `f` in `[lo_jd, hi_jd]`, or `None` if there is no root in
-/// range. Backward early-terminating twin of [`crossings_in_range`]: it walks
-/// the SAME `lo_jd`-anchored grid — samples at `lo_jd + k*step_days` for
-/// integer `k`, bracketing the SAME `[lo_jd + (k-1)*step_days, lo_jd +
-/// k*step_days]` intervals `crossings_in_range` brackets — just visited in
-/// DECREASING `k`, and returns as soon as the first (highest-JD) zero-crossing
-/// is refined, instead of scanning the whole window. It does NOT step a fresh
-/// grid downward from `hi_jd`, which would bracket different intervals
-/// whenever `(hi_jd - lo_jd)` is not an exact multiple of `step_days`. Uses the
-/// identical wrap-seam (`< 180.0`) guard and bisection tolerance, and — like
-/// `crossings_in_range` — always evaluates `f` at the low anchor `lo_jd` once
-/// (even on an empty/inverted range), so a backend error there propagates
-/// identically. The returned root matches `crossings_in_range(..).last()` for
-/// the same arguments.
+/// The last root of `f` in `(lo_jd, hi_jd]`, or `None`. Backward
+/// early-terminating twin of [`crossings_in_range`]: it walks a grid anchored
+/// at `hi_jd` downward, its last interval cut short at `lo_jd`, and stops as
+/// soon as the latest crossing is refined.
+///
+/// Anchoring at `hi_jd` is what makes the upper end exact. A crossing is at
+/// or before `hi_jd` when `f` already carries its post-crossing sign there,
+/// so an instant [`bisect`] settled on a crossing, handed back as `hi_jd`,
+/// finds that same crossing, and one before the crossing does not (issue
+/// #159). The grid differs from the `lo_jd`-anchored one of
+/// [`crossings_in_range`], so the two agree on the root to within the
+/// bisection tolerance, not bit for bit.
+///
+/// `f` is always evaluated at the anchor `hi_jd` once, even on an empty or
+/// inverted range, so a backend error there propagates.
 pub(crate) fn last_crossing_before<F>(
     mut f: F,
     lo_jd: f64,
@@ -137,33 +142,16 @@ pub(crate) fn last_crossing_before<F>(
 where
     F: FnMut(f64) -> Result<f64, EventError>,
 {
-    // Matches `crossings_in_range`'s loop bound `jd <= hi_jd + step_days`,
-    // where `jd` walks `lo_jd + k*step_days` for k = 1, 2, ...
-    let k_max = ((hi_jd + step_days - lo_jd) / step_days).floor() as i64;
-    // Match `crossings_in_range`, which always evaluates the low anchor once
-    // (`let mut prev_f = f(lo_jd)?;`) before its loop: do the same here so a
-    // backend error at `lo_jd` propagates identically, even on an
-    // empty/inverted range where the loop below never runs.
-    let _ = f(lo_jd)?;
-    if k_max < 1 {
-        return Ok(None);
-    }
-    let mut cur_jd = lo_jd + (k_max as f64) * step_days;
+    let mut cur_jd = hi_jd;
     let mut cur_f = f(cur_jd)?;
-    let mut k = k_max;
-    while k >= 1 {
-        let prev_jd = lo_jd + ((k - 1) as f64) * step_days;
+    while cur_jd > lo_jd {
+        let prev_jd = (cur_jd - step_days).max(lo_jd);
         let prev_f = f(prev_jd)?;
-        // Same wrap-seam guard as `crossings_in_range`.
-        if (prev_f <= 0.0) != (cur_f <= 0.0) && (prev_f - cur_f).abs() < 180.0 {
-            let root = bisect(&mut f, prev_jd, prev_f, cur_jd)?;
-            if root >= lo_jd && root <= hi_jd {
-                return Ok(Some(root));
-            }
+        if brackets_crossing(prev_f, cur_f) {
+            return bisect(&mut f, prev_jd, prev_f, cur_jd).map(Some);
         }
         cur_jd = prev_jd;
         cur_f = prev_f;
-        k -= 1;
     }
     Ok(None)
 }
@@ -455,11 +443,11 @@ mod tests {
     }
 
     // Fail-closed parity with `crossings_in_range`: on an empty/inverted range
-    // (`hi < lo` → `k_max < 1`, loop never runs) the low anchor is still
-    // evaluated once, so a backend error there must surface rather than being
-    // swallowed into `Ok(None)`.
+    // (`hi < lo`, loop never runs) the anchor is still evaluated once, so a
+    // backend error there must surface rather than being swallowed into
+    // `Ok(None)`.
     #[test]
-    fn backward_empty_range_still_evaluates_low_anchor() {
+    fn backward_empty_range_still_evaluates_its_anchor() {
         let t0 = 2_451_545.0;
         // Inverted range: hi < lo.
         let err = last_crossing_before(
@@ -476,12 +464,12 @@ mod tests {
         assert!(none.is_none());
     }
 
-    // The real guarantee: `last_crossing_before` walks the SAME lo_jd-anchored
-    // grid as `crossings_in_range` (just in decreasing k), so it must agree with
-    // `crossings_in_range(..).last()` even when `(hi - lo)` is NOT an exact
-    // multiple of `step` — a fresh grid stepped downward from `hi` would bracket
-    // different intervals and silently diverge. Deliberately include several
-    // non-aligned ranges plus one exactly-aligned range.
+    // `last_crossing_before` walks a grid anchored at `hi`, `crossings_in_range`
+    // one anchored at `lo`, so when `(hi - lo)` is not a multiple of `step`
+    // they bracket different intervals. They must still find the same last
+    // crossing, each settled within the bisection tolerance after it.
+    // Deliberately include several non-aligned ranges plus one exactly-aligned
+    // range.
     fn assert_last_matches<F>(name: &str, mut make_f: F, lo: f64, hi: f64, step: f64, offset: f64)
     where
         F: FnMut() -> Box<dyn FnMut(f64) -> Result<f64, EventError>>,
@@ -493,7 +481,7 @@ mod tests {
         let actual = last_crossing_before(make_f(), lo, hi, step).unwrap();
         match (expected, actual) {
             (Some(e), Some(a)) => assert!(
-                (e - a).abs() < 1e-6,
+                (e - a).abs() < REFINE_TOLERANCE_DAYS,
                 "{name} offset {offset} lo {lo} hi {hi}: expected {e}, got {a}"
             ),
             (None, None) => {}
@@ -573,6 +561,125 @@ mod tests {
             let root = bisect(&mut f, lo, lo - c, hi).unwrap();
             assert!(root > c, "root {root} is before the crossing {c}");
             assert!(root - c <= REFINE_TOLERANCE_DAYS, "root {root} vs {c}");
+        }
+    }
+
+    // Issue #159: which side of a range end a crossing falls on is read from
+    // the sign of `f` at that end, not from comparing a refined root with it.
+
+    const SECOND_DAYS: f64 = 1.0 / 86_400.0;
+
+    /// A crossing at `c`, ascending or descending through zero.
+    fn linear(c: f64, ascending: bool) -> impl FnMut(f64) -> Result<f64, EventError> {
+        move |t| Ok(if ascending { t - c } else { c - t })
+    }
+
+    #[test]
+    fn last_crossing_before_a_settled_instant_is_that_crossing() {
+        for (c, ascending) in spread_roots().flat_map(|c| [(c, true), (c, false)]) {
+            let (lo, far) = (c - 3.3, c + 5.1);
+            let settled = first_crossing_after(linear(c, ascending), lo, far, 0.25)
+                .unwrap()
+                .expect("one crossing in range");
+            let back = last_crossing_before(linear(c, ascending), lo, settled, 0.25)
+                .unwrap()
+                .expect("the crossing has happened by its settled instant");
+            assert!(back >= c, "{back} is before the crossing {c}");
+            assert!(back <= settled, "{back} is after the query {settled}");
+        }
+    }
+
+    #[test]
+    fn last_crossing_before_an_instant_ahead_of_the_crossing_is_none() {
+        for (c, ascending) in spread_roots().flat_map(|c| [(c, true), (c, false)]) {
+            let back =
+                last_crossing_before(linear(c, ascending), c - 3.3, c - SECOND_DAYS, 0.25).unwrap();
+            assert_eq!(back, None, "crossing {c}");
+        }
+    }
+
+    #[test]
+    fn last_crossing_before_stays_inside_the_range() {
+        let c = 2_451_545.3;
+        let mut sampled = Vec::new();
+        let back = last_crossing_before(
+            |t| {
+                sampled.push(t);
+                Ok(t - c)
+            },
+            c - 0.6,
+            c + 0.61,
+            0.25,
+        )
+        .unwrap();
+        assert!(back.is_some());
+        // A crossing below the low end is not in range, and is not sampled for.
+        let below = last_crossing_before(
+            |t| {
+                sampled.push(t);
+                Ok(t - c)
+            },
+            c + 0.1,
+            c + 0.61,
+            0.25,
+        )
+        .unwrap();
+        assert_eq!(below, None);
+        assert!(sampled.iter().all(|&t| t >= c - 0.6 && t <= c + 0.61));
+    }
+
+    #[test]
+    fn crossings_in_range_stays_inside_the_range() {
+        let c = 2_451_545.3;
+        let mut sampled = Vec::new();
+        let roots = crossings_in_range(
+            |t| {
+                sampled.push(t);
+                Ok(t - c)
+            },
+            c - 0.6,
+            c + 0.61,
+            0.25,
+        )
+        .unwrap();
+        assert_eq!(roots.len(), 1);
+        assert!(sampled.iter().all(|&t| t >= c - 0.6 && t <= c + 0.61));
+        assert_eq!(sampled.first(), Some(&(c - 0.6)));
+    }
+
+    #[test]
+    fn ranges_sharing_an_end_partition_a_crossing_near_it() {
+        // Split points on both sides of the crossing, within and beyond the
+        // bisection tolerance of it, and at the instants the scanners settle
+        // on. Each must put the crossing in exactly one of the two ranges.
+        for (c, ascending) in spread_roots().flat_map(|c| [(c, true), (c, false)]) {
+            let (lo, hi) = (c - 3.3, c + 5.1);
+            let settled = first_crossing_after(linear(c, ascending), lo, hi, 0.25)
+                .unwrap()
+                .expect("one crossing in range");
+            let offsets_s = [-2.0, -0.4, -0.1, 0.0, 0.1, 0.25, 0.4, 2.0];
+            let splits = offsets_s
+                .iter()
+                .map(|s| c + s * SECOND_DAYS)
+                .chain([settled]);
+            for split in splits {
+                let count = |from: f64, to: f64| {
+                    crossings_in_range(linear(c, ascending), from, to, 0.25)
+                        .unwrap()
+                        .len()
+                };
+                assert_eq!(
+                    count(lo, split) + count(split, hi),
+                    1,
+                    "crossing {c} split at {split}"
+                );
+                // The backward and forward searches from the split agree with
+                // the ranges on which side holds it.
+                let before = last_crossing_before(linear(c, ascending), lo, split, 0.25).unwrap();
+                let after = first_crossing_after(linear(c, ascending), split, hi, 0.25).unwrap();
+                assert_eq!(before.is_some(), count(lo, split) == 1, "split {split}");
+                assert_eq!(after.is_some(), count(split, hi) == 1, "split {split}");
+            }
         }
     }
 
