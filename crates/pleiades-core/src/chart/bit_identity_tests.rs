@@ -18,7 +18,9 @@ use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 /// Value the checksum had on `main` at 91b13290d, before FU-25's second round,
 /// was `0x29ba_dd07_d29e_6380`. Issue #140 re-pinned it: the VSOP87 and ELP
 /// backends' shorter speed step moved the speed bits of the 44 composite rows
-/// and no position bit.
+/// and no position bit (to `0xa646_c0c4_0af4_0e91`). Issue #141 re-pinned it
+/// again: the 11 sidereal (Lahiri) rows' longitude speed dropped by the rate
+/// of the ayanamsa and of the removed nutation, and nothing else moved.
 ///
 /// Re-pin it only in a change that intentionally moves positions or speeds,
 /// like the crossings golden: run `cargo test -p pleiades-core --lib apparent_chart_outputs_are_pinned`,
@@ -26,7 +28,7 @@ use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 /// pinned bit, for a diff against the old run), and state the re-pin and its
 /// reason in the commit message. The value hashes `libm` output and is pinned
 /// on Linux CI; another platform's libm may differ in the last bit.
-const CHART_CHECKSUM: u64 = 0xa646_c0c4_0af4_0e91;
+const CHART_CHECKSUM: u64 = 0x6a34_9467_513a_e85b;
 
 /// First instant the packaged artifact covers for Mars and the Moon, found by
 /// bisecting `OutOfRangeInstant` on `position`. `nominal_range.start`
