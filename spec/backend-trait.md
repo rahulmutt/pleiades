@@ -28,6 +28,17 @@ pub trait EphemerisBackend: Send + Sync {
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError>;
 
+    // Provided. The place is bit-identical to `position`'s and `motion` is
+    // `None`; it may succeed where `position` fails only because the motion
+    // could not be computed. Backends whose motion costs extra evaluations
+    // override it; mean-place-only callers (apparent-place light-time
+    // re-queries, event and eclipse searches) use it.
+    fn position_without_motion(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        let mut result = self.position(req)?;
+        result.motion = None;
+        Ok(result)
+    }
+
     fn positions(&self, reqs: &[EphemerisRequest]) -> Result<Vec<EphemerisResult>, EphemerisError> {
         reqs.iter().map(|r| self.position(r)).collect()
     }

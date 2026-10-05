@@ -257,68 +257,14 @@ impl ElpBackend {
         EclipticCoordinates::new(longitude, latitude, distance_au)
             .to_equatorial(instant.mean_obliquity())
     }
-}
 
-impl EphemerisBackend for ElpBackend {
-    fn metadata(&self) -> BackendMetadata {
-        let theory = lunar_theory_specification();
-        let source = theory.source_selection();
-        BackendMetadata {
-            id: BackendId::new(PACKAGE_NAME),
-            version: env!("CARGO_PKG_VERSION").to_string(),
-            family: BackendFamily::Algorithmic,
-            provenance: BackendProvenance {
-                summary: format!(
-                    "{} [{}; family: {}] {} The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection, while explicitly leaving true apogee/perigee unsupported for now; {}",
-                    theory.model_name,
-                    source.identifier,
-                    source.family,
-                    source.citation,
-                    source.license_note,
-                ),
-                data_sources: vec![
-                    "Meeus-style truncated lunar orbit formulas implemented in pure Rust; see docs/lunar-theory-policy.md for the current baseline scope".to_string(),
-                    {
-                        let family = lunar_theory_source_family_summary();
-                        match family.validate() {
-                            Ok(()) => family.summary_line(),
-                            Err(error) => format!("lunar source family: unavailable ({error})"),
-                        }
-                    },
-                    source.identifier.to_string(),
-                    source.citation.to_string(),
-                    source.material.to_string(),
-                    source.redistribution_note.to_string(),
-                    theory.truncation_note.to_string(),
-                    theory.unit_note.to_string(),
-                    source.license_note.to_string(),
-                    theory.date_range_note.to_string(),
-                    theory.frame_note.to_string(),
-                ],
-            },
-            nominal_range: TimeRange::new(None, None),
-            supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
-            body_claims: elp_body_claims(),
-            supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
-            capabilities: BackendCapabilities {
-                geocentric: true,
-                topocentric: false,
-                apparent: false,
-                mean: true,
-                batch: true,
-                native_sidereal: false,
-            },
-            accuracy: AccuracyClass::Approximate,
-            deterministic: true,
-            offline: true,
-        }
-    }
-
-    fn supports_body(&self, body: CelestialBody) -> bool {
-        lunar_theory_supported_bodies().contains(&body)
-    }
-
-    fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+    /// One request's result. `with_motion` adds the finite-difference speed,
+    /// which costs two more lunar evaluations than the place itself.
+    fn compute(
+        &self,
+        req: &EphemerisRequest,
+        with_motion: bool,
+    ) -> Result<EphemerisResult, EphemerisError> {
         if !self.supports_body(req.body.clone()) {
             return Err(EphemerisError::new(
                 EphemerisErrorKind::UnsupportedBody,
@@ -387,15 +333,90 @@ impl EphemerisBackend for ElpBackend {
                 ));
             }
         }
-        result.motion = Self::motion(body, days);
+        if with_motion {
+            result.motion = Self::motion(body, days);
+        }
         Ok(result)
+    }
+}
+
+impl EphemerisBackend for ElpBackend {
+    fn metadata(&self) -> BackendMetadata {
+        let theory = lunar_theory_specification();
+        let source = theory.source_selection();
+        BackendMetadata {
+            id: BackendId::new(PACKAGE_NAME),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance {
+                summary: format!(
+                    "{} [{}; family: {}] {} The backend exposes the Moon plus mean/true node and mean apogee/perigee channels as an explicit lunar-theory selection, while explicitly leaving true apogee/perigee unsupported for now; {}",
+                    theory.model_name,
+                    source.identifier,
+                    source.family,
+                    source.citation,
+                    source.license_note,
+                ),
+                data_sources: vec![
+                    "Meeus-style truncated lunar orbit formulas implemented in pure Rust; see docs/lunar-theory-policy.md for the current baseline scope".to_string(),
+                    {
+                        let family = lunar_theory_source_family_summary();
+                        match family.validate() {
+                            Ok(()) => family.summary_line(),
+                            Err(error) => format!("lunar source family: unavailable ({error})"),
+                        }
+                    },
+                    source.identifier.to_string(),
+                    source.citation.to_string(),
+                    source.material.to_string(),
+                    source.redistribution_note.to_string(),
+                    theory.truncation_note.to_string(),
+                    theory.unit_note.to_string(),
+                    source.license_note.to_string(),
+                    theory.date_range_note.to_string(),
+                    theory.frame_note.to_string(),
+                ],
+            },
+            nominal_range: TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt, TimeScale::Tdb],
+            body_claims: elp_body_claims(),
+            supported_frames: vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial],
+            capabilities: BackendCapabilities {
+                geocentric: true,
+                topocentric: false,
+                apparent: false,
+                mean: true,
+                batch: true,
+                native_sidereal: false,
+            },
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        }
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        lunar_theory_supported_bodies().contains(&body)
+    }
+
+    fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        self.compute(req, true)
+    }
+
+    fn position_without_motion(
+        &self,
+        req: &EphemerisRequest,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        self.compute(req, false)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::ElpBackend;
-    use pleiades_backend::EphemerisBackend; // brings `.metadata()` into scope
+    use crate::lunar_theory_supported_bodies;
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest, EphemerisResult};
+    use pleiades_types::{Instant, JulianDay, TimeScale};
 
     #[test]
     fn backend_metadata_source_family_line_is_stable() {
@@ -410,5 +431,35 @@ mod tests {
             "source-family provenance line drifted:\n{:#?}",
             metadata.provenance.data_sources
         );
+    }
+
+    #[test]
+    fn position_without_motion_is_position_minus_motion() {
+        let backend = ElpBackend;
+        for jd in [2_460_763.5, 2_451_545.0, 2_433_282.5, 2_488_069.5] {
+            for body in lunar_theory_supported_bodies() {
+                let req = EphemerisRequest::new(
+                    body.clone(),
+                    Instant::new(JulianDay::from_days(jd), TimeScale::Tt),
+                );
+                let full = backend.position(&req);
+                let free = backend.position_without_motion(&req);
+                match (full, free) {
+                    (Ok(full), Ok(free)) => {
+                        assert!(full.motion.is_some(), "{body:?} {jd}");
+                        assert_eq!(
+                            EphemerisResult {
+                                motion: None,
+                                ..full
+                            },
+                            free,
+                            "{body:?} {jd}"
+                        );
+                    }
+                    (Err(full), Err(free)) => assert_eq!(full, free, "{body:?} {jd}"),
+                    (full, free) => panic!("{body:?} {jd}: {full:?} vs {free:?}"),
+                }
+            }
+        }
     }
 }

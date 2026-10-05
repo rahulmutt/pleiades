@@ -8,6 +8,7 @@ mod backend;
 mod documentation;
 mod evidence;
 mod pluto;
+mod position_without_motion;
 mod profiles;
 
 #[test]

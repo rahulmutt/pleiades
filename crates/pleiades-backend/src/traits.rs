@@ -22,6 +22,32 @@ pub trait EphemerisBackend: Send + Sync {
     /// Computes a single ephemeris result.
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError>;
 
+    /// Computes a single ephemeris result for a caller that does not need
+    /// its motion.
+    ///
+    /// The returned place is bit-identical to [`Self::position`]'s and
+    /// `motion` is `None`. A backend that derives motion from extra
+    /// evaluations (a finite difference, say) overrides this to skip them;
+    /// the light-time iteration of an apparent place re-queries a body and
+    /// discards the motion each time. An override may succeed where
+    /// [`Self::position`] fails only because the motion could not be
+    /// computed. A wrapper that transforms results should override this too,
+    /// or it falls back to its own [`Self::position`], which stays correct
+    /// but pays for the motion.
+    ///
+    /// In a [`CompositeBackend`] or [`RoutingBackend`], if a provider's
+    /// `position` fails only because its motion failed, with a retryable error
+    /// kind, `position` falls back to the next provider's place while this
+    /// method returns that provider's own place.
+    fn position_without_motion(
+        &self,
+        req: &EphemerisRequest,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        let mut result = self.position(req)?;
+        result.motion = None;
+        Ok(result)
+    }
+
     /// Computes multiple ephemeris results.
     ///
     /// The default adapter calls [`Self::position`] for each request in order and
@@ -57,6 +83,36 @@ impl<A, B> CompositeBackend<A, B> {
     /// Returns the secondary backend.
     pub const fn secondary(&self) -> &B {
         &self.secondary
+    }
+}
+
+impl<A: EphemerisBackend, B: EphemerisBackend> CompositeBackend<A, B> {
+    /// Routes `req` to the primary or secondary backend through `query`, so
+    /// every entry point shares one fallback policy.
+    fn dispatch(
+        &self,
+        req: &EphemerisRequest,
+        query: impl Fn(&dyn EphemerisBackend) -> Result<EphemerisResult, EphemerisError>,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        let primary_supports = self.primary.supports_body(req.body.clone());
+        let secondary_supports = self.secondary.supports_body(req.body.clone());
+
+        if primary_supports {
+            match query(&self.primary) {
+                Ok(result) => Ok(result),
+                Err(error) if secondary_supports && should_fallback_to_secondary(&error.kind) => {
+                    query(&self.secondary)
+                }
+                Err(error) => Err(error),
+            }
+        } else if secondary_supports {
+            query(&self.secondary)
+        } else {
+            Err(EphemerisError::new(
+                EphemerisErrorKind::UnsupportedBody,
+                "no backend in the composite router supports the requested body",
+            ))
+        }
     }
 }
 
@@ -115,25 +171,14 @@ impl<A: EphemerisBackend, B: EphemerisBackend> EphemerisBackend for CompositeBac
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
-        let primary_supports = self.primary.supports_body(req.body.clone());
-        let secondary_supports = self.secondary.supports_body(req.body.clone());
+        self.dispatch(req, |backend| backend.position(req))
+    }
 
-        if primary_supports {
-            match self.primary.position(req) {
-                Ok(result) => Ok(result),
-                Err(error) if secondary_supports && should_fallback_to_secondary(&error.kind) => {
-                    self.secondary.position(req)
-                }
-                Err(error) => Err(error),
-            }
-        } else if secondary_supports {
-            self.secondary.position(req)
-        } else {
-            Err(EphemerisError::new(
-                EphemerisErrorKind::UnsupportedBody,
-                "no backend in the composite router supports the requested body",
-            ))
-        }
+    fn position_without_motion(
+        &self,
+        req: &EphemerisRequest,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        self.dispatch(req, |backend| backend.position_without_motion(req))
     }
 }
 
@@ -162,6 +207,46 @@ impl RoutingBackend {
     /// Returns `true` if no providers are configured.
     pub fn is_empty(&self) -> bool {
         self.backends.is_empty()
+    }
+
+    /// Walks the chain through `query`, so every entry point shares one
+    /// fallback policy.
+    fn dispatch(
+        &self,
+        req: &EphemerisRequest,
+        query: impl Fn(&dyn EphemerisBackend) -> Result<EphemerisResult, EphemerisError>,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        let mut saw_support = false;
+        let mut last_retryable_error = None;
+
+        for backend in &self.backends {
+            if !backend.supports_body(req.body.clone()) {
+                continue;
+            }
+
+            saw_support = true;
+            match query(backend.as_ref()) {
+                Ok(result) => return Ok(result),
+                Err(error) if should_fallback_to_secondary(&error.kind) => {
+                    last_retryable_error = Some(error);
+                }
+                Err(error) => return Err(error),
+            }
+        }
+
+        if let Some(error) = last_retryable_error {
+            Err(error)
+        } else if saw_support {
+            Err(EphemerisError::new(
+                EphemerisErrorKind::InvalidRequest,
+                "configured providers could not satisfy the requested body and request shape",
+            ))
+        } else {
+            Err(EphemerisError::new(
+                EphemerisErrorKind::UnsupportedBody,
+                "no backend in the routing chain supports the requested body",
+            ))
+        }
     }
 }
 
@@ -263,37 +348,14 @@ impl EphemerisBackend for RoutingBackend {
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
-        let mut saw_support = false;
-        let mut last_retryable_error = None;
+        self.dispatch(req, |backend| backend.position(req))
+    }
 
-        for backend in &self.backends {
-            if !backend.supports_body(req.body.clone()) {
-                continue;
-            }
-
-            saw_support = true;
-            match backend.position(req) {
-                Ok(result) => return Ok(result),
-                Err(error) if should_fallback_to_secondary(&error.kind) => {
-                    last_retryable_error = Some(error);
-                }
-                Err(error) => return Err(error),
-            }
-        }
-
-        if let Some(error) = last_retryable_error {
-            Err(error)
-        } else if saw_support {
-            Err(EphemerisError::new(
-                EphemerisErrorKind::InvalidRequest,
-                "configured providers could not satisfy the requested body and request shape",
-            ))
-        } else {
-            Err(EphemerisError::new(
-                EphemerisErrorKind::UnsupportedBody,
-                "no backend in the routing chain supports the requested body",
-            ))
-        }
+    fn position_without_motion(
+        &self,
+        req: &EphemerisRequest,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        self.dispatch(req, |backend| backend.position_without_motion(req))
     }
 }
 

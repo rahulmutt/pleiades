@@ -390,6 +390,76 @@ fn apparent_speed_survives_a_neighbour_instant_out_of_range() {
     );
 }
 
+/// Serves the Sun only inside `sun_range_jd` and every other body of the
+/// unbounded smooth backend everywhere: a Sun source whose window is narrower
+/// than a body's, like a routed chain whose first backend bounds the Sun.
+struct WindowedSunBackend {
+    sun_range_jd: (f64, f64),
+}
+
+impl EphemerisBackend for WindowedSunBackend {
+    fn metadata(&self) -> BackendMetadata {
+        SmoothBackend::unbounded().metadata()
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        SmoothBackend::unbounded().supports_body(body)
+    }
+
+    fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        let (first, last) = self.sun_range_jd;
+        if request.body == CelestialBody::Sun
+            && !(first..=last).contains(&request.instant.julian_day.days())
+        {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::OutOfRangeInstant,
+                "outside the windowed Sun's range",
+            ));
+        }
+        SmoothBackend::unbounded().position(request)
+    }
+}
+
+#[test]
+fn apparent_speed_is_central_when_only_the_sun_window_ends() {
+    // The Sun's window ends 0.2 day after the chart instant, inside the
+    // half-span of the speed difference, while Mars is served everywhere.
+    // Before issue #128 the later neighbour was dropped because the backend
+    // could not serve the Sun there, so Mars's speed was one-sided. The
+    // aberration Sun is now the backend-free Meeus Sun, so a neighbour is
+    // dropped only when the body's own sample fails, and the speed is the
+    // central difference, bit for bit.
+    let body = CelestialBody::Mars;
+    let windowed_sun = WindowedSunBackend {
+        sun_range_jd: (EPOCH_JD, SAMPLE_JD + 0.2),
+    };
+    let placed = placement(
+        windowed_sun,
+        &body,
+        SAMPLE_JD,
+        TimeScale::Tt,
+        Apparentness::Apparent,
+    );
+    let central = apparent_smooth(&body, SAMPLE_JD);
+
+    assert_eq!(placed.position.apparent, Apparentness::Apparent);
+    assert_eq!(ecliptic(&placed), ecliptic(&central));
+    assert_eq!(motion(&placed), motion(&central));
+
+    // A one-sided difference has different bits here, so the equality above
+    // tells the central difference from the pre-#128 one-sided fallback.
+    let one_sided = placement(
+        SmoothBackend {
+            range_jd: Some((EPOCH_JD, SAMPLE_JD + 0.2)),
+        },
+        &body,
+        SAMPLE_JD,
+        TimeScale::Tt,
+        Apparentness::Apparent,
+    );
+    assert_ne!(motion(&one_sided), motion(&central));
+}
+
 #[test]
 fn apparent_speed_is_unknown_when_no_neighbour_instant_is_served() {
     let body = CelestialBody::Mars;

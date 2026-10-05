@@ -76,10 +76,19 @@ fn sampled_place_agrees_with_ecliptic_in() {
     }
 }
 
-/// Records every `(body, julian_day)` the wrapped backend is asked for.
+/// Which backend entry point a query used.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Entry {
+    Full,
+    MotionFree,
+}
+
+type Query = (CelestialBody, f64, Entry);
+
+/// Records every `(body, julian_day, entry point)` the wrapped backend is asked for.
 struct Recording<B> {
     inner: B,
-    queries: std::sync::Mutex<Vec<(CelestialBody, f64)>>,
+    queries: std::sync::Mutex<Vec<Query>>,
 }
 
 impl<B> Recording<B> {
@@ -90,7 +99,14 @@ impl<B> Recording<B> {
         }
     }
 
-    fn take(&self) -> Vec<(CelestialBody, f64)> {
+    fn record(&self, req: &EphemerisRequest, entry: Entry) {
+        self.queries
+            .lock()
+            .unwrap()
+            .push((req.body.clone(), req.instant.julian_day.days(), entry));
+    }
+
+    fn take(&self) -> Vec<Query> {
         std::mem::take(&mut *self.queries.lock().unwrap())
     }
 }
@@ -105,11 +121,16 @@ impl<B: EphemerisBackend> EphemerisBackend for Recording<B> {
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
-        self.queries
-            .lock()
-            .unwrap()
-            .push((req.body.clone(), req.instant.julian_day.days()));
+        self.record(req, Entry::Full);
         self.inner.position(req)
+    }
+
+    fn position_without_motion(
+        &self,
+        req: &EphemerisRequest,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        self.record(req, Entry::MotionFree);
+        self.inner.position_without_motion(req)
     }
 }
 
@@ -135,10 +156,10 @@ impl<B: EphemerisBackend> EphemerisBackend for NoDistance<B> {
 }
 
 /// Queries of `body`, at `jd` when given.
-fn count(queries: &[(CelestialBody, f64)], body: &CelestialBody, jd: Option<f64>) -> usize {
+fn count(queries: &[Query], body: &CelestialBody, jd: Option<f64>) -> usize {
     queries
         .iter()
-        .filter(|(b, j)| b == body && jd.is_none_or(|jd| *j == jd))
+        .filter(|(b, j, _)| b == body && jd.is_none_or(|jd| *j == jd))
         .count()
 }
 
@@ -276,4 +297,44 @@ fn sampled_place_still_requires_a_distance_for_a_body() {
             "{frame:?}: {seeded}"
         );
     }
+}
+
+#[test]
+fn mean_only_reads_never_ask_for_motion() {
+    // Issue #128: apparent re-queries and the mean frames discard motion.
+    let backend = Recording::new(packaged_backend());
+    for frame in [
+        CrossingFrame::GeocentricApparentOfDate,
+        CrossingFrame::GeocentricMeanOfDate,
+    ] {
+        for body in [
+            CelestialBody::Moon,
+            CelestialBody::Mars,
+            CelestialBody::TrueNode,
+        ] {
+            let reference = CrossingReference::tropical(frame);
+            ecliptic_in(&backend, &body, &reference, ISSUE_128_JD).unwrap();
+            let queries = backend.take();
+            assert!(!queries.is_empty());
+            assert!(
+                queries.iter().all(|(_, _, e)| *e == Entry::MotionFree),
+                "{frame:?} {body:?}: {queries:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn sampled_place_asks_for_motion_once() {
+    // The speed sample does need the backend's motion, at its instant only.
+    let backend = Recording::new(packaged_backend());
+    let reference = CrossingReference::tropical(CrossingFrame::GeocentricApparentOfDate);
+    sampled_place(&backend, &CelestialBody::Mars, &reference, ISSUE_128_JD).unwrap();
+    let queries = backend.take();
+    let full: Vec<_> = queries
+        .iter()
+        .filter(|(_, _, e)| *e == Entry::Full)
+        .collect();
+    assert_eq!(full.len(), 1, "{queries:?}");
+    assert_eq!(full[0].1, ISSUE_128_JD);
 }

@@ -9,9 +9,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use pleiades_apparent::{
-    apparent_position, precess_ecliptic_j2000_to_date, DEFAULT_MAX_ITERATIONS,
-};
+use pleiades_apparent::{apparent_position, DEFAULT_MAX_ITERATIONS};
 use pleiades_backend::{
     Apparentness, BackendMetadata, CompositeBackend, EphemerisBackend, EphemerisError,
     EphemerisRequest, EphemerisResult,
@@ -29,12 +27,28 @@ fn composite() -> CompositeBackend<ElpBackend, Vsop87Backend> {
     CompositeBackend::new(ElpBackend::new(), Vsop87Backend::new())
 }
 
-type QueryLog = Arc<Mutex<Vec<(CelestialBody, f64)>>>;
+/// Which backend entry point a query used.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Entry {
+    Full,
+    MotionFree,
+}
 
-/// Records every `(body, julian_day)` the wrapped backend is asked for.
+type QueryLog = Arc<Mutex<Vec<(CelestialBody, f64, Entry)>>>;
+
+/// Records every `(body, julian_day, entry point)` the wrapped backend is asked for.
 struct Recording<B> {
     inner: B,
     queries: QueryLog,
+}
+
+impl<B> Recording<B> {
+    fn record(&self, req: &EphemerisRequest, entry: Entry) {
+        self.queries
+            .lock()
+            .unwrap()
+            .push((req.body.clone(), req.instant.julian_day.days(), entry));
+    }
 }
 
 impl<B: EphemerisBackend> EphemerisBackend for Recording<B> {
@@ -47,11 +61,16 @@ impl<B: EphemerisBackend> EphemerisBackend for Recording<B> {
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
-        self.queries
-            .lock()
-            .unwrap()
-            .push((req.body.clone(), req.instant.julian_day.days()));
+        self.record(req, Entry::Full);
         self.inner.position(req)
+    }
+
+    fn position_without_motion(
+        &self,
+        req: &EphemerisRequest,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        self.record(req, Entry::MotionFree);
+        self.inner.position_without_motion(req)
     }
 }
 
@@ -93,7 +112,7 @@ fn an_apparent_chart_reads_each_body_once_per_sampled_instant() {
         for jd in [ISSUE_128_JD - 0.5, ISSUE_128_JD, ISSUE_128_JD + 0.5] {
             let reads = queries
                 .iter()
-                .filter(|(b, j)| b == body && *j == jd)
+                .filter(|(b, j, _)| b == body && *j == jd)
                 .count();
             assert_eq!(reads, 1, "{body:?} at {jd}: {queries:?}");
         }
@@ -113,14 +132,7 @@ fn reusing_the_batch_read_leaves_the_apparent_place_bit_identical() {
             .position(&request)
             .map(|result| result.ecliptic.expect("ecliptic"))
     };
-    let sun = mean(&CelestialBody::Sun, instant).expect("Sun");
-    let sun_lon = precess_ecliptic_j2000_to_date(
-        sun.longitude.degrees(),
-        sun.latitude.degrees(),
-        ISSUE_128_JD,
-    )
-    .expect("precession")
-    .longitude_deg;
+    let sun_lon = pleiades_apparent::sun_true_longitude_of_date_deg(ISSUE_128_JD);
 
     let bodies = vec![
         CelestialBody::Moon,
@@ -157,4 +169,79 @@ fn reusing_the_batch_read_leaves_the_apparent_place_bit_identical() {
             "{body:?} provenance"
         );
     }
+}
+
+#[test]
+fn only_the_position_batch_asks_a_backend_for_motion() {
+    // Issue #128: the light-time re-queries and the speed-difference mean
+    // places discard the motion, so they use the motion-free entry point;
+    // only the position batch, whose motion the chart reports, pays for it.
+    let bodies = vec![
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        CelestialBody::Mars,
+        CelestialBody::Pluto,
+        CelestialBody::TrueNode,
+    ];
+    let queries = QueryLog::default();
+    let backend = Recording {
+        inner: composite(),
+        queries: Arc::clone(&queries),
+    };
+    ChartEngine::new(backend)
+        .chart(&apparent_request(bodies.clone()))
+        .expect("apparent chart");
+    let queries = queries.lock().unwrap().clone();
+    for body in &bodies {
+        let full: Vec<_> = queries
+            .iter()
+            .filter(|(b, _, e)| b == body && *e == Entry::Full)
+            .collect();
+        assert_eq!(full.len(), 1, "{body:?}: {queries:?}");
+        assert_eq!(
+            full[0].1, ISSUE_128_JD,
+            "{body:?}: the batch is at the chart instant"
+        );
+    }
+}
+
+#[test]
+fn an_apparent_chart_reads_the_sun_only_as_a_body() {
+    // Issue #128: the aberration argument comes from the backend-free Meeus
+    // Sun, so a chart without the Sun never queries it, and a chart with the
+    // Sun queries it exactly as it queries any other body.
+    let queries = QueryLog::default();
+    let backend = Recording {
+        inner: composite(),
+        queries: Arc::clone(&queries),
+    };
+    let engine = ChartEngine::new(backend);
+    engine
+        .chart(&apparent_request(vec![
+            CelestialBody::Moon,
+            CelestialBody::Mars,
+        ]))
+        .expect("apparent chart");
+    let sun_reads = |log: &[(CelestialBody, f64, Entry)]| {
+        log.iter()
+            .filter(|(b, _, _)| *b == CelestialBody::Sun)
+            .map(|(_, jd, _)| *jd)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(sun_reads(&queries.lock().unwrap()), Vec::<f64>::new());
+
+    queries.lock().unwrap().clear();
+    engine
+        .chart(&apparent_request(vec![
+            CelestialBody::Sun,
+            CelestialBody::Moon,
+        ]))
+        .expect("apparent chart");
+    let mut reads = sun_reads(&queries.lock().unwrap());
+    reads.sort_by(f64::total_cmp);
+    // The batch at the chart instant, and the two speed-difference instants.
+    assert_eq!(
+        reads,
+        vec![ISSUE_128_JD - 0.5, ISSUE_128_JD, ISSUE_128_JD + 0.5]
+    );
 }

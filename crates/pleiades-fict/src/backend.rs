@@ -52,7 +52,9 @@ impl<S: EphemerisBackend> FictitiousBackend<S> {
     /// obtained as the negation of the Sun's geocentric position from the source.
     fn earth_heliocentric(&self, instant: Instant) -> Result<[f64; 3], EphemerisError> {
         let req = EphemerisRequest::new(CelestialBody::Sun, instant);
-        let sun = self.sun_source.position(&req)?;
+        // Only the Sun's place is used; its motion would cost a bounded or
+        // finite-differencing source extra evaluations (issue #128).
+        let sun = self.sun_source.position_without_motion(&req)?;
         let ecl = sun.ecliptic.ok_or_else(|| {
             EphemerisError::new(
                 EphemerisErrorKind::MissingDataset,
@@ -117,6 +119,47 @@ impl<S: EphemerisBackend> FictitiousBackend<S> {
             _ => None,
         };
         Ok(Motion::new(Some(lon_speed), Some(lat_speed), dist_speed))
+    }
+
+    /// Shared body of `position` and `position_without_motion`; the speed is
+    /// computed only when `with_motion` is set.
+    fn compute(
+        &self,
+        req: &EphemerisRequest,
+        with_motion: bool,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        let el = elements_for(req.body.clone()).ok_or_else(|| {
+            EphemerisError::new(
+                EphemerisErrorKind::UnsupportedBody,
+                "the fictitious backend serves only SE seorbel.txt bodies 40–58",
+            )
+        })?;
+
+        validate_zodiac_policy(req, "the fictitious backend", &[ZodiacMode::Tropical])?;
+        validate_request_policy(
+            req,
+            "the fictitious backend",
+            &[TimeScale::Tt, TimeScale::Tdb],
+            &[CoordinateFrame::Ecliptic],
+            true,
+            false,
+        )?;
+        validate_observer_policy(req, "the fictitious backend", false)?;
+
+        let mut result = EphemerisResult::new(
+            BackendId::new(PACKAGE_NAME),
+            req.body.clone(),
+            req.instant,
+            req.frame,
+            req.zodiac_mode.clone(),
+            req.apparent,
+        );
+        result.quality = QualityAnnotation::Exact;
+        result.ecliptic = Some(self.geocentric_ecliptic(el, req.instant)?);
+        if with_motion {
+            result.motion = Some(self.motion(el, req.instant)?);
+        }
+        Ok(result)
     }
 }
 
@@ -192,36 +235,14 @@ impl<S: EphemerisBackend> EphemerisBackend for FictitiousBackend<S> {
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
-        let el = elements_for(req.body.clone()).ok_or_else(|| {
-            EphemerisError::new(
-                EphemerisErrorKind::UnsupportedBody,
-                "the fictitious backend serves only SE seorbel.txt bodies 40–58",
-            )
-        })?;
+        self.compute(req, true)
+    }
 
-        validate_zodiac_policy(req, "the fictitious backend", &[ZodiacMode::Tropical])?;
-        validate_request_policy(
-            req,
-            "the fictitious backend",
-            &[TimeScale::Tt, TimeScale::Tdb],
-            &[CoordinateFrame::Ecliptic],
-            true,
-            false,
-        )?;
-        validate_observer_policy(req, "the fictitious backend", false)?;
-
-        let mut result = EphemerisResult::new(
-            BackendId::new(PACKAGE_NAME),
-            req.body.clone(),
-            req.instant,
-            req.frame,
-            req.zodiac_mode.clone(),
-            req.apparent,
-        );
-        result.quality = QualityAnnotation::Exact;
-        result.ecliptic = Some(self.geocentric_ecliptic(el, req.instant)?);
-        result.motion = Some(self.motion(el, req.instant)?);
-        Ok(result)
+    fn position_without_motion(
+        &self,
+        req: &EphemerisRequest,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        self.compute(req, false)
     }
 }
 
@@ -361,5 +382,111 @@ mod tests {
             Instant::new(JulianDay::from_days(crate::J2000_JD), TimeScale::Tt),
         );
         assert!(b.position(&req).is_err());
+    }
+
+    #[test]
+    fn position_without_motion_is_position_minus_motion() {
+        let backend = FictitiousBackend::new(StubSun);
+        for body in [CelestialBody::Cupido, CelestialBody::WhiteMoon] {
+            for jd in [2_451_545.0, 2_460_763.5] {
+                let req = EphemerisRequest::new(
+                    body.clone(),
+                    Instant::new(JulianDay::from_days(jd), TimeScale::Tt),
+                );
+                let full = backend.position(&req).unwrap();
+                let free = backend.position_without_motion(&req).unwrap();
+                assert!(full.motion.is_some());
+                assert_eq!(
+                    EphemerisResult {
+                        motion: None,
+                        ..full
+                    },
+                    free,
+                    "{body:?} {jd}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn position_without_motion_at_the_sun_sources_window_edge() {
+        // At either edge of a bounded Sun source the speed is one-sided; the
+        // motion-free place must equal position's.
+        const LO: f64 = 2_415_020.5;
+        const HI: f64 = 2_488_069.5;
+        let b = FictitiousBackend::new(WindowedSun { lo: LO, hi: HI });
+        for edge in [LO, HI] {
+            let req = EphemerisRequest::new(
+                CelestialBody::Cupido,
+                Instant::new(JulianDay::from_days(edge), TimeScale::Tt),
+            );
+            let full = b.position(&req).unwrap();
+            let free = b.position_without_motion(&req).unwrap();
+            assert_eq!(
+                EphemerisResult {
+                    motion: None,
+                    ..full
+                },
+                free,
+                "{edge}"
+            );
+        }
+    }
+
+    #[test]
+    fn position_without_motion_succeeds_where_only_the_motion_fails() {
+        // The documented widening: a Sun source covering only the instant
+        // itself fails both speed probes, so `position` errors, but the place
+        // alone is available.
+        const AT: f64 = 2_451_545.0;
+        let b = FictitiousBackend::new(WindowedSun { lo: AT, hi: AT });
+        let req = EphemerisRequest::new(
+            CelestialBody::Cupido,
+            Instant::new(JulianDay::from_days(AT), TimeScale::Tt),
+        );
+        assert!(b.position(&req).is_err());
+        let free = b.position_without_motion(&req).unwrap();
+        assert!(free.ecliptic.is_some());
+        assert_eq!(free.motion, None);
+    }
+
+    #[test]
+    fn the_sun_source_is_read_without_motion() {
+        use core::sync::atomic::{AtomicUsize, Ordering};
+        struct CountingSun {
+            full: AtomicUsize,
+            motion_free: AtomicUsize,
+        }
+        impl EphemerisBackend for CountingSun {
+            fn metadata(&self) -> BackendMetadata {
+                StubSun.metadata()
+            }
+            fn supports_body(&self, body: CelestialBody) -> bool {
+                StubSun.supports_body(body)
+            }
+            fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+                self.full.fetch_add(1, Ordering::SeqCst);
+                StubSun.position(req)
+            }
+            fn position_without_motion(
+                &self,
+                req: &EphemerisRequest,
+            ) -> Result<EphemerisResult, EphemerisError> {
+                self.motion_free.fetch_add(1, Ordering::SeqCst);
+                StubSun.position_without_motion(req)
+            }
+        }
+        let backend = FictitiousBackend::new(CountingSun {
+            full: AtomicUsize::new(0),
+            motion_free: AtomicUsize::new(0),
+        });
+        let req = EphemerisRequest::new(
+            CelestialBody::Cupido,
+            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+        );
+        backend.position(&req).unwrap();
+        assert_eq!(backend.sun_source.full.load(Ordering::SeqCst), 0);
+        // The place plus two speed probes.
+        assert_eq!(backend.sun_source.motion_free.load(Ordering::SeqCst), 3);
     }
 }

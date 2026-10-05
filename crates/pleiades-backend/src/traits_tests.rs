@@ -994,3 +994,180 @@ fn routing_backend_batch_positions_preserve_mixed_time_scales_and_topocentric_ob
     assert_eq!(results[0].instant.scale, TimeScale::Tt);
     assert_eq!(results[1].instant.scale, TimeScale::Tdb);
 }
+
+/// Reports a motion on every result and counts which entry point was used.
+struct MotionBackend {
+    body: CelestialBody,
+    longitude: f64,
+    fail_with: Option<EphemerisErrorKind>,
+    full: AtomicUsize,
+    motion_free: AtomicUsize,
+}
+
+impl MotionBackend {
+    fn new(body: CelestialBody, longitude: f64) -> Self {
+        Self {
+            body,
+            longitude,
+            fail_with: None,
+            full: AtomicUsize::new(0),
+            motion_free: AtomicUsize::new(0),
+        }
+    }
+
+    fn failing(body: CelestialBody, kind: EphemerisErrorKind) -> Self {
+        Self {
+            fail_with: Some(kind),
+            ..Self::new(body, 0.0)
+        }
+    }
+
+    fn result(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        if let Some(kind) = self.fail_with {
+            return Err(EphemerisError::new(kind, "configured failure"));
+        }
+        let mut result = EphemerisResult::new(
+            BackendId::new("motion"),
+            req.body.clone(),
+            req.instant,
+            req.frame,
+            req.zodiac_mode.clone(),
+            req.apparent,
+        );
+        result.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(self.longitude),
+            Latitude::from_degrees(0.0),
+            Some(1.0),
+        ));
+        result.motion = Some(Motion::new(Some(1.0), Some(0.0), Some(0.0)));
+        Ok(result)
+    }
+}
+
+impl EphemerisBackend for MotionBackend {
+    fn metadata(&self) -> BackendMetadata {
+        ToyBackend.metadata()
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        body == self.body
+    }
+
+    fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        self.full.fetch_add(1, Ordering::SeqCst);
+        self.result(req)
+    }
+
+    fn position_without_motion(
+        &self,
+        req: &EphemerisRequest,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        self.motion_free.fetch_add(1, Ordering::SeqCst);
+        let mut result = self.result(req)?;
+        result.motion = None;
+        Ok(result)
+    }
+}
+
+fn sun_request() -> EphemerisRequest {
+    EphemerisRequest::new(
+        CelestialBody::Sun,
+        Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+    )
+}
+
+#[test]
+fn default_position_without_motion_is_position_with_motion_dropped() {
+    // ToyBackend overrides only `position`.
+    let full = ToyBackend.position(&sun_request()).unwrap();
+    let free = ToyBackend.position_without_motion(&sun_request()).unwrap();
+    assert_eq!(free.motion, None);
+    assert_eq!(
+        EphemerisResult {
+            motion: None,
+            ..full
+        },
+        free
+    );
+}
+
+#[test]
+fn default_position_without_motion_keeps_a_wrappers_transformation() {
+    // A wrapper that overrides only `position` must not be bypassed by the
+    // default motion-free path.
+    struct NoDistance<B>(B);
+    impl<B: EphemerisBackend> EphemerisBackend for NoDistance<B> {
+        fn metadata(&self) -> BackendMetadata {
+            self.0.metadata()
+        }
+        fn supports_body(&self, body: CelestialBody) -> bool {
+            self.0.supports_body(body)
+        }
+        fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+            let mut result = self.0.position(req)?;
+            if let Some(ecliptic) = result.ecliptic.as_mut() {
+                ecliptic.distance_au = None;
+            }
+            Ok(result)
+        }
+    }
+    let wrapped = NoDistance(MotionBackend::new(CelestialBody::Sun, 10.0));
+    let free = wrapped.position_without_motion(&sun_request()).unwrap();
+    assert_eq!(free.ecliptic.unwrap().distance_au, None);
+    assert_eq!(free.motion, None);
+}
+
+#[test]
+fn composite_forwards_position_without_motion_to_the_serving_backend() {
+    let composite = CompositeBackend::new(
+        MotionBackend::new(CelestialBody::Moon, 1.0),
+        MotionBackend::new(CelestialBody::Sun, 2.0),
+    );
+    let free = composite.position_without_motion(&sun_request()).unwrap();
+    assert_eq!(free.ecliptic.unwrap().longitude.degrees(), 2.0);
+    assert_eq!(free.motion, None);
+    assert_eq!(composite.secondary().motion_free.load(Ordering::SeqCst), 1);
+    assert_eq!(composite.secondary().full.load(Ordering::SeqCst), 0);
+    assert_eq!(composite.primary().motion_free.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn composite_motion_free_path_falls_back_like_position() {
+    let composite = CompositeBackend::new(
+        MotionBackend::failing(CelestialBody::Sun, EphemerisErrorKind::MissingDataset),
+        MotionBackend::new(CelestialBody::Sun, 2.0),
+    );
+    let full = composite.position(&sun_request()).unwrap();
+    let free = composite.position_without_motion(&sun_request()).unwrap();
+    assert_eq!(
+        EphemerisResult {
+            motion: None,
+            ..full
+        },
+        free
+    );
+    assert_eq!(composite.secondary().motion_free.load(Ordering::SeqCst), 1);
+    assert_eq!(composite.secondary().full.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn routing_forwards_position_without_motion_and_falls_back() {
+    let routing = RoutingBackend::new(vec![
+        Box::new(MotionBackend::failing(
+            CelestialBody::Sun,
+            EphemerisErrorKind::MissingDataset,
+        )),
+        Box::new(MotionBackend::new(CelestialBody::Moon, 1.0)),
+        Box::new(MotionBackend::new(CelestialBody::Sun, 3.0)),
+    ]);
+    let full = routing.position(&sun_request()).unwrap();
+    let free = routing.position_without_motion(&sun_request()).unwrap();
+    assert_eq!(free.ecliptic.unwrap().longitude.degrees(), 3.0);
+    assert_eq!(
+        EphemerisResult {
+            motion: None,
+            ..full
+        },
+        free
+    );
+}
