@@ -2994,7 +2994,15 @@ estimates from that run's timestamps, not measurements of a fix.
   script runs, so the workspace crates rebuild (third-party crates still come
   from the cache). The blocking and gate jobs are unchanged: they build a
   subset of what the nightly builds, so either lineage's marker is valid for
-  them. The script's header states the rule. Verification: pending.
+  them. The script's header states the rule. Verified on two nightlies
+  dispatched on the branch: the first (37281912451) restored a blocking
+  entry, dropped its marker, recompiled `pleiades-validate`'s test binaries
+  and passed, the first fresh run of those tests on `main`'s content since
+  the bug (so the stale binaries hid no failure); the second (37282616242)
+  restored the first one's `-nightly-` entry, kept its marker, rebuilt
+  nothing and passed. On fresh binaries `test-full-validate` took 96 s and
+  121 s, ending 22–29 s after the other `test-full` halves, against about
+  149 s and 65 s on the stale runs.
 
 **Severity:** performance (developer and CI time) · **Opened:** 2026-10-03
 
