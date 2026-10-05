@@ -532,6 +532,29 @@ built at `91b13290d` (FU-23 (w)), so it measures neither (r) nor (u).
 
 ---
 
+### FU-23 item (v), 2026-10-05
+
+Per-test times for the `pleiades-validate` lib suite, from a throwaway probe branch that ran the
+lib test binary with `--report-time`; start = log timestamp of the result line − duration. Fresh
+binaries (after (w)), seconds from the suite's start:
+
+| Row | Run 37283336199 | Run 37283347399 |
+|-----|---:|---:|
+| suite length | 122.9 | 118.0 |
+| summed test time | 482 | 462 |
+| libtest threads occupied, t = 5 s to end − 5 s | 4 of 4 | 4 of 4 |
+| `render_artifact_summary_includes_span_caps` (fit-outlier samples) | 93.1 | 87.0 |
+| `fit_channel_outlier_summary_for_report_matches_details` (waits on the same) | 39.9 | 46.1 |
+| `run_all_numeric_gates_includes_*` (two tests waiting on the battery) | 23.0–23.1 | 26.1 |
+| `claims::drift::tests::drift_passes_for_freshly_rendered_surfaces` | 37.7 | 24.1 |
+| last test to finish (`validate_gates` CLI dispatch) | 7.0 | 9.7 |
+| end after the other `test-full` halves | 34 | 23 |
+
+No serial tail: the suite is bound by its work on the four threads, partly time spent waiting on
+shared `OnceLock`s. Nothing applied.
+
+---
+
 ## Section 1: Timing Inventory
 
 Slowest 40 tests ranked slowest-first. All times from clean isolated single-crate runs.
