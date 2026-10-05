@@ -68,7 +68,9 @@ pub struct ChartSnapshot {
     pub zodiac_mode: ZodiacMode,
     /// Chart-level apparentness requested for this snapshot. Apparent-place
     /// corrections are applied in the engine layer; first-party backends are
-    /// always queried in `Mean` mode.
+    /// always queried in `Mean` mode. A placement whose reduction failed
+    /// keeps its mean place under an `Apparent` request: see
+    /// [`Self::apparentness_applied`].
     pub apparentness: Apparentness,
     /// Optional house snapshot.
     pub houses: Option<HouseSnapshot>,
@@ -347,7 +349,7 @@ impl ChartSnapshot {
             self.instant.scale,
             self.placements.len(),
             self.zodiac_mode,
-            self.apparentness,
+            self.apparentness_label(),
             self.observer_summary(),
             house_system,
             house_cusp_count,
@@ -390,6 +392,70 @@ impl ChartSnapshot {
     pub fn validated_summary_line(&self) -> Result<String, ChartSnapshotValidationError> {
         self.validate()?;
         Ok(self.summary_line())
+    }
+
+    /// Placements of an apparent chart that kept their mean place because the
+    /// apparent reduction failed for that body (no distance on the backend's
+    /// result, a light-time retarded epoch outside the backend's range, the
+    /// light-time sanity cap). Such a placement is in the backend's mean J2000
+    /// frame, adrift from the reduced ones by the precession since J2000.
+    ///
+    /// Empty for a mean chart: its placements are mean because that was
+    /// requested. `position.apparent` on each placement stays the source of
+    /// record.
+    pub fn mean_fallback_placements(&self) -> impl Iterator<Item = &BodyPlacement> {
+        let apparent_requested = matches!(self.apparentness, Apparentness::Apparent);
+        self.placements.iter().filter(move |placement| {
+            apparent_requested && matches!(placement.position.apparent, Apparentness::Mean)
+        })
+    }
+
+    /// The apparentness every placement actually reports.
+    ///
+    /// [`Self::apparentness`] echoes the request. This is `Apparent` only when
+    /// that was requested and no placement fell back to its mean place (see
+    /// [`Self::mean_fallback_placements`]); otherwise it is `Mean`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pleiades_core::{Apparentness, BackendId, ChartSnapshot};
+    /// use pleiades_types::{Instant, JulianDay, TimeScale, ZodiacMode};
+    ///
+    /// let snapshot = ChartSnapshot {
+    ///     backend_id: BackendId::new("demo"),
+    ///     instant: Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt),
+    ///     observer: None,
+    ///     body_observer: None,
+    ///     zodiac_mode: ZodiacMode::Tropical,
+    ///     apparentness: Apparentness::Apparent,
+    ///     houses: None,
+    ///     placements: Vec::new(),
+    /// };
+    ///
+    /// assert_eq!(snapshot.apparentness_applied(), Apparentness::Apparent);
+    /// ```
+    pub fn apparentness_applied(&self) -> Apparentness {
+        if self.mean_fallback_placements().next().is_some() {
+            Apparentness::Mean
+        } else {
+            self.apparentness
+        }
+    }
+
+    /// The requested apparentness, qualified with how many placements were
+    /// reduced when some fell back to their mean place.
+    fn apparentness_label(&self) -> String {
+        let fallbacks = self.mean_fallback_placements().count();
+        if fallbacks == 0 {
+            return self.apparentness.to_string();
+        }
+        format!(
+            "{} ({} of {} placements reduced)",
+            self.apparentness,
+            self.placements.len() - fallbacks,
+            self.placements.len()
+        )
     }
 
     /// The full Swiss-Ephemeris `ascmc` chart points, present only when the
@@ -713,7 +779,7 @@ impl fmt::Display for ChartSnapshot {
             )?;
         }
         writeln!(f, "Zodiac mode: {}", self.zodiac_mode)?;
-        writeln!(f, "Apparentness: {}", self.apparentness)?;
+        writeln!(f, "Apparentness: {}", self.apparentness_label())?;
         if let Some(houses) = &self.houses {
             let house_name = crate::house_system_descriptor(&houses.system)
                 .map(|descriptor| descriptor.canonical_name)

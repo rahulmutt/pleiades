@@ -14,6 +14,8 @@
 mod apparent_motion_tests;
 #[cfg(test)]
 mod apparent_tier_tests;
+#[cfg(test)]
+mod apparentness_applied_tests;
 mod aspects;
 #[cfg(test)]
 mod bit_identity_tests;
@@ -496,7 +498,8 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                             // fall back to the mean position already stored in
                             // `position.ecliptic`; leave it and the sign unchanged so
                             // the chart succeeds. `position.apparent` records the
-                            // downgrade; see issue #170.
+                            // downgrade, and the snapshot reports it through
+                            // `mean_fallback_placements` (issue #170).
                             position.apparent = Apparentness::Mean;
                             None
                         }
