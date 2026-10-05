@@ -83,7 +83,9 @@ impl<S: EphemerisBackend> FictitiousBackend<S> {
         Ok(cartesian_to_ecliptic(gx, gy, gz))
     }
 
-    /// Symmetric finite-difference motion (±0.5 d), matching `ElpBackend::motion`.
+    /// Symmetric finite-difference motion (±0.5 d). The fictitious bodies are
+    /// slow, so the span's truncation is negligible; the VSOP87 and ELP
+    /// backends use a shorter one (issue #140).
     ///
     /// Falls back to a one-sided (±0.5 d against `instant` itself) difference
     /// when only one of the two symmetric probes is available. This matters at

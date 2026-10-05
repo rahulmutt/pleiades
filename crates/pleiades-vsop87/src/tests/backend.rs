@@ -929,6 +929,73 @@ fn finite_difference_motion_is_reported_for_supported_bodies() {
         .is_finite());
 }
 
+// Issue #140: a ±0.5-day difference of the position biased the speed by
+// h²/6 · λ‴, up to 7″/day for Mercury near inferior conjunction. The reference
+// here is a fourth-order stencil of the backend's own positions, whose
+// truncation is below 1e-4″/day for every planet.
+#[test]
+fn speed_is_the_derivative_of_the_position() {
+    const STENCIL_STEP_DAYS: f64 = 0.02;
+    const TOLERANCE_ARCSEC_PER_DAY: f64 = 0.01;
+    let backend = Vsop87Backend::new();
+    let ecliptic_at = |body: &CelestialBody, jd: f64| {
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(jd), TimeScale::Tt);
+        backend
+            .position(&mean_request_at(body.clone(), instant))
+            .expect("position")
+    };
+    let stencil = |values: [f64; 4]| {
+        let [far_before, before, after, far_after] = values;
+        (far_before - 8.0 * before + 8.0 * after - far_after) / (12.0 * STENCIL_STEP_DAYS)
+    };
+
+    for body in [
+        CelestialBody::Sun,
+        CelestialBody::Mercury,
+        CelestialBody::Venus,
+        CelestialBody::Mars,
+        CelestialBody::Jupiter,
+    ] {
+        // Every 37 days over 20 years: Mercury's 116-day synodic cycle is
+        // sampled at every phase, its conjunctions included.
+        for step in 0..200 {
+            let jd = J2000 + 37.0 * f64::from(step);
+            let centre = ecliptic_at(&body, jd);
+            let centre_longitude = centre.ecliptic.expect("ecliptic").longitude.degrees();
+            let motion = centre.motion.expect("motion");
+            let samples = [-2.0, -1.0, 1.0, 2.0].map(|steps| {
+                ecliptic_at(&body, jd + steps * STENCIL_STEP_DAYS)
+                    .ecliptic
+                    .expect("ecliptic")
+            });
+            let expected_longitude = stencil(samples.map(|sample| {
+                signed_longitude_delta_degrees(centre_longitude, sample.longitude.degrees())
+            }));
+            let expected_latitude = stencil(samples.map(|sample| sample.latitude.degrees()));
+            let expected_distance =
+                stencil(samples.map(|sample| sample.distance_au.expect("distance")));
+
+            let longitude_error =
+                (motion.longitude_deg_per_day.expect("speed") - expected_longitude) * 3600.0;
+            let latitude_error =
+                (motion.latitude_deg_per_day.expect("speed") - expected_latitude) * 3600.0;
+            let distance_error = motion.distance_au_per_day.expect("speed") - expected_distance;
+            assert!(
+                longitude_error.abs() < TOLERANCE_ARCSEC_PER_DAY,
+                "{body} longitude speed off by {longitude_error}″/day at {jd}"
+            );
+            assert!(
+                latitude_error.abs() < TOLERANCE_ARCSEC_PER_DAY,
+                "{body} latitude speed off by {latitude_error}″/day at {jd}"
+            );
+            assert!(
+                distance_error.abs() < 1e-8,
+                "{body} distance speed off by {distance_error} AU/day at {jd}"
+            );
+        }
+    }
+}
+
 #[test]
 fn topocentric_requests_are_rejected_explicitly() {
     let backend = Vsop87Backend::new();

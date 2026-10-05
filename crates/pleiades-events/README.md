@@ -83,6 +83,11 @@ Ephemeris's own longitude speed (Moshier), 1900–2100 for the planets:
 | Pluto | 1292.7 s | 1.255″ |
 | True node (1990–2030, separated stations) | 117467.6 s | 51.338″ |
 
+These figures are for the packaged backend, which the gate runs on. On the
+artifact-free VSOP87/ELP composite, Mercury's stations over 2000–2010 fall
+within 0.33 s of the packaged backend's; a blocking test holds the year 2000
+at 5 s.
+
 For the true node the gate is a coarse existence-and-kind check, not a timing
 check: it only confirms that each station at least 3 days from its neighbours
 has a counterpart of the same kind within about three days. The node's speed

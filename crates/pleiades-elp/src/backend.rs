@@ -221,10 +221,17 @@ impl ElpBackend {
     }
 
     fn motion(body: CelestialBody, days: f64) -> Option<Motion> {
-        // Match the planetary backend's chart-facing convention: these are
-        // symmetric finite-difference rates for the same mean geometric model,
-        // not apparent velocities from a full lunar theory.
-        const HALF_SPAN_DAYS: f64 = 0.5;
+        // The speed of the mean geometric place, as a central difference of the
+        // series (not an apparent velocity; the chart and event layers add the
+        // rate of the apparent-place correction). The ±0.5 day used before
+        // biased it by h²/6 · λ‴: up to 30″/day for the Moon and 5.7″/day for
+        // the osculating node (issue #140). The step balances that truncation
+        // against the noise of the node, which is itself formed from a
+        // differenced Moon velocity: against a fourth-order stencil of the
+        // same positions, ±0.02 day holds the Moon within 0.05″/day and the
+        // node within about 0.1″/day. A shorter step is better for the Moon
+        // (0.004″/day at ±0.005 day) and worse for the node (0.2″/day).
+        const HALF_SPAN_DAYS: f64 = 0.02;
         const FULL_SPAN_DAYS: f64 = HALF_SPAN_DAYS * 2.0;
 
         let before = Self::ecliptic_for_body(body.clone(), days - HALF_SPAN_DAYS)?;
