@@ -28,7 +28,8 @@ pub struct BodyPlacement {
     pub position: EphemerisResult,
     /// The body's zodiac sign in the requested mode, when ecliptic longitude is available.
     pub sign: Option<ZodiacSign>,
-    /// The one-based house number, when house placement was requested.
+    /// The one-based house number, when house placement was requested: the
+    /// house the longitude in `position` falls in.
     pub house: Option<usize>,
     /// Apparent-place provenance, when this placement was computed in apparent mode.
     pub apparent: Option<ApparentProvenance>,

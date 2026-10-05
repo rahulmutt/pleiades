@@ -451,12 +451,8 @@ fn sidereal_sign_anchored_houses_count_signs() {
     // boundaries, a body's whole-sign house is its sign counted from the
     // ascendant's sign, and its Equal (1=Aries) house is its sign counted
     // from Aries.
-    //
-    // Mean charts, because an apparent chart assigns the house from the mean
-    // J2000 longitude and not the one it reports (issue #182); the cusps are
-    // the same for both.
     let chart = |jd_tt, latitude_deg, system, bodies| {
-        sidereal_chart(jd_tt, latitude_deg, system, bodies, Apparentness::Mean)
+        sidereal_chart(jd_tt, latitude_deg, system, bodies, Apparentness::Apparent)
     };
     let bodies = vec![
         CelestialBody::Sun,
