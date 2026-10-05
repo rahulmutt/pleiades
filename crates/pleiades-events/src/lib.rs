@@ -116,6 +116,7 @@
 #![deny(missing_docs)]
 
 mod aspects;
+mod civil;
 mod crossings;
 mod ephemeris;
 mod error;

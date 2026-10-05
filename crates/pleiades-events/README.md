@@ -49,6 +49,16 @@ were measured; the other ayanamsas in those classes follow from the same
 mechanism and were not.
 Mean-of-date and sidereal crossings are gated by `validate-crossings`.
 
+## Civil times
+
+Every event instant is TDB. A `Crossing`, `Station`, `AspectEvent` or
+`RiseSet` gives its calendar date and clock time with `civil()`: UTC from
+1972 on and UT1 before, to the millisecond, as `pleiades-time`'s
+`civil_from_tdb` returns it.
+
+    let ingress = engine.next_sun_crossing(Longitude::from_degrees(0.0), after)?.unwrap();
+    let when = ingress.civil()?; // when.civil, when.scale
+
 ## Stations
 
 `EventEngine::stations_in_range(body, reference, start, end)` and
