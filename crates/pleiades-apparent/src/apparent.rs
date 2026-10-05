@@ -75,7 +75,9 @@ pub struct ApparentPosition {
 /// then applied; no further aberration term is added.
 ///
 /// `sun_true_longitude_of_date_deg` is the Sun's true geometric longitude OF
-/// DATE at `instant` (the caller is responsible for precessing it). It feeds
+/// DATE at `instant`. A caller with a J2000 Sun from a backend must precess
+/// it; the backend-free option is [`crate::sun_true_longitude_of_date_deg`],
+/// which is already of date and is what the chart layer uses. It feeds
 /// only the provenance's `aberration_longitude_arcsec`, the Meeus 23.2 estimate
 /// of the aberration component the retarded query contains; a non-finite value
 /// fails closed with `NonFiniteCorrection { stage: "aberration-estimate" }`.

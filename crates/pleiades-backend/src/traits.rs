@@ -34,6 +34,11 @@ pub trait EphemerisBackend: Send + Sync {
     /// computed. A wrapper that transforms results should override this too,
     /// or it falls back to its own [`Self::position`], which stays correct
     /// but pays for the motion.
+    ///
+    /// In a [`CompositeBackend`] or [`RoutingBackend`], if a provider's
+    /// `position` fails only because its motion failed, with a retryable error
+    /// kind, `position` falls back to the next provider's place while this
+    /// method returns that provider's own place.
     fn position_without_motion(
         &self,
         req: &EphemerisRequest,
