@@ -5,7 +5,9 @@ version (per-crate versioning since 0.5.3; 0.5.2 and earlier were unified).
 Only `pleiades-cli` and `pleiades-validate` are `publish = false` and are never
 published. Publish metadata is enforced by `mise run audit` (workspace audit
 `publish.*` rules) and `mise run package-check` (artifact size budget), both
-part of `ci` and `release-gate`.
+part of `ci` and `release-gate`. The audit's `package-check.*` rules keep the
+crate list in the `package-check` task equal to the publishable set, so a new
+crate cannot be left out of the size check.
 
 Releases are **automated with [release-plz](https://release-plz.dev)** (the
 primary path). The manual `cargo-release` flow is retained as a documented

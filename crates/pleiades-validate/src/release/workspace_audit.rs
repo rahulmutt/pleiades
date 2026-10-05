@@ -9,6 +9,7 @@ use crate::*;
 use pleiades_core::{EphemerisError, EphemerisErrorKind};
 
 use super::fuzz_toolchain_audit::audit_fuzz_nightly_text;
+use super::package_check_audit::audit_package_check_crate_list;
 use super::readme_audit::{audit_readme_crate_lists, audit_readme_release_series};
 
 /// A deterministic workspace audit that checks for mandatory native build hooks
@@ -1173,6 +1174,11 @@ fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Er
             &tool_manifest_path,
             &text,
             workspace_rust_version(&workspace_root),
+        ));
+        violations.extend(audit_package_check_crate_list(
+            &tool_manifest_path,
+            &text,
+            &publishable_names,
         ));
         let fuzz_toolchain_path = workspace_root.join("fuzz").join("rust-toolchain.toml");
         if fuzz_toolchain_path.is_file() {
