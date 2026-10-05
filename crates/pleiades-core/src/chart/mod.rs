@@ -338,6 +338,22 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 angles.descendant = to_sidereal(angles.descendant)?;
                 angles.midheaven = to_sidereal(angles.midheaven)?;
                 angles.imum_coeli = to_sidereal(angles.imum_coeli)?;
+                // The `ascmc` points are ecliptic longitudes on the same
+                // equinox and take the same step, as Swiss Ephemeris gives
+                // them under `SEFLG_SIDEREAL`; its copy of the four angles is
+                // the one above. ARMC is a right ascension and stays (issue
+                // #179).
+                let points = &mut snapshot.asc_mc;
+                points.ascendant = angles.ascendant;
+                points.descendant = angles.descendant;
+                points.midheaven = angles.midheaven;
+                points.imum_coeli = angles.imum_coeli;
+                points.vertex = to_sidereal(points.vertex)?;
+                points.antivertex = to_sidereal(points.antivertex)?;
+                points.equatorial_ascendant = to_sidereal(points.equatorial_ascendant)?;
+                points.coascendant_koch = to_sidereal(points.coascendant_koch)?;
+                points.coascendant_munkasey = to_sidereal(points.coascendant_munkasey)?;
+                points.polar_ascendant = to_sidereal(points.polar_ascendant)?;
                 // That shift is rigid, which carries the cusps of a system
                 // anchored to an angle or to the sky into the sidereal
                 // zodiac. Whole Sign and Equal (1=Aries) are anchored to the
