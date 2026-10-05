@@ -359,3 +359,148 @@ fn sidereal_ascendant_and_sun_share_one_offset_from_the_tropical_chart() {
         "ascendant and Sun sidereal offsets differ by {residual:+.6}\""
     );
 }
+
+// Issue #180: Whole Sign and Equal (1=Aries) cusps sit on the zodiac's sign
+// boundaries, so in a sidereal chart they are the sidereal boundaries. A
+// rigid shift of the tropical cusps, right for every ascendant-anchored
+// system, left them about 6° into a sidereal sign.
+
+/// 2026-03-21 05:00 UTC as TT, the instant of issue #180's reproduction.
+const ISSUE_180_JD_TT: f64 = 2_461_120.709_134_04;
+
+fn sidereal_chart(
+    jd_tt: f64,
+    latitude_deg: f64,
+    system: HouseSystem,
+    bodies: Vec<CelestialBody>,
+    apparentness: Apparentness,
+) -> ChartSnapshot {
+    ChartEngine::new(composite_backend())
+        .chart(
+            &ChartRequest::new(tt(jd_tt))
+                .with_observer(ObserverLocation::new(
+                    Latitude::from_degrees(latitude_deg),
+                    Longitude::from_degrees(80.2707),
+                    None,
+                ))
+                .with_house_system(system)
+                .with_bodies(bodies)
+                .with_apparentness(apparentness)
+                .with_zodiac_mode(lahiri()),
+        )
+        .expect("sidereal chart succeeds")
+}
+
+fn issue_180_chart(system: HouseSystem) -> ChartSnapshot {
+    sidereal_chart(
+        ISSUE_180_JD_TT,
+        13.0827,
+        system,
+        vec![CelestialBody::Sun, CelestialBody::Moon],
+        Apparentness::Apparent,
+    )
+}
+
+fn cusps_deg(snapshot: &ChartSnapshot) -> Vec<f64> {
+    let houses = snapshot.houses.as_ref().expect("houses are computed");
+    houses.cusps.iter().map(|cusp| cusp.degrees()).collect()
+}
+
+/// Zero-based index of the sign holding `longitude_deg`.
+fn sign_index(longitude_deg: f64) -> usize {
+    (longitude_deg.rem_euclid(360.0) / 30.0).floor() as usize
+}
+
+fn house_of(snapshot: &ChartSnapshot, body: &CelestialBody) -> usize {
+    snapshot.house_for_body(body).expect("body has a house")
+}
+
+#[test]
+fn issue_180_sidereal_whole_sign_cusps_match_swiss_ephemeris() {
+    // Swiss Ephemeris 2.10 `swe_houses_ex(.., 'W', SEFLG_SIDEREAL)`, Lahiri:
+    // ascendant 46.7632 (Taurus), cusps 30, 60, 90, ...; the chart reported
+    // 35.7750, 65.7750, 95.7750.
+    let chart = issue_180_chart(HouseSystem::WholeSign);
+    assert!((ascendant_deg(&chart) - 46.7632).abs() < 1e-3);
+    let expected: Vec<f64> = (0..12)
+        .map(|house| (30.0 + 30.0 * f64::from(house)) % 360.0)
+        .collect();
+    assert_eq!(cusps_deg(&chart), expected);
+    // The sidereal Moon is at 4.82° Aries, the twelfth sign from Taurus; the
+    // shifted cusps put it in the eleventh house.
+    assert_eq!(sign_index(longitude_deg(&chart, &CelestialBody::Moon)), 0);
+    assert_eq!(house_of(&chart, &CelestialBody::Moon), 12);
+}
+
+#[test]
+fn issue_180_sidereal_equal_aries_cusps_match_swiss_ephemeris() {
+    // Swiss Ephemeris `'N'` under `SEFLG_SIDEREAL`: cusps 0, 30, 60, ...; the
+    // chart reported 335.7750, 5.7750, 35.7750.
+    let chart = issue_180_chart(HouseSystem::EqualAries);
+    let expected: Vec<f64> = (0..12).map(|house| 30.0 * f64::from(house)).collect();
+    assert_eq!(cusps_deg(&chart), expected);
+    // The sidereal Sun is at 6.36° Pisces, the twelfth sign; the shifted
+    // cusps put it in the first house.
+    assert_eq!(sign_index(longitude_deg(&chart, &CelestialBody::Sun)), 11);
+    assert_eq!(house_of(&chart, &CelestialBody::Sun), 12);
+}
+
+#[test]
+fn sidereal_sign_anchored_houses_count_signs() {
+    // Independent of any reference ephemeris: with cusps on sidereal sign
+    // boundaries, a body's whole-sign house is its sign counted from the
+    // ascendant's sign, and its Equal (1=Aries) house is its sign counted
+    // from Aries.
+    //
+    // Mean charts, because an apparent chart assigns the house from the mean
+    // J2000 longitude and not the one it reports (issue #182); the cusps are
+    // the same for both.
+    let chart = |jd_tt, latitude_deg, system, bodies| {
+        sidereal_chart(jd_tt, latitude_deg, system, bodies, Apparentness::Mean)
+    };
+    let bodies = vec![
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        CelestialBody::Mars,
+        CelestialBody::Saturn,
+    ];
+    for step in 0..12 {
+        let jd_tt = 2_440_000.5 + 1_777.7 * f64::from(step);
+        for latitude_deg in [-60.0, 13.0827, 51.5, 64.0] {
+            let whole_sign = chart(jd_tt, latitude_deg, HouseSystem::WholeSign, bodies.clone());
+            let equal_aries = chart(jd_tt, latitude_deg, HouseSystem::EqualAries, bodies.clone());
+            let rising_sign = sign_index(ascendant_deg(&whole_sign));
+            for body in &bodies {
+                let sign = sign_index(longitude_deg(&whole_sign, body));
+                assert_eq!(
+                    house_of(&whole_sign, body),
+                    (sign + 12 - rising_sign) % 12 + 1,
+                    "whole sign: {body:?} at JD {jd_tt}, latitude {latitude_deg}"
+                );
+                assert_eq!(
+                    house_of(&equal_aries, body),
+                    sign + 1,
+                    "equal Aries: {body:?} at JD {jd_tt}, latitude {latitude_deg}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn tropical_sign_anchored_cusps_stay_on_tropical_sign_boundaries() {
+    for system in [HouseSystem::WholeSign, HouseSystem::EqualAries] {
+        let request = issue_157_request().with_house_system(system.clone());
+        let chart = ChartEngine::new(composite_backend())
+            .chart(&request)
+            .expect("tropical chart succeeds");
+        let first = match system {
+            HouseSystem::WholeSign => 30.0 * sign_index(ascendant_deg(&chart)) as f64,
+            _ => 0.0,
+        };
+        let expected: Vec<f64> = (0..12)
+            .map(|house| (first + 30.0 * f64::from(house)) % 360.0)
+            .collect();
+        assert_eq!(cusps_deg(&chart), expected, "{system:?}");
+    }
+}

@@ -38,6 +38,87 @@ fn whole_sign_houses_start_at_the_rising_sign_boundary() {
     );
 }
 
+// Issue #180: the sign-anchored systems rebuilt for an ascendant in another
+// zodiac.
+
+fn degrees(cusps: [Longitude; 12]) -> [f64; 12] {
+    cusps.map(|cusp| cusp.degrees())
+}
+
+/// Cusps every 30° from `first_deg`.
+fn sign_boundaries_from(first_deg: f64) -> [f64; 12] {
+    core::array::from_fn(|house| (first_deg + 30.0 * house as f64) % 360.0)
+}
+
+#[test]
+fn sign_anchored_whole_sign_cusps_start_at_the_ascendants_sign() {
+    for (ascendant_deg, first_deg) in [
+        (46.7632, 30.0),
+        (0.0, 0.0),
+        (29.999_999, 0.0),
+        (30.0, 30.0),
+        (359.5, 330.0),
+    ] {
+        let cusps = sign_anchored_cusps(
+            &HouseSystem::WholeSign,
+            Longitude::from_degrees(ascendant_deg),
+        )
+        .expect("whole sign is sign-anchored");
+        assert_eq!(
+            degrees(cusps),
+            sign_boundaries_from(first_deg),
+            "ascendant {ascendant_deg}"
+        );
+    }
+}
+
+#[test]
+fn sign_anchored_equal_aries_cusps_ignore_the_ascendant() {
+    for ascendant_deg in [0.0, 46.7632, 359.5] {
+        let cusps = sign_anchored_cusps(
+            &HouseSystem::EqualAries,
+            Longitude::from_degrees(ascendant_deg),
+        )
+        .expect("equal Aries is sign-anchored");
+        assert_eq!(degrees(cusps), sign_boundaries_from(0.0));
+    }
+}
+
+#[test]
+fn sign_anchored_cusps_match_calculate_houses_for_its_own_ascendant() {
+    for system in [HouseSystem::WholeSign, HouseSystem::EqualAries] {
+        let snapshot =
+            calculate_houses(&sample_request(system.clone())).expect("houses should work");
+        let cusps = sign_anchored_cusps(&system, snapshot.angles.ascendant)
+            .expect("system is sign-anchored");
+        assert_eq!(snapshot.cusps, cusps.to_vec(), "{system:?}");
+    }
+}
+
+#[test]
+fn only_whole_sign_and_equal_aries_are_sign_anchored() {
+    let ascendant = Longitude::from_degrees(46.7632);
+    for system in [
+        HouseSystem::Equal,
+        HouseSystem::EqualMidheaven,
+        HouseSystem::Vehlow,
+        HouseSystem::Sripati,
+        HouseSystem::Porphyry,
+        HouseSystem::Placidus,
+        HouseSystem::Koch,
+        HouseSystem::Regiomontanus,
+        HouseSystem::Campanus,
+        HouseSystem::Meridian,
+        HouseSystem::Morinus,
+        HouseSystem::Gauquelin,
+    ] {
+        assert!(
+            sign_anchored_cusps(&system, ascendant).is_none(),
+            "{system:?}"
+        );
+    }
+}
+
 #[test]
 fn equal_midheaven_and_vehlow_variants_are_available() {
     let mc_snapshot = calculate_houses(&sample_request(HouseSystem::EqualMidheaven))
