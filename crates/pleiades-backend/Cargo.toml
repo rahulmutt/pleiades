@@ -1,7 +1,7 @@
 [package]
 name = "pleiades-backend"
 description = "Backend traits, request/result contracts, capability metadata, policy summaries, and routing helpers for pleiades ephemeris backends."
-version = "0.5.4"
+version = "0.5.5"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true

@@ -1,7 +1,7 @@
 [package]
 name = "pleiades-eclipse"
 description = "Global geocentric solar and lunar eclipse computation for the pleiades astrology workspace: type, greatest-eclipse time, magnitude, gamma, Saros series, eclipsed longitude, and greatest-eclipse location."
-version = "0.7.0"
+version = "0.7.1"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true

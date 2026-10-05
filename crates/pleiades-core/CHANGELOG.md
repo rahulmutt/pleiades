@@ -4,6 +4,30 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.8.0] - 2026-10-05
+
+### Breaking Changes
+
+- Serve Pluto from the Meeus Table 37.A periodic-term fit ([#129](https://github.com/rahulmutt/pleiades/pull/129)) ([#136](https://github.com/rahulmutt/pleiades/pull/136)) ([daaae01](https://github.com/rahulmutt/pleiades/commit/daaae01183dd454aae2ca058cbe0b23bb3516d28))
+
+### Added
+
+- Serve a sidereal zodiac in the heliocentric frame ([#106](https://github.com/rahulmutt/pleiades/pull/106)) ([#156](https://github.com/rahulmutt/pleiades/pull/156)) ([3908371](https://github.com/rahulmutt/pleiades/commit/3908371c946d91271e975b4450d89dd380c2e664))
+
+### Fixed
+
+- Reduce every served body to apparent place, whatever its claim tier ([#113](https://github.com/rahulmutt/pleiades/pull/113)) ([#114](https://github.com/rahulmutt/pleiades/pull/114)) ([90c57c4](https://github.com/rahulmutt/pleiades/commit/90c57c4c785067a3d3af5198badfe5ee830cb1f2))
+- Evaluate the Pluto mean-element orbit in radians and subtract the VSOP87B Earth ([#119](https://github.com/rahulmutt/pleiades/pull/119)) ([#122](https://github.com/rahulmutt/pleiades/pull/122)) ([b64d0e9](https://github.com/rahulmutt/pleiades/commit/b64d0e9edafed05d4c2ef223bf9ad9f3d0711243))
+- Sidereal apparent placements kept nutation ([#120](https://github.com/rahulmutt/pleiades/pull/120)) ([#123](https://github.com/rahulmutt/pleiades/pull/123)) ([fdef5f6](https://github.com/rahulmutt/pleiades/commit/fdef5f698de303a4951c139a7477586060349a9b))
+- Serve TrueNode as the osculating node of the ELP Moon ([#127](https://github.com/rahulmutt/pleiades/pull/127)) ([#133](https://github.com/rahulmutt/pleiades/pull/133)) ([8f5c2b7](https://github.com/rahulmutt/pleiades/commit/8f5c2b78edbfc23a225d542ebc3f4c3e6595f442))
+- Difference the speed over a short step ([#140](https://github.com/rahulmutt/pleiades/pull/140)) ([#150](https://github.com/rahulmutt/pleiades/pull/150)) ([b487377](https://github.com/rahulmutt/pleiades/commit/b487377f4a049d7369783014ab73f03bf4760fb9))
+- Report the sidereal speed in a sidereal chart ([#141](https://github.com/rahulmutt/pleiades/pull/141)) ([#151](https://github.com/rahulmutt/pleiades/pull/151)) ([500a1fb](https://github.com/rahulmutt/pleiades/commit/500a1fb22ef4aa1ae950fc75d26d58fd7e70567f))
+
+### Performance
+
+- Stop re-reading the Sun and the sampled body in apparent samples ([#128](https://github.com/rahulmutt/pleiades/pull/128)) ([#134](https://github.com/rahulmutt/pleiades/pull/134)) ([369caf4](https://github.com/rahulmutt/pleiades/commit/369caf427f6433605a656f024ffd32184d938b3b))
+- Motion-free mean-place reads and a backend-free chart aberration Sun (FU-25, #128) ([#149](https://github.com/rahulmutt/pleiades/pull/149)) ([457497d](https://github.com/rahulmutt/pleiades/commit/457497dd534e26862e8b0a81f7aa1c0ab741c85f))
+
 ## [0.7.0] - 2026-10-03
 
 ### Breaking Changes
