@@ -2,296 +2,128 @@
 
 [![crates.io](https://img.shields.io/crates/v/pleiades-core.svg)](https://crates.io/crates/pleiades-core)
 [![docs.rs](https://img.shields.io/docsrs/pleiades-core)](https://docs.rs/pleiades-core)
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#licensing)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-`pleiades` is a pure-Rust workspace for ephemeris, house, ayanamsa, and chart-building utilities aimed at astrology software.
+`pleiades` is a pure-Rust ephemeris and chart library for astrology software:
+planetary positions, houses, ayanamsas, eclipses and astronomical events, with
+no C dependencies and no data files to download.
 
-The repository is currently a release-hardening foundation, not a finished end-user ephemeris. The main architectural pieces are in place and are intentionally split into small `pleiades-*` crates so backend implementations, domain calculations, validation tooling, and release artifacts can evolve independently.
+It is experimental and pre-1.0: breaking changes can land in any minor release.
+See [Status](#status) before relying on it.
 
-## Current state
+## Quick start
 
-`pleiades` is a release-hardening foundation, not a finished end-user
-ephemeris. Each surface below is guarded by a fail-closed numeric gate; measured
-residuals, carve-outs, and caveats live in the linked crate docs and in the
-[`pleiades-core` compatibility registry](crates/pleiades-core/src/compatibility/mod.rs),
-not restated here.
+```bash
+cargo add pleiades-core pleiades-data
+```
 
-Release-grade numeric compatibility today: 24 house systems pass the SE numeric
-gate, and 48 ayanamsas pass theirs — of 25 and 59 catalogued respectively.
+```rust
+use pleiades_core::{
+    CelestialBody, ChartEngine, ChartRequest, CivilDateTime, HouseSystem, Latitude, Longitude,
+    ObserverLocation, TimeScale,
+};
+use pleiades_data::packaged_backend;
 
-| Surface | Crate | Gate | Accuracy class |
-| --- | --- | --- | --- |
-| Body positions / packaged artifact | [`pleiades-data`](crates/pleiades-data) | `validate-corpus` | sub-arcsecond (majors) |
-| House systems | [`pleiades-houses`](https://docs.rs/pleiades-houses) | `validate-houses` | sub-arcsecond |
-| Ayanamsas | [`pleiades-ayanamsa`](https://docs.rs/pleiades-ayanamsa) | `validate-ayanamsa` | sub-arcsecond |
-| Sidereal time & chart angles | [`pleiades-houses`](https://docs.rs/pleiades-houses) | `validate-angles` | sub-arcsecond |
-| Apparent place (of-date ecliptic) | [`pleiades-core`](https://docs.rs/pleiades-core) | `validate-apparent` | sub-arcsecond |
-| Apparent equatorial (RA/Dec) | [`pleiades-core`](https://docs.rs/pleiades-core) | `validate-equatorial` | sub-arcsecond |
-| Civil time conversion | [`pleiades-time`](https://docs.rs/pleiades-time) | (unit/property) | leap-second-exact |
-| Topocentric correction | [`pleiades-core`](https://docs.rs/pleiades-core) | `validate-topocentric` | opt-in correction |
-| Backend frame consistency (J2000) | [`pleiades-core`](https://docs.rs/pleiades-core) | `release-gate` | invariant gate |
-| Eclipses (global) | [`pleiades-eclipse`](crates/pleiades-eclipse) | `validate-eclipses` | arcsecond-class; timing seconds-of-time |
-| Eclipses (local circumstances) | [`pleiades-eclipse`](crates/pleiades-eclipse) | `validate-eclipses-local` | arcsecond-class; timing seconds-of-time |
-| Longitude crossings (geocentric apparent or mean of date, heliocentric; tropical or sidereal) | [`pleiades-events`](crates/pleiades-events) | `validate-crossings` | arcsecond-class |
-| Ecliptic position & speed (geocentric apparent, geocentric mean-of-date, heliocentric; tropical or sidereal zodiac) | [`pleiades-events`](crates/pleiades-events) | `validate-helio-position` (heliocentric), `validate-apparent` (geocentric); mean-of-date and sidereal longitudes through the `validate-crossings` gate (their speeds are unit-tested only) | arcsecond-class geocentric; arcsecond-class heliocentric |
-| Planetary stations (geocentric apparent or mean of date; tropical or sidereal) | [`pleiades-events`](crates/pleiades-events) | `validate-stations` | arcsecond-class longitude; timing within 22 minutes of Swiss Ephemeris (planets; true node existence-checked only) |
-| Exact aspects between two bodies (geocentric apparent or mean of date, heliocentric; tropical or sidereal) | [`pleiades-events`](crates/pleiades-events) | `validate-aspects` | event for event with Swiss Ephemeris; separation within 3″ at the exact moment |
-| Rise/set/transit & horizontal | [`pleiades-events`](crates/pleiades-events) | `validate-rise-trans` | sub-arcsecond (horizontal); timing seconds-of-time |
-| Fictitious bodies | [`pleiades-fict`](crates/pleiades-fict) | `validate-fictitious` | definitional (sub-arcsecond) |
-| Nodes & apsides | [`pleiades-events`](crates/pleiades-events) | `validate-nod-aps` | sub-arcsecond (mean) / arcminute-class (osculating) |
-| Phase & magnitude | [`pleiades-events`](crates/pleiades-events) | `validate-pheno` | arcsecond-class |
-| Lunar occultations | [`pleiades-events`](crates/pleiades-events) | `validate-occultations` | timing seconds-of-time; position arcminute-class |
-| True (osculating) Lilith | [`pleiades-apsides`](crates/pleiades-apsides) | `validate-lilith` | arcminute-class |
-| True (osculating) Node | [`pleiades-data`](crates/pleiades-data), [`pleiades-elp`](crates/pleiades-elp) | `validate-true-node` | arcsecond-class (cross-theory, packaged) / arcminute-class (ELP, ≤1.3′) |
-| Mean lunar node & apsides (Mean Lilith) | [`pleiades-data`](crates/pleiades-data) | `validate-mean-lunar-points` | sub-arcsecond |
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // The packaged backend ships its own ephemeris data (1900-2100).
+    let engine = ChartEngine::new(packaged_backend());
 
-Crate names link to their docs.rs API docs where published, otherwise to the
-crate source in this repo; gate names are the runnable `validate-*` subcommands
-(and `release-gate`) that guard each surface.
+    // 2000-01-01 12:00:00 UTC, converted to Terrestrial Time.
+    let civil = CivilDateTime::new(2000, 1, 1, 12, 0, 0.0);
+    let bodies = vec![CelestialBody::Sun, CelestialBody::Moon, CelestialBody::Mars];
+    let request = ChartRequest::from_civil(civil, TimeScale::Utc, TimeScale::Tt, bodies)?
+        .request
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(51.5074),
+            Longitude::from_degrees(-0.1278),
+            None,
+        ))
+        .with_house_system(HouseSystem::Placidus);
 
-### Known limits
+    let chart = engine.chart(&request)?;
+    for placement in &chart.placements {
+        println!("{}", placement.summary_line());
+    }
+    Ok(())
+}
+```
 
-- Body/backend grades are **per-backend**: Pluto/Moon/Eros are release-grade via
-  the packaged artifact; VSOP87 Pluto and the compact ELP Moon stay constrained.
-  See `crates/pleiades-core/src/compatibility/mod.rs`.
-- Apparent place omits gravitational light-deflection. Rise/set/transit and
-  horizontal coordinates read the `TimeScale` tag on their query instants and
-  return **TDB** instants; their accuracy in civil time is bounded by the
-  packaged ΔT model (observed through 2020, leap-second-bound to within 0.9 s
-  through the leap table's horizon, extrapolated beyond) — see
-  [docs/time-observer-policy.md](docs/time-observer-policy.md).
-- Several surfaces carry documented, non-gated bounds (occultation planet-total
-  obscuration and `central` flag; fictitious Nibiru; osculating small-body
-  nodes/apsides). Each is recorded in its crate's rustdoc and in
-  `crates/pleiades-core/src/compatibility/mod.rs`.
-- Ingestion and kernel/corpus parsing are treated as untrusted input — see
-  [docs/threat-model.md](docs/threat-model.md).
-- Lunar theory selection and its limits: [docs/lunar-theory-policy.md](docs/lunar-theory-policy.md).
+```text
+Sun 280.36892400760064°  Capricorn    10  Direct      Interpolated
+Moon 223.32379972410268°  Scorpio       7  Direct      Interpolated
+Mars 327.96330497994586°  Aquarius     12  Direct      Interpolated
+```
 
-## Published crates
+Charts are tropical and apparent-of-date by default. Add
+`.with_zodiac_mode(...)` for a sidereal chart; the observer and house system
+are optional. The full API is on [docs.rs](https://docs.rs/pleiades-core).
 
-The library crates are published to crates.io under `MIT OR Apache-2.0`:
+## What it computes
+
+- **Charts**: body positions, signs, houses, motion and aspects through
+  [`pleiades-core`](https://docs.rs/pleiades-core).
+- **Houses and ayanamsas**: today 24 house systems pass the Swiss Ephemeris
+  numeric gate and 48 ayanamsas pass theirs, of 25 and 59 catalogued.
+- **Civil time**: UTC/UT1 to TT/TDB, leap-second-exact, 1900–2100
+  ([`pleiades-time`](https://docs.rs/pleiades-time)).
+- **Eclipses**: global and per-observer solar and lunar eclipses
+  ([`pleiades-eclipse`](https://docs.rs/pleiades-eclipse)).
+- **Events**: longitude crossings, stations, exact aspects, rise/set/transit,
+  nodes and apsides, phase and magnitude, lunar occultations
+  ([`pleiades-events`](https://docs.rs/pleiades-events)).
+
+## Crates
+
+Most applications need only `pleiades-core` plus a backend. The library crates
+are published to crates.io, each with its own version:
 
 <!-- audit:published-crates -->
-`pleiades-types`, `pleiades-backend`, `pleiades-time`, `pleiades-apparent`,
-`pleiades-houses`, `pleiades-ayanamsa`, `pleiades-compression`,
-`pleiades-apsides`, `pleiades-vsop87`, `pleiades-elp`, `pleiades-jpl`,
-`pleiades-data`, `pleiades-fict`, `pleiades-core`, `pleiades-eclipse`,
-`pleiades-events`
+| Crate | Role |
+| --- | --- |
+| `pleiades-core` | Chart façade and re-exports; start here. |
+| `pleiades-data` | Packaged offline ephemeris backend, 1900–2100. |
+| `pleiades-vsop87` | Algorithmic planetary backend (VSOP87B). |
+| `pleiades-elp` | Compact lunar backend. |
+| `pleiades-fict` | Fictitious and hypothetical bodies. |
+| `pleiades-jpl` | JPL reference corpus and Horizons ingestion. |
+| `pleiades-events` | Crossings, stations, aspects, rise/set and other events. |
+| `pleiades-eclipse` | Solar and lunar eclipses. |
+| `pleiades-houses` | House systems. |
+| `pleiades-ayanamsa` | Ayanamsas and sidereal offsets. |
+| `pleiades-time` | Civil-time conversion. |
+| `pleiades-apparent` | Apparent-place corrections. |
+| `pleiades-apsides` | Lunar nodes and apsides. |
+| `pleiades-compression` | Compressed artifact format. |
+| `pleiades-backend` | Backend trait and capability metadata. |
+| `pleiades-types` | Shared types: angles, bodies, time scales, observers. |
 <!-- /audit:published-crates -->
-
-They are experimental, pre-1.0 releases, versioned per crate; crates.io shows
-each crate's current version. The limits above apply to the published crates as
-well; production-accuracy claims wait on the phases in [PLAN.md](PLAN.md).
 
 <!-- audit:unpublished-crates -->
 `pleiades-cli` and `pleiades-validate` are contributor tooling and stay
-unpublished.
+unpublished; see [docs/cli.md](docs/cli.md).
 <!-- /audit:unpublished-crates -->
 
-Both lists are checked against the crate manifests by `mise run audit`. The
-release procedure is documented in
-[docs/release-process.md](docs/release-process.md).
+**Minimum supported Rust version: 1.99.0.** Raising it is a breaking change
+and is released as one.
 
-**Minimum supported Rust version: 1.99.0.** The MSRV is declared as
-`rust-version` in the workspace `Cargo.toml` and must match the toolchain
-pinned in [`mise.toml`](mise.toml); `mise run audit` enforces that the two
-agree. Raising it is a breaking change for consumers and is released as such.
+## Status
 
-For the source-of-truth design and compatibility targets, read [SPEC.md](SPEC.md) and the documents in [`spec/`](spec/).
+Each computed surface is guarded by a numeric gate against a reference,
+mostly Swiss Ephemeris or JPL DE440. The gate for each surface, its accuracy
+class and the known limits are listed in [docs/status.md](docs/status.md).
+Production-accuracy claims wait on the phases in [PLAN.md](PLAN.md).
 
-## Workspace layout
+## Documentation
 
-| Crate | Role |
-| --- | --- |
-| `pleiades-types` | Shared typed vocabulary: angles, bodies, time scales, observers, coordinates, zodiac modes, house systems, and ayanamsas. |
-| `pleiades-backend` | Backend traits, request/result types, capability metadata, policy summaries, and routing/composite helpers. |
-| `pleiades-core` | High-level chart façade, chart request validation, compatibility profile, API stability profile, and re-exports for common consumers. |
-| `pleiades-houses` | House-system catalog, aliases, formula-family metadata, and baseline house calculations. |
-| `pleiades-ayanamsa` | Ayanamsa catalog, aliases, reference offset metadata, and sidereal offset helpers. |
-| `pleiades-time` | Civil-time conversion: civil UTC/UT1 calendar datetimes → TT/TDB `Instant`s and back (`from_terrestrial`, millisecond precision, leap seconds as `23:59:60`) (1900–2100, leap-second-exact UTC, observed/extrapolated Delta-T, TT↔TDB periodic term, typed `ConversionProvenance` with `exact`/`observed`/`predicted` quality marker). |
-| `pleiades-apparent` | Apparent-place chart layer: applies light-time, precession-to-date, annual aberration, and nutation-in-longitude to mean J2000 backend positions to produce true equinox-of-date coordinates for every body a backend serves, whatever its claim tier (gravitational light-deflection omitted). |
-| `pleiades-vsop87` | Pure-Rust VSOP87B-backed planetary backend with generated binary coefficient tables and a Meeus Table 37.A Pluto path (1885–2099). |
-| `pleiades-elp` | Compact Meeus-style lunar/lunar-point backend for Moon, mean/true node, and mean apogee/perigee channels. |
-| `pleiades-fict` | Fictitious/hypothetical body backend (SP-3): SE `seorbel.txt` bodies 40–58 as unperturbed Kepler orbits, definitional parity with Swiss Ephemeris via `validate-fictitious`. |
-| `pleiades-apsides` | Lunar orbit points: osculating and mean nodes and apsides from the Moon's state vector and mean elements, plus the shared Kepler-elements helpers. |
-| `pleiades-eclipse` | Global and per-observer local solar and lunar eclipse computation over the packaged 1900–2100 window. |
-| `pleiades-events` | Event engine: longitude crossings, ecliptic position and speed, rise/set/transit and horizontal coordinates, nodes and apsides, phase and magnitude, lunar occultations. |
-| `pleiades-jpl` | Reproducible de440-sourced JPL reference corpus (checksum-pinned, kernel SHA pinned, kernel not committed) and corpus-backed validation helpers behind a fail-closed gate. Also ingests external JPL-style products (Horizons vector-table / API JSON / generic CSV) into the corpus types via `pleiades-jpl::ingest`, with optional live fetch behind the default-off `horizons-fetch` feature. |
-| `pleiades-compression` | Compressed artifact data structures and codec helpers. |
-| `pleiades-data` | Packaged compressed-data backend and checked-in draft artifact fixture. |
-| `pleiades-cli` | Contributor-facing inspection and chart CLI. |
-| `pleiades-validate` | Validation reports, audits, benchmarks, artifact inspection, and release-bundle tooling. |
+- [docs/status.md](docs/status.md) — accuracy per surface and known limits.
+- [docs/time-observer-policy.md](docs/time-observer-policy.md) — time scales, observers, apparentness and frames.
+- [docs/lunar-theory-policy.md](docs/lunar-theory-policy.md) — lunar theory selection and limits.
+- [docs/cli.md](docs/cli.md) — the inspection and validation command-line tools.
+- [docs/development.md](docs/development.md) — building, testing, workspace layout and releasing.
+- [docs/threat-model.md](docs/threat-model.md) — trust boundaries for ingested data.
+- [SPEC.md](SPEC.md) and [`spec/`](spec/) — the design specification.
 
-All first-party crates follow the `pleiades-*` naming rule required by the specification.
+## License
 
-## CLI quick start
-
-Run contributor commands through Cargo:
-
-```bash
-cargo run -q -p pleiades-cli -- help
-cargo run -q -p pleiades-validate -- help
-```
-
-Useful inspection commands:
-
-```bash
-# One-screen release posture
-cargo run -q -p pleiades-cli -- release-summary
-
-# Current compatibility catalog/profile
-cargo run -q -p pleiades-cli -- profile-summary
-
-# Backend capability matrix
-cargo run -q -p pleiades-cli -- backend-matrix-summary
-
-# Request semantics and time/observer policy
-cargo run -q -p pleiades-cli -- request-surface-summary
-cargo run -q -p pleiades-cli -- utc-convenience-policy-summary
-
-# Packaged artifact posture
-cargo run -q -p pleiades-cli -- artifact-summary
-```
-
-Render a basic chart report:
-
-```bash
-cargo run -q -p pleiades-cli -- chart \
-  --jd 2451545.0 \
-  --body Sun \
-  --body Moon
-```
-
-Render a sidereal chart with houses for an observer:
-
-```bash
-cargo run -q -p pleiades-cli -- chart \
-  --jd 2451545.0 \
-  --lat 51.5074 \
-  --lon 0.0 \
-  --ayanamsa Lahiri \
-  --house-system "Whole Sign" \
-  --body Sun \
-  --body Moon \
-  --mean
-```
-
-Notes:
-
-- `chart` defaults to `JD 2451545.0` if `--jd` is omitted.
-- If no `--body` flags are given, the CLI uses the default chart body set from `pleiades-core`.
-- `--body` accepts built-in labels such as `Sun`, `Moon`, and `Ceres`, plus custom identifiers such as `asteroid:433-Eros` when supported by the selected path.
-- `--ayanamsa` accepts built-in names such as `Lahiri` and custom definitions such as `custom:True Balarama|2451545.0|12.5`.
-- Built-in civil-time conversion: use `--civil <YYYY-MM-DDTHH:MM:SS> [--civil-scale utc|ut1] [--civil-target tt|tdb]` to convert a calendar datetime to TT/TDB automatically (1900–2100, tiered quality). Alternatively, supply caller-chosen offsets via the `--tt-*` or `--tdb-*` flags. See [docs/time-observer-policy.md](docs/time-observer-policy.md).
-
-## Validation and release tooling
-
-`pleiades-validate` is the maintainer tool for audits, reports, artifact inspection, and release rehearsal:
-
-```bash
-# Native dependency / build-hook audit
-cargo run -q -p pleiades-validate -- workspace-audit
-
-# Compatibility profile verification
-cargo run -q -p pleiades-validate -- verify-compatibility-profile
-
-# Full packaged-artifact inspection
-cargo run -q -p pleiades-validate -- validate-artifact
-
-# Compact validation report
-cargo run -q -p pleiades-validate -- report-summary --rounds 100
-
-# Stage and verify a release bundle
-cargo run -q -p pleiades-validate -- bundle-release --out /tmp/pleiades-release
-cargo run -q -p pleiades-validate -- verify-release-bundle --out /tmp/pleiades-release
-```
-
-For release reproducibility details, see [docs/release-reproducibility.md](docs/release-reproducibility.md).
-
-## Local development
-
-Tooling is pinned with [`mise.toml`](mise.toml):
-
-```bash
-mise install
-mise run fmt
-mise run lint
-mise run test
-```
-
-Activate the committed pre-commit hooks (opt-in — git cannot force hooks):
-
-```bash
-git config core.hooksPath .githooks
-```
-
-Dependency and toolchain updates arrive as grouped [Renovate](https://docs.renovatebot.com)
-pull requests, gated by the blocking CI tier.
-
-Equivalent direct Cargo checks:
-
-```bash
-cargo fmt --all --check
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace
-```
-
-Additional useful tasks:
-
-```bash
-mise run docs
-mise run audit
-mise run release-smoke
-mise run release-gate
-```
-
-`release-smoke` runs the native dependency audit, validates the bundled compressed artifact, stages a release bundle, and verifies the bundle. `release-gate` runs formatting, clippy, tests, benchmark generation, the full exact-aspect gate (about 15 minutes, `mise run gate-aspects`) and the full planetary-stations gate (a few minutes, `mise run gate-stations`), then performs the same smoke checks itself; it does not run `release-smoke` as a separate step.
-
-## Documentation map
-
-**New to the codebase?** Start with
-[spec/architecture.md](spec/architecture.md) — the workspace layering and
-crate-dependency map.
-
-- [SPEC.md](SPEC.md) — top-level specification and crate family.
-- [spec/architecture.md](spec/architecture.md) — workspace layering and dependency boundaries.
-- [spec/requirements.md](spec/requirements.md) — functional and non-functional requirements.
-- [spec/api-and-ergonomics.md](spec/api-and-ergonomics.md) — public API shape and error posture.
-- [spec/validation-and-testing.md](spec/validation-and-testing.md) — validation, benchmarking, and release gates.
-- [spec/roadmap.md](spec/roadmap.md) — implementation roadmap.
-- [docs/time-observer-policy.md](docs/time-observer-policy.md) — current time-scale, observer, apparentness, and frame policy.
-- [docs/lunar-theory-policy.md](docs/lunar-theory-policy.md) — current lunar theory selection and limitations.
-- [docs/release-reproducibility.md](docs/release-reproducibility.md) — release bundle and artifact reproducibility workflow.
-
-## Releasing
-
-Releases are automated with [release-plz](https://release-plz.dev). Each
-publishable crate has its own version. On every push to `main`, release-plz
-maintains a **Release** pull request that bumps every crate with releasable
-Conventional Commits (`feat`/`fix`/`perf`/breaking), plus the crates that pin
-it exactly, and updates that crate's `crates/<name>/CHANGELOG.md`. Merge that
-PR to tag each bumped crate (`<crate>-v<version>`), publish it to crates.io,
-and create its GitHub Release. The root `CHANGELOG.md` is the unified-version
-history through 0.5.2. See `docs/release-process.md` for the extra step a
-breaking change in a shared crate needs.
-
-### Required repository secrets
-
-- `CARGO_REGISTRY_TOKEN` — a crates.io API token (Settings → API Tokens) with
-  publish scope for the `pleiades-*` crates.
-- `RELEASE_PLZ_TOKEN` — a GitHub token used by the workflow so its PRs and tags
-  trigger CI. Prefer a **GitHub App** installation token (scoped, rotating);
-  a fine-grained PAT with `contents: write` + `pull-requests: write` also works.
-  The default `GITHUB_TOKEN` cannot trigger downstream workflows, so it is not
-  sufficient here.
-
-### Manual fallback
-
-To cut a release by hand (e.g. if crates.io automation is unavailable), use the
-retained `release.toml` config, one crate at a time:
-`cargo release -p <crate> <level> --execute`.
-
-## Licensing
-
-Workspace manifests declare `MIT OR Apache-2.0`. The checked-in [`LICENSE-APACHE`](LICENSE-APACHE) and [`LICENSE-MIT`](LICENSE-MIT) files carry the full license texts.
+`MIT OR Apache-2.0`. The full texts are in [`LICENSE-APACHE`](LICENSE-APACHE)
+and [`LICENSE-MIT`](LICENSE-MIT).
