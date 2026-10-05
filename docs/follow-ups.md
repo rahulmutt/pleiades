@@ -3030,7 +3030,7 @@ before and after. Tests pin the query counts: no Sun query in a body's
 apparent sample, one read per body per sampled instant in `sampled_place`
 and in an apparent chart.
 
-**Done in round two (bit-identical positions and speeds; only the provenance aberration estimate moves, by ≤ ~0.01″):**
+**Done in round two (bit-identical positions, and speeds except where a Sun window ends first, below; only the provenance aberration estimate moves, by ≤ ~0.01″):**
 
 - `EphemerisBackend::position_without_motion`: VSOP87, ELP and the
   fictitious backend skip the ±0.5 d finite-difference speed. The light-time
@@ -3040,6 +3040,12 @@ and in an apparent chart.
   (now `pleiades_apparent::sun_true_longitude_of_date_deg`): no backend Sun
   query beyond the Sun's own placement. Provenance aberration estimates move
   by ≤ ~0.01″; a backend without a Sun can serve an apparent chart.
+  Speeds are bit-identical except where the backend's Sun window is narrower
+  than a body's (for example the CLI's routed chain, whose packaged artifact
+  bounds the Sun): a speed neighbour is now dropped only when the body's own
+  sample fails, so within 0.5 d inside the Sun's window edge a speed that was
+  one-sided becomes the central difference, an accuracy gain
+  (`apparent_speed_is_central_when_only_the_sun_window_ends`).
 - Precession + nutation: measured at 0.15% of an 11-body chart (33 calls of
   0.82 µs against 18.3 ms; the base measured 0.06%); no per-instant
   reduction context is needed, so that item closes without change.

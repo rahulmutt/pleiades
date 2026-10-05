@@ -186,3 +186,19 @@ the item is closed without change.
   `spec/api-and-ergonomics.md` get one sentence where the backend trait
   surface is described, if such a sentence exists to extend.
 - Issue #128: a comment with the new table when the PR lands.
+
+## Amendment (2026-10-05, final review)
+
+"Positions and speeds are bit-identical" (§§1 and 3) holds for positions
+everywhere, and for speeds except where the backend's Sun window is narrower
+than a body's. Before §3 a speed neighbour was dropped when the backend could
+not serve the *Sun* at it; now it is dropped only when the *body's own*
+correction sample fails. Within 0.5 d inside such a Sun window edge a body's
+speed that was one-sided becomes the central difference, so its bits change.
+This is an accuracy improvement, not a regression. The CLI's
+`default_chart_backend` is such a chain: the packaged artifact comes first and
+its `OutOfRangeInstant` is not retried, so the Sun is bounded while bodies
+routed elsewhere are not. `apparent_speed_is_central_when_only_the_sun_window_ends`
+(`crates/pleiades-core/src/chart/apparent_motion_tests.rs`) pins the case. The
+pinned chart checksum does not reach it: its edge instants chart the packaged
+backend alone, whose Sun window is no narrower than the bodies' windows there.
