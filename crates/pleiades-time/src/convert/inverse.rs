@@ -308,5 +308,64 @@ pub fn ut1_civil_from_tdb(instant: Instant) -> Result<CivilConversion, CivilTime
     from_scale(instant, TimeScale::Tdb, TimeScale::Ut1)
 }
 
+/// UTC where it is defined, UT1 before that. The UTC attempt reports an
+/// instant before the leap epoch as `UtcBeforeLeapEpoch`, or as
+/// `BeyondHorizon` when its TT day precedes the window; both go to UT1, which
+/// applies its own window check. Past the end of the window the UTC error
+/// stands: UT1 runs behind UTC there and would still be in range.
+fn civil_from_scale(
+    instant: Instant,
+    source: TimeScale,
+) -> Result<CivilConversion, CivilTimeError> {
+    match from_scale(instant, source, TimeScale::Utc) {
+        Err(CivilTimeError::UtcBeforeLeapEpoch) => from_terrestrial(instant, TimeScale::Ut1),
+        Err(CivilTimeError::BeyondHorizon { jd }) if jd < SUPPORT_START_JD => {
+            from_terrestrial(instant, TimeScale::Ut1)
+        }
+        other => other,
+    }
+}
+
+/// Converts a TT instant to the civil datetime of its era: UTC from
+/// 1972-01-01 on, UT1 before. [`CivilConversion::scale`] reports which.
+///
+/// An event finder returns instants anywhere in 1900–2100, and UTC with leap
+/// seconds starts in 1972, so [`utc_civil_from_tt`] fails for the earlier
+/// part of that range. This call covers all of it. The switch is at the first
+/// UTC instant, 1972-01-01T00:00:00 UTC; UT1 and UTC differ by under a second
+/// there. Swiss Ephemeris' `swe_jdet_to_utc` makes the same choice.
+///
+/// # Errors
+///
+/// As [`from_terrestrial`], except that it never returns
+/// [`CivilTimeError::UtcBeforeLeapEpoch`]. An instant not tagged TT is
+/// [`CivilTimeError::UnsupportedScale`] with a UTC target.
+///
+/// # Examples
+///
+/// ```
+/// use pleiades_time::{civil_from_tt, CivilDateTime};
+/// use pleiades_types::{Instant, JulianDay, TimeScale};
+///
+/// let tt = |jd| Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+///
+/// let modern = civil_from_tt(tt(2_460_000.0)).unwrap();
+/// assert_eq!(modern.scale, TimeScale::Utc);
+/// assert_eq!(modern.civil, CivilDateTime::new(2023, 2, 24, 11, 58, 50.816));
+///
+/// let early = civil_from_tt(tt(2_430_000.0)).unwrap();
+/// assert_eq!(early.scale, TimeScale::Ut1);
+/// assert_eq!((early.civil.year, early.civil.month, early.civil.day), (1941, 1, 5));
+/// ```
+pub fn civil_from_tt(instant: Instant) -> Result<CivilConversion, CivilTimeError> {
+    civil_from_scale(instant, TimeScale::Tt)
+}
+/// Converts a TDB instant to the civil datetime of its era: UTC from
+/// 1972-01-01 on, UT1 before. See [`civil_from_tt`]. Rejects an instant not
+/// tagged TDB.
+pub fn civil_from_tdb(instant: Instant) -> Result<CivilConversion, CivilTimeError> {
+    civil_from_scale(instant, TimeScale::Tdb)
+}
+
 #[cfg(test)]
 mod tests;

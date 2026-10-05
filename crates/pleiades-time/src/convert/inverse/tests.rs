@@ -312,6 +312,130 @@ fn conveniences_require_their_named_source_scale() {
     );
 }
 
+fn tdb(jd: f64) -> Instant {
+    Instant::new(JulianDay::from_days(jd), TimeScale::Tdb)
+}
+
+#[test]
+fn civil_is_utc_from_1972_on() {
+    // Issue #107's in-range instant.
+    let instant = tdb(2_441_317.6);
+    let civil = civil_from_tdb(instant).unwrap();
+    assert_eq!(civil, utc_civil_from_tdb(instant).unwrap());
+    assert_eq!(civil.scale, TimeScale::Utc);
+    assert_eq!(civil.provenance.quality, ConversionQuality::Exact);
+    assert_eq!(civil.civil, CivilDateTime::new(1972, 1, 1, 2, 23, 17.816));
+}
+
+#[test]
+fn civil_is_ut1_before_1972() {
+    // Issue #107's two pre-1972 instants, which the strict UTC call rejects.
+    for jd in [2_430_000.0, 2_415_100.0] {
+        let instant = tdb(jd);
+        assert_eq!(
+            utc_civil_from_tdb(instant),
+            Err(CivilTimeError::UtcBeforeLeapEpoch)
+        );
+        let civil = civil_from_tdb(instant).unwrap();
+        assert_eq!(civil, ut1_civil_from_tdb(instant).unwrap());
+        assert_eq!(civil.scale, TimeScale::Ut1);
+    }
+}
+
+#[test]
+fn civil_before_1972_matches_swiss_ephemeris_ut1() {
+    // pyswisseph 2.10.03 `jdet_to_utc(2430000.0)`: 1941-01-05 11:59:35.165,
+    // TT minus its Delta-T of 24.838 s. The Delta-T models differ by well
+    // under the 0.5 s allowed here.
+    let civil = civil_from_tt(tt(2_430_000.0)).unwrap().civil;
+    assert_eq!(
+        (civil.year, civil.month, civil.day, civil.hour, civil.minute),
+        (1941, 1, 5, 11, 59)
+    );
+    assert!(
+        (civil.second - 35.165).abs() < 0.5,
+        "second {}",
+        civil.second
+    );
+}
+
+#[test]
+fn civil_switches_scale_at_the_first_utc_instant() {
+    let first_utc = tt_from_utc_civil(CivilDateTime::new(1972, 1, 1, 0, 0, 0.0))
+        .unwrap()
+        .instant;
+    let at_epoch = civil_from_tt(first_utc).unwrap();
+    assert_eq!(at_epoch.scale, TimeScale::Utc);
+    assert_eq!(at_epoch.civil, CivilDateTime::new(1972, 1, 1, 0, 0, 0.0));
+
+    let just_before = shifted(first_utc, -0.002);
+    let before = civil_from_tt(just_before).unwrap();
+    assert_eq!(before, ut1_civil_from_tt(just_before).unwrap());
+    assert_eq!(before.scale, TimeScale::Ut1);
+}
+
+#[test]
+fn civil_reaches_the_start_of_the_window_in_ut1() {
+    // The UTC attempt reports a TT day before the window as `BeyondHorizon`,
+    // not `UtcBeforeLeapEpoch`; the UT1 answer decides whether it is in range.
+    let start = tt_from_ut1_civil(CivilDateTime::new(1900, 1, 1, 0, 0, 0.0))
+        .unwrap()
+        .instant;
+    for instant in [
+        start,
+        tt(SUPPORT_START_JD - 1.0e-6),
+        tt(SUPPORT_START_JD + 1.0e-6),
+    ] {
+        assert_eq!(civil_from_tt(instant), ut1_civil_from_tt(instant));
+    }
+    assert_eq!(
+        civil_from_tt(start).unwrap().civil,
+        CivilDateTime::new(1900, 1, 1, 0, 0, 0.0)
+    );
+    assert!(matches!(
+        civil_from_tt(shifted(start, -0.002)),
+        Err(CivilTimeError::BeyondHorizon { .. })
+    ));
+}
+
+#[test]
+fn civil_does_not_fall_back_to_ut1_past_the_window_end() {
+    // 30 s past the last UTC instant of 2100. UT1 runs behind UTC there, so a
+    // UT1 reading is still inside the window; the answer must stay UTC's.
+    let end = tt_from_utc_civil(CivilDateTime::new(2100, 12, 31, 23, 59, 59.0))
+        .unwrap()
+        .instant;
+    let past = shifted(end, 31.0);
+    assert!(ut1_civil_from_tt(past).is_ok());
+    let utc = utc_civil_from_tt(past);
+    assert!(matches!(utc, Err(CivilTimeError::BeyondHorizon { .. })));
+    assert_eq!(civil_from_tt(past), utc);
+}
+
+#[test]
+fn civil_requires_its_named_source_scale() {
+    let as_tt = tt(2_430_000.0);
+    let as_tdb = tdb(2_430_000.0);
+    assert_eq!(
+        civil_from_tdb(as_tt),
+        Err(CivilTimeError::UnsupportedScale {
+            source: TimeScale::Tt,
+            target: TimeScale::Utc,
+        })
+    );
+    assert_eq!(
+        civil_from_tt(as_tdb),
+        Err(CivilTimeError::UnsupportedScale {
+            source: TimeScale::Tdb,
+            target: TimeScale::Utc,
+        })
+    );
+    assert_eq!(
+        civil_from_tt(tt(f64::NAN)),
+        Err(CivilTimeError::NonFiniteOffset)
+    );
+}
+
 mod properties {
     use proptest::prelude::*;
 

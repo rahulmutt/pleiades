@@ -13,8 +13,8 @@ use crate::tdb;
 mod inverse;
 
 pub use inverse::{
-    from_terrestrial, ut1_civil_from_tdb, ut1_civil_from_tt, utc_civil_from_tdb, utc_civil_from_tt,
-    CivilConversion,
+    civil_from_tdb, civil_from_tt, from_terrestrial, ut1_civil_from_tdb, ut1_civil_from_tt,
+    utc_civil_from_tdb, utc_civil_from_tt, CivilConversion,
 };
 
 /// Start of the supported civil window (1900-01-01 00:00).
