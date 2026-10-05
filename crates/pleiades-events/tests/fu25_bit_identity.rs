@@ -11,6 +11,13 @@ use pleiades_types::{CelestialBody, Instant, JulianDay, TimeScale};
 use pleiades_vsop87::Vsop87Backend;
 
 /// Value the checksum had on `main` at 91b13290d, before FU-25's second round.
+///
+/// Re-pin it only in a change that intentionally moves positions or speeds,
+/// like the crossings golden: run `cargo test -p pleiades-events --test fu25_bit_identity`,
+/// copy the `got 0x...` value from the failure message (it also prints every
+/// pinned bit, for a diff against the old run), and state the re-pin and its
+/// reason in the commit message. The value hashes `libm` output and is pinned
+/// on Linux CI; another platform's libm may differ in the last bit.
 const EVENTS_CHECKSUM: u64 = 0x0dfc_fbba_b887_e99b;
 
 fn tdb(jd: f64) -> Instant {
