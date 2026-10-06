@@ -47,7 +47,8 @@ ayanamsa. That is about 8 minutes of crossing time for the Sun and hours for a
 slow planet such as Saturn, more near a station. True Citra and Galactic Center
 were measured; the other ayanamsas in those classes follow from the same
 mechanism and were not.
-Mean-of-date and sidereal crossings are gated by `validate-crossings`.
+Mean-of-date and sidereal crossings, the heliocentric sidereal ones included,
+are gated by `validate-crossings`.
 
 ## Civil times
 

@@ -341,3 +341,10 @@ measurement before it is written:
   rests on 16 rows, while the tropical Moon groups measure 2.6″; a
   regeneration with more Moon rows should expect a ceiling near 4″. Recorded
   as FU-18(d).
+  Resolved 2026-10-06 (issue #164 (d)): every sidereal group has three start
+  epochs per body and the Moon has three targets, 72 sidereal Moon rows in
+  all. The sidereal Moon measures 1.213″, so its ceiling is 2″ and not the 4″
+  expected here: the ayanamsa moves each target to another point of the
+  Moon's orbit, and the largest residual found there is smaller than the
+  tropical groups' 2.6″. The corpus also gained 72 heliocentric sidereal rows
+  (Mercury, Mars and Jupiter, 0.353″ at most) and has 329 rows.

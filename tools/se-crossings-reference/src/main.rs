@@ -29,6 +29,8 @@
 //!   so folds the star's annual aberration (up to ~20") into the ayanamsa;
 //!   pleiades uses the mean ayanamsa. `check_sidereal_decomposition` asserts the
 //!   decomposition against SE's own geometric SEFLG_SIDEREAL longitude.
+//!   Sidereal `helio` rows carry the geometric flags for the same reason: they
+//!   leave a heliocentric planet alone and keep the ayanamsa the mean one.
 //!
 //! Two build/run caveats: under devenv's gcc the build needs `CFLAGS=-std=gnu17`
 //! (libswisseph-sys otherwise fails with a conflicting `getenv` declaration), and
@@ -140,9 +142,20 @@ fn geo_moon_cross_tdb(target_deg: f64, start_tdb: f64) -> f64 {
     crossing_ut + unsafe { swe_deltat(crossing_ut) }
 }
 
-/// Heliocentric crossing of `ipl` over `target_deg`, next after `start_tdb`.
-/// `swe_helio_cross` takes/returns ET(=TDB) directly via the out-param.
-fn helio_cross_tdb(ipl: c_int, target_deg: f64, start_tdb: f64) -> f64 {
+/// Heliocentric geometric place on the true equinox of date.
+const HELIO_TROPICAL: c_int = SEFLG_MOSEPH | SEFLG_HELCTR | SEFLG_TRUEPOS;
+
+/// Heliocentric geometric place in the sidereal zodiac last set with
+/// `swe_set_sid_mode`. Swiss Ephemeris never applies aberration or deflection
+/// to a heliocentric place, so those two flags leave the planet alone; they
+/// are there for the ayanamsa, which a star-anchored mode otherwise takes from
+/// the anchoring star's apparent place (see the module docs).
+const HELIO_SIDEREAL: c_int = SEFLG_MOSEPH | SEFLG_HELCTR | SEFLG_SIDEREAL | GEOMETRIC;
+
+/// Heliocentric crossing of `ipl` over `target_deg` under `iflag`, next after
+/// `start_tdb`. `swe_helio_cross` takes/returns ET(=TDB) directly via the
+/// out-param.
+fn helio_cross_tdb(ipl: c_int, iflag: c_int, target_deg: f64, start_tdb: f64) -> f64 {
     let mut jd_cross = 0.0_f64;
     let mut serr = [0_i8; 256];
     let ret = unsafe {
@@ -150,7 +163,7 @@ fn helio_cross_tdb(ipl: c_int, target_deg: f64, start_tdb: f64) -> f64 {
             ipl,
             target_deg,
             start_tdb,
-            SEFLG_MOSEPH | SEFLG_HELCTR | SEFLG_TRUEPOS,
+            iflag,
             1, // dir = +1 (forward)
             &mut jd_cross,
             serr.as_mut_ptr() as *mut c_char,
@@ -265,6 +278,20 @@ fn check_sidereal_decomposition(ayanamsas: &[(&str, c_int)]) {
             diff < 1e-6,
             "{name}: sidereal {sidereal} vs decomposed {decomposed} differ by {diff} deg"
         );
+        // The same for the heliocentric place: `HELIO_SIDEREAL` is the
+        // heliocentric mean-equinox longitude minus the mean ayanamsa.
+        let helio = flagged_longitude(jd, SE_MARS, HELIO_SIDEREAL);
+        let helio_decomposed = (flagged_longitude(
+            jd,
+            SE_MARS,
+            SEFLG_MOSEPH | SEFLG_HELCTR | GEOMETRIC | SEFLG_NONUT,
+        ) - mean_ayanamsa(jd))
+        .rem_euclid(360.0);
+        let helio_diff = signed_delta(helio, helio_decomposed).abs();
+        assert!(
+            helio_diff < 1e-6,
+            "{name}: helio sidereal {helio} vs decomposed {helio_decomposed} differ by {helio_diff} deg"
+        );
     }
 }
 
@@ -302,6 +329,7 @@ fn main() {
     println!("# geo-mean: bisection on swe_calc with SEFLG_TRUEPOS|SEFLG_NOABERR|SEFLG_NOGDEFL|SEFLG_NONUT.");
     println!("# zodiac != tropical: swe_set_sid_mode + SEFLG_SIDEREAL (nutation-free; mean ayanamsa).");
     println!("# geo rows of star-anchored ayanamsas (TrueCitra, GalacticCenter): apparent mean-equinox longitude minus the mean ayanamsa (swe_get_ayanamsa_ex, TRUEPOS|NOABERR|NOGDEFL), because under plain SEFLG_SIDEREAL SE takes the anchoring star's apparent place and folds the star's annual aberration (up to ~20\") into the ayanamsa; pleiades uses the mean ayanamsa.");
+    println!("# helio rows with zodiac != tropical: swe_helio_cross with SEFLG_HELCTR|SEFLG_SIDEREAL|SEFLG_TRUEPOS|SEFLG_NOABERR|SEFLG_NOGDEFL (geometric place, mean ayanamsa).");
     println!("# All rows forward (next crossing after start); times TDB within 1900-2100.");
     println!("frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb,zodiac");
 
@@ -392,7 +420,7 @@ fn main() {
     for &(ipl, name) in &helio_planets {
         for &start in &helio_starts {
             for &t in &helio_targets {
-                let c = helio_cross_tdb(ipl, t, start);
+                let c = helio_cross_tdb(ipl, HELIO_TROPICAL, t, start);
                 // Slow outer planets (Pluto) can have their next crossing fall
                 // beyond the hard 1900–2100 window. Document and skip rather
                 // than panic in emit's window assertion; keeps exclusions
@@ -458,16 +486,25 @@ fn main() {
                     flagged_cross_tdb(ipl, iflag, t, start)
                 }
             };
-            for &start in &[2_416_000.5_f64, 2_470_000.5] {
+            // Three epochs each (~1902/1913, ~1968/1995, ~2050/2077): the
+            // ayanamsa and the precession it stands for grow with the distance
+            // from J2000, so both ends of the window are covered.
+            for &start in &sun_starts {
                 for &t in &[0.0_f64, 137.5] {
                     emit(frame, "Sun", t, start, cross(SE_SUN, t, start), zodiac);
                 }
             }
-            for &start in &[2_420_000.5_f64, 2_480_000.5] {
-                emit(frame, "Moon", 45.0, start, cross(SE_MOON, 45.0, start), zodiac);
+            // The Moon targets of the geo-mean tropical block, whose largest
+            // residual (180 deg from the ~1913 start) sets the Moon ceiling.
+            for &start in &moon_starts {
+                for &t in &[0.0_f64, 180.0, 45.0] {
+                    emit(frame, "Moon", t, start, cross(SE_MOON, t, start), zodiac);
+                }
             }
-            let c = cross(SE_JUPITER, 120.0, geo_planet_start);
-            emit(frame, "Jupiter", 120.0, geo_planet_start, c, zodiac);
+            for &start in &sun_starts {
+                let c = cross(SE_JUPITER, 120.0, start);
+                emit(frame, "Jupiter", 120.0, start, c, zodiac);
+            }
         }
     }
 
@@ -482,5 +519,26 @@ fn main() {
         assert!(c > mars_prev + 1.0, "sidereal Mars crossings not distinct: {c} vs {mars_prev}");
         mars_prev = c;
         emit("geo", "Mars", sidereal_mars_target, start, c, "Lahiri");
+    }
+
+    // --- heliocentric sidereal: a fast, a middle and a slow planet. ---
+    // Starts ~1901 / 2000 / ~2050; every body completes an orbit well inside
+    // the window from each of them.
+    let helio_sidereal_starts = [2_415_400.5_f64, 2_451_545.0, 2_470_000.5];
+    let helio_sidereal_planets: [(c_int, &str); 3] = [
+        (SE_MERCURY, "Mercury"),
+        (SE_MARS, "Mars"),
+        (SE_JUPITER, "Jupiter"),
+    ];
+    for &(zodiac, sid_mode) in &ayanamsas {
+        unsafe { swe_set_sid_mode(sid_mode, 0.0, 0.0) };
+        for &(ipl, name) in &helio_sidereal_planets {
+            for &start in &helio_sidereal_starts {
+                for &t in &helio_targets {
+                    let c = helio_cross_tdb(ipl, HELIO_SIDEREAL, t, start);
+                    emit("helio", name, t, start, c, zodiac);
+                }
+            }
+        }
     }
 }
