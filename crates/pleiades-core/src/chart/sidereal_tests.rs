@@ -31,7 +31,7 @@ const SWISS_EPHEMERIS_LAHIRI_DEG: [(CelestialBody, f64); 4] = [
     (CelestialBody::Saturn, 16.542_416),
 ];
 
-fn composite_backend() -> CompositeBackend<Vsop87Backend, ElpBackend> {
+pub(super) fn composite_backend() -> CompositeBackend<Vsop87Backend, ElpBackend> {
     CompositeBackend::new(Vsop87Backend::new(), ElpBackend::new())
 }
 
@@ -39,7 +39,7 @@ fn issue_instant() -> Instant {
     Instant::new(JulianDay::from_days(ISSUE_120_JD_TT), TimeScale::Tt)
 }
 
-fn lahiri() -> ZodiacMode {
+pub(super) fn lahiri() -> ZodiacMode {
     ZodiacMode::Sidereal {
         ayanamsa: Ayanamsa::Lahiri,
     }
@@ -63,7 +63,7 @@ fn longitude_deg(snapshot: &ChartSnapshot, body: &CelestialBody) -> f64 {
         .degrees()
 }
 
-fn wrap_arcsec(deg: f64) -> f64 {
+pub(super) fn wrap_arcsec(deg: f64) -> f64 {
     ((deg + 180.0).rem_euclid(360.0) - 180.0) * 3600.0
 }
 
@@ -130,11 +130,11 @@ const ISSUE_141_JD_TT: f64 = 2_451_545.0;
 /// Half-span the chart differences its speed corrections over, in days.
 const HALF_SPAN_DAYS: f64 = 0.5;
 
-fn tt(jd: f64) -> Instant {
+pub(super) fn tt(jd: f64) -> Instant {
     Instant::new(JulianDay::from_days(jd), TimeScale::Tt)
 }
 
-fn speed_deg_per_day(snapshot: &ChartSnapshot, body: &CelestialBody) -> f64 {
+pub(super) fn speed_deg_per_day(snapshot: &ChartSnapshot, body: &CelestialBody) -> f64 {
     snapshot
         .placement_for(body)
         .expect("body is placed")
@@ -145,7 +145,7 @@ fn speed_deg_per_day(snapshot: &ChartSnapshot, body: &CelestialBody) -> f64 {
         .expect("longitude speed")
 }
 
-fn lahiri_deg(jd: f64) -> f64 {
+pub(super) fn lahiri_deg(jd: f64) -> f64 {
     sidereal_offset(&Ayanamsa::Lahiri, tt(jd))
         .expect("Lahiri offset")
         .degrees()
@@ -156,7 +156,7 @@ fn delta_psi_deg(jd: f64) -> f64 {
 }
 
 /// Central-difference rate of `value` at `jd`, per day.
-fn rate(value: impl Fn(f64) -> f64, jd: f64) -> f64 {
+pub(super) fn rate(value: impl Fn(f64) -> f64, jd: f64) -> f64 {
     (value(jd + HALF_SPAN_DAYS) - value(jd - HALF_SPAN_DAYS)) / (2.0 * HALF_SPAN_DAYS)
 }
 

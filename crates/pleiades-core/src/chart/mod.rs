@@ -31,6 +31,8 @@ mod query_count_tests;
 mod request;
 mod sidereal;
 #[cfg(test)]
+mod sidereal_mean_tests;
+#[cfg(test)]
 mod sidereal_tests;
 mod signs;
 mod snapshot;
@@ -462,15 +464,21 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                     && !native_sidereal
                 {
                     let instant = position.instant;
-                    let longitude = position.ecliptic.as_mut().map(|coords| &mut coords.longitude);
-                    let longitude = longitude.ok_or_else(|| {
+                    let ecliptic = position.ecliptic.as_mut().ok_or_else(|| {
                         EphemerisError::new(
                             EphemerisErrorKind::InvalidRequest,
                             "sidereal chart assembly requires ecliptic coordinates from the backend",
                         )
                     })?;
-                    *longitude = sidereal_longitude(*longitude, instant, &request.zodiac_mode)?;
-                    Some(pleiades_types::ZodiacSign::from_longitude(*longitude))
+                    // The backend's place is on the J2000 equinox and the
+                    // ayanamsa is counted from the equinox of date, so the
+                    // place is precessed there first (issue #164). A
+                    // successful apparent reduction below replaces it.
+                    *ecliptic =
+                        sidereal::mean_place_of_date(*ecliptic, instant.julian_day.days())?;
+                    ecliptic.longitude =
+                        sidereal_longitude(ecliptic.longitude, instant, &request.zodiac_mode)?;
+                    Some(pleiades_types::ZodiacSign::from_longitude(ecliptic.longitude))
                 } else {
                     position
                         .ecliptic
