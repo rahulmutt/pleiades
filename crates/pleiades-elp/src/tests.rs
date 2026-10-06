@@ -3069,11 +3069,13 @@ fn lunar_point_equatorial_is_derived_from_the_of_date_point() {
 
 /// Issue #171: the `equatorial` channel is right ascension and declination
 /// of date, not the J2000 `ecliptic` rotated by an obliquity. A century from
-/// J2000 the two differ by the precession, thousands of arcseconds in right
-/// ascension; at J2000 itself they agree.
+/// J2000 the two differ by the precession, thousands of arcseconds on the
+/// sky; at J2000 itself they agree. Differences are of date minus J2000, with
+/// right ascension as the great-circle arc (`ΔRA · cos δ`).
 #[test]
 fn the_equatorial_channel_is_of_date_not_a_rotation_of_the_j2000_ecliptic() {
     let backend = ElpBackend::new();
+    // Returns (ΔRA·cos δ, ΔDec) in arcseconds, of date minus J2000.
     let moon_at = |jd: f64| {
         let instant = Instant::new(pleiades_types::JulianDay::from_days(jd), TimeScale::Tt);
         let result = backend
@@ -3085,16 +3087,29 @@ fn the_equatorial_channel_is_of_date_not_a_rotation_of_the_j2000_ecliptic() {
             pleiades_types::OBLIQUITY_J2000_DEG,
         ));
         assert_equatorial_matches_of_date(&ecliptic, &equatorial, instant);
-        signed_longitude_delta_degrees(
+        let d_ra = signed_longitude_delta_degrees(
             j2000.right_ascension.degrees(),
             equatorial.right_ascension.degrees(),
-        )
-        .abs()
-            * equatorial.declination.degrees().to_radians().cos()
-            * 3600.0
+        ) * equatorial.declination.degrees().to_radians().cos()
+            * 3600.0;
+        let d_dec = (equatorial.declination.degrees() - j2000.declination.degrees()) * 3600.0;
+        (d_ra, d_dec)
     };
-    // Measured 2026-10-06: 5025″ at 1900-01-01, 4673″ at 2100-01-01.
-    assert!(moon_at(2_415_020.5) > 4000.0);
-    assert!(moon_at(2_488_069.5) > 4000.0);
-    assert!(moon_at(J2000) < 1e-6);
+    let (ra_1900, dec_1900) = moon_at(2_415_020.5);
+    let (ra_2100, dec_2100) = moon_at(2_488_069.5);
+    // Measured 2026-10-06: (-5025″, -118″) at 1900-01-01, (+4673″, -1869″)
+    // at 2100-01-01; pinned to 10″.
+    for (measured, expected) in [
+        (ra_1900, -5025.0),
+        (dec_1900, -118.0),
+        (ra_2100, 4673.0),
+        (dec_2100, -1869.0),
+    ] {
+        assert!(
+            (measured - expected).abs() < 10.0,
+            "measured {measured}″, expected {expected}″"
+        );
+    }
+    let (ra_j2000, dec_j2000) = moon_at(J2000);
+    assert!(ra_j2000.abs() < 1e-6 && dec_j2000.abs() < 1e-6);
 }

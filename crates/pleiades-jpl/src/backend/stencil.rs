@@ -31,7 +31,7 @@ pub const MAX_STENCIL_SPAN_DAYS: f64 = 5.0;
 /// The rows an interpolation at `epoch_jd` uses for `body`, ascending: the
 /// four nearest in time, or all three when the body has exactly three. Empty
 /// when the body has fewer than three rows.
-pub(crate) fn interpolation_stencil<'a>(
+fn interpolation_stencil<'a>(
     entries: &'a [SnapshotEntry],
     body: &pleiades_backend::CelestialBody,
     epoch_jd: f64,
@@ -83,7 +83,7 @@ pub(crate) fn interpolate_fixture_state(
 
 /// First and last epoch of the rows an interpolation at `epoch_jd` rests on:
 /// the stencil, or the two adjacent rows when the body has fewer than three.
-pub(crate) fn stencil_bounds(
+fn stencil_bounds(
     entries: &[SnapshotEntry],
     body: &pleiades_backend::CelestialBody,
     epoch_jd: f64,

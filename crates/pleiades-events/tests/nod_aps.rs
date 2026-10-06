@@ -1,7 +1,7 @@
 //! nod_aps integration over the production-style backend chain.
 //!
-//! Asteroid coverage bound: away from the snapshot's fixture rows no asteroid
-//! in the offline chain supports `nod_aps`'s osculating sampling. Ceres,
+//! Asteroid coverage bound: outside the January 2001 fixture cluster no
+//! asteroid in the offline chain supports `nod_aps`'s osculating sampling. Ceres,
 //! Pallas, Juno, Vesta, asteroid:99942-Apophis and asteroid:433-Eros are
 //! served only by `JplSnapshotBackend`, at or between closely spaced sample
 //! rows; the packaged backend carries an Eros fit it does not serve. nod_aps

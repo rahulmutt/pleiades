@@ -1316,16 +1316,10 @@ impl SelectedAsteroidBridgeSummary {
 
 pub(crate) fn selected_asteroid_bridge_summary_details() -> Option<SelectedAsteroidBridgeSummary> {
     let evidence = selected_asteroid_bridge_entries()?;
-    let mut sample_bodies = Vec::new();
-    for entry in evidence {
-        if !sample_bodies.contains(&entry.body) {
-            sample_bodies.push(entry.body.clone());
-        }
-    }
 
     Some(SelectedAsteroidBridgeSummary {
         sample_count: evidence.len(),
-        sample_bodies,
+        sample_bodies: bodies_in_first_seen_order(evidence),
         epoch: evidence[0].epoch,
     })
 }

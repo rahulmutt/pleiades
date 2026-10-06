@@ -647,6 +647,17 @@ pub(crate) fn jpl_interpolation_body_class_error_envelopes_for_report() -> Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pleiades_backend::EphemerisErrorKind;
+    use pleiades_jpl::{
+        InterpolationQualitySampleRequestCorpusSummaryValidationError,
+        JplInterpolationBodyClassErrorEnvelopeSummaryValidationError,
+        JplInterpolationPostureSummaryValidationError,
+        JplInterpolationQualitySourceSummaryValidationError,
+        JplInterpolationQualitySummaryValidationError, JplSnapshotBatchErrorTaxonomySummary,
+        JplSnapshotBatchErrorTaxonomySummaryValidationError,
+        JplSnapshotRequestPolicyValidationError,
+    };
+    use pleiades_types::{Apparentness, CoordinateFrame, TimeScale, ZodiacMode};
 
     /// The aggregate statistics over the leave-one-out samples, pinned whole
     /// (issue #201). Each value is a measurement of the fixture rows: it
@@ -664,17 +675,6 @@ mod tests {
     }
 
     const EXPECTED_INTERPOLATION_QUALITY_SUMMARY_LINE: &str = r"JPL interpolation quality: 219 samples across 16 bodies and 19 epochs (217 cubic, 2 quadratic, 0 linear), epoch window JD 2451545.0 (TDB) → JD 2500000.0 (TDB); leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span=181166.5 d (Ceres @ JD 2500000.0 (TDB)); mean bracket span=6009.8 d; median bracket span=2.0 d; p95 bracket span=36890.0 d; max Δlon=179.218062830799° (Pallas @ JD 2453000.5 (TDB)); mean Δlon=7.251597715784°; median Δlon=0.000000297373°; p95 Δlon=78.457354458624°; rms Δlon=30.747799488276°; max Δlat=27.987857088489° (Pallas @ JD 2453000.5 (TDB)); mean Δlat=0.374670972881°; median Δlat=0.000000044866°; p95 Δlat=0.374777622854°; rms Δlat=2.331428338151°; max Δdist=18591789.124255102128 AU (asteroid:433-Eros @ JD 2500000.0 (TDB)); mean Δdist=388499.071196755103 AU; median Δdist=0.000000019375 AU; p95 Δdist=277.465364380563 AU; rms Δdist=2577503.422592955176 AU; transparency evidence only, not a production tolerance envelope";
-    use pleiades_backend::EphemerisErrorKind;
-    use pleiades_jpl::{
-        InterpolationQualitySampleRequestCorpusSummaryValidationError,
-        JplInterpolationBodyClassErrorEnvelopeSummaryValidationError,
-        JplInterpolationPostureSummaryValidationError,
-        JplInterpolationQualitySourceSummaryValidationError,
-        JplInterpolationQualitySummaryValidationError, JplSnapshotBatchErrorTaxonomySummary,
-        JplSnapshotBatchErrorTaxonomySummaryValidationError,
-        JplSnapshotRequestPolicyValidationError,
-    };
-    use pleiades_types::{Apparentness, CoordinateFrame, TimeScale, ZodiacMode};
 
     #[test]
     fn checked_in_snapshot_schema_summary_for_report_reports_the_shared_schema() {

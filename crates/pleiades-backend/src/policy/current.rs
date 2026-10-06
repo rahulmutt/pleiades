@@ -12,7 +12,7 @@ use pleiades_types::{Apparentness, CoordinateFrame, TimeScale, ZodiacMode};
 /// sharing the common policy guardrails.
 ///
 /// A request whose instant is not a finite Julian day (NaN or infinite) is
-/// [`EphemerisErrorKind::InvalidRequest`], before any other check: no backend
+/// [`EphemerisErrorKind::InvalidRequest`], before the other checks of this policy: no backend
 /// can serve it, and a range or stencil check fed one gives a meaningless
 /// answer (issue #201).
 pub fn validate_request_policy(
