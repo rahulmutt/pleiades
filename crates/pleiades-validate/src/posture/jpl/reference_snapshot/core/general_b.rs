@@ -571,7 +571,7 @@ pub fn reference_snapshot_manifest_summary_for_report() -> String {
         Ok(()) => match pleiades_jpl::validate_snapshot_manifest_footprint(
             "reference snapshot",
             pleiades_jpl::snapshot_entries(),
-            272,
+            273,
             16,
             23,
         ) {
@@ -1192,7 +1192,7 @@ mod tests {
         let summary = pleiades_jpl::reference_snapshot_source_window_summary()
             .expect("reference snapshot source window summary should exist");
 
-        assert_eq!(summary.sample_count, 272);
+        assert_eq!(summary.sample_count, 273);
         assert_eq!(summary.sample_bodies.len(), 16);
         assert_eq!(summary.epoch_count, 23);
         assert_eq!(summary.validate(), Ok(()));

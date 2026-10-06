@@ -990,7 +990,7 @@ mod golden {
     // still fails closed on any drift in the validate copy, just pinned to a
     // literal instead of a live jpl call.
     const EXPECTED_PRODUCTION_GENERATION_BOUNDARY_SUMMARY_FOR_REPORT: &str = r"Production generation boundary overlay: 64 rows across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Pluto, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis";
-    const EXPECTED_PRODUCTION_GENERATION_BOUNDARY_SOURCE_SUMMARY_FOR_REPORT: &str = r"Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; evidence class=hold-out; coverage=major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 64 rows across 16 bodies and 12 epochs.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus.; checksum=0x5f551e0dd1adbc6d; geocentric ecliptic J2000; time scale=TDB";
+    const EXPECTED_PRODUCTION_GENERATION_BOUNDARY_SOURCE_SUMMARY_FOR_REPORT: &str = r"Production generation boundary overlay source: NASA/JPL Horizons API, DE441, geocentric ecliptic J2000 vector tables.; evidence class=hold-out; coverage=major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 64 rows across 16 bodies and 12 epochs.; columns=epoch_jd, body, x_km, y_km, z_km; redistribution=repository-checked regression fixtures, not a broad public corpus.; checksum=0x499ccee3ad7c47cb; geocentric ecliptic J2000; time scale=TDB";
     const EXPECTED_PRODUCTION_GENERATION_BOUNDARY_WINDOW_SUMMARY_FOR_REPORT: &str = r"Production generation boundary windows: 64 source-backed samples across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: Mars: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Jupiter: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Mercury: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Venus: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Saturn: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Uranus: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Neptune: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Sun: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Pluto: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Moon: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Ceres: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); Pallas: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); Juno: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); Vesta: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); asteroid:433-Eros: 6 samples across 6 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 4 samples across 4 epochs at JD 2378498.5 (TDB)..JD 2451917.5 (TDB)";
     const EXPECTED_PRODUCTION_GENERATION_BOUNDARY_BODY_CLASS_COVERAGE_SUMMARY_FOR_REPORT: &str = r"Production generation boundary body-class coverage: major bodies: 34 rows across 10 bodies and 7 epochs; major windows: Mars: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Jupiter: 5 samples across 5 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Mercury: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Venus: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Saturn: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Uranus: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Neptune: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Sun: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); Pluto: 2 samples across 2 epochs at JD 2451545.0 (TDB)..JD 2451915.5 (TDB); Moon: 4 samples across 4 epochs at JD 2451545.0 (TDB)..JD 2451915.8 (TDB); selected asteroids: 30 rows across 6 bodies and 7 epochs; asteroid windows: Ceres: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); Pallas: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); Juno: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); Vesta: 5 samples across 5 epochs at JD 2378498.5 (TDB)..JD 2500000.0 (TDB); asteroid:433-Eros: 6 samples across 6 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 4 samples across 4 epochs at JD 2378498.5 (TDB)..JD 2451917.5 (TDB)";
     const EXPECTED_PRODUCTION_GENERATION_BOUNDARY_REQUEST_CORPUS_SUMMARY_FOR_REPORT: &str = r"Production generation boundary request corpus: 64 requests (frame=Ecliptic; time scale=TDB; zodiac mode=Tropical; apparentness=Mean; observerless) across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: Mars, Jupiter, Mercury, Venus, Saturn, Uranus, Neptune, Sun, Pluto, Moon, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis";
@@ -1067,7 +1067,7 @@ mod tests {
         summary
             .validate()
             .expect("production-generation snapshot summary should validate");
-        assert_eq!(summary.row_count, 272);
+        assert_eq!(summary.row_count, 273);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.bodies, pleiades_jpl::reference_bodies());
         assert_eq!(summary.epoch_count, 23);
@@ -1188,7 +1188,7 @@ mod tests {
         summary
             .validate()
             .expect("production-generation source window summary should validate");
-        assert_eq!(summary.sample_count, 272);
+        assert_eq!(summary.sample_count, 273);
         assert_eq!(summary.sample_bodies.len(), 16);
         assert_eq!(summary.windows.len(), summary.sample_bodies.len());
         assert_eq!(summary.sample_bodies, pleiades_jpl::reference_bodies());
@@ -1249,7 +1249,7 @@ mod tests {
         summary
             .validate()
             .expect("production-generation body-class coverage summary should validate");
-        assert_eq!(summary.row_count, 272);
+        assert_eq!(summary.row_count, 273);
         assert_eq!(summary.major_bodies.len(), 10);
         assert_eq!(summary.asteroid_bodies.len(), 6);
         assert!(
@@ -1292,7 +1292,7 @@ mod tests {
     fn production_generation_snapshot_summary_reports_the_expected_coverage() {
         let summary = pleiades_jpl::production_generation_snapshot_summary()
             .expect("production generation summary should exist");
-        assert_eq!(summary.row_count, 272);
+        assert_eq!(summary.row_count, 273);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.epoch_count, 23);
         assert_eq!(summary.boundary_row_count, 64);
@@ -1525,7 +1525,7 @@ mod tests {
     // is a byte-exact capture of jpl's renderer output taken immediately
     // before deletion (Slice D Task 14a).
     const EXPECTED_PRODUCTION_GENERATION_MANIFEST_CHECKSUM_FOR_REPORT: &str =
-        r"Production generation manifest checksum: 0xbee183685858ff17";
+        r"Production generation manifest checksum: 0xfc7645fc54c993d0";
 
     #[test]
     fn production_generation_manifest_checksum_for_report_byte_identical() {

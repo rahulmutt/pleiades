@@ -77,11 +77,20 @@ pub struct HttpHorizonsSource;
 
 impl HorizonsSource for HttpHorizonsSource {
     fn fetch(&self, query: &HorizonsQuery) -> Result<Vec<u8>, IngestError> {
+        self.fetch_url(&query.to_url())
+    }
+}
+
+impl HttpHorizonsSource {
+    /// Returns the raw bytes Horizons serves at `url`.
+    ///
+    /// For a request [`HorizonsQuery`] cannot express, such as a vector table
+    /// at a list of instants (`TLIST`).
+    pub fn fetch_url(&self, url: &str) -> Result<Vec<u8>, IngestError> {
         use std::sync::Arc;
 
         use ureq::tls::{TlsConfig, TlsProvider};
 
-        let url = query.to_url();
         let provider = Arc::new(rustls_graviola::default_provider());
         let agent = ureq::Agent::config_builder()
             .tls_config(
@@ -92,7 +101,7 @@ impl HorizonsSource for HttpHorizonsSource {
             )
             .build()
             .new_agent();
-        let mut response = agent.get(&url).call().map_err(|error| IngestError::Fetch {
+        let mut response = agent.get(url).call().map_err(|error| IngestError::Fetch {
             detail: error.to_string(),
         })?;
         response

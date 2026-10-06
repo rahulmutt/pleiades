@@ -572,11 +572,11 @@ mod tests {
         summary
             .validate()
             .expect("reference snapshot summary should validate");
-        assert_eq!(summary.row_count, 272);
+        assert_eq!(summary.row_count, 273);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.bodies, pleiades_jpl::reference_bodies());
         assert_eq!(summary.epoch_count, 23);
-        assert_eq!(summary.asteroid_row_count, 90);
+        assert_eq!(summary.asteroid_row_count, 91);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
@@ -1563,8 +1563,8 @@ mod tests {
             summary.validate(),
             Err(
                 ReferenceSnapshotSummaryValidationError::AsteroidRowCountMismatch {
-                    asteroid_row_count: 91,
-                    derived_asteroid_row_count: 90,
+                    asteroid_row_count: 92,
+                    derived_asteroid_row_count: 91,
                 }
             )
         ));

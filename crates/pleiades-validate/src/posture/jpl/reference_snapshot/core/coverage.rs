@@ -229,7 +229,7 @@ mod tests {
             pleiades_backend::CelestialBody::Uranus
         );
         assert_eq!(summary.major_epoch_count, 20);
-        assert_eq!(summary.asteroid_row_count, 90);
+        assert_eq!(summary.asteroid_row_count, 91);
         assert_eq!(summary.asteroid_bodies.len(), 6);
         assert_eq!(
             summary.asteroid_bodies[0],
@@ -276,7 +276,7 @@ mod tests {
     fn reference_snapshot_boundary_epoch_coverage_summary_reports_the_sparse_epochs() {
         let summary = pleiades_jpl::reference_snapshot_boundary_epoch_coverage_summary()
             .expect("reference snapshot boundary epoch coverage summary should exist");
-        assert_eq!(summary.sample_count, 181);
+        assert_eq!(summary.sample_count, 182);
         assert_eq!(summary.epoch_count, 14);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_912.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_919.5);
@@ -294,7 +294,7 @@ mod tests {
         assert_eq!(summary.validate(), Ok(()));
         assert!(
             reference_snapshot_boundary_epoch_coverage_summary_line(&summary)
-                .contains("Reference snapshot boundary epoch coverage: 181 exact samples across 14 epochs (JD 2451912.5 (TDB)..JD 2451919.5 (TDB)); epochs:")
+                .contains("Reference snapshot boundary epoch coverage: 182 exact samples across 14 epochs (JD 2451912.5 (TDB)..JD 2451919.5 (TDB)); epochs:")
         );
         assert!(reference_snapshot_boundary_epoch_coverage_summary_line(&summary).contains(
             "JD 2451914.0 (TDB): 15 bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"

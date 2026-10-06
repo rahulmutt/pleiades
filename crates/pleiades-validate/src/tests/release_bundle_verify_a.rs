@@ -789,7 +789,7 @@ fn release_bundle_writes_expected_artifacts() {
         .contains(&reference_snapshot_high_curvature_epoch_coverage_summary_for_report()));
     assert!(release_summary.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
     assert!(release_summary
-        .contains("selected asteroids: 90 rows across 6 bodies and 17 epochs; asteroid windows: "));
+        .contains("selected asteroids: 91 rows across 6 bodies and 17 epochs; asteroid windows: "));
     assert!(release_summary.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
     assert!(release_summary.contains(&reference_snapshot_source_summary_for_report()));
     assert!(release_summary.contains(&reference_snapshot_source_window_summary_for_report()));

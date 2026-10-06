@@ -49,7 +49,7 @@ fn release_notes_command_renders_the_release_notes() {
     assert!(rendered.contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_dense_boundary_summary_for_report()));
     assert!(rendered
-        .contains("selected asteroids: 90 rows across 6 bodies and 17 epochs; asteroid windows: "));
+        .contains("selected asteroids: 91 rows across 6 bodies and 17 epochs; asteroid windows: "));
     assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_high_curvature_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
@@ -105,8 +105,8 @@ fn release_notes_summary_command_renders_the_summary() {
         release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
     )));
     assert!(rendered.contains("Release-specific coverage:"));
-    assert!(rendered.contains("Selected asteroid source evidence: 90 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
-    assert!(rendered.contains("Selected asteroid source windows: 90 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 16 samples across 16 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 6 samples across 6 epochs at JD 2378498.5 (TDB)..JD 2451919.5 (TDB)"));
+    assert!(rendered.contains("Selected asteroid source evidence: 91 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
+    assert!(rendered.contains("Selected asteroid source windows: 91 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 6 samples across 6 epochs at JD 2378498.5 (TDB)..JD 2451919.5 (TDB)"));
     assert!(rendered.contains(&reference_snapshot_2451910_major_body_boundary_summary_for_report()));
     assert!(rendered.contains(&selected_asteroid_boundary_summary_for_report()));
     assert!(rendered.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
@@ -167,7 +167,7 @@ fn release_notes_summary_command_renders_the_summary() {
     assert!(rendered.contains(&reference_snapshot_major_body_boundary_window_summary_for_report()));
     assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 182 rows across 10 bodies and 20 epochs; major windows: "));
     assert!(rendered
-        .contains("selected asteroids: 90 rows across 6 bodies and 17 epochs; asteroid windows: "));
+        .contains("selected asteroids: 91 rows across 6 bodies and 17 epochs; asteroid windows: "));
     assert!(rendered.contains(&comparison_snapshot_source_summary_for_report()));
     assert!(
         rendered.contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary")
