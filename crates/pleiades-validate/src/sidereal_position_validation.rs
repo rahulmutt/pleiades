@@ -2,7 +2,7 @@
 //! backend vs the committed Swiss Ephemeris geometric sidereal reference
 //! corpus (`SEFLG_SIDEREAL | SEFLG_TRUEPOS | SEFLG_NOABERR | SEFLG_NOGDEFL |
 //! SEFLG_SPEED`; the Sun, the Moon and Mercury–Pluto; four ayanamsas;
-//! 1901–2100), for longitude, latitude and longitude speed (issue #164 (b)).
+//! 1901–2097), for longitude, latitude and longitude speed (issue #164 (b)).
 //!
 //! Both sides are the geometric place on the mean ecliptic and equinox of
 //! date less the mean ayanamsa, so the residual is the Moshier-vs-DE440
@@ -28,8 +28,10 @@ const MANIFEST: &str = include_str!(concat!(
     "/data/sidereal-position-corpus/manifest.txt"
 ));
 
-/// Fail-closed floor on validated rows: every corpus row is inside the
-/// packaged backend's window, so none may be skipped.
+/// Fail-closed floor on validated rows. No row is skipped, so this is the
+/// committed corpus' size: the checksum and row count only tie the corpus to
+/// its manifest, and a corpus regenerated with a body or an ayanamsa dropped,
+/// manifest and all, must still fail.
 const MIN_ROWS_VALIDATED: usize = 2680;
 
 #[derive(Clone, Debug)]
@@ -347,11 +349,6 @@ fn validate(csv: &str, manifest: &str) -> Result<SiderealPositionReport, Siderea
         maxima.lon_speed_arcsec_per_day = maxima.lon_speed_arcsec_per_day.max(checks[2].3);
         validated += 1;
     }
-    let floor = MIN_ROWS_VALIDATED.min(manifest_rows);
-    if validated < floor {
-        return Err(SiderealPositionError::TooFewRowsValidated { validated, floor });
-    }
-
     let class = |m: &SiderealMaxima| {
         format!(
             "lon {:.3}\" lat {:.3}\" speed lon {:.4}\"/d",
@@ -375,9 +372,25 @@ fn validate(csv: &str, manifest: &str) -> Result<SiderealPositionReport, Siderea
     })
 }
 
+/// [`validate`], then fail closed if fewer than `floor` rows were validated.
+fn validate_with_floor(
+    csv: &str,
+    manifest: &str,
+    floor: usize,
+) -> Result<SiderealPositionReport, SiderealPositionError> {
+    let report = validate(csv, manifest)?;
+    if report.rows_validated < floor {
+        return Err(SiderealPositionError::TooFewRowsValidated {
+            validated: report.rows_validated,
+            floor,
+        });
+    }
+    Ok(report)
+}
+
 pub fn validate_sidereal_position_corpus() -> Result<SiderealPositionReport, SiderealPositionError>
 {
-    validate(CORPUS_CSV, MANIFEST)
+    validate_with_floor(CORPUS_CSV, MANIFEST, MIN_ROWS_VALIDATED)
 }
 
 #[cfg(test)]

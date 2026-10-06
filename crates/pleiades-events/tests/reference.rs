@@ -799,6 +799,18 @@ fn a_sidereal_mean_chart_reports_the_mean_of_date_sidereal_place() {
                 (speed - want_speed).abs() < 1e-6,
                 "{body:?} at {jd}: chart speed {speed}, events speed {want_speed} deg/day"
             );
+            let latitude_speed = placed
+                .motion
+                .and_then(|motion| motion.latitude_deg_per_day)
+                .expect("chart latitude speed");
+            let want_latitude_speed = want
+                .motion
+                .latitude_deg_per_day
+                .expect("events latitude speed");
+            assert!(
+                (latitude_speed - want_latitude_speed).abs() < 1e-6,
+                "{body:?} at {jd}: chart latitude speed {latitude_speed}, events latitude speed {want_latitude_speed} deg/day"
+            );
         }
     }
 }

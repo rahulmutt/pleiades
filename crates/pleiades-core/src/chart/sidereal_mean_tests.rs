@@ -7,7 +7,10 @@
 //! J2000: 1.2 degrees at 1913.
 
 use pleiades_apparent::precess_ecliptic_j2000_to_date;
-use pleiades_backend::Apparentness;
+use pleiades_backend::{
+    Apparentness, BackendMetadata, EphemerisBackend, EphemerisError, EphemerisRequest,
+    EphemerisResult,
+};
 use pleiades_data::packaged_backend;
 use pleiades_types::{CelestialBody, EclipticCoordinates, Latitude, Longitude, Motion};
 
@@ -154,13 +157,33 @@ fn a_place_near_the_equinox_precesses_across_the_zero_of_longitude() {
     assert!((unchanged.longitude.degrees() - 0.2).abs() < 1e-9);
 }
 
+/// [`AbsurdDistanceReleaseGradeBackend`] with a speed, which that backend
+/// does not report, so a fallback's speed has something to go wrong.
+struct MovingAbsurdDistanceBackend;
+
+impl EphemerisBackend for MovingAbsurdDistanceBackend {
+    fn metadata(&self) -> BackendMetadata {
+        AbsurdDistanceReleaseGradeBackend.metadata()
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        AbsurdDistanceReleaseGradeBackend.supports_body(body)
+    }
+
+    fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        let mut result = AbsurdDistanceReleaseGradeBackend.position(request)?;
+        result.motion = Some(Motion::new(Some(0.5), Some(0.01), None));
+        Ok(result)
+    }
+}
+
 // Mars falls back to its mean place in the apparent chart (its distance
 // trips the light-time sanity cap). The fallback and a requested mean chart
-// go through one step, and must keep doing so.
+// go through one step, place and speed, and must keep doing so.
 #[test]
 fn a_mean_fallback_in_a_sidereal_chart_reports_the_requested_mean_place() {
     let chart = |apparentness: Apparentness| {
-        ChartEngine::new(AbsurdDistanceReleaseGradeBackend)
+        ChartEngine::new(MovingAbsurdDistanceBackend)
             .chart(
                 &ChartRequest::new(tt(EPOCHS_JD_TT[0]))
                     .with_bodies(vec![CelestialBody::Sun, CelestialBody::Mars])
@@ -181,6 +204,15 @@ fn a_mean_fallback_in_a_sidereal_chart_reports_the_requested_mean_place() {
     let (fallback, requested) = (ecliptic(&apparent, &mars), ecliptic(&mean, &mars));
     assert_eq!(fallback.longitude.degrees(), requested.longitude.degrees());
     assert_eq!(fallback.latitude.degrees(), requested.latitude.degrees());
+    let motion = |snapshot: &ChartSnapshot| {
+        snapshot
+            .placement_for(&mars)
+            .expect("Mars is placed")
+            .position
+            .motion
+    };
+    assert!(motion(&mean).is_some(), "the mean chart must carry a speed");
+    assert_eq!(motion(&apparent), motion(&mean));
 }
 
 /// Bodies the composite backend reports a longitude speed for.
@@ -218,32 +250,58 @@ fn the_suns_sidereal_mean_speed_gains_the_precession_rate_and_loses_the_ayanamsa
     assert!(general_precession_rate_deg_per_day(2_451_545.0) > 3.8e-5);
 }
 
-// For every body the reported speed is the rate of the reported longitude.
+fn latitude_speed_deg_per_day(snapshot: &ChartSnapshot, body: &CelestialBody) -> f64 {
+    snapshot
+        .placement_for(body)
+        .expect("body is placed")
+        .position
+        .motion
+        .expect("motion")
+        .latitude_deg_per_day
+        .expect("latitude speed")
+}
+
+// For every body the reported speeds are the rates of the reported place.
 // Off the ecliptic the precession step also depends on where the body is, so
-// the Moon's speed changes by up to 0.8″ a day at 1913; a difference of the
-// charts' own longitudes a day apart sees that too. The tolerance covers the
-// truncation of that difference for the Moon (5e-7 deg/day).
+// the Moon's longitude speed changes by up to 0.8″ a day at 1913; a
+// difference of the charts' own places a day apart sees that too. The
+// tilting ecliptic moves a latitude speed as well, by several ″ a day for
+// the Moon. The tolerance covers the truncation of that difference for the
+// Moon (5e-7 deg/day).
 #[test]
-fn a_sidereal_mean_speed_is_the_rate_of_the_reported_longitude() {
+fn a_sidereal_mean_speed_is_the_rate_of_the_reported_place() {
     let jd = EPOCHS_JD_TT[0];
-    let step_longitudes = |jd_tt: f64| {
+    // The step (sidereal less tropical place) of each body, in longitude and
+    // latitude.
+    let steps = |jd_tt: f64| {
         let (tropical, sidereal) = mean_charts(jd_tt, moving_bodies());
         moving_bodies()
             .into_iter()
             .map(|body| {
-                ecliptic(&sidereal, &body).longitude.degrees()
-                    - ecliptic(&tropical, &body).longitude.degrees()
+                let (to, from) = (ecliptic(&sidereal, &body), ecliptic(&tropical, &body));
+                (
+                    to.longitude.degrees() - from.longitude.degrees(),
+                    to.latitude.degrees() - from.latitude.degrees(),
+                )
             })
-            .collect::<Vec<f64>>()
+            .collect::<Vec<(f64, f64)>>()
     };
-    let (earlier, later) = (step_longitudes(jd - 0.5), step_longitudes(jd + 0.5));
+    let (earlier, later) = (steps(jd - 0.5), steps(jd + 0.5));
     let (tropical, sidereal) = mean_charts(jd, moving_bodies());
     for (index, body) in moving_bodies().into_iter().enumerate() {
         let gain = speed_deg_per_day(&sidereal, &body) - speed_deg_per_day(&tropical, &body);
-        let want = wrap_arcsec(later[index] - earlier[index]) / 3600.0;
+        let want = wrap_arcsec(later[index].0 - earlier[index].0) / 3600.0;
         assert!(
             (gain - want).abs() < 2e-6,
             "{body:?}: sidereal − tropical speed is {gain}, the step's rate is {want} deg/day"
+        );
+        // A latitude difference does not wrap.
+        let latitude_gain = latitude_speed_deg_per_day(&sidereal, &body)
+            - latitude_speed_deg_per_day(&tropical, &body);
+        let latitude_want = later[index].1 - earlier[index].1;
+        assert!(
+            (latitude_gain - latitude_want).abs() < 2e-6,
+            "{body:?}: sidereal − tropical latitude speed is {latitude_gain}, the step's rate is {latitude_want} deg/day"
         );
     }
 }
@@ -273,7 +331,8 @@ fn a_missing_speed_channel_stays_missing() {
 
 #[test]
 fn a_speed_across_the_zero_of_longitude_is_continuous() {
-    // The place precesses from 0.2° back past 360° at 1913 (Task 1's test).
+    // The place precesses from 0.2° back past 360° at 1913
+    // (`a_place_near_the_equinox_precesses_across_the_zero_of_longitude`).
     let j2000 = EclipticCoordinates::new(
         Longitude::from_degrees(0.2),
         Latitude::from_degrees(0.0),

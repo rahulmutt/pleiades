@@ -147,7 +147,10 @@ pub(super) fn mean_place_of_date(
 /// added to `base`. Its two samples are taken at the J2000 place carried
 /// along its own speed, so no backend read is needed and a chart at the edge
 /// of a backend's range still gets a speed. A channel `base` leaves empty
-/// stays empty, and the distance speed is unchanged.
+/// stays empty, and the distance speed is unchanged. An empty channel is
+/// carried as zero when the place is stepped, so a latitude speed without a
+/// longitude speed is stepped with the longitude held still (no first-party
+/// backend reports only part of a motion).
 pub(super) fn mean_motion_of_date(
     j2000: EclipticCoordinates,
     base: Motion,

@@ -31,6 +31,33 @@ fn manifest_row_count_drift_fails_closed() {
     ));
 }
 
+// A corpus that lost rows together with its manifest passes the checksum and
+// the row count, so only the floor can catch it.
+#[test]
+fn a_truncated_corpus_with_a_matching_manifest_fails_the_floor() {
+    let truncated: String = CORPUS_CSV
+        .lines()
+        .take(20)
+        .map(|line| format!("{line}\n"))
+        .collect();
+    let rows = parse_corpus(&truncated)
+        .expect("truncated corpus parses")
+        .len();
+    let manifest = format!(
+        "slice sidereal-position file=sidereal-position.csv role=sidereal-position rows={rows} checksum={}",
+        fnv1a64(&truncated)
+    );
+    assert_eq!(
+        validate(&truncated, &manifest).unwrap().rows_validated,
+        rows
+    );
+    assert!(matches!(
+        validate_with_floor(&truncated, &manifest, MIN_ROWS_VALIDATED),
+        Err(SiderealPositionError::TooFewRowsValidated { validated, floor: 2680 })
+            if validated == rows
+    ));
+}
+
 #[test]
 fn manifest_without_a_slice_line_is_rejected() {
     assert!(matches!(
