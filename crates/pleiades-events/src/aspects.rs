@@ -254,6 +254,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
             start_jd.max(search.earliest),
             end_jd.min(search.latest),
             search.step,
+            // Today's sampling envelope; Task 4 of #208 replaces it with the window.
+            (
+                WINDOW_START_JD - 2.0 * search.step,
+                WINDOW_END_JD + 2.0 * search.step,
+            ),
         )?;
         roots
             .into_iter()
@@ -318,6 +323,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
             after_jd.max(search.earliest),
             search.latest,
             search.step,
+            // Today's sampling envelope; Task 4 of #208 replaces it with the window.
+            (
+                WINDOW_START_JD - 2.0 * search.step,
+                WINDOW_END_JD + 2.0 * search.step,
+            ),
         )?;
         root.filter(|&jd| jd > after_jd)
             .map(|jd| self.aspect_at(&first, &second, angle, &reference, jd))
@@ -387,6 +397,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
             search.earliest,
             before_jd.min(search.latest),
             search.step,
+            // Today's sampling envelope; Task 4 of #208 replaces it with the window.
+            (
+                WINDOW_START_JD - 2.0 * search.step,
+                WINDOW_END_JD + 2.0 * search.step,
+            ),
         )?;
         root.map(|jd| self.aspect_at(&first, &second, angle, &reference, jd))
             .transpose()
