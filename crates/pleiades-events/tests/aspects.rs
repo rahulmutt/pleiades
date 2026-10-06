@@ -176,16 +176,21 @@ fn a_pair_that_never_reaches_the_angle_gives_nothing() {
         J2000 + 1826.0
     )
     .is_empty());
-    let next = engine
-        .next_aspect(
-            CelestialBody::Sun,
-            CelestialBody::Mercury,
-            Angle::from_degrees(60.0),
-            GEO,
-            tdb(WINDOW_END_JD - 400.0),
-        )
-        .expect("a pair that never perfects is not an error");
-    assert_eq!(next, None);
+    // The window ends before the search finds anything: a cut-short search,
+    // one Mercury step (1 day) past the window's end.
+    let next = engine.next_aspect(
+        CelestialBody::Sun,
+        CelestialBody::Mercury,
+        Angle::from_degrees(60.0),
+        GEO,
+        tdb(WINDOW_END_JD - 400.0),
+    );
+    assert_eq!(
+        next,
+        Err(EventError::OutOfWindow {
+            julian_day: WINDOW_END_JD + 1.0
+        })
+    );
     // The same pair does meet: three conjunctions in the first 130 days of 2000.
     let conjunctions = aspects(
         CelestialBody::Sun,
@@ -408,16 +413,21 @@ fn aspect_ranges_sharing_an_end_hold_each_event_once() {
 }
 
 #[test]
-fn previous_aspect_returns_nothing_for_a_pair_that_never_reaches_the_angle() {
-    // Mercury is never 60 degrees from the Sun.
+fn previous_aspect_for_a_pair_that_never_reaches_the_angle_is_out_of_window() {
+    // Mercury is never 60 degrees from the Sun; its step is 1 day. The mean
+    // frame: an apparent Mercury cannot be read at the window's first instant.
+    let result = EventEngine::new(packaged_backend()).previous_aspect(
+        CelestialBody::Sun,
+        CelestialBody::Mercury,
+        Angle::from_degrees(60.0),
+        CrossingFrame::GeocentricMeanOfDate,
+        tdb(WINDOW_START_JD + 400.0),
+    );
     assert_eq!(
-        previous(
-            CelestialBody::Sun,
-            CelestialBody::Mercury,
-            60.0,
-            WINDOW_START_JD + 400.0
-        ),
-        None
+        result,
+        Err(EventError::OutOfWindow {
+            julian_day: WINDOW_START_JD - 1.0
+        })
     );
 }
 
@@ -445,16 +455,16 @@ fn previous_aspect_guards_match_next_aspect() {
         call(CelestialBody::Sun, CelestialBody::Moon, 0.0, 2_000_000.0),
         Err(EventError::OutOfWindow { .. })
     ));
-    // The window's first instant has nothing before it.
-    assert_eq!(
+    // The window's first instant has nothing before it: the search is cut short.
+    assert!(matches!(
         call(
             CelestialBody::Sun,
             CelestialBody::Moon,
             0.0,
             WINDOW_START_JD
         ),
-        Ok(None)
-    );
+        Err(EventError::OutOfWindow { .. })
+    ));
 }
 
 #[test]
@@ -707,7 +717,9 @@ fn ranges_touching_the_window_edges_work() {
         CelestialBody::Moon,
         90.0,
         GEO,
-        WINDOW_START_JD,
+        // Apparent places read a light-time earlier, so a range cannot start
+        // on the window's first instant; one day in is clear of it.
+        WINDOW_START_JD + 1.0,
         WINDOW_START_JD + 40.0,
     );
     assert!(early.len() >= 2, "{early:?}");
@@ -722,16 +734,19 @@ fn ranges_touching_the_window_edges_work() {
     );
     assert!(late.len() >= 2, "{late:?}");
     assert_exact(&late, 90.0);
-    let next = engine
-        .next_aspect(
-            CelestialBody::Sun,
-            CelestialBody::Moon,
-            Angle::from_degrees(90.0),
-            GEO,
-            tdb(WINDOW_END_JD),
-        )
-        .expect("next_aspect at the window end");
-    assert_eq!(next, None);
+    let next = engine.next_aspect(
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        Angle::from_degrees(90.0),
+        GEO,
+        tdb(WINDOW_END_JD),
+    );
+    assert_eq!(
+        next,
+        Err(EventError::OutOfWindow {
+            julian_day: WINDOW_END_JD + 0.25
+        })
+    );
 
     // A 2-day-step pair exercises the wider scan margins at both edges.
     let mars_saturn = |start: f64, end: f64| {
@@ -744,22 +759,25 @@ fn ranges_touching_the_window_edges_work() {
             end,
         )
     };
-    let early = mars_saturn(WINDOW_START_JD, WINDOW_START_JD + 400.0);
+    let early = mars_saturn(WINDOW_START_JD + 1.0, WINDOW_START_JD + 400.0);
     assert!(!early.is_empty(), "{early:?}");
     assert_exact(&early, 90.0);
     let late = mars_saturn(WINDOW_END_JD - 400.0, WINDOW_END_JD);
     assert!(!late.is_empty(), "{late:?}");
     assert_exact(&late, 90.0);
-    let next = engine
-        .next_aspect(
-            CelestialBody::Mars,
-            CelestialBody::Saturn,
-            Angle::from_degrees(90.0),
-            GEO,
-            tdb(WINDOW_END_JD),
-        )
-        .expect("next_aspect at the window end for a 2-day-step pair");
-    assert_eq!(next, None);
+    let next = engine.next_aspect(
+        CelestialBody::Mars,
+        CelestialBody::Saturn,
+        Angle::from_degrees(90.0),
+        GEO,
+        tdb(WINDOW_END_JD),
+    );
+    assert_eq!(
+        next,
+        Err(EventError::OutOfWindow {
+            julian_day: WINDOW_END_JD + 2.0
+        })
+    );
 }
 
 #[test]
@@ -777,7 +795,20 @@ fn empty_and_inverted_ranges_give_no_events() {
     assert!(sun_moon(J2000, J2000).is_empty());
     assert!(sun_moon(J2000 + 30.0, J2000).is_empty());
     assert!(sun_moon(WINDOW_END_JD, WINDOW_END_JD).is_empty());
-    assert!(sun_moon(WINDOW_START_JD, WINDOW_START_JD).is_empty());
+    // The apparent Moon cannot be read a light-time before the window's first
+    // instant, so even an empty range there is out of window (#208).
+    let at_start = EventEngine::new(packaged_backend()).aspects_in_range(
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        Angle::from_degrees(90.0),
+        GEO,
+        tdb(WINDOW_START_JD),
+        tdb(WINDOW_START_JD),
+    );
+    assert!(
+        matches!(at_start, Err(EventError::OutOfWindow { .. })),
+        "{at_start:?}"
+    );
 }
 
 #[test]

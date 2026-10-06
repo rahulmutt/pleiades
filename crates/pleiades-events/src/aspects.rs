@@ -7,10 +7,13 @@
 //! found.
 
 use crate::crossings::{body_label, CrossingFrame, EventEngine};
-use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
+use crate::error::{
+    before_window_start, past_window_end, EventError, WINDOW_END_JD, WINDOW_START_JD,
+};
 use crate::reference::{check_supported, ecliptic_in, CrossingReference};
 use crate::root::{
     first_level_crossing_after, last_level_crossing_before, level_crossings_in_range, wrap180,
+    Window,
 };
 use crate::stations::step_days;
 use pleiades_backend::EphemerisBackend;
@@ -114,15 +117,13 @@ fn separation<B: EphemerisBackend>(
     Ok(wrap180(first_deg - second_deg))
 }
 
+/// The span the scanner may sample within: the 1900–2100 window.
+const WINDOW: Window = (WINDOW_START_JD, WINDOW_END_JD);
+
 /// What both finders settle before scanning.
 struct Search {
     levels: Vec<f64>,
     step: f64,
-    /// Earliest and latest Julian day a scan may start and end at: two steps
-    /// inside the window, because the scanner samples one step before its
-    /// start and up to two past its end.
-    earliest: f64,
-    latest: f64,
 }
 
 impl<B: EphemerisBackend> EventEngine<B> {
@@ -149,12 +150,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         check_supported(first, reference, instants_jd[0], "aspects are")?;
         check_supported(second, reference, instants_jd[0], "aspects are")?;
         let step = search_step(first, second);
-        Ok(Search {
-            levels,
-            step,
-            earliest: WINDOW_START_JD + 2.0 * step,
-            latest: WINDOW_END_JD - 2.0 * step,
-        })
+        Ok(Search { levels, step })
     }
 
     fn aspect_at(
@@ -205,6 +201,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// returns an empty list, but the scan still samples both bodies at its
     /// start, so a body the backend cannot serve still returns its error.
     ///
+    /// An apparent place of a body other than the Sun is read a light-time
+    /// earlier, so a range starting within a light-time of the window's first
+    /// instant is [`EventError::OutOfWindow`].
+    ///
     /// # Accuracy
     ///
     /// The search steps by the smaller of the two bodies' steps: 0.25 day
@@ -217,8 +217,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///   may go unseen, and with them a pair of exact moments between them;
     /// - a pair whose separation passes the angle by less than the noise of
     ///   the ephemeris may be found or not;
-    /// - an event within two steps of either end of the 1900–2100 window is
-    ///   not reported, because the scan keeps its samples inside the window.
+    /// - next to either end of the 1900–2100 window, two exact moments within
+    ///   the step beside it, either side of a turning point of the
+    ///   separation, may go unseen: the scan has no sample past the window to
+    ///   see the turning point.
     ///
     /// The 0.5 s bisection tolerance bounds how well the engine locates the
     /// exact moment in its own longitudes, not how well that moment matches
@@ -251,14 +253,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let roots = level_crossings_in_range(
             |jd| separation(&self.backend, &first, &second, &reference, jd),
             &search.levels,
-            start_jd.max(search.earliest),
-            end_jd.min(search.latest),
+            start_jd,
+            end_jd,
             search.step,
-            // Today's sampling envelope; Task 4 of #208 replaces it with the window.
-            (
-                WINDOW_START_JD - 2.0 * search.step,
-                WINDOW_END_JD + 2.0 * search.step,
-            ),
+            WINDOW,
         )?;
         roots
             .into_iter()
@@ -267,7 +265,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
     }
 
     /// The first instant strictly after `after` at which the ecliptic
-    /// separation of `first` and `second` equals `angle`, or `None`.
+    /// separation of `first` and `second` equals `angle`.
     ///
     /// Identical to the first element of
     /// `aspects_in_range(first, second, angle, reference, after, WINDOW_END)`
@@ -275,9 +273,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// returned [`AspectEvent::instant`] can be handed back as `after`: the
     /// search then returns the following event, not the same one.
     ///
-    /// For a pair that never reaches the angle (the Sun and Mercury at 60
-    /// degrees) the search runs to the end of the 1900–2100 window before
-    /// returning `None`.
+    /// When the window ends before the next event, the result is
+    /// [`EventError::OutOfWindow`] naming the instant one step past the window's end.
+    /// That includes a pair that never reaches the angle (the Sun and Mercury
+    /// at 60 degrees), which is searched to the end of the window first: the
+    /// engine does not know which pairs can reach which angles. This search
+    /// never returns `Ok(None)`.
     ///
     /// The meaning of `angle`, the accuracy, the limits and the errors are
     /// those of [`EventEngine::aspects_in_range`].
@@ -320,22 +321,20 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let root = first_level_crossing_after(
             |jd| separation(&self.backend, &first, &second, &reference, jd),
             &search.levels,
-            after_jd.max(search.earliest),
-            search.latest,
+            after_jd,
+            WINDOW_END_JD,
             search.step,
-            // Today's sampling envelope; Task 4 of #208 replaces it with the window.
-            (
-                WINDOW_START_JD - 2.0 * search.step,
-                WINDOW_END_JD + 2.0 * search.step,
-            ),
+            WINDOW,
         )?;
-        root.filter(|&jd| jd > after_jd)
-            .map(|jd| self.aspect_at(&first, &second, angle, &reference, jd))
-            .transpose()
+        let jd = root
+            .filter(|&jd| jd > after_jd)
+            .ok_or_else(|| past_window_end(search.step))?;
+        self.aspect_at(&first, &second, angle, &reference, jd)
+            .map(Some)
     }
 
     /// The last instant at or before `before` at which the ecliptic
-    /// separation of `first` and `second` equals `angle`, or `None`.
+    /// separation of `first` and `second` equals `angle`.
     ///
     /// The event `aspects_in_range(first, second, angle, reference,
     /// WINDOW_START, before).last()` finds, located without scanning the
@@ -351,9 +350,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// step back to the event before it, move `before` back by more than the
     /// tolerance, a second say.
     ///
-    /// For a pair that never reaches the angle (the Sun and Mercury at 60
-    /// degrees) the search runs to the start of the 1900–2100 window before
-    /// returning `None`.
+    /// When the window starts before the previous event, the result is
+    /// [`EventError::OutOfWindow`] naming the instant one step before the window's start.
+    /// That includes a pair that never reaches the angle (the Sun and Mercury
+    /// at 60 degrees), which is searched to the start of the window first: the
+    /// engine does not know which pairs can reach which angles. This search
+    /// never returns `Ok(None)`.
     ///
     /// The meaning of `angle`, the accuracy, the limits and the errors are
     /// those of [`EventEngine::aspects_in_range`].
@@ -394,19 +396,18 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let root = last_level_crossing_before(
             |jd| separation(&self.backend, &first, &second, &reference, jd),
             &search.levels,
-            search.earliest,
-            before_jd.min(search.latest),
+            WINDOW_START_JD,
+            before_jd,
             search.step,
-            // Today's sampling envelope; Task 4 of #208 replaces it with the window.
-            (
-                WINDOW_START_JD - 2.0 * search.step,
-                WINDOW_END_JD + 2.0 * search.step,
-            ),
+            WINDOW,
         )?;
-        root.map(|jd| self.aspect_at(&first, &second, angle, &reference, jd))
-            .transpose()
+        let jd = root.ok_or_else(|| before_window_start(search.step))?;
+        self.aspect_at(&first, &second, angle, &reference, jd)
+            .map(Some)
     }
 }
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod window_edge_tests;

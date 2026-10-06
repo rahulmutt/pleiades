@@ -191,7 +191,8 @@ fn empty_and_inverted_ranges_give_nothing_but_still_sample_the_start() {
 }
 
 // The scan looks one step behind its start and less than two steps past its
-// end; callers clamp their range two steps inside the window on that basis.
+// end; the window argument clamps those samples, so callers pass their range
+// as given.
 #[test]
 fn samples_stay_within_one_step_before_and_two_after_the_range() {
     let (lo, hi, step) = (T0, T0 + 29.3, 2.0);
