@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.8.2] - 2026-10-06
+
+### Fixed
+
+- Put a sidereal mean chart on the mean equinox of date ([#164](https://github.com/rahulmutt/pleiades/pull/164)) ([#199](https://github.com/rahulmutt/pleiades/pull/199)) ([030983c](https://github.com/rahulmutt/pleiades/commit/030983cd6fe5937521cc758667ecc10a196b8f6d))
+- Refuse asteroid positions away from their sample rows ([#158](https://github.com/rahulmutt/pleiades/pull/158)) ([#202](https://github.com/rahulmutt/pleiades/pull/202)) ([45ae4e2](https://github.com/rahulmutt/pleiades/commit/45ae4e277ae9a618c3f247231ae3c4772a506d54))
+
 ## [0.8.1] - 2026-10-06
 
 ### Fixed

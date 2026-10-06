@@ -201,7 +201,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-core"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "pleiades-apparent",
  "pleiades-ayanamsa",
@@ -217,7 +217,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-data"
-version = "0.5.5"
+version = "0.5.6"
 dependencies = [
  "pleiades-apparent",
  "pleiades-apsides",
@@ -250,7 +250,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-events"
-version = "0.7.2"
+version = "0.7.3"
 dependencies = [
  "pleiades-apparent",
  "pleiades-apsides",
@@ -288,7 +288,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-jpl"
-version = "0.5.5"
+version = "0.5.6"
 dependencies = [
  "pleiades-backend",
  "pleiades-types",
