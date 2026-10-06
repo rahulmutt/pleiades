@@ -1,13 +1,12 @@
 //! nod_aps integration over the production-style backend chain.
 //!
 //! Asteroid coverage bound: no asteroid in the offline chain supports
-//! `nod_aps`'s osculating sampling today. Snapshot-only bodies (Ceres, Pallas,
-//! Juno, Vesta, asteroid:99942-Apophis) sit on sparse regression fixtures;
-//! asteroid:433-Eros has a continuous packaged fit whose positions are exact
-//! at corpus epochs but whose time-derivative is non-physical at nod_aps's
-//! sub-day sampling scale (the 180-day corpus cadence undersamples the
-//! ~643-day orbit). Both classes fail closed with a typed error — pinned
-//! below as the correct production behavior.
+//! `nod_aps`'s osculating sampling. Ceres, Pallas, Juno, Vesta,
+//! asteroid:99942-Apophis and asteroid:433-Eros are served only by
+//! `JplSnapshotBackend`, at its sample rows; the packaged backend carries an
+//! Eros fit it does not serve. nod_aps samples off the row, so every one
+//! fails closed with the backend's refusal (issue #158) — pinned below as the
+//! correct production behavior.
 
 use pleiades_backend::{CompositeBackend, RoutingBackend};
 use pleiades_data::PackagedDataBackend;
@@ -248,16 +247,10 @@ fn snapshot_only_asteroids_fail_closed() {
     assert!(err.to_string().contains("SpkBackend"), "{err}");
 }
 
-/// asteroid:433-Eros is the one custom asteroid the packaged artifact serves
-/// continuously, but its compressed fit is built from a 180-day-cadence corpus
-/// against a ~643-day orbit: positions are exact at corpus epochs (verified to
-/// ~1e-9 deg against the JPL J2000 snapshot row) while the fit's
-/// time-derivative is non-physical at any sampling scale (measured
-/// heliocentric |v| ≈ 0.060 AU/day, stable across dt from 1e-4 to 1e-1 days,
-/// vs. an escape velocity of 0.021 AU/day at r = 1.345 AU). nod_aps's
-/// osculating elements need that derivative, so the engine fails closed with
-/// the same typed error rather than emitting garbage orbital points. Same
-/// coverage-bound follow-up as the snapshot-only asteroids above.
+/// asteroid:433-Eros routes past the packaged backend, which carries a fit it
+/// does not serve, to `JplSnapshotBackend`. The J2000 row is exact, but
+/// nod_aps samples a fraction of a day either side of it, where the snapshot
+/// refuses (issue #158).
 #[test]
 fn packaged_fit_asteroids_fail_closed() {
     let engine = engine();
@@ -270,9 +263,10 @@ fn packaged_fit_asteroids_fail_closed() {
         )
         .unwrap_err();
     assert!(
-        matches!(err, EventError::DegenerateNodAps { .. }),
-        "expected a fail-closed DegenerateNodAps error, got: {err:?}"
+        matches!(err, EventError::Backend { .. }),
+        "expected the backend's refusal, got: {err:?}"
     );
+    assert!(err.to_string().contains("OutOfRangeInstant"), "{err}");
 }
 
 /// Issue #90: the mean lunar node and apsides are analytic, so the Mean method

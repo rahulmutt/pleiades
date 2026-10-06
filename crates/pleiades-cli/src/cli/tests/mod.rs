@@ -1,6 +1,7 @@
 //! Command-output test suites for the CLI dispatch layer.
 
 mod artifact_and_workspace;
+mod asteroid_gate;
 mod chart;
 mod compare_backends;
 mod events;
