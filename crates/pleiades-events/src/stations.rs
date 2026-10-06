@@ -5,7 +5,9 @@
 //! own direction flips, in every frame and zodiac.
 
 use crate::crossings::{body_label, CrossingFrame, EventEngine};
-use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
+use crate::error::{
+    before_window_start, past_window_end, EventError, WINDOW_END_JD, WINDOW_START_JD,
+};
 use crate::position::place_and_motion;
 use crate::reference::{check_supported, CrossingReference};
 use crate::root::{crossings_in_range, first_crossing_after, last_crossing_before};
@@ -163,10 +165,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// still samples the speed at its start, so a body the backend cannot
     /// serve, or one with no longitude speed, still returns its error.
     ///
-    /// As for the crossings, the scan is clamped one step inside each end of
-    /// the 1900–2100 window so that its bracketing samples stay in the
-    /// window: a station within one step of either window end is not
-    /// reported.
+    /// The scan runs to both ends of the range. An apparent place of a body
+    /// other than the Sun is read a light-time earlier, so a range starting
+    /// within a light-time of the window's first instant is
+    /// [`EventError::OutOfWindow`].
     ///
     /// # Accuracy
     ///
@@ -213,18 +215,15 @@ impl<B: EphemerisBackend> EventEngine<B> {
         self.check_window(end_jd)?;
         check_supported(&body, &reference, start_jd, "stations are")?;
         let step = step_days(&body);
-        // Clamp like the crossings: keep the bracketing samples in-window.
-        let scan_start = start_jd.max(WINDOW_START_JD + step);
-        let scan_end = end_jd.min(WINDOW_END_JD - step);
         if never_stations(&body, reference.frame) {
             // The one sample an empty range gets, for the same errors.
-            longitude_speed(&self.backend, &body, &reference, scan_start)?;
+            longitude_speed(&self.backend, &body, &reference, start_jd)?;
             return Ok(Vec::new());
         }
         let roots = crossings_in_range(
             |jd| longitude_speed(&self.backend, &body, &reference, jd),
-            scan_start,
-            scan_end,
+            start_jd,
+            end_jd,
             step,
         )?;
         roots
@@ -246,8 +245,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// body that happens never to station (an asteroid in the heliocentric
     /// frame) is searched to the end of the 1900–2100 window first.
     ///
-    /// The window-edge clamp (a station within one step of either end of
-    /// the window is not reported), accuracy, step and errors are those of
+    /// Any other body is searched to the end of the 1900–2100 window; when
+    /// the window ends first, the result is [`EventError::OutOfWindow`]
+    /// naming the instant one step past it.
+    ///
+    /// The accuracy, step and errors are those of
     /// [`EventEngine::stations_in_range`].
     ///
     /// ```
@@ -277,22 +279,18 @@ impl<B: EphemerisBackend> EventEngine<B> {
         self.check_window(after_jd)?;
         check_supported(&body, &reference, after_jd, "stations are")?;
         let step = step_days(&body);
-        // Same clamps as `stations_in_range` over `[after, WINDOW_END]`.
-        let scan_start = after_jd.max(WINDOW_START_JD + step);
-        let scan_end = WINDOW_END_JD - step;
         if never_stations(&body, reference.frame) {
-            longitude_speed(&self.backend, &body, &reference, scan_start)?;
+            longitude_speed(&self.backend, &body, &reference, after_jd)?;
             return Ok(None);
         }
         let root = first_crossing_after(
             |jd| longitude_speed(&self.backend, &body, &reference, jd),
-            scan_start,
-            scan_end,
+            after_jd,
+            WINDOW_END_JD,
             step,
         )?;
-        root.filter(|&jd| jd > after_jd)
-            .map(|jd| self.station_at(&body, &reference, jd))
-            .transpose()
+        let jd = root.ok_or_else(|| past_window_end(step))?;
+        self.station_at(&body, &reference, jd).map(Some)
     }
 
     /// The last station of `body` that has happened by `before`, or `None`.
@@ -318,8 +316,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// body that happens never to station is searched to the start of the
     /// 1900–2100 window first.
     ///
-    /// The window-edge clamp (a station within one step of either end of
-    /// the window is not reported), accuracy, step and errors are those of
+    /// Any other body is searched to the start of the 1900–2100 window; when
+    /// the window starts first, the result is [`EventError::OutOfWindow`]
+    /// naming the instant one step before it.
+    ///
+    /// The accuracy, step and errors are those of
     /// [`EventEngine::stations_in_range`].
     ///
     /// ```
@@ -349,25 +350,22 @@ impl<B: EphemerisBackend> EventEngine<B> {
         self.check_window(before_jd)?;
         check_supported(&body, &reference, before_jd, "stations are")?;
         let step = step_days(&body);
-        // Same clamps as `stations_in_range` over `[WINDOW_START, before]`.
-        let scan_start = WINDOW_START_JD + step;
-        let scan_end = before_jd.min(WINDOW_END_JD - step);
         if never_stations(&body, reference.frame) {
-            // Sampled where the backward scan would start, or at the window's
-            // first step when `before` lies ahead of it.
-            longitude_speed(&self.backend, &body, &reference, scan_end.max(scan_start))?;
+            longitude_speed(&self.backend, &body, &reference, before_jd)?;
             return Ok(None);
         }
         let root = last_crossing_before(
             |jd| longitude_speed(&self.backend, &body, &reference, jd),
-            scan_start,
-            scan_end,
+            WINDOW_START_JD,
+            before_jd,
             step,
         )?;
-        root.map(|jd| self.station_at(&body, &reference, jd))
-            .transpose()
+        let jd = root.ok_or_else(|| before_window_start(step))?;
+        self.station_at(&body, &reference, jd).map(Some)
     }
 }
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod window_edge_tests;

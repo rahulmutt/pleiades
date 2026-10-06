@@ -176,13 +176,11 @@ fn previous_station_guards_match_next_station() {
         engine.previous_station(CelestialBody::Sun, HELIO, tdb(J2000)),
         Err(EventError::UnsupportedFrame { .. })
     ));
-    // The window's first instant has nothing before it.
-    assert_eq!(
-        engine
-            .previous_station(CelestialBody::Mercury, GEO, tdb(WINDOW_START_JD))
-            .expect("previous_station at the window start"),
-        None
-    );
+    // The window's first instant has nothing before it: the search is cut short.
+    assert!(matches!(
+        engine.previous_station(CelestialBody::Mercury, GEO, tdb(WINDOW_START_JD)),
+        Err(EventError::OutOfWindow { .. })
+    ));
 }
 
 #[test]
@@ -506,11 +504,21 @@ fn ranges_touching_the_window_edges_work() {
     let engine = EventEngine::new(packaged_backend());
     let early = stations(
         CelestialBody::Mercury,
-        GEO,
+        MEAN,
         WINDOW_START_JD,
         WINDOW_START_JD + 400.0,
     );
     assert!(early.len() >= 4, "{early:?}");
+    // The apparent place is read a light-time before the first instant.
+    assert!(matches!(
+        engine.stations_in_range(
+            CelestialBody::Mercury,
+            GEO,
+            tdb(WINDOW_START_JD),
+            tdb(WINDOW_START_JD + 400.0)
+        ),
+        Err(EventError::OutOfWindow { .. })
+    ));
     let late = stations(
         CelestialBody::Mercury,
         GEO,
@@ -518,10 +526,12 @@ fn ranges_touching_the_window_edges_work() {
         WINDOW_END_JD,
     );
     assert!(late.len() >= 4, "{late:?}");
-    let next = engine
-        .next_station(CelestialBody::Mercury, GEO, tdb(WINDOW_END_JD))
-        .expect("next_station at the window end");
-    assert_eq!(next, None);
+    // Mercury's step is one day.
+    let next = engine.next_station(CelestialBody::Mercury, GEO, tdb(WINDOW_END_JD));
+    assert!(
+        matches!(next, Err(EventError::OutOfWindow { julian_day }) if julian_day == WINDOW_END_JD + 1.0),
+        "{next:?}"
+    );
 }
 
 #[test]
