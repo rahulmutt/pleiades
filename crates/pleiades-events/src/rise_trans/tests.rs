@@ -26,6 +26,7 @@ fn target_equatorial_matches_horizontal_for_a_star() {
             &obs,
             &RiseSetOptions::default(),
             jd,
+            None,
         )
         .unwrap();
     let equ = crate::fixstar::fixed_star_apparent(
@@ -61,6 +62,7 @@ fn ecliptic_point_no_ecl_lat_forces_latitude_zero() {
             &obs,
             &opts,
             2_451_545.0,
+            None,
         )
         .unwrap();
     let (_, dec_zero) = engine
@@ -72,6 +74,7 @@ fn ecliptic_point_no_ecl_lat_forces_latitude_zero() {
             &obs,
             &opts,
             2_451_545.0,
+            None,
         )
         .unwrap();
     assert!(
@@ -100,6 +103,7 @@ fn standard_altitude_sun_upper_limb_is_about_negative_semidiameter() {
             Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb)
                 .julian_day
                 .days(),
+            None,
         )
         .unwrap();
     // Model B (SE `swe_rise_trans`): refraction lives in the apparent
@@ -152,6 +156,7 @@ fn sun_rises_and_sets_within_a_day() {
             &RiseSetOptions::default(),
             Atmosphere::default(),
             jd,
+            None,
         )
         .unwrap();
     let h0 = engine
@@ -161,6 +166,7 @@ fn sun_rises_and_sets_within_a_day() {
             &RiseSetOptions::default(),
             Atmosphere::default(),
             jd,
+            None,
         )
         .unwrap();
     assert!((alt - h0).abs() < 1e-3, "altitude {alt} vs h0 {h0} at rise");
@@ -222,7 +228,7 @@ fn rise_is_ascending_and_set_is_descending() {
     const DT: f64 = 120.0 / 86_400.0;
     let resid = |jd: f64| {
         engine
-            .horizon_residual(&target, &obs, &opts, atmos, jd)
+            .horizon_residual(&target, &obs, &opts, atmos, jd, None)
             .unwrap()
     };
 
@@ -280,6 +286,7 @@ fn upper_transit_puts_body_on_the_meridian() {
             &obs,
             &RiseSetOptions::default(),
             jd,
+            None,
         )
         .unwrap();
     let ut1 =
@@ -315,6 +322,7 @@ fn standard_altitude_no_refraction_center_is_zero() {
             Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb)
                 .julian_day
                 .days(),
+            None,
         )
         .unwrap();
     assert!(h0.abs() < 1e-9, "no-refraction center h0 {h0}");
@@ -595,6 +603,7 @@ fn previous_upper_transit_puts_body_on_the_meridian() {
             &obs,
             &RiseSetOptions::default(),
             jd,
+            None,
         )
         .unwrap();
     let ut1 = pleiades_apparent::ut1_instant(tdb(jd)).unwrap();
