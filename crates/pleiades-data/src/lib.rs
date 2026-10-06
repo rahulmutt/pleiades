@@ -207,7 +207,7 @@ pub(crate) fn is_carried_but_unserved(body: &CelestialBody) -> bool {
 /// Returns the per-body release claims for the packaged artifact: every body
 /// the backend serves is release-grade, validated inside the artifact build
 /// against the corpus. A body the artifact carries but the backend does not
-/// serve (`is_carried_but_unserved`) has no claim.
+/// serve (`asteroid:433-Eros`, issue #201) has no claim.
 pub fn packaged_body_claims() -> Vec<pleiades_backend::BodyClaim> {
     use pleiades_backend::{AccuracyClass, BodyClaim, ClaimEvidence};
     packaged_bodies()

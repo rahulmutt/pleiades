@@ -540,7 +540,7 @@ where
                 };
                 // The artifact is read directly, not through the backend, so a body the
                 // artifact carries but the backend declines is still measured.
-                let actual_ecliptic = match crate::data::packaged_artifact().lookup_ecliptic(
+                let actual_ecliptic = match artifact.lookup_ecliptic(
                     &body_artifact.body,
                     crate::regenerate::normalize_lookup_instant(request.instant),
                 ) {
@@ -629,7 +629,7 @@ where
                 };
                 // The artifact is read directly, not through the backend, so a body the
                 // artifact carries but the backend declines is still measured.
-                let actual_ecliptic = match crate::data::packaged_artifact().lookup_ecliptic(
+                let actual_ecliptic = match artifact.lookup_ecliptic(
                     &body_artifact.body,
                     crate::regenerate::normalize_lookup_instant(request.instant),
                 ) {

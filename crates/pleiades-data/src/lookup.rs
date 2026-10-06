@@ -1180,6 +1180,13 @@ impl fmt::Display for PackagedTimeScaleBatchParitySummary {
 
 /// Returns a packaged lookup for a body and instant.
 ///
+/// It serves the bodies [`PackagedDataBackend`] serves. `asteroid:433-Eros`
+/// is carried by the artifact but not served (issue #201): its segments are
+/// fitted to rows too sparse to interpolate, so a lookup for it returns a
+/// [`MissingBody`](pleiades_compression::CompressionErrorKind::MissingBody)
+/// error. [`packaged_artifact`](crate::packaged_artifact) is the raw reader for
+/// what the artifact carries.
+///
 /// # Examples
 ///
 /// ```
@@ -1196,6 +1203,16 @@ pub fn packaged_lookup(
     body: &CelestialBody,
     instant: Instant,
 ) -> Result<EclipticCoordinates, pleiades_compression::CompressionError> {
+    if crate::is_carried_but_unserved(body) {
+        return Err(pleiades_compression::CompressionError::new(
+            pleiades_compression::CompressionErrorKind::MissingBody,
+            format!(
+                "packaged data carries {body} but does not serve it: its segments are fitted \
+                 to rows too sparse to interpolate. Serve it from pleiades_jpl::SpkBackend \
+                 with a JPL kernel"
+            ),
+        ));
+    }
     packaged_artifact().lookup_ecliptic(body, normalize_lookup_instant(instant))
 }
 
