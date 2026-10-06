@@ -253,6 +253,23 @@ where
     Ok(())
 }
 
+/// The closed interval of Julian days a scanned function may be sampled in.
+pub(crate) type Window = (f64, f64);
+
+/// A look-around sample of `d` at `jd`: one taken only to see a turning
+/// point. `None` when the read is `OutOfWindow` (an apparent place within a
+/// light-time of the window's start); any other error propagates.
+fn look_around<F>(d: &mut F, jd: f64) -> Result<Option<Sample>, EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    match d(jd) {
+        Ok(value) => Ok(Some((jd, value))),
+        Err(EventError::OutOfWindow { .. }) => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
 /// The scan behind [`level_crossings_in_range`] and
 /// [`first_level_crossing_after`]. Brackets are the intervals between
 /// consecutive breakpoints: the grid `lo_jd + k·step_days` with its last
@@ -264,7 +281,9 @@ where
 /// No bracket reaches outside `[lo_jd, hi_jd]`, so each end decides
 /// membership by the sign of `d − level` there, as in
 /// [`crossings_in_range`]. The turning points are still looked for on the
-/// uncut grid, one sample either side of the range.
+/// uncut grid, one sample either side of the range, clamped to `window`;
+/// where the window leaves no sample, or the sample cannot be read, no
+/// turning point is looked for in that step.
 fn scan_levels<F>(
     mut d: F,
     levels: &[f64],
@@ -272,6 +291,7 @@ fn scan_levels<F>(
     hi_jd: f64,
     step_days: f64,
     first_only: bool,
+    window: Window,
 ) -> Result<Vec<f64>, EventError>
 where
     F: FnMut(f64) -> Result<f64, EventError>,
@@ -288,24 +308,42 @@ where
     let intervals = (span / step_days).ceil() as i64;
     let at = |k: i64| lo_jd + k as f64 * step_days;
     let mut pending = vec![anchor];
-    // One sample before the range, to see a turning point in the first step.
-    let before = at(-1);
-    let mut older = (before, d(before)?);
+    // One sample before the range, to see a turning point in the first step:
+    // clamped to the window, and none when the range starts at its limit.
+    let before = at(-1).max(window.0);
+    let mut older = if before < lo_jd {
+        look_around(&mut d, before)?
+    } else {
+        None
+    };
     let mut newer = anchor;
-    // One sample past the grid, to see a turning point in the last step.
+    // Up to one sample past the grid, to see a turning point in the last
+    // step, clamped to the window's end.
     for k in 1..=intervals + 1 {
-        let jd = at(k);
-        let sample = (jd, d(jd)?);
-        if let Some(turn) = turning_point(&mut d, older, newer, sample)? {
-            let inside =
-                pending.first().is_some_and(|earliest| turn.0 > earliest.0) && turn.0 < hi_jd;
-            if inside {
-                let index = pending.partition_point(|point| point.0 < turn.0);
-                pending.insert(index, turn);
+        let jd = at(k).min(window.1);
+        if jd <= newer.0 {
+            // `newer` is already the window's end, and `hi_jd` is in
+            // `pending`: no sample is left to take.
+            break;
+        }
+        let sample = if jd <= hi_jd {
+            Some((jd, d(jd)?))
+        } else {
+            look_around(&mut d, jd)?
+        };
+        if let (Some(older), Some(sample)) = (older, sample) {
+            if let Some(turn) = turning_point(&mut d, older, newer, sample)? {
+                let inside =
+                    pending.first().is_some_and(|earliest| turn.0 > earliest.0) && turn.0 < hi_jd;
+                if inside {
+                    let index = pending.partition_point(|point| point.0 < turn.0);
+                    pending.insert(index, turn);
+                }
             }
         }
         if k < intervals || jd == hi_jd {
-            pending.push(sample);
+            // In the range, so read with `d(jd)?` above.
+            pending.extend(sample);
         } else if k == intervals {
             pending.push((hi_jd, d(hi_jd)?));
         }
@@ -314,7 +352,11 @@ where
         if first_only && !out.is_empty() {
             return Ok(out);
         }
-        older = newer;
+        let Some(sample) = sample else {
+            // Past the range and unreadable: nothing later to compare.
+            break;
+        };
+        older = Some(newer);
         newer = sample;
     }
     drain_until(&mut d, levels, &mut pending, hi_jd, &mut out)?;
@@ -327,7 +369,8 @@ where
 ///
 /// Unlike [`crossings_in_range`], each step is split at the turning points
 /// of `d`, so two crossings of a level inside one step are both found. `d`
-/// is sampled only in `[lo_jd − step_days, hi_jd + 2·step_days)`.
+/// is sampled only in `[lo_jd − step_days, hi_jd + 2·step_days)` intersected
+/// with `window`.
 ///
 /// Like it, each end decides membership by the sign of `d − level` there: a
 /// crossing is in range when it has not happened at `lo_jd` and has happened
@@ -336,18 +379,22 @@ where
 /// (issue #168).
 ///
 /// Limits: two turning points within two steps of each other may go unseen,
-/// and with them a pair of crossings between them.
+/// and with them a pair of crossings between them. Next to a limit of
+/// `window`, a turning point in the step beside it is seen only if the window
+/// leaves a sample past it, so two crossings within the last step before the
+/// window's end (or the first after its start) may go unseen.
 pub(crate) fn level_crossings_in_range<F>(
     d: F,
     levels: &[f64],
     lo_jd: f64,
     hi_jd: f64,
     step_days: f64,
+    window: Window,
 ) -> Result<Vec<f64>, EventError>
 where
     F: FnMut(f64) -> Result<f64, EventError>,
 {
-    scan_levels(d, levels, lo_jd, hi_jd, step_days, false)
+    scan_levels(d, levels, lo_jd, hi_jd, step_days, false, window)
 }
 
 /// The first element of [`level_crossings_in_range`] for the same arguments,
@@ -358,13 +405,16 @@ pub(crate) fn first_level_crossing_after<F>(
     lo_jd: f64,
     hi_jd: f64,
     step_days: f64,
+    window: Window,
 ) -> Result<Option<f64>, EventError>
 where
     F: FnMut(f64) -> Result<f64, EventError>,
 {
-    Ok(scan_levels(d, levels, lo_jd, hi_jd, step_days, true)?
-        .into_iter()
-        .next())
+    Ok(
+        scan_levels(d, levels, lo_jd, hi_jd, step_days, true, window)?
+            .into_iter()
+            .next(),
+    )
 }
 
 /// Steps per chunk of [`last_level_crossing_before`]'s backward walk.
@@ -386,15 +436,20 @@ pub(crate) const LEVEL_CHUNK_STEPS: f64 = 64.0;
 /// already happened there. An instant [`bisect`] settled on a crossing,
 /// handed back as `hi_jd`, finds that same crossing.
 ///
-/// Limits: those of [`level_crossings_in_range`]. `d` is sampled within the
-/// same bounds, `[lo_jd − step_days, hi_jd + 2·step_days)`, and at `lo_jd`
-/// even on an empty range.
+/// Limits: those of [`level_crossings_in_range`], including the blind spot
+/// next to a limit of `window`. `d` is sampled within the same bounds,
+/// `[lo_jd − step_days, hi_jd + 2·step_days)` intersected with `window`, and
+/// at `lo_jd` even on an empty range. The first step `[lo_jd, lo_jd +
+/// step_days]` is scanned last, and only when nothing later was found, so a
+/// `d` that cannot be read at `lo_jd` (an apparent place within a light-time
+/// of the window's start) fails only a search that must look there.
 pub(crate) fn last_level_crossing_before<F>(
     mut d: F,
     levels: &[f64],
     lo_jd: f64,
     hi_jd: f64,
     step_days: f64,
+    window: Window,
 ) -> Result<Option<f64>, EventError>
 where
     F: FnMut(f64) -> Result<f64, EventError>,
@@ -408,7 +463,18 @@ where
     let mut chunk_hi = hi_jd;
     while chunk_hi > lo_jd {
         let chunk_lo = (chunk_hi - chunk_days).max(lo_jd);
-        let roots = scan_levels(&mut d, levels, chunk_lo, chunk_hi, step_days, false)?;
+        // The chunk that touches `lo_jd` is split after its first step, so
+        // only that step needs the anchor read at `lo_jd`; the rest looks
+        // back to it as a look-around sample, which may be unreadable.
+        let seam = lo_jd + step_days;
+        if chunk_lo == lo_jd && chunk_hi > seam {
+            let roots = scan_levels(&mut d, levels, seam, chunk_hi, step_days, false, window)?;
+            if let Some(&last) = roots.last() {
+                return Ok(Some(last));
+            }
+            chunk_hi = seam;
+        }
+        let roots = scan_levels(&mut d, levels, chunk_lo, chunk_hi, step_days, false, window)?;
         if let Some(&last) = roots.last() {
             return Ok(Some(last));
         }

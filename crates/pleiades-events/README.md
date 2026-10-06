@@ -145,16 +145,19 @@ returned instant it gives that same event back, so step back a second to
 reach the event before it. Each end of a range is decided by the separation
 there, so two ranges that share an end hold each event exactly once.
 
-A pair that approaches an angle and turns back before reaching it returns
-nothing. A sidereal zodiac changes the reported longitudes, not the instants:
-the ayanamsa cancels in the separation.
+A pair that approaches an angle and turns back before reaching it has no
+event in a range; a `next_aspect` or `previous_aspect` search that reaches the
+window's end without one is `EventError::OutOfWindow`. A sidereal zodiac
+changes the reported longitudes, not the instants: the ayanamsa cancels in
+the separation.
 
 The search steps by the smaller of the two bodies' steps (0.25 day for the
 Moon and the lunar points, 1 day for the Sun, Mercury and Venus, 2 days
 otherwise) and splits each step where the separation turns, so two exact
 moments inside one step, around a station, are both found. Two turning points
-within two steps of each other may go unseen, and an event within two steps
-of either end of the 1900–2100 window is not reported.
+within two steps of each other may go unseen. The searches reach the first and
+last instant of the 1900–2100 window, and a `next_*` or `previous_*` search that
+the window cuts short is `EventError::OutOfWindow`, not `None`.
 
 An aspect's instant is firm for a fast pair and soft for a slow pair near a
 station, where the pair's relative speed is close to zero and a small

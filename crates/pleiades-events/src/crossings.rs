@@ -1,6 +1,8 @@
 //! The public longitude-crossing engine.
 
-use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
+use crate::error::{
+    before_window_start, past_window_end, EventError, WINDOW_END_JD, WINDOW_START_JD,
+};
 use crate::reference::{check_supported, ecliptic_in, CrossingReference};
 use crate::root::{crossings_in_range, first_crossing_after, last_crossing_before, wrap180};
 use pleiades_backend::EphemerisBackend;
@@ -108,6 +110,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// [`CrossingReference`] carrying a sidereal zodiac; `target` is read in
     /// that zodiac. An ayanamsa with no offset data is
     /// [`EventError::UnsupportedFrame`].
+    ///
+    /// The scan runs to both ends of the range, which may be the window's own
+    /// limits. An apparent place of a body other than the Sun is read a
+    /// light-time earlier, so a range starting within a light-time of the
+    /// window's first instant is [`EventError::OutOfWindow`].
     pub fn longitude_crossings_in_range(
         &self,
         body: CelestialBody,
@@ -123,9 +130,6 @@ impl<B: EphemerisBackend> EventEngine<B> {
         self.check_window(end_jd)?;
         check_supported(&body, &reference, start_jd, "crossings are")?;
         let step = Self::step_days(&body);
-        // Clamp like the eclipse engine: keep retarded/aberration queries in-window.
-        let scan_start = start_jd.max(WINDOW_START_JD + step);
-        let scan_end = end_jd.min(WINDOW_END_JD - step);
         let target_deg = target.degrees();
         let roots = crossings_in_range(
             |jd| {
@@ -133,8 +137,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
                     ecliptic_in(&self.backend, &body, &reference, jd)?.0 - target_deg,
                 ))
             },
-            scan_start,
-            scan_end,
+            start_jd,
+            end_jd,
             step,
         )?;
         Ok(roots
@@ -143,13 +147,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
             .collect())
     }
 
-    /// The first crossing strictly after `after`, or `None`.
+    /// The first crossing strictly after `after`.
     ///
     /// Early-terminating: this brackets and bisects forward from `after` and
     /// returns as soon as the first root is found, instead of scanning to
     /// `WINDOW_END`. The result is identical to
     /// `longitude_crossings_in_range(body, target, reference, after, WINDOW_END).first()`
-    /// filtered to strictly-after `after` — same clamps, same step, same
+    /// filtered to strictly-after `after` — same step, same
     /// wrap-seam guard, same bisection tolerance.
     ///
     /// A returned [`Crossing::instant`] trails its crossing by less than the
@@ -160,6 +164,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// [`CrossingReference`] carrying a sidereal zodiac; `target` is read in
     /// that zodiac. An ayanamsa with no offset data is
     /// [`EventError::UnsupportedFrame`].
+    ///
+    /// When the window ends before the next crossing, the result is
+    /// [`EventError::OutOfWindow`] naming the instant one step past the
+    /// window's end. Every body crosses every longitude, so this search never
+    /// returns `Ok(None)`. An `after` within a light-time of the window's first
+    /// instant in the apparent frame, for a body other than the Sun, is
+    /// `OutOfWindow` too: the read at `after` fails.
     ///
     /// ```
     /// use pleiades_data::packaged_backend;
@@ -193,9 +204,6 @@ impl<B: EphemerisBackend> EventEngine<B> {
         self.check_window(WINDOW_END_JD)?;
         check_supported(&body, &reference, after_jd, "crossings are")?;
         let step = Self::step_days(&body);
-        // Same clamps as `longitude_crossings_in_range` over `[after, WINDOW_END]`.
-        let scan_start = after_jd.max(WINDOW_START_JD + step);
-        let scan_end = WINDOW_END_JD.min(WINDOW_END_JD - step);
         let target_deg = target.degrees();
         let root = first_crossing_after(
             |jd| {
@@ -203,22 +211,21 @@ impl<B: EphemerisBackend> EventEngine<B> {
                     ecliptic_in(&self.backend, &body, &reference, jd)?.0 - target_deg,
                 ))
             },
-            scan_start,
-            scan_end,
+            after_jd,
+            WINDOW_END_JD,
             step,
         )?;
-        Ok(root
-            .filter(|&jd| jd > after_jd)
-            .map(|jd| Self::crossing(&body, target, &reference, jd)))
+        let jd = root.ok_or_else(|| past_window_end(step))?;
+        Ok(Some(Self::crossing(&body, target, &reference, jd)))
     }
 
-    /// The last crossing that has happened by `before`, or `None`.
+    /// The last crossing that has happened by `before`.
     ///
     /// Early-terminating: this brackets and bisects backward from `before` and
     /// returns as soon as the last (highest-JD) root is found, instead of
     /// scanning from `WINDOW_START`. It finds the crossing
     /// `longitude_crossings_in_range(body, target, reference, WINDOW_START, before).last()`
-    /// finds — same clamps, same step, same wrap-seam guard — and agrees with
+    /// finds — same step, same wrap-seam guard — and agrees with
     /// it on the instant to within the 0.5 s bisection tolerance. Its scan is
     /// anchored at `before`, the range's at its start, so the two are not
     /// bit-identical.
@@ -235,6 +242,15 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// [`CrossingReference`] carrying a sidereal zodiac; `target` is read in
     /// that zodiac. An ayanamsa with no offset data is
     /// [`EventError::UnsupportedFrame`].
+    ///
+    /// When the window starts after the previous crossing, the result is
+    /// [`EventError::OutOfWindow`] naming the instant one step before the
+    /// window's start. Every body crosses every longitude, so this search
+    /// never returns `Ok(None)`.
+    ///
+    /// When the search reaches the window's first light-time in the apparent
+    /// frame, for a body other than the Sun, the error comes from that read
+    /// and names its instant instead.
     pub fn previous_longitude_crossing(
         &self,
         body: CelestialBody,
@@ -249,9 +265,6 @@ impl<B: EphemerisBackend> EventEngine<B> {
         self.check_window(before_jd)?;
         check_supported(&body, &reference, before_jd, "crossings are")?;
         let step = Self::step_days(&body);
-        // Same clamps as `longitude_crossings_in_range` over `[WINDOW_START, before]`.
-        let scan_start = WINDOW_START_JD.max(WINDOW_START_JD + step);
-        let scan_end = before_jd.min(WINDOW_END_JD - step);
         let target_deg = target.degrees();
         let root = last_crossing_before(
             |jd| {
@@ -259,11 +272,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
                     ecliptic_in(&self.backend, &body, &reference, jd)?.0 - target_deg,
                 ))
             },
-            scan_start,
-            scan_end,
+            WINDOW_START_JD,
+            before_jd,
             step,
         )?;
-        Ok(root.map(|jd| Self::crossing(&body, target, &reference, jd)))
+        let jd = root.ok_or_else(|| before_window_start(step))?;
+        Ok(Some(Self::crossing(&body, target, &reference, jd)))
     }
 
     /// `swe_solcross`: next geocentric apparent Sun crossing of `target`.
@@ -374,6 +388,9 @@ pub(crate) fn body_label(body: &CelestialBody) -> &'static str {
         _ => "body",
     }
 }
+
+#[cfg(test)]
+mod window_edge_tests;
 
 #[cfg(test)]
 mod tests {
@@ -549,21 +566,23 @@ mod tests {
     }
 
     #[test]
-    fn previous_none_when_no_earlier_crossing() {
+    fn previous_is_out_of_window_when_no_earlier_crossing_in_window() {
         let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
         let target = Longitude::from_degrees(100.0);
         // Very early `before`, right at the start of the window (Sun's scan
-        // step is 1.0 day): no crossing can precede it.
+        // step is 1.0 day): the search reaches the window's start, so it is
+        // cut short rather than known to be empty.
         let before = tdb(WINDOW_START_JD + 1.0);
-        let actual = engine
-            .previous_longitude_crossing(
-                CelestialBody::Sun,
-                target,
-                CrossingFrame::GeocentricApparentOfDate,
-                before,
-            )
-            .unwrap();
-        assert!(actual.is_none(), "expected None, got {actual:?}");
+        let actual = engine.previous_longitude_crossing(
+            CelestialBody::Sun,
+            target,
+            CrossingFrame::GeocentricApparentOfDate,
+            before,
+        );
+        assert!(
+            matches!(actual, Err(EventError::OutOfWindow { .. })),
+            "expected OutOfWindow, got {actual:?}"
+        );
     }
 
     #[test]

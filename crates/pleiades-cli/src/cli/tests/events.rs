@@ -361,3 +361,115 @@ fn help_lists_the_event_commands() {
     assert!(run(&["stations", "--help"]).contains("Usage:\n  stations "));
     assert!(run(&["aspects", "--help"]).contains("Usage:\n  aspects "));
 }
+
+#[test]
+fn a_next_search_the_window_cuts_short_is_a_note_not_an_error() {
+    let rendered = run(&[
+        "aspects",
+        "--pair",
+        "Sun,Mercury",
+        "--pair",
+        "Sun,Moon",
+        "--angle",
+        "60",
+        "--next",
+        "--at",
+        "2488039.5",
+    ]);
+    // Sun–Moon 60° happens within days; Sun–Mercury never does.
+    assert!(rendered.contains("Sun–Moon 60°"), "{rendered}");
+    assert!(
+        rendered.contains("Sun–Mercury 60°: none before the window's end (2100-01-01)"),
+        "{rendered}"
+    );
+}
+
+#[test]
+fn a_previous_search_the_window_cuts_short_is_a_note() {
+    let rendered = run(&[
+        "stations",
+        "--body",
+        "Mercury",
+        "--frame",
+        "mean",
+        "--previous",
+        "--at",
+        "2415021.5",
+    ]);
+    assert!(
+        rendered.contains("Mercury: none after the window's start (1900-01-01)"),
+        "{rendered}"
+    );
+}
+
+#[test]
+fn an_at_outside_the_window_is_an_error_not_a_note() {
+    for at in ["2600000", "2300000", "2488070.5", "2415019.5"] {
+        for direction in ["--next", "--previous"] {
+            let message = error(&["stations", "--body", "Mars", direction, "--at", at]);
+            assert!(message.contains("outside the search window"), "{message}");
+        }
+    }
+    let message = error(&[
+        "aspects", "--pair", "Sun,Moon", "--angle", "60", "--next", "--at", "2600000",
+    ]);
+    assert!(message.contains("outside the search window"), "{message}");
+}
+
+#[test]
+fn a_previous_search_the_apparent_frame_cuts_short_is_a_note() {
+    let rendered = run(&[
+        "stations",
+        "--body",
+        "Mercury",
+        "--previous",
+        "--at",
+        "2415025.5",
+    ]);
+    assert!(
+        rendered.contains("Mercury: none after the window's start (1900-01-01)"),
+        "{rendered}"
+    );
+}
+
+#[test]
+fn a_next_search_from_the_first_instant_in_the_apparent_frame_never_claims_the_windows_end() {
+    // The read at the window's first instant needs the body a light-time
+    // earlier, which the window does not hold: not a search cut short at 2100.
+    let message = error(&["stations", "--body", "Mars", "--next", "--at", "2415020.5"]);
+    assert!(message.contains("outside the supported"), "{message}");
+}
+
+#[test]
+fn a_range_from_the_first_instant_in_the_apparent_frame_still_fails() {
+    let message = error(&[
+        "stations",
+        "--body",
+        "Mars",
+        "--from",
+        "2415020.5",
+        "--to",
+        "2415400.5",
+    ]);
+    assert!(message.contains("window"), "{message}");
+}
+
+#[test]
+fn notes_come_after_the_event_lines() {
+    let rendered = run(&[
+        "aspects",
+        "--pair",
+        "Sun,Mercury",
+        "--pair",
+        "Sun,Moon",
+        "--angle",
+        "60",
+        "--next",
+        "--at",
+        "2488039.5",
+    ]);
+    let lines = events(&rendered);
+    assert_eq!(lines.len(), 2, "{rendered}");
+    assert!(lines[0].contains("Sun–Moon 60°"), "{rendered}");
+    assert!(lines[1].starts_with("Sun–Mercury 60°: none"), "{rendered}");
+}
