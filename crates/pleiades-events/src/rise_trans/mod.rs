@@ -331,8 +331,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
         Ok(alt - h0)
     }
 
-    /// Next rise/set/transit strictly after `after`, or `None` if it does not
-    /// occur before the ephemeris window's end.
+    /// Next rise/set/transit strictly after `after`, or `None` if the search
+    /// span holds none.
     ///
     /// # Time scales
     ///
@@ -360,9 +360,25 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// circumpolar right now and does not rise/set again within that span
     /// returns `None`, even though it may rise far in the future (use
     /// `rise_sets_in_range` with an explicit, longer window for that
-    /// question). Meridian transits are unaffected — they always occur
-    /// within a sidereal day, well inside the bound. Every search stops two
-    /// scan steps (2 h) short of either end of the ephemeris window.
+    /// question). A meridian transit is searched for 1.5 days ahead, which
+    /// always holds the next one, so a transit search never returns `None`.
+    ///
+    /// # The window's ends
+    ///
+    /// The search runs to the ephemeris window's last instant and finds an
+    /// event there. When the window ends before the search span does and no
+    /// event lies before its end, the result is
+    /// [`EventError::OutOfWindow`], naming the first instant past the window
+    /// the search needed: the event may exist, but it cannot be computed.
+    /// `Ok(None)` therefore means only that the span holds no event, which
+    /// is the answer for a circumpolar target.
+    ///
+    /// [`previous_rise_set`](Self::previous_rise_set) answers the same way
+    /// at the window's start. There a planet has one more limit: its
+    /// apparent place is read a light-time earlier, so it cannot be read
+    /// within a light-time of the window's first instant, and a search that
+    /// needs a sample there is `OutOfWindow` as well. The Sun, a fixed star
+    /// and an ecliptic point are readable from the first instant on.
     ///
     /// # Chaining searches
     ///
@@ -448,7 +464,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// search only `RISE_SET_SEARCH_SPAN_DAYS`
     /// back from `before`, so a body that has been circumpolar for longer
     /// than that returns `None`; meridian transits always occur within a
-    /// sidereal day and are unaffected. Early-terminating: the search walks
+    /// sidereal day and are unaffected. A search the window's start cuts
+    /// short, with no event after the start, is [`EventError::OutOfWindow`]
+    /// (see "The window's ends" there). Early-terminating: the search walks
     /// backward from `before` and stops at the first event found, so its
     /// cost does not depend on how far back the event is within the span.
     /// The result agrees with `rise_sets_in_range(before − span, before)
@@ -505,6 +523,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// instant as their boundary do not report it twice. At `end` the
     /// returned instant itself is compared, so an event within the 0.5 s
     /// refinement tolerance before `end` may be left out.
+    ///
+    /// Both ends must lie inside the ephemeris window, and events are found
+    /// right up to either end of it. A planet's range that starts within a
+    /// light-time of the window's first instant is
+    /// [`EventError::OutOfWindow`]: its apparent place cannot be read there.
     #[allow(clippy::too_many_arguments)]
     pub fn rise_sets_in_range(
         &self,

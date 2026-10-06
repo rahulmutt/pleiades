@@ -22,6 +22,11 @@ pub enum EventError {
     /// there falls before the window. The Sun, the lunar points and the
     /// mean-of-date and heliocentric frames need no such read and are served
     /// from the window's first instant.
+    ///
+    /// A rise, set or transit search also returns this when the window ends
+    /// before its search span does and no event lies inside the window: the
+    /// event may exist but cannot be computed. `julian_day` is then the first
+    /// instant past the window that the search needed.
     OutOfWindow {
         /// The out-of-window instant, as a Julian Day.
         julian_day: f64,
