@@ -1817,7 +1817,7 @@ fn source_corpus_summary_aliases_render_the_same_report() {
     assert!(rendered.contains("production generation source revision=source revision="));
     assert!(rendered.contains("reference_snapshot.csv checksum=0x"));
     assert!(rendered.contains("independent_holdout_snapshot.csv checksum=0x"));
-    assert!(rendered.contains("production generation source windows=277 source-backed samples across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB))"));
+    assert!(rendered.contains("production generation source windows=273 source-backed samples across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB))"));
     assert!(rendered.contains("source density floors=reference major bodies:"));
     assert!(rendered.contains("production generation body-class coverage=major bodies: 182 rows across 10 bodies and 20 epochs"));
     assert!(rendered
@@ -1834,7 +1834,7 @@ fn source_corpus_summary_aliases_render_the_same_report() {
     assert!(rendered.contains(
         "reference snapshot exact J2000 evidence=16 exact J2000 samples at JD 2451545.0 (TDB)"
     ));
-    assert!(rendered.contains("reference snapshot equatorial parity=277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB))"));
+    assert!(rendered.contains("reference snapshot equatorial parity=273 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB))"));
     assert!(rendered.contains("reference snapshot body-class coverage=major bodies: 182 rows across 10 bodies and 20 epochs"));
     let reference_snapshot_manifest = required_summary_payload(
         reference_snapshot_manifest_summary_for_report(),
@@ -1846,7 +1846,7 @@ fn source_corpus_summary_aliases_render_the_same_report() {
         "reference snapshot manifest={reference_snapshot_manifest}"
     )));
     assert!(rendered.contains(
-        "independent-holdout body-class coverage=66 rows across 16 bodies and 12 epochs"
+        "independent-holdout body-class coverage=64 rows across 16 bodies and 12 epochs"
     ));
     assert!(rendered.contains("Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
     assert!(rendered.contains("evidence classification=release-tolerance=reference/comparison/production-generation validation summaries; hold-out=independent hold-out rows and interpolation-quality summaries; fixture exactness=reference snapshot exact J2000 evidence; provenance-only=source and manifest summaries"));

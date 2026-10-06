@@ -1304,3 +1304,28 @@ fn parses_five_field_row_without_velocity() {
     let rows = parse_snapshot_entries(csv).unwrap();
     assert_eq!(rows[0].vx_km_s, None);
 }
+
+/// A geocentric vector whose x and z are both within 1000 km of zero is a
+/// placeholder, not a position. Four Apophis rows once were (each read as
+/// longitude 89.9998°, latitude 0.000°) and were served as `Exact`.
+#[test]
+fn snapshot_fixtures_hold_no_placeholder_rows() {
+    let fixtures = [
+        ("reference_snapshot", reference_snapshot()),
+        (
+            "independent_holdout_snapshot",
+            independent_holdout_snapshot_entries().expect("the hold-out snapshot should load"),
+        ),
+    ];
+    for (label, entries) in fixtures {
+        assert!(!entries.is_empty(), "{label} should hold rows");
+        for entry in entries {
+            assert!(
+                entry.x_km.abs() >= 1000.0 || entry.z_km.abs() >= 1000.0,
+                "{label}: {} at JD {} is a placeholder row",
+                entry.body,
+                entry.epoch.julian_day.days()
+            );
+        }
+    }
+}

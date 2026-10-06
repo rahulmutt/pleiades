@@ -71,7 +71,7 @@ fn reference_snapshot_covers_the_expected_bodies_and_epochs() {
             .iter()
             .filter(|entry| entry.epoch.julian_day.days() == 2_500_000.0)
             .count(),
-        6
+        5
     );
     assert_eq!(
         reference_snapshot()
@@ -88,11 +88,11 @@ fn reference_snapshot_summary_reports_the_expected_coverage() {
     summary
         .validate()
         .expect("reference snapshot summary should validate");
-    assert_eq!(summary.row_count, 277);
+    assert_eq!(summary.row_count, 273);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.bodies, reference_bodies());
     assert_eq!(summary.epoch_count, 23);
-    assert_eq!(summary.asteroid_row_count, 95);
+    assert_eq!(summary.asteroid_row_count, 91);
     assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
     assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
 }
@@ -167,7 +167,7 @@ fn reference_snapshot_high_curvature_summary_reports_the_expected_window() {
 fn reference_snapshot_boundary_epoch_coverage_summary_reports_the_sparse_epochs() {
     let summary = reference_snapshot_boundary_epoch_coverage_summary()
         .expect("reference snapshot boundary epoch coverage summary should exist");
-    assert_eq!(summary.sample_count, 183);
+    assert_eq!(summary.sample_count, 182);
     assert_eq!(summary.epoch_count, 14);
     assert_eq!(summary.earliest_epoch.julian_day.days(), 2_451_912.5);
     assert_eq!(summary.latest_epoch.julian_day.days(), 2_451_919.5);
@@ -1319,8 +1319,8 @@ fn reference_snapshot_summary_validation_rejects_asteroid_row_count_drift() {
         summary.validate(),
         Err(
             ReferenceSnapshotSummaryValidationError::AsteroidRowCountMismatch {
-                asteroid_row_count: 96,
-                derived_asteroid_row_count: 95,
+                asteroid_row_count: 92,
+                derived_asteroid_row_count: 91,
             }
         )
     ));
@@ -1330,7 +1330,7 @@ fn reference_snapshot_summary_validation_rejects_asteroid_row_count_drift() {
 fn reference_snapshot_equatorial_parity_summary_reports_the_expected_coverage() {
     let summary = reference_snapshot_equatorial_parity_summary()
         .expect("reference snapshot equatorial parity summary should exist");
-    assert_eq!(summary.row_count, 277);
+    assert_eq!(summary.row_count, 273);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.bodies, reference_bodies());
     assert_eq!(summary.epoch_count, 23);
@@ -1374,8 +1374,8 @@ fn reference_snapshot_batch_parity_summary_validation_rejects_derived_summary_dr
         Err(
             ReferenceSnapshotBatchParitySummaryValidationError::Snapshot(
                 ReferenceSnapshotSummaryValidationError::AsteroidRowCountMismatch {
-                    asteroid_row_count: 96,
-                    derived_asteroid_row_count: 95,
+                    asteroid_row_count: 92,
+                    derived_asteroid_row_count: 91,
                 }
             )
         )
@@ -1386,7 +1386,7 @@ fn reference_snapshot_batch_parity_summary_validation_rejects_derived_summary_dr
 fn reference_snapshot_batch_parity_summary_reports_the_expected_coverage() {
     let summary = reference_snapshot_batch_parity_summary()
         .expect("reference snapshot batch parity summary should exist");
-    assert_eq!(summary.snapshot.row_count, 277);
+    assert_eq!(summary.snapshot.row_count, 273);
     assert_eq!(summary.snapshot.body_count, 16);
     assert_eq!(summary.snapshot.bodies, reference_bodies());
     assert_eq!(summary.snapshot.epoch_count, 23);
@@ -1397,7 +1397,7 @@ fn reference_snapshot_batch_parity_summary_reports_the_expected_coverage() {
     assert_eq!(summary.snapshot.latest_epoch.julian_day.days(), 2_634_167.0);
     assert!(summary.ecliptic_request_count > 0);
     assert!(summary.equatorial_request_count > 0);
-    assert_eq!(summary.exact_count, 277);
+    assert_eq!(summary.exact_count, 273);
     assert_eq!(summary.interpolated_count, 0);
     assert_eq!(summary.approximate_count, 0);
     assert_eq!(summary.unknown_count, 0);
@@ -1454,7 +1454,7 @@ fn reference_snapshot_body_class_coverage_summary_reports_the_expected_body_clas
         pleiades_backend::CelestialBody::Uranus
     );
     assert_eq!(summary.major_epoch_count, 20);
-    assert_eq!(summary.asteroid_row_count, 95);
+    assert_eq!(summary.asteroid_row_count, 91);
     assert_eq!(summary.asteroid_bodies.len(), 6);
     assert_eq!(
         summary.asteroid_bodies[0],
@@ -1477,7 +1477,7 @@ fn reference_snapshot_source_window_summary_reports_the_current_boundary_windows
     let summary = reference_snapshot_source_window_summary()
         .expect("reference snapshot source window summary should exist");
 
-    assert_eq!(summary.sample_count, 277);
+    assert_eq!(summary.sample_count, 273);
     assert_eq!(summary.sample_bodies.len(), 16);
     assert_eq!(summary.epoch_count, 23);
     assert_eq!(summary.validate(), Ok(()));
@@ -1499,15 +1499,15 @@ fn reference_snapshot_source_window_summary_reports_the_current_boundary_windows
         summary.windows[5].body,
         pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "99942-Apophis"))
     );
-    assert_eq!(summary.windows[5].sample_count, 10);
-    assert_eq!(summary.windows[5].epoch_count, 10);
+    assert_eq!(summary.windows[5].sample_count, 6);
+    assert_eq!(summary.windows[5].epoch_count, 6);
     assert_eq!(
         summary.windows[5].earliest_epoch.julian_day.days(),
         2_378_498.5
     );
     assert_eq!(
         summary.windows[5].latest_epoch.julian_day.days(),
-        2_634_167.0
+        2_451_919.5
     );
     assert_eq!(
         summary.windows[9].body,

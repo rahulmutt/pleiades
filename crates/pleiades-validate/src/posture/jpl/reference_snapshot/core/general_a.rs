@@ -572,17 +572,17 @@ mod tests {
         summary
             .validate()
             .expect("reference snapshot summary should validate");
-        assert_eq!(summary.row_count, 277);
+        assert_eq!(summary.row_count, 273);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.bodies, pleiades_jpl::reference_bodies());
         assert_eq!(summary.epoch_count, 23);
-        assert_eq!(summary.asteroid_row_count, 95);
+        assert_eq!(summary.asteroid_row_count, 91);
         assert_eq!(summary.earliest_epoch.julian_day.days(), 2_378_498.5);
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             reference_snapshot_summary_line(&summary),
             format!(
-                "Reference snapshot coverage: 277 rows across 16 bodies and 23 epochs (95 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
+                "Reference snapshot coverage: 273 rows across 16 bodies and 23 epochs (91 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
                 format_bodies(pleiades_jpl::reference_bodies())
             )
         );
@@ -1563,8 +1563,8 @@ mod tests {
             summary.validate(),
             Err(
                 ReferenceSnapshotSummaryValidationError::AsteroidRowCountMismatch {
-                    asteroid_row_count: 96,
-                    derived_asteroid_row_count: 95,
+                    asteroid_row_count: 92,
+                    derived_asteroid_row_count: 91,
                 }
             )
         ));

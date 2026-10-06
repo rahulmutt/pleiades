@@ -865,7 +865,7 @@ mod tests {
     fn interpolation_quality_summary_reports_the_worst_case_labels() {
         let summary =
             pleiades_jpl::jpl_interpolation_quality_summary().expect("summary should exist");
-        assert_eq!(summary.sample_count, 223);
+        assert_eq!(summary.sample_count, 219);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.epoch_count, 19);
         assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
@@ -876,7 +876,7 @@ mod tests {
             summary.sample_count
         );
         assert!(summary.cubic_sample_count > 0);
-        assert_eq!(summary.quadratic_sample_count, 0);
+        assert_eq!(summary.quadratic_sample_count, 2);
         assert_eq!(summary.linear_sample_count, 0);
         assert!(summary.mean_bracket_span_days.is_finite());
         assert!(summary.median_bracket_span_days.is_finite());
@@ -890,7 +890,7 @@ mod tests {
         assert!(rendered.contains("cubic"));
         assert!(rendered.contains("quadratic"));
         assert!(rendered.contains("linear"));
-        assert!(rendered.contains("223 samples across 16 bodies and 19 epochs"));
+        assert!(rendered.contains("219 samples across 16 bodies and 19 epochs"));
         assert!(rendered.contains("epoch window"));
         assert!(rendered.contains("mean bracket span="));
         assert!(rendered.contains("median bracket span="));
@@ -936,17 +936,17 @@ mod tests {
     fn interpolation_quality_kind_coverage_reports_the_distinct_body_breakdown() {
         let coverage =
             pleiades_jpl::jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
-        assert_eq!(coverage.sample_count, 223);
+        assert_eq!(coverage.sample_count, 219);
         assert_eq!(coverage.body_count, 16);
         assert_eq!(coverage.bodies.len(), coverage.body_count);
         assert!(!coverage.bodies.is_empty());
         assert!(coverage.cubic_body_count > 0);
-        assert_eq!(coverage.quadratic_body_count, 0);
+        assert_eq!(coverage.quadratic_body_count, 1);
         assert_eq!(coverage.linear_body_count, 0);
 
         let rendered = jpl_interpolation_quality_kind_coverage_line(&coverage);
         assert!(rendered.contains("JPL interpolation quality kind coverage:"));
-        assert!(rendered.contains("223 samples across 16 bodies ["));
+        assert!(rendered.contains("219 samples across 16 bodies ["));
         assert!(rendered.contains(&coverage.bodies[0]));
         assert!(rendered.contains("cubic bodies"));
         assert!(rendered.contains("quadratic bodies"));
@@ -961,7 +961,7 @@ mod tests {
     fn interpolation_quality_sample_request_corpus_reports_the_explicit_request_slice() {
         let summary = pleiades_jpl::interpolation_quality_sample_request_corpus_summary()
             .expect("sample request corpus should exist");
-        assert_eq!(summary.request_count, 223);
+        assert_eq!(summary.request_count, 219);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.bodies.len(), summary.body_count);
         assert!(!summary.bodies.is_empty());
@@ -1116,7 +1116,7 @@ mod tests {
             summary.derivation,
             "leave-one-out interpolation evidence derived from the checked-in reference snapshot"
         );
-        assert_eq!(summary.sample_count, 223);
+        assert_eq!(summary.sample_count, 219);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.epoch_count, 19);
         assert_eq!(summary.validate(), Ok(()));

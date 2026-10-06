@@ -40,7 +40,7 @@ fn release_notes_command_renders_the_release_notes() {
     assert!(rendered.contains("WvA"));
     assert!(rendered.contains("Selected asteroid evidence: 6 exact J2000 samples"));
     assert!(rendered.contains("Selected asteroid batch parity: 6 requests across 6 bodies at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); frame mix: 3 ecliptic, 3 equatorial; batch/single parity preserved"));
-    assert!(rendered.contains("Reference snapshot coverage: 277 rows across 16 bodies and 23 epochs (95 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+    assert!(rendered.contains("Reference snapshot coverage: 273 rows across 16 bodies and 23 epochs (91 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
     assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 182 rows across 10 bodies and 20 epochs; major windows: "));
     assert!(rendered.contains(&reference_snapshot_pre_bridge_boundary_summary_for_report()));
     assert!(
@@ -49,7 +49,7 @@ fn release_notes_command_renders_the_release_notes() {
     assert!(rendered.contains(&reference_snapshot_2451914_major_body_bridge_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_dense_boundary_summary_for_report()));
     assert!(rendered
-        .contains("selected asteroids: 95 rows across 6 bodies and 17 epochs; asteroid windows: "));
+        .contains("selected asteroids: 91 rows across 6 bodies and 17 epochs; asteroid windows: "));
     assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_high_curvature_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_source_summary_for_report()));
@@ -105,8 +105,8 @@ fn release_notes_summary_command_renders_the_summary() {
         release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
     )));
     assert!(rendered.contains("Release-specific coverage:"));
-    assert!(rendered.contains("Selected asteroid source evidence: 95 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
-    assert!(rendered.contains("Selected asteroid source windows: 95 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 10 samples across 10 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB)"));
+    assert!(rendered.contains("Selected asteroid source evidence: 91 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"));
+    assert!(rendered.contains("Selected asteroid source windows: 91 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 6 samples across 6 epochs at JD 2378498.5 (TDB)..JD 2451919.5 (TDB)"));
     assert!(rendered.contains(&reference_snapshot_2451910_major_body_boundary_summary_for_report()));
     assert!(rendered.contains(&selected_asteroid_boundary_summary_for_report()));
     assert!(rendered.contains(&selected_asteroid_terminal_boundary_summary_for_report()));
@@ -167,7 +167,7 @@ fn release_notes_summary_command_renders_the_summary() {
     assert!(rendered.contains(&reference_snapshot_major_body_boundary_window_summary_for_report()));
     assert!(rendered.contains("Reference snapshot body-class coverage: major bodies: 182 rows across 10 bodies and 20 epochs; major windows: "));
     assert!(rendered
-        .contains("selected asteroids: 95 rows across 6 bodies and 17 epochs; asteroid windows: "));
+        .contains("selected asteroids: 91 rows across 6 bodies and 17 epochs; asteroid windows: "));
     assert!(rendered.contains(&comparison_snapshot_source_summary_for_report()));
     assert!(
         rendered.contains("Packaged-artifact summary: artifact-summary / artifact-posture-summary")
@@ -200,7 +200,7 @@ fn release_notes_summary_command_renders_the_summary() {
         "Release profile identifiers: v1 compatibility={}, api-stability={}",
         release_profiles.compatibility_profile_id, release_profiles.api_stability_profile_id
     )));
-    assert!(rendered.contains("Reference snapshot coverage: 277 rows across 16 bodies and 23 epochs (95 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+    assert!(rendered.contains("Reference snapshot coverage: 273 rows across 16 bodies and 23 epochs (91 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
     assert!(
         rendered.contains("Comparison snapshot coverage: 162 rows across 10 bodies and 18 epochs")
     );

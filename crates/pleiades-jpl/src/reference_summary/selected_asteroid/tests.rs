@@ -80,7 +80,7 @@ fn selected_asteroid_source_window_summary_reports_the_body_windows() {
     let summary = selected_asteroid_source_window_summary()
         .expect("selected asteroid source window summary should exist");
     assert_eq!(summary.windows.len(), summary.sample_bodies.len());
-    assert_eq!(summary.sample_count, 95);
+    assert_eq!(summary.sample_count, 91);
     assert_eq!(summary.epoch_count, 17);
     assert_eq!(summary.validate(), Ok(()));
 }
@@ -89,7 +89,7 @@ fn selected_asteroid_source_window_summary_reports_the_body_windows() {
 fn selected_asteroid_source_request_corpus_summary_reports_the_frame_specific_request_slice() {
     let summary = selected_asteroid_source_request_corpus_summary(CoordinateFrame::Ecliptic)
         .expect("selected asteroid source request corpus summary should exist");
-    assert_eq!(summary.request_count, 95);
+    assert_eq!(summary.request_count, 91);
     assert_eq!(summary.body_count, 6);
     assert_eq!(summary.epoch_count, 17);
     assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
@@ -203,7 +203,7 @@ fn selected_asteroid_source_batch_parity_requests_preserve_the_source_slice() {
 fn selected_asteroid_source_2453000_summary_reports_the_2003_source_slice() {
     let summary = selected_asteroid_source_2453000_summary()
         .expect("selected asteroid 2003-12-27 source summary should exist");
-    assert_eq!(summary.sample_count, 6);
+    assert_eq!(summary.sample_count, 5);
     assert_eq!(
         summary.epoch,
         Instant::new(JulianDay::from_days(2_453_000.5), TimeScale::Tdb)
@@ -215,7 +215,7 @@ fn selected_asteroid_source_2453000_summary_reports_the_2003_source_slice() {
 fn selected_asteroid_source_2500000_summary_reports_the_late_boundary_slice() {
     let summary = selected_asteroid_source_2500000_summary()
         .expect("selected asteroid 2500000 source summary should exist");
-    assert_eq!(summary.sample_count, 6);
+    assert_eq!(summary.sample_count, 5);
     assert_eq!(
         summary.epoch,
         Instant::new(JulianDay::from_days(2_500_000.0), TimeScale::Tdb)
@@ -227,7 +227,7 @@ fn selected_asteroid_source_2500000_summary_reports_the_late_boundary_slice() {
 fn selected_asteroid_source_2634167_summary_reports_the_outer_boundary_slice() {
     let summary = selected_asteroid_source_2634167_summary()
         .expect("selected asteroid 2634167 source summary should exist");
-    assert_eq!(summary.sample_count, 6);
+    assert_eq!(summary.sample_count, 5);
     assert_eq!(
         summary.epoch,
         Instant::new(JulianDay::from_days(2_634_167.0), TimeScale::Tdb)
@@ -264,7 +264,7 @@ fn selected_asteroid_boundary_summary_reports_the_boundary_days() {
 fn selected_asteroid_bridge_summary_reports_the_bridge_day() {
     let summary =
         selected_asteroid_bridge_summary().expect("selected asteroid bridge summary should exist");
-    assert_eq!(summary.sample_count, 6);
+    assert_eq!(summary.sample_count, 5);
     assert_eq!(summary.sample_bodies, reference_asteroids().to_vec());
     assert_eq!(summary.epoch.julian_day.days(), 2_451_915.0);
     assert_eq!(summary.validate(), Ok(()));
@@ -324,8 +324,17 @@ fn selected_asteroid_bridge_summary_validation_rejects_drift() {
 fn selected_asteroid_terminal_boundary_summary_reports_the_terminal_boundary_day() {
     let summary = selected_asteroid_terminal_boundary_summary()
         .expect("selected asteroid terminal boundary summary should exist");
-    assert_eq!(summary.sample_count, 6);
-    assert_eq!(summary.sample_bodies, reference_asteroids().to_vec());
+    assert_eq!(summary.sample_count, 5);
+    assert_eq!(
+        summary.sample_bodies,
+        vec![
+            pleiades_backend::CelestialBody::Ceres,
+            pleiades_backend::CelestialBody::Pallas,
+            pleiades_backend::CelestialBody::Juno,
+            pleiades_backend::CelestialBody::Vesta,
+            pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+        ]
+    );
     assert_eq!(
         summary.epoch,
         Instant::new(JulianDay::from_days(2_500_000.0), TimeScale::Tdb)

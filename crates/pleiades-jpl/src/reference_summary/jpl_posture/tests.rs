@@ -375,7 +375,7 @@ fn reference_snapshot_source_summary_reports_the_expected_provenance() {
     assert_eq!(body_class_summary.major_bodies.len(), 10);
     assert_eq!(body_class_summary.major_epoch_count, 20);
     assert_eq!(body_class_summary.major_windows.len(), 10);
-    assert_eq!(body_class_summary.asteroid_row_count, 95);
+    assert_eq!(body_class_summary.asteroid_row_count, 91);
     assert_eq!(body_class_summary.asteroid_bodies.len(), 6);
     assert_eq!(body_class_summary.asteroid_epoch_count, 17);
     assert_eq!(body_class_summary.asteroid_windows.len(), 6);
@@ -471,13 +471,24 @@ fn jpl_snapshot_evidence_posture_summaries_validate_and_fail_closed() {
 #[test]
 fn interpolation_quality_samples_are_reportable() {
     let samples = interpolation_quality_samples();
-    assert_eq!(samples.len(), 223);
+    assert_eq!(samples.len(), 219);
     assert!(samples
         .iter()
         .any(|sample| sample.interpolation_kind == InterpolationQualityKind::Cubic));
-    assert!(!samples
+    // Apophis keeps four sampled rows, so each of its two leave-one-out fits
+    // has three points and is quadratic.
+    let quadratic: Vec<_> = samples
         .iter()
-        .any(|sample| sample.interpolation_kind == InterpolationQualityKind::Quadratic));
+        .filter(|sample| sample.interpolation_kind == InterpolationQualityKind::Quadratic)
+        .map(|sample| (sample.body.to_string(), sample.epoch.julian_day.days()))
+        .collect();
+    assert_eq!(
+        quadratic,
+        vec![
+            ("asteroid:99942-Apophis".to_string(), 2_451_915.5),
+            ("asteroid:99942-Apophis".to_string(), 2_451_918.5),
+        ]
+    );
     assert!(!samples
         .iter()
         .any(|sample| sample.interpolation_kind == InterpolationQualityKind::Linear));
@@ -575,7 +586,7 @@ fn interpolation_quality_sample_request_corpus_remains_the_explicit_alias() {
 #[test]
 fn interpolation_quality_summary_reports_the_worst_case_labels() {
     let summary = jpl_interpolation_quality_summary().expect("summary should exist");
-    assert_eq!(summary.sample_count, 223);
+    assert_eq!(summary.sample_count, 219);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.epoch_count, 19);
     assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
@@ -584,7 +595,7 @@ fn interpolation_quality_summary_reports_the_worst_case_labels() {
         summary.sample_count
     );
     assert!(summary.cubic_sample_count > 0);
-    assert_eq!(summary.quadratic_sample_count, 0);
+    assert_eq!(summary.quadratic_sample_count, 2);
     assert_eq!(summary.linear_sample_count, 0);
     assert!(summary.mean_bracket_span_days.is_finite());
     assert!(summary.median_bracket_span_days.is_finite());
@@ -610,12 +621,12 @@ fn interpolation_quality_summary_reports_the_worst_case_labels() {
 #[test]
 fn interpolation_quality_kind_coverage_reports_the_distinct_body_breakdown() {
     let coverage = jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
-    assert_eq!(coverage.sample_count, 223);
+    assert_eq!(coverage.sample_count, 219);
     assert_eq!(coverage.body_count, 16);
     assert_eq!(coverage.bodies.len(), coverage.body_count);
     assert!(!coverage.bodies.is_empty());
     assert!(coverage.cubic_body_count > 0);
-    assert_eq!(coverage.quadratic_body_count, 0);
+    assert_eq!(coverage.quadratic_body_count, 1);
     assert_eq!(coverage.linear_body_count, 0);
 }
 
@@ -623,7 +634,7 @@ fn interpolation_quality_kind_coverage_reports_the_distinct_body_breakdown() {
 fn interpolation_quality_sample_request_corpus_reports_the_explicit_request_slice() {
     let summary = interpolation_quality_sample_request_corpus_summary()
         .expect("sample request corpus should exist");
-    assert_eq!(summary.request_count, 223);
+    assert_eq!(summary.request_count, 219);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.bodies.len(), summary.body_count);
     assert!(!summary.bodies.is_empty());
@@ -707,7 +718,7 @@ fn interpolation_quality_source_summary_reports_the_expected_provenance() {
 
     assert_eq!(summary.source, reference_snapshot_source_summary().source);
     assert_eq!(summary.derivation, JPL_INTERPOLATION_QUALITY_DERIVATION);
-    assert_eq!(summary.sample_count, 223);
+    assert_eq!(summary.sample_count, 219);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.epoch_count, 19);
     assert_eq!(summary.validate(), Ok(()));
