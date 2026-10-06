@@ -70,7 +70,13 @@ fn the_default_chain_serves_each_truth_epoch_within_tolerance_or_refuses_it() {
                     );
                     served.push(jd);
                 }
-                Err(_) => refused += 1,
+                Err(error) => {
+                    assert!(
+                        error.to_string().contains("SpkBackend"),
+                        "{body} at JD {jd}: {error}"
+                    );
+                    refused += 1;
+                }
             }
         }
         assert_eq!(served, vec![SHARED_EPOCH_JD], "{body}: served epochs");
@@ -88,6 +94,22 @@ fn stations_of_an_asteroid_report_the_refusal() {
         "--to",
         "2451645.0",
     ])
-    .expect_err("Ceres has no rows across this range");
+    .expect_err("the search samples Ceres off its J2000 row, which the snapshot refuses");
+    assert!(error.contains("SpkBackend"), "{error}");
+}
+
+#[test]
+fn aspects_of_an_asteroid_report_the_refusal() {
+    let error = crate::commands::events::render_aspects(&[
+        "--pair",
+        "Sun,Ceres",
+        "--angle",
+        "0",
+        "--from",
+        "2451545.0",
+        "--to",
+        "2451645.0",
+    ])
+    .expect_err("the search samples Ceres off its J2000 row, which the snapshot refuses");
     assert!(error.contains("SpkBackend"), "{error}");
 }
