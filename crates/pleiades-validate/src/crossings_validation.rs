@@ -28,7 +28,7 @@ const MANIFEST: &str = include_str!(concat!(
 
 /// Fixture count pinned by the corpus test. Update when the corpus is regenerated.
 #[cfg(test)]
-pub(crate) const EXPECTED_ROWS: usize = 169;
+pub(crate) const EXPECTED_ROWS: usize = 329;
 
 /// Tier-1 self-consistency ceiling: the engine is deterministic, so a recompute
 /// matches the committed golden to the bit unless engine output changed. Set a
@@ -136,21 +136,28 @@ fn parse_manifest() -> Result<(usize, u64), CrossingsCorpusError> {
     ))
 }
 
-// Measured group maxima for the mean-of-date and sidereal rows (169-row corpus,
-// 2026-10-01): geo-mean Sun 0.309", geo-mean Moon 2.638", geo-mean planets 0.342";
-// sidereal Sun 0.320", sidereal Moon 0.456", sidereal planets 0.420" (largest over
-// Lahiri, TrueCitra, GalacticCenter, DeLuce and both geocentric places).
+// Measured group maxima for the mean-of-date and sidereal rows (329-row corpus,
+// 2026-10-06): geo-mean Sun 0.309", geo-mean Moon 2.638", geo-mean planets 0.342";
+// sidereal Sun 0.320", sidereal Moon 1.213", sidereal planets 0.420" (largest over
+// Lahiri, TrueCitra, GalacticCenter, DeLuce and both geocentric places, three
+// start epochs each); heliocentric sidereal 0.353", held to `HELIO_ARCSEC`.
 // Ceilings are ceil(1.4x each).
+//
+// The sidereal Moon ceiling was 1" while the group had 16 rows and measured
+// 0.456" (issue #164 (d)). It has 72 now. Its maximum is still under the
+// tropical Moon groups' 2.6": the ayanamsa moves each target to another point
+// of the Moon's orbit, and the residual is periodic along it.
 const GEO_MEAN_SUN_ARCSEC: f64 = 1.0;
 const GEO_MEAN_MOON_ARCSEC: f64 = 4.0;
 const GEO_MEAN_PLANET_ARCSEC: f64 = 1.0;
 const SIDEREAL_SUN_ARCSEC: f64 = 1.0;
-const SIDEREAL_MOON_ARCSEC: f64 = 1.0;
+const SIDEREAL_MOON_ARCSEC: f64 = 2.0;
 const SIDEREAL_PLANET_ARCSEC: f64 = 1.0;
 
 fn arcsec_ceiling_for(reference: &CrossingReference, body: &CelestialBody) -> f64 {
     let sidereal = !matches!(reference.zodiac, ZodiacMode::Tropical);
     match (reference.frame, sidereal) {
+        // Either zodiac: the ayanamsa adds nothing measurable to these rows.
         (CrossingFrame::Heliocentric, _) => HELIO_ARCSEC,
         (CrossingFrame::GeocentricApparentOfDate, false) => match body {
             CelestialBody::Sun => GEO_SUN_ARCSEC,

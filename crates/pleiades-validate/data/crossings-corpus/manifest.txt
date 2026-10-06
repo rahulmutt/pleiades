@@ -1,8 +1,10 @@
 corpus: crossings
 source: Swiss Ephemeris 2.10.03 (Moshier, SEFLG_MOSEPH)
 generator: tools/se-crossings-reference (SE reference) + crossings-golden --regenerate (engine golden)
-rows: 169
-checksum=15618190954635466795
+rows: 329
+checksum=3418284268897805311
 frames: geo (apparent of date), geo-mean (geometric, mean equinox of date), helio (SEFLG_HELCTR|SEFLG_TRUEPOS: geometric, no light-time)
 zodiacs: tropical; sidereal Lahiri, TrueCitra, GalacticCenter, DeLuce (SEFLG_SIDEREAL, nutation-free, mean ayanamsa); geo rows of the star-anchored TrueCitra and GalacticCenter are the apparent mean-equinox longitude minus the mean ayanamsa (swe_get_ayanamsa_ex, TRUEPOS|NOABERR|NOGDEFL), because plain SEFLG_SIDEREAL folds the anchoring star's annual aberration (up to ~20") into the ayanamsa
+sidereal helio rows: SEFLG_HELCTR|SEFLG_SIDEREAL with SEFLG_TRUEPOS|SEFLG_NOABERR|SEFLG_NOGDEFL (geometric place, mean ayanamsa) for Mercury, Mars and Jupiter
+sidereal epochs: three start epochs per body in every sidereal group (about 1901-1913, 1968-2000, 2050-2077)
 window: 1900-2100 CE (JD 2415020.5..=2488069.5), times in TDB
