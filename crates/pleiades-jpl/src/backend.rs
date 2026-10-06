@@ -1551,8 +1551,7 @@ fn require_supported_stencil(
     Err(EphemerisError::new(
         EphemerisErrorKind::OutOfRangeInstant,
         format!(
-            "the JPL snapshot has no rows close enough to JD {epoch_jd} to interpolate {body} \
-             (nearest row before: {}; nearest after: {}); it interpolates only between rows on \
+            "the JPL snapshot cannot interpolate {body} at JD {epoch_jd} (nearest row before: {}; nearest after: {}); it interpolates only between rows on \
              both sides of an instant that span at most {MAX_STENCIL_SPAN_DAYS} days. Serve \
              {body} at this instant from pleiades_jpl::SpkBackend with a JPL kernel",
             describe(before),

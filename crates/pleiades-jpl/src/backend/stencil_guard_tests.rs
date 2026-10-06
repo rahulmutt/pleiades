@@ -227,3 +227,62 @@ fn stencils_the_guard_admits_reproduce_held_out_rows() {
 /// Measured 2026-10-06 over 48 admitted asteroid cases: the worst is 0.0032″,
 /// Juno at JD 2451918.5.
 const ADMITTED_ASTEROID_CEILING_ARCSEC: f64 = 0.05;
+
+const SYNTHETIC_BASE_JD: f64 = 2_451_910.5;
+
+/// Synthetic Ceres rows at `SYNTHETIC_BASE_JD` plus each offset, in days.
+fn rows_at(offsets: &[f64]) -> Vec<SnapshotEntry> {
+    offsets
+        .iter()
+        .map(|offset| SnapshotEntry {
+            body: CelestialBody::Ceres,
+            epoch: Instant::new(
+                JulianDay::from_days(SYNTHETIC_BASE_JD + offset),
+                TimeScale::Tdb,
+            ),
+            x_km: 1.0e8,
+            y_km: 2.0e8,
+            z_km: 0.0,
+            vx_km_s: None,
+            vy_km_s: None,
+            vz_km_s: None,
+        })
+        .collect()
+}
+
+fn supported(offsets: &[f64], at: f64) -> bool {
+    stencil_supports(
+        &rows_at(offsets),
+        &CelestialBody::Ceres,
+        SYNTHETIC_BASE_JD + at,
+    )
+}
+
+#[test]
+fn two_rows_are_supported_only_when_they_bracket_the_instant_within_the_span() {
+    assert!(supported(&[0.0, 5.0], 2.0));
+    assert!(!supported(&[0.0, 5.5], 2.0));
+    assert!(!supported(&[0.0, 5.0], 6.0));
+}
+
+#[test]
+fn a_stencil_spanning_exactly_the_limit_is_supported() {
+    assert!(supported(&[0.0, 1.0, 4.0, 5.0], 2.0));
+    assert!(!supported(&[0.0, 1.0, 4.0, 5.001], 2.0));
+}
+
+#[test]
+fn the_refusal_names_the_nearest_rows_on_both_sides() {
+    let message = require_supported_stencil(
+        &rows_at(&[0.0, 10.0]),
+        &CelestialBody::Ceres,
+        SYNTHETIC_BASE_JD + 3.0,
+    )
+    .expect_err("a ten-day bracket is refused")
+    .to_string();
+    assert!(
+        message.contains("nearest row before: JD 2451910.5"),
+        "{message}"
+    );
+    assert!(message.contains("nearest after: JD 2451920.5"), "{message}");
+}
