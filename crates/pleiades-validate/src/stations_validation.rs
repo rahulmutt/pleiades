@@ -9,7 +9,8 @@
 //! See `stations_thresholds` for the basis of the ceilings.
 
 use crate::stations_thresholds::{
-    ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_MEAN_SID_SUBSET, SEPARATION_DAYS,
+    ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_MEAN_SID_SUBSET,
+    SEPARATION_DAYS, TRUE_NODE_CLOSE_DAYS, TRUE_NODE_MIN_CLOSE_PERCENT,
 };
 use pleiades_apparent::fnv1a64;
 use pleiades_data::{packaged_backend, PackagedDataBackend};
@@ -203,6 +204,13 @@ pub enum StationsError {
         side: &'static str,
         jd_tt: f64,
     },
+    /// Too few of the compared true-node stations are close to their
+    /// counterpart: the series as a whole has moved.
+    TooFewClose {
+        series: String,
+        close: usize,
+        compared: usize,
+    },
 }
 
 impl std::fmt::Display for StationsError {
@@ -255,6 +263,14 @@ impl std::fmt::Display for StationsError {
             } => write!(
                 f,
                 "{series}: separated {side} station at jd_tt={jd_tt} has no counterpart of the same kind within the time ceiling"
+            ),
+            Self::TooFewClose {
+                series,
+                close,
+                compared,
+            } => write!(
+                f,
+                "{series}: only {close} of {compared} compared stations are within {TRUE_NODE_CLOSE_DAYS} d of their counterpart, floor is {TRUE_NODE_MIN_CLOSE_PERCENT} %"
             ),
         }
     }
@@ -375,6 +391,9 @@ struct Residuals {
     /// Sum of engine − corpus time over the compared stations; a mean far
     /// from zero means the two speeds differ by convention, not by noise.
     sum_signed_time_s: f64,
+    /// True node only: compared stations within [`TRUE_NODE_CLOSE_DAYS`] of
+    /// their counterpart.
+    close: usize,
 }
 
 fn lon_residual_arcsec(got_deg: f64, want_deg: f64) -> f64 {
@@ -466,7 +485,9 @@ fn nearest_of_kind(list: &[Found], jd: f64, kind: StationKind, time_s: f64) -> O
 
 /// The true node: every separated station on either side must have a
 /// counterpart of the same kind within the time ceiling; stations in closer
-/// pairs are unconstrained.
+/// pairs are unconstrained. That ceiling is days wide, so
+/// [`TRUE_NODE_MIN_CLOSE_PERCENT`] of the compared stations must also be
+/// within [`TRUE_NODE_CLOSE_DAYS`] of their counterpart.
 fn compare_separated(
     label: &str,
     engine: &[Found],
@@ -486,6 +507,16 @@ fn compare_separated(
         let got = nearest_of_kind(engine, want.jd, want.kind, ceilings.time_s)
             .ok_or_else(|| unmatched("corpus", want.jd))?;
         record(label, got, want, ceilings, &mut residuals)?;
+        if (got.jd - want.jd).abs() <= TRUE_NODE_CLOSE_DAYS {
+            residuals.close += 1;
+        }
+    }
+    if residuals.close * 100 < residuals.matched * TRUE_NODE_MIN_CLOSE_PERCENT {
+        return Err(StationsError::TooFewClose {
+            series: label.to_string(),
+            close: residuals.close,
+            compared: residuals.matched,
+        });
     }
     for (index, got) in engine.iter().enumerate() {
         if is_separated(engine, index)
@@ -697,7 +728,7 @@ fn compare_series(
     } else {
         residuals.sum_signed_time_s / residuals.matched as f64
     };
-    let line = format!(
+    let mut line = format!(
         "{label}: {} compared (engine {}, corpus {}), max time {:.1} s, mean signed time {:+.1} s, max lon {:.3}\"",
         residuals.matched,
         found.len(),
@@ -706,6 +737,12 @@ fn compare_series(
         mean_signed_s,
         residuals.max_lon_arcsec,
     );
+    if series.body == CelestialBody::TrueNode {
+        line.push_str(&format!(
+            ", {} within {TRUE_NODE_CLOSE_DAYS} d",
+            residuals.close
+        ));
+    }
     Ok(SeriesOutcome { residuals, line })
 }
 
@@ -767,7 +804,8 @@ fn validate_scoped(
     }
     let summary_line = format!(
         "{}: {validated} stations validated across {} series vs Swiss Ephemeris speed-zero corpus \
-         (planets station-for-station; true node on stations separated by >= {SEPARATION_DAYS} d), \
+         (planets station-for-station; true node on stations separated by >= {SEPARATION_DAYS} d, \
+         {TRUE_NODE_MIN_CLOSE_PERCENT} % of them within {TRUE_NODE_CLOSE_DAYS} d), \
          max time {max_time_s:.1} s, max lon {max_lon_arcsec:.3}\"",
         scope.title(),
         series_lines.len(),

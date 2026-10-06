@@ -58,6 +58,22 @@ pub(crate) struct Ceilings {
 /// 5.0) at which every separated station has a same-kind counterpart.
 pub(crate) const SEPARATION_DAYS: f64 = 3.0;
 
+/// True node only: how near its counterpart a compared station must be to
+/// count as close, in days. See [`TRUE_NODE_MIN_CLOSE_PERCENT`].
+pub(crate) const TRUE_NODE_CLOSE_DAYS: f64 = 0.5;
+
+/// True node only: the least share of the compared stations, in percent,
+/// that must be within [`TRUE_NODE_CLOSE_DAYS`] of their counterpart.
+///
+/// The true node's time ceiling is an existence window about three days
+/// wide, so alone it would pass a regression that moved every true-node
+/// station by a day. Most stations are far better placed than that: 1130 of
+/// the 1166 compared (96.9 %) are within 0.5 d, measured on 2026-10-02 and
+/// again on 2026-10-06. The other 36 are stations at a shallow graze, where
+/// the instant is ill-conditioned. The floor leaves room for a few more of
+/// those and none for a shift of the whole series (issue #167 (a)).
+pub(crate) const TRUE_NODE_MIN_CLOSE_PERCENT: usize = 90;
+
 /// Fail-closed floor on compared stations: the count the gate compared on
 /// 2026-10-02 (5542).
 pub(crate) const MIN_ROWS_VALIDATED: usize = 5542;

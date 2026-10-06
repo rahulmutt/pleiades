@@ -214,6 +214,98 @@ fn nothing_stations_heliocentrically() {
     }
 }
 
+// Issue #167 (e). The engine answers for these bodies without scanning, on
+// the strength of what this test measures: each one's speed keeps its sign,
+// well clear of zero, over the whole window. The 97-day sampling step shares
+// no period with the month or the year.
+#[test]
+fn the_bodies_answered_without_a_scan_keep_one_direction_all_window() {
+    let engine = EventEngine::new(packaged_backend());
+    // (body, a speed in degrees per day the body always exceeds, in its own
+    // direction)
+    let geocentric = [
+        (CelestialBody::Sun, 0.9),
+        (CelestialBody::Moon, 11.0),
+        (CelestialBody::MeanNode, -0.05),
+        (CelestialBody::MeanApogee, 0.1),
+        (CelestialBody::MeanPerigee, 0.1),
+    ];
+    let heliocentric = [
+        (CelestialBody::Mercury, 2.5),
+        (CelestialBody::Venus, 1.5),
+        (CelestialBody::Mars, 0.4),
+        (CelestialBody::Jupiter, 0.07),
+        (CelestialBody::Saturn, 0.028),
+        (CelestialBody::Uranus, 0.0095),
+        (CelestialBody::Neptune, 0.005),
+        (CelestialBody::Pluto, 0.002),
+    ];
+    let lahiri = |frame| CrossingReference::sidereal(frame, Ayanamsa::Lahiri);
+    let mut cases: Vec<(CelestialBody, CrossingReference, f64)> = Vec::new();
+    for (body, floor) in geocentric {
+        cases.push((body.clone(), GEO.into(), floor));
+        cases.push((body.clone(), MEAN.into(), floor));
+        cases.push((body, lahiri(GEO), floor));
+    }
+    for (body, floor) in heliocentric {
+        cases.push((body.clone(), HELIO.into(), floor));
+        cases.push((body, lahiri(HELIO), floor));
+    }
+    for (body, reference, floor) in cases {
+        let mut slowest = f64::INFINITY;
+        let mut julian_day = WINDOW_START_JD + 1.0;
+        while julian_day < WINDOW_END_JD {
+            let speed = engine
+                .position_at(body.clone(), reference.clone(), tdb(julian_day))
+                .expect("position")
+                .motion
+                .longitude_deg_per_day
+                .expect("speed");
+            // Positive when the speed has the floor's sign.
+            slowest = slowest.min(speed / floor);
+            julian_day += 97.0;
+        }
+        assert!(
+            slowest >= 1.0,
+            "{body:?} in {reference:?}: slowest sample is {:.6} deg/day, floor {floor}",
+            slowest * floor
+        );
+    }
+}
+
+#[test]
+fn a_body_that_never_stations_is_answered_without_scanning_the_window() {
+    let engine = EventEngine::new(packaged_backend());
+    let lahiri = CrossingReference::sidereal(GEO, Ayanamsa::Lahiri);
+    let started = std::time::Instant::now();
+    let first = tdb(WINDOW_START_JD + 1.0);
+    let last = tdb(WINDOW_END_JD - 1.0);
+    assert_eq!(
+        engine.next_station(CelestialBody::Moon, GEO, first),
+        Ok(None)
+    );
+    assert_eq!(
+        engine.previous_station(CelestialBody::Moon, MEAN, last),
+        Ok(None)
+    );
+    assert_eq!(
+        engine.next_station(CelestialBody::MeanNode, lahiri, first),
+        Ok(None)
+    );
+    assert_eq!(
+        engine.stations_in_range(CelestialBody::Sun, GEO, first, last),
+        Ok(Vec::new())
+    );
+    assert_eq!(
+        engine.next_station(CelestialBody::Pluto, HELIO, first),
+        Ok(None)
+    );
+    // A scan of the whole window is 292,000 steps for the Moon, a minute or
+    // more; the ceiling is generous against a loaded CI runner.
+    let elapsed = started.elapsed();
+    assert!(elapsed.as_secs_f64() < 5.0, "took {elapsed:?}");
+}
+
 // The true node is retrograde on average and turns briefly direct about
 // every two weeks.
 #[test]

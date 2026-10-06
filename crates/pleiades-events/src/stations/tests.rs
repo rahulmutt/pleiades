@@ -1,8 +1,51 @@
 //! White-box checks of the station finder's pure pieces.
 
-use super::{checked_speed, kind_of, step_days, StationKind};
+use super::{checked_speed, kind_of, never_stations, step_days, StationKind};
+use crate::crossings::CrossingFrame;
 use crate::error::EventError;
 use pleiades_types::CelestialBody;
+
+// Issue #167 (e): the bodies answered without a scan. Everything else,
+// including a body that happens never to station, is scanned.
+#[test]
+fn only_bodies_with_a_one_way_speed_skip_the_scan() {
+    use CelestialBody::*;
+    let geocentric = [
+        CrossingFrame::GeocentricApparentOfDate,
+        CrossingFrame::GeocentricMeanOfDate,
+    ];
+    for frame in geocentric {
+        for body in [Sun, Moon, MeanNode, MeanApogee, MeanPerigee] {
+            assert!(never_stations(&body, frame), "{body:?} {frame:?}");
+        }
+        for body in [
+            Mercury,
+            Venus,
+            Mars,
+            Jupiter,
+            Saturn,
+            Uranus,
+            Neptune,
+            Pluto,
+            TrueNode,
+            TrueApogee,
+            TruePerigee,
+            Ceres,
+        ] {
+            assert!(!never_stations(&body, frame), "{body:?} {frame:?}");
+        }
+    }
+    for body in [
+        Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto,
+    ] {
+        assert!(
+            never_stations(&body, CrossingFrame::Heliocentric),
+            "{body:?}"
+        );
+    }
+    // An asteroid's packaged speed is not trusted to keep its sign (#158).
+    assert!(!never_stations(&Ceres, CrossingFrame::Heliocentric));
+}
 
 #[test]
 fn step_is_scaled_to_the_body() {

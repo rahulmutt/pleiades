@@ -179,6 +179,55 @@ fn separated_comparison_requires_the_same_kind_within_the_time_ceiling() {
     ));
 }
 
+// A separated station's time ceiling is an existence window about three days
+// wide, so alone it passes every station moving by a day (issue #167 (a)).
+// Most of the compared stations must also be close to their counterpart.
+#[test]
+fn separated_comparison_requires_most_stations_to_be_close() {
+    const WIDE: Ceilings = Ceilings {
+        time_s: 3.0 * 86_400.0,
+        lon_arcsec: 5.0,
+    };
+    let corpus = loops(10);
+    let late = |indices: &[usize]| {
+        let mut engine = corpus.clone();
+        for &index in indices {
+            engine[index].jd += 1.0;
+        }
+        engine
+    };
+    // Every station a day late: all inside the existence window, none close.
+    let all: Vec<usize> = (0..corpus.len()).collect();
+    assert!(matches!(
+        compare_separated("geo TrueNode", &late(&all), &corpus, WIDE),
+        Err(StationsError::TooFewClose {
+            close: 0,
+            compared: 20,
+            ..
+        })
+    ));
+    // Two of twenty: 90 % are close, which is the floor.
+    let residuals = compare_separated("geo TrueNode", &late(&[3, 11]), &corpus, WIDE).unwrap();
+    assert_eq!((residuals.matched, residuals.close), (20, 18));
+    // Three of twenty: 85 %.
+    assert!(matches!(
+        compare_separated("geo TrueNode", &late(&[3, 11, 15]), &corpus, WIDE),
+        Err(StationsError::TooFewClose {
+            close: 17,
+            compared: 20,
+            ..
+        })
+    ));
+    // The boundary is inclusive, and the planets' comparison has no such rule.
+    let mut on_the_boundary = corpus.clone();
+    for station in &mut on_the_boundary {
+        station.jd += TRUE_NODE_CLOSE_DAYS;
+    }
+    let residuals = compare_separated("geo TrueNode", &on_the_boundary, &corpus, WIDE).unwrap();
+    assert_eq!(residuals.close, 20);
+    assert!(compare_exact("geo Mars", &late(&all), &corpus, WIDE).is_ok());
+}
+
 #[test]
 fn corpus_rows_parse_into_series() {
     let csv = "# comment\ngroup,body,jd_tt,lon_deg,kind\n\
