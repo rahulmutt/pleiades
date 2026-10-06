@@ -810,9 +810,10 @@ mod tests {
         let summary = pleiades_jpl::selected_asteroid_dense_boundary_summary()
             .expect("selected asteroid dense boundary summary should exist");
         assert_eq!(summary.sample_count, 5);
+        // The bodies the epoch holds: Apophis has no row at JD 2451916.5.
         assert_eq!(
             summary.sample_bodies,
-            pleiades_jpl::reference_asteroids().to_vec()
+            pleiades_jpl::reference_asteroids()[..5].to_vec()
         );
         assert_eq!(summary.epoch.julian_day.days(), 2_451_916.5);
         assert_eq!(summary.validate(), Ok(()));
