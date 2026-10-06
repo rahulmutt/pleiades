@@ -10,7 +10,11 @@
 //!     longitudes (real SE positions, no hand-entered values). This is required
 //!     to exercise the retrograde triple-crossing, which is a geocentric
 //!     phenomenon only.
-//! Frame `helio`: heliocentric (SEFLG_HELCTR) via `swe_helio_cross` (ET/TDB).
+//! Frame `helio`: heliocentric geometric place (SEFLG_HELCTR | SEFLG_TRUEPOS)
+//!   via `swe_helio_cross` (ET/TDB). Without SEFLG_TRUEPOS Swiss Ephemeris
+//!   retards the planet by the heliocentric light-time r/c, which is 8 minutes
+//!   for the Earth's distance and over 5 hours for Pluto's; the engine's
+//!   heliocentric frame is the place at the instant itself (issue #163).
 //! Frame `geo-mean`: geocentric geometric longitude on the mean equinox of
 //!   date (SEFLG_TRUEPOS | SEFLG_NOABERR | SEFLG_NOGDEFL | SEFLG_NONUT),
 //!   bisected on `swe_calc` like the geocentric planets.
@@ -146,7 +150,7 @@ fn helio_cross_tdb(ipl: c_int, target_deg: f64, start_tdb: f64) -> f64 {
             ipl,
             target_deg,
             start_tdb,
-            SEFLG_MOSEPH | SEFLG_HELCTR,
+            SEFLG_MOSEPH | SEFLG_HELCTR | SEFLG_TRUEPOS,
             1, // dir = +1 (forward)
             &mut jd_cross,
             serr.as_mut_ptr() as *mut c_char,
@@ -294,7 +298,7 @@ fn main() {
     println!("# Source: Swiss Ephemeris 2.10.03 (libswisseph-sys 0.1.2).");
     println!("# geo Sun/Moon: swe_solcross_ut / swe_mooncross_ut (UT), TDB via swe_deltat.");
     println!("# geo planets: bisection on swe_calc geocentric longitude (no SE geo planet-cross fn); Mars block retains the retrograde triple-crossing.");
-    println!("# helio: swe_helio_cross (ET/TDB), iflag=SEFLG_MOSEPH|SEFLG_HELCTR, dir=+1.");
+    println!("# helio: swe_helio_cross (ET/TDB), iflag=SEFLG_MOSEPH|SEFLG_HELCTR|SEFLG_TRUEPOS (geometric, no light-time), dir=+1.");
     println!("# geo-mean: bisection on swe_calc with SEFLG_TRUEPOS|SEFLG_NOABERR|SEFLG_NOGDEFL|SEFLG_NONUT.");
     println!("# zodiac != tropical: swe_set_sid_mode + SEFLG_SIDEREAL (nutation-free; mean ayanamsa).");
     println!("# geo rows of star-anchored ayanamsas (TrueCitra, GalacticCenter): apparent mean-equinox longitude minus the mean ayanamsa (swe_get_ayanamsa_ex, TRUEPOS|NOABERR|NOGDEFL), because under plain SEFLG_SIDEREAL SE takes the anchoring star's apparent place and folds the star's annual aberration (up to ~20\") into the ayanamsa; pleiades uses the mean ayanamsa.");

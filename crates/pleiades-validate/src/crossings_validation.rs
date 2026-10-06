@@ -37,19 +37,22 @@ const SELF_CONSISTENCY_TOL_S: f64 = 1.0;
 
 // Tier-2 per-body arcsecond ceilings — MEASURED from the committed corpus and set
 // to ceil(1.4x each body-class group max). Cross-theory (SE Moshier vs engine)
-// floors, not engine error. Measured group maxima (the 86 tropical geo/helio rows, 2026-09-30, after
-// the #93 aberration fix): geo Sun 0.322", geo Moon 2.606", geo planets
-// (Mercury-Neptune) 0.483", helio (non-Pluto) 35.090". Before #93 the geo Moon and
-// planet groups measured 21.70" and 20.96": the double-counted ~20" term.
+// floors, not engine error. Measured group maxima (the 86 tropical geo/helio rows,
+// 2026-10-06): geo Sun 0.322", geo Moon 2.606", geo planets 0.697" (Pluto; 0.483"
+// for Mercury-Neptune), helio 0.597" (Pluto; 0.453" for Mercury-Neptune). Pluto
+// is held to the planet ceilings like every other body: this gate runs on the
+// packaged backend, whose Pluto is fitted from JPL.
+//
+// Two earlier sets of maxima were reference or engine defects, not theory floors.
+// Before #93 the geo Moon and planet groups measured 21.70" and 20.96": the
+// double-counted ~20" aberration term. Before #163 the helio rows were generated
+// without SEFLG_TRUEPOS, so Swiss Ephemeris retarded each planet by its
+// heliocentric light-time, and the helio group measured 35.090" (Pluto 3.530")
+// against ceilings of 50" and 5".
 const GEO_SUN_ARCSEC: f64 = 1.0;
 const GEO_MOON_ARCSEC: f64 = 4.0;
 const GEO_PLANET_ARCSEC: f64 = 1.0;
-const HELIO_ARCSEC: f64 = 50.0;
-// Pluto meets a normal measured per-body ceiling like every other body (not a coverage
-// boundary or an exclusion). This gate runs on the packaged backend, whose Pluto is
-// fitted from JPL like every other body; the ceiling is simply wider than the inner
-// planets' — measured max 0.697" (geo) / 3.530" (helio) — at Pluto's own 1.4x value.
-const PLUTO_ARCSEC: f64 = 5.0;
+const HELIO_ARCSEC: f64 = 1.0;
 
 #[derive(Debug)]
 pub enum CrossingsCorpusError {
@@ -148,14 +151,10 @@ const SIDEREAL_PLANET_ARCSEC: f64 = 1.0;
 fn arcsec_ceiling_for(reference: &CrossingReference, body: &CelestialBody) -> f64 {
     let sidereal = !matches!(reference.zodiac, ZodiacMode::Tropical);
     match (reference.frame, sidereal) {
-        (CrossingFrame::Heliocentric, _) => match body {
-            CelestialBody::Pluto => PLUTO_ARCSEC,
-            _ => HELIO_ARCSEC,
-        },
+        (CrossingFrame::Heliocentric, _) => HELIO_ARCSEC,
         (CrossingFrame::GeocentricApparentOfDate, false) => match body {
             CelestialBody::Sun => GEO_SUN_ARCSEC,
             CelestialBody::Moon => GEO_MOON_ARCSEC,
-            CelestialBody::Pluto => PLUTO_ARCSEC,
             _ => GEO_PLANET_ARCSEC,
         },
         (CrossingFrame::GeocentricMeanOfDate, false) => match body {
@@ -466,6 +465,29 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,Lahiri,PLEIADES
             matches!(err, CrossingsCorpusError::ParityExceeded { .. }),
             "{err:?}"
         );
+    }
+
+    #[test]
+    fn tier2_catches_a_light_time_retarded_heliocentric_reference() {
+        // The Saturn row as it stood before issue #163, generated without
+        // SEFLG_TRUEPOS: 4750 s late, about 6.6" of Saturn's longitude. The 50"
+        // ceiling of the time let it through; the measured one does not.
+        let csv = "\
+frame,body,target_longitude_deg,start_jd_tdb,direction,crossing_jd_tdb,zodiac,pleiades_jd_tdb
+helio,Saturn,0.000000,2426000.500000,fwd,2428751.149103666,tropical,PLEIADES
+";
+        let csv = fill_golden_for_test(csv);
+        match validate_crossings_csv(&csv).unwrap_err() {
+            CrossingsCorpusError::ParityExceeded {
+                residual_arcsec,
+                ceiling_arcsec,
+                ..
+            } => {
+                assert!((6.0..7.5).contains(&residual_arcsec), "{residual_arcsec}");
+                assert_eq!(ceiling_arcsec, HELIO_ARCSEC);
+            }
+            other => panic!("{other:?}"),
+        }
     }
 
     #[test]
