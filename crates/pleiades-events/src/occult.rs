@@ -362,7 +362,9 @@ use crate::crossings::EventEngine;
 use crate::ephemeris::{
     geocentric_apparent_ecliptic, geocentric_apparent_longitude_deg, spherical_to_cartesian,
 };
-use crate::error::{EventError, WINDOW_END_JD, WINDOW_START_JD};
+use crate::error::{
+    before_window_start, past_window_end, EventError, WINDOW_END_JD, WINDOW_START_JD,
+};
 use crate::fixstar::fixed_star_apparent;
 use crate::rise_trans::{check_atmosphere, RiseSetTarget};
 use crate::root::{first_crossing_after, last_crossing_before, wrap180, REFINE_TOLERANCE_DAYS};
@@ -988,8 +990,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
 
     /// Next occultation of `target` locally visible at `observer` whose
     /// maximum is strictly after `after` — `swe_lun_occult_when_loc` analogue.
-    /// `None` if none occurs before the window end (or ever, for an
-    /// un-occultable star).
+    /// `None` for a target the Moon can never occult (a star too far from the
+    /// ecliptic). When the window ends before the next visible occultation,
+    /// the result is [`EventError::OutOfWindow`] naming the instant one
+    /// conjunction step past the window's end.
     ///
     /// Selection is by the maximum, and the circumstances of an occultation
     /// do not depend on `after`. A returned maximum handed back as `after`
@@ -1014,9 +1018,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
         if self.target_never_occultable(&target, after_jd)? {
             return Ok(None);
         }
-        let mut scan_start = conjunction_grid_floor(after_jd - OCC_SELECTION_MARGIN_DAYS)
-            .max(WINDOW_START_JD + OCC_CONJUNCTION_STEP_DAYS);
-        let scan_end = WINDOW_END_JD - OCC_CONJUNCTION_STEP_DAYS;
+        let mut scan_start =
+            conjunction_grid_floor(after_jd - OCC_SELECTION_MARGIN_DAYS).max(WINDOW_START_JD);
+        let scan_end = WINDOW_END_JD;
         loop {
             let conj = first_crossing_after(
                 |jd| self.moon_target_lon_diff(&target, jd),
@@ -1024,7 +1028,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
                 scan_end,
                 OCC_CONJUNCTION_STEP_DAYS,
             )?;
-            let Some(conj_jd) = conj else { return Ok(None) };
+            let Some(conj_jd) = conj else {
+                return Err(past_window_end(OCC_CONJUNCTION_STEP_DAYS));
+            };
             let at = Instant::new(JulianDay::from_days(conj_jd), TimeScale::Tdb);
             let local = self.occultation(target.clone(), observer.clone(), atmosphere, at)?;
             if !matches!(local.occultation_type, OccultationType::Miss)
@@ -1036,13 +1042,16 @@ impl<B: EphemerisBackend> EventEngine<B> {
             // On from the grid cell that held this conjunction.
             scan_start = conjunction_grid_ceil(conj_jd);
             if scan_start >= scan_end {
-                return Ok(None);
+                return Err(past_window_end(OCC_CONJUNCTION_STEP_DAYS));
             }
         }
     }
 
     /// Previous occultation of `target` locally visible at `observer` whose
-    /// maximum is strictly before `before`.
+    /// maximum is strictly before `before`. `None` for a target the Moon can
+    /// never occult. When the window starts after the previous visible
+    /// occultation, the result is [`EventError::OutOfWindow`] naming the
+    /// instant one conjunction step before the window's start.
     ///
     /// The mirror of [`EventEngine::next_occultation`]: a returned maximum
     /// handed back as `before` gives the preceding occultation, and an
@@ -1067,9 +1076,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
         if self.target_never_occultable(&target, before_jd)? {
             return Ok(None);
         }
-        let mut scan_end = conjunction_grid_ceil(before_jd + OCC_SELECTION_MARGIN_DAYS)
-            .min(WINDOW_END_JD - OCC_CONJUNCTION_STEP_DAYS);
-        let scan_start = WINDOW_START_JD + OCC_CONJUNCTION_STEP_DAYS;
+        let mut scan_end =
+            conjunction_grid_ceil(before_jd + OCC_SELECTION_MARGIN_DAYS).min(WINDOW_END_JD);
+        let scan_start = WINDOW_START_JD;
         loop {
             let conj = last_crossing_before(
                 |jd| self.moon_target_lon_diff(&target, jd),
@@ -1077,7 +1086,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
                 scan_end,
                 OCC_CONJUNCTION_STEP_DAYS,
             )?;
-            let Some(conj_jd) = conj else { return Ok(None) };
+            let Some(conj_jd) = conj else {
+                return Err(before_window_start(OCC_CONJUNCTION_STEP_DAYS));
+            };
             let at = Instant::new(JulianDay::from_days(conj_jd), TimeScale::Tdb);
             let local = self.occultation(target.clone(), observer.clone(), atmosphere, at)?;
             if !matches!(local.occultation_type, OccultationType::Miss)
@@ -1089,7 +1100,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
             // Back from the grid cell that held this conjunction.
             scan_end = conjunction_grid_ceil(conj_jd) - OCC_CONJUNCTION_STEP_DAYS;
             if scan_end <= scan_start {
-                return Ok(None);
+                return Err(before_window_start(OCC_CONJUNCTION_STEP_DAYS));
             }
         }
     }
@@ -1097,8 +1108,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// Next occultation of `target` anywhere on Earth whose greatest instant
     /// is strictly after `after` — `swe_lun_occult_when_glob` analogue.
     /// Reports the greatest-occultation instant and the central-observation
-    /// point where it is central/greatest (not the full path). `None` if none
-    /// occurs before the window end.
+    /// point where it is central/greatest (not the full path). `None` for a
+    /// target the Moon can never occult. When the window ends before the next
+    /// occultation, the result is [`EventError::OutOfWindow`] naming the
+    /// instant one conjunction step past the window's end.
     ///
     /// Selection is by the greatest instant, which does not depend on
     /// `after`: handed back as `after` it gives the following occultation.
@@ -1113,9 +1126,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
         if self.target_never_occultable(&target, after_jd)? {
             return Ok(None);
         }
-        let mut scan_start = conjunction_grid_floor(after_jd - OCC_SELECTION_MARGIN_DAYS)
-            .max(WINDOW_START_JD + OCC_CONJUNCTION_STEP_DAYS);
-        let scan_end = WINDOW_END_JD - OCC_CONJUNCTION_STEP_DAYS;
+        let mut scan_start =
+            conjunction_grid_floor(after_jd - OCC_SELECTION_MARGIN_DAYS).max(WINDOW_START_JD);
+        let scan_end = WINDOW_END_JD;
         loop {
             let conj = first_crossing_after(
                 |jd| self.moon_target_lon_diff(&target, jd),
@@ -1123,7 +1136,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
                 scan_end,
                 OCC_CONJUNCTION_STEP_DAYS,
             )?;
-            let Some(conj_jd) = conj else { return Ok(None) };
+            let Some(conj_jd) = conj else {
+                return Err(past_window_end(OCC_CONJUNCTION_STEP_DAYS));
+            };
             // Minimize geocentric separation around the conjunction.
             let max_jd = self.minimize_geo_sep(
                 &target,
@@ -1182,7 +1197,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
             }
             scan_start = conjunction_grid_ceil(conj_jd);
             if scan_start >= scan_end {
-                return Ok(None);
+                return Err(past_window_end(OCC_CONJUNCTION_STEP_DAYS));
             }
         }
     }
@@ -1361,6 +1376,7 @@ fn golden_section_min(
 #[cfg(test)]
 mod when_loc_tests {
     use super::*;
+    use crate::window_edge_support::{out_of_window_jd, tdb};
     use pleiades_backend::test_backend::LinearSunMoon;
 
     #[test]
@@ -1381,6 +1397,47 @@ mod when_loc_tests {
             )
             .unwrap();
         assert!(out.is_none(), "Sirius can never be occulted");
+    }
+
+    // Probe the premise of the end-of-window cases below: the Moon-Mars
+    // apparent longitude difference has the same sign at the two ends, so no
+    // conjunction lies in the last 0.4 d and the searches reach the edges.
+    #[test]
+    fn the_moon_and_mars_do_not_conjoin_at_the_window_ends() {
+        let engine = EventEngine::new(pleiades_data::packaged_backend());
+        let mars = OccultTarget::Body(CelestialBody::Mars);
+        let diff = |jd: f64| engine.moon_target_lon_diff(&mars, jd).unwrap();
+        assert_eq!(
+            diff(WINDOW_END_JD - 0.4).signum(),
+            diff(WINDOW_END_JD).signum()
+        );
+    }
+
+    #[test]
+    fn a_local_search_the_window_cuts_short_is_out_of_window() {
+        let engine = EventEngine::new(pleiades_data::packaged_backend());
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(0.0),
+            Longitude::from_degrees(0.0),
+            None,
+        );
+        let next = engine.next_occultation(
+            OccultTarget::Body(CelestialBody::Mars),
+            observer.clone(),
+            Atmosphere::default(),
+            tdb(WINDOW_END_JD - 0.1),
+        );
+        assert_eq!(
+            out_of_window_jd(next),
+            WINDOW_END_JD + OCC_CONJUNCTION_STEP_DAYS
+        );
+        let previous = engine.previous_occultation(
+            OccultTarget::Body(CelestialBody::Mars),
+            observer,
+            Atmosphere::default(),
+            tdb(WINDOW_START_JD + 0.1),
+        );
+        out_of_window_jd(previous);
     }
 
     #[test]
@@ -1468,6 +1525,7 @@ mod how_tests {
 #[cfg(test)]
 mod when_glob_tests {
     use super::*;
+    use crate::window_edge_support::{out_of_window_jd, tdb};
     use pleiades_backend::test_backend::LinearSunMoon;
 
     #[test]
@@ -1478,6 +1536,21 @@ mod when_glob_tests {
             .next_global_occultation(OccultTarget::Star("Sirius".into()), after)
             .unwrap()
             .is_none());
+    }
+
+    #[test]
+    fn a_global_search_the_window_cuts_short_is_out_of_window() {
+        // The premise (no Moon-Mars conjunction in the last 0.4 d) is probed
+        // in `when_loc_tests`.
+        let engine = EventEngine::new(pleiades_data::packaged_backend());
+        let next = engine.next_global_occultation(
+            OccultTarget::Body(CelestialBody::Mars),
+            tdb(WINDOW_END_JD - 0.1),
+        );
+        assert_eq!(
+            out_of_window_jd(next),
+            WINDOW_END_JD + OCC_CONJUNCTION_STEP_DAYS
+        );
     }
 
     #[test]
