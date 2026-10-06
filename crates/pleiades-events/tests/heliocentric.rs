@@ -6,41 +6,37 @@ fn tdb(jd: f64) -> Instant {
     Instant::new(JulianDay::from_days(jd), TimeScale::Tdb)
 }
 
-/// Regression: locks the heliocentric of-date fix (precession + nutation).
+/// Regression: locks the heliocentric frame to the geometric place on the true
+/// equinox of date.
 ///
-/// SE reference (`SEFLG_HELCTR`, of-date true equinox) for heliocentric Saturn
-/// crossing 0° after start 2430000.5 TDB is `crossing_jd = 2439500.066527`.
+/// The Swiss Ephemeris reference (`SEFLG_HELCTR | SEFLG_TRUEPOS`, the
+/// `helio,Saturn,0,2426000.5` row of the `validate-crossings` corpus) for
+/// heliocentric Saturn crossing 0° after 2426000.5 TDB is 2428751.094132220.
+/// The engine lands 263 s after it: 0.37" of longitude at Saturn's 0.0335°/day,
+/// the difference between the two ephemerides.
 ///
-/// Before the fix, the engine returned a J2000 longitude and the crossing landed
-/// ~14 days (~1.2M s) early — a pure precession signature growing with distance
-/// from J2000. After precession + nutation the residual collapses to ~4740 s
-/// (~79 min), which corresponds to only ~6.6" of heliocentric longitude at
-/// Saturn's ~0.0335°/day rate. That residual is the geocentric-light-time
-/// signature of reconstructing `P_helio = P_geo − S_geo` from the backend's
-/// astrometric (light-time-corrected) geocentric vectors; SE's geometric helio
-/// place does not carry it, and the task scopes light-time out of this fix.
-///
-/// The tolerance (6000 s) is set to what the fixed code actually achieves with
-/// margin above the documented ~4740 s light-time floor, while being ~200x
-/// tighter than the pre-fix error — so any regression of the of-date rotation
-/// (dropping precession or nutation) fails this test immediately.
+/// The 400 s tolerance catches both mistakes this frame has had or could have.
+/// A J2000 longitude puts the crossing about 14 days early, the precession
+/// accumulated since J2000. A light-time-retarded place puts it 4750 s late,
+/// which is what the reference itself carried before issue #163: it was
+/// generated without `SEFLG_TRUEPOS`, and this test allowed 6000 s for it.
 #[test]
 fn heliocentric_saturn_of_date_crossing_matches_se() {
     let engine = EventEngine::new(packaged_backend());
-    const SE_REF_JD: f64 = 2_439_500.066527;
+    const SE_REF_JD: f64 = 2_428_751.094_132_22;
     let crossing = engine
         .next_longitude_crossing(
             CelestialBody::Saturn,
             Longitude::from_degrees(0.0),
             CrossingFrame::Heliocentric,
-            tdb(2_430_000.5),
+            tdb(2_426_000.5),
         )
         .expect("heliocentric Saturn crossing search")
         .expect("expected a heliocentric Saturn crossing of 0°");
     let residual_s = (crossing.instant.julian_day.days() - SE_REF_JD) * 86_400.0;
     assert!(
-        residual_s.abs() < 6_000.0,
-        "helio Saturn of-date residual {residual_s:.1} s exceeds 6000 s tolerance"
+        residual_s.abs() < 400.0,
+        "helio Saturn of-date residual {residual_s:.1} s exceeds 400 s tolerance"
     );
 }
 
