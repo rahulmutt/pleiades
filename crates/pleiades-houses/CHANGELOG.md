@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.5.6] - 2026-10-06
+
+### Fixed
+
+- Put sidereal Whole Sign and Equal (1=Aries) cusps on sidereal sign boundaries ([#180](https://github.com/rahulmutt/pleiades/pull/180)) ([#183](https://github.com/rahulmutt/pleiades/pull/183)) ([f646409](https://github.com/rahulmutt/pleiades/commit/f646409c1647da36be0bf8adf4ff20fbaad995f5))
+
 ## [0.5.5] - 2026-10-05
 
 _No user-facing changes; released for a dependency or manifest update._
