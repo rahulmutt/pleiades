@@ -548,3 +548,20 @@ fn validate_occultations_and_aliases_agree_and_reject_extra_args() {
         "help text should mention occult-gate alias"
     );
 }
+
+#[test]
+fn validate_sidereal_position_and_alias_report_the_summary() {
+    let report = crate::validate_sidereal_position_corpus().expect("gate passes");
+    for command in ["validate-sidereal-position", "sidereal-position-gate"] {
+        let out = render_cli(&[command]).expect("gate passes via the CLI");
+        assert_eq!(out, report.summary_line(), "{command}");
+    }
+    assert!(render_cli(&["validate-sidereal-position", "extra"]).is_err());
+}
+
+#[test]
+fn help_text_mentions_validate_sidereal_position() {
+    let help = render_cli(&["help"]).expect("help command should render");
+    assert!(help.contains("validate-sidereal-position"));
+    assert!(help.contains("sidereal-position-gate"));
+}
