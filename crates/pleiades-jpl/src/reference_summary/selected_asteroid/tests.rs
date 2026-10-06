@@ -20,25 +20,25 @@ fn selected_asteroid_apophis_samples_match_horizons_fixture() {
         (
             2_451_545.0,
             (
-                -1.287724404032539E+08,
-                -1.665083325095297E+08,
-                -2.616026236697651E+06,
+                -1.287794485647923E+08,
+                -1.664841807123137E+08,
+                -2.617682719313718E+06,
             ),
         ),
         (
             2_451_915.5,
             (
-                -4.208617179604869E+07,
-                -2.505545978627344E+08,
-                3.774323955966830E+06,
+                -4.216312421873679E+07,
+                -2.505179920652502E+08,
+                3.770325309469789E+06,
             ),
         ),
         (
             2_451_917.5,
             (
-                -3.213794076979073E+07,
-                -2.513264006732349E+08,
-                4.014690688127324E+06,
+                -3.221683989188799E+07,
+                -2.512926873711663E+08,
+                4.010801897737682E+06,
             ),
         ),
     ];
@@ -80,7 +80,7 @@ fn selected_asteroid_source_window_summary_reports_the_body_windows() {
     let summary = selected_asteroid_source_window_summary()
         .expect("selected asteroid source window summary should exist");
     assert_eq!(summary.windows.len(), summary.sample_bodies.len());
-    assert_eq!(summary.sample_count, 90);
+    assert_eq!(summary.sample_count, 91);
     assert_eq!(summary.epoch_count, 17);
     assert_eq!(summary.validate(), Ok(()));
 }
@@ -89,7 +89,7 @@ fn selected_asteroid_source_window_summary_reports_the_body_windows() {
 fn selected_asteroid_source_request_corpus_summary_reports_the_frame_specific_request_slice() {
     let summary = selected_asteroid_source_request_corpus_summary(CoordinateFrame::Ecliptic)
         .expect("selected asteroid source request corpus summary should exist");
-    assert_eq!(summary.request_count, 90);
+    assert_eq!(summary.request_count, 91);
     assert_eq!(summary.body_count, 6);
     assert_eq!(summary.epoch_count, 17);
     assert_eq!(summary.frame, CoordinateFrame::Ecliptic);

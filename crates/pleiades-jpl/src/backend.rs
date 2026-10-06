@@ -155,8 +155,9 @@ impl InterpolationQualitySample {
 /// A request is answered at an exact row, or between rows that lie on both
 /// sides of it and span at most [`MAX_STENCIL_SPAN_DAYS`]. Any other instant
 /// returns `EphemerisErrorKind::OutOfRangeInstant`: the rows are too sparse
-/// to interpolate across (issue #158). [`crate::SpkBackend`] serves these
-/// bodies from a JPL kernel.
+/// to interpolate across (issue #158). The Moon is answered only at an exact
+/// row, because it moves too fast for the rows to interpolate (issue #200).
+/// [`crate::SpkBackend`] serves these bodies from a JPL kernel.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct JplSnapshotBackend;
 
@@ -1451,10 +1452,13 @@ fn lagrange_interpolate_4(x: f64, xs: [f64; 4], ys: [f64; 4]) -> f64 {
 /// The 0.05″ figure is measured for Ceres, Pallas, Juno, Vesta and Eros.
 /// Apophis's interpolation inside the cluster is served under the same rule,
 /// but its cluster rows are too few to hold one out, so that measurement does
-/// not cover it. The rule applies to every
-/// body the backend holds, but major bodies are not held to that figure: some
-/// major-body cluster rows are not geocentric ecliptic positions, and the
-/// Moon moves too fast for a cubic through day-spaced rows (issue #200).
+/// not cover it.
+///
+/// The same rule serves the Sun and the planets, whose held-out rows are
+/// reproduced within 0.3″ (the worst is Mercury, 0.20″;
+/// `stencils_the_guard_admits_reproduce_held_out_major_body_rows`). The Moon
+/// is not interpolated at all: a cubic through rows a day apart misplaces it
+/// by up to 80″, so it is served only at a row (issue #200).
 pub const MAX_STENCIL_SPAN_DAYS: f64 = 5.0;
 
 /// The rows an interpolation at `epoch_jd` uses for `body`, ascending: the
@@ -1555,13 +1559,24 @@ fn stencil_supports(
     })
 }
 
+/// Whether [`JplSnapshotBackend`] interpolates `body` between its rows.
+///
+/// The Moon is served only at a row. Holding each Moon row out in turn, a
+/// cubic through the rest misses it by 0.19″ where the rows are a quarter of
+/// a day apart and by up to 80″ where they are a day apart
+/// (`stencils_the_guard_admits_reproduce_held_out_major_body_rows`), against
+/// 0.3″ for the Sun and the planets under the same rule (issue #200).
+fn is_interpolated(body: &pleiades_backend::CelestialBody) -> bool {
+    *body != pleiades_backend::CelestialBody::Moon
+}
+
 /// Refuses an interpolation the rows cannot support (issue #158).
 fn require_supported_stencil(
     entries: &[SnapshotEntry],
     body: &pleiades_backend::CelestialBody,
     epoch_jd: f64,
 ) -> Result<(), EphemerisError> {
-    if stencil_supports(entries, body, epoch_jd) {
+    if is_interpolated(body) && stencil_supports(entries, body, epoch_jd) {
         return Ok(());
     }
     let describe = |epoch: Option<f64>| match epoch {
@@ -1569,7 +1584,12 @@ fn require_supported_stencil(
         None => "none".to_string(),
     };
     let (before, after) = adjacent_epochs(entries, body, epoch_jd);
-    let reason = if before.is_some() && after.is_some() {
+    let reason = if !is_interpolated(body) {
+        format!(
+            "it serves {body} only at a fixture row, because a cubic through rows a day apart \
+             misplaces it by up to 80″"
+        )
+    } else if before.is_some() && after.is_some() {
         format!(
             "it interpolates only between rows on both sides of an instant that span at most \
              {MAX_STENCIL_SPAN_DAYS} days"

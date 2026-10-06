@@ -202,7 +202,7 @@ mod tests {
     fn reference_snapshot_equatorial_parity_summary_reports_the_expected_coverage() {
         let summary = pleiades_jpl::reference_snapshot_equatorial_parity_summary()
             .expect("reference snapshot equatorial parity summary should exist");
-        assert_eq!(summary.row_count, 272);
+        assert_eq!(summary.row_count, 273);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.bodies, pleiades_jpl::reference_bodies());
         assert_eq!(summary.epoch_count, 23);
@@ -211,7 +211,7 @@ mod tests {
         assert_eq!(
             reference_snapshot_equatorial_parity_summary_line(&summary),
             format!(
-                "JPL reference snapshot equatorial parity: 272 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
+                "JPL reference snapshot equatorial parity: 273 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
                 format_bodies(pleiades_jpl::reference_bodies())
             )
         );
@@ -257,8 +257,8 @@ mod tests {
             Err(
                 pleiades_jpl::ReferenceSnapshotBatchParitySummaryValidationError::Snapshot(
                     pleiades_jpl::ReferenceSnapshotSummaryValidationError::AsteroidRowCountMismatch {
-                        asteroid_row_count: 91,
-                        derived_asteroid_row_count: 90,
+                        asteroid_row_count: 92,
+                        derived_asteroid_row_count: 91,
                     }
                 )
             )
@@ -287,7 +287,7 @@ mod tests {
     fn reference_snapshot_batch_parity_summary_reports_the_expected_coverage() {
         let summary = pleiades_jpl::reference_snapshot_batch_parity_summary()
             .expect("reference snapshot batch parity summary should exist");
-        assert_eq!(summary.snapshot.row_count, 272);
+        assert_eq!(summary.snapshot.row_count, 273);
         assert_eq!(summary.snapshot.body_count, 16);
         assert_eq!(summary.snapshot.bodies, pleiades_jpl::reference_bodies());
         assert_eq!(summary.snapshot.epoch_count, 23);
@@ -298,15 +298,15 @@ mod tests {
         assert_eq!(summary.snapshot.latest_epoch.julian_day.days(), 2_634_167.0);
         assert!(summary.ecliptic_request_count > 0);
         assert!(summary.equatorial_request_count > 0);
-        assert_eq!(summary.exact_count, 272);
+        assert_eq!(summary.exact_count, 273);
         assert_eq!(summary.interpolated_count, 0);
         assert_eq!(summary.approximate_count, 0);
         assert_eq!(summary.unknown_count, 0);
         assert_eq!(summary.validate(), Ok(()));
         assert!(reference_snapshot_batch_parity_summary_line(&summary)
-            .contains("JPL reference snapshot batch parity: 272 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: "));
+            .contains("JPL reference snapshot batch parity: 273 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: "));
         assert!(reference_snapshot_batch_parity_summary_line(&summary)
-            .contains("quality counts: Exact=272, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved"));
+            .contains("quality counts: Exact=273, Interpolated=0, Approximate=0, Unknown=0; batch/single parity preserved"));
         assert_eq!(
             validated_reference_snapshot_batch_parity_summary_for_report(),
             Ok(reference_snapshot_batch_parity_summary_line(&summary))

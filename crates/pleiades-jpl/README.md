@@ -18,8 +18,18 @@ returns `OutOfRangeInstant`. Use `SpkBackend` with a JPL kernel for positions
 at arbitrary dates. The five-day interpolation is validated to 0.05″ for
 Ceres, Pallas, Juno, Vesta and Eros only. Apophis's interpolation inside the
 cluster is served under the same rule, but its cluster rows are too few to
-hold one out, so that measurement does not cover it. The major-body rows in
-the January 2001 cluster are tracked in issue #200.
+hold one out, so that measurement does not cover it. The Sun and the planets
+are interpolated under the same rule, within 0.3″ (the worst is Mercury). The
+Moon is served only at an exact row: a cubic through rows a day apart
+misplaces it by up to 80″.
+
+Every row of the two snapshot fixtures agrees with JPL Horizons within 0.05″
+as seen from the Earth (fetched 2026-10-06). To repeat the check, with network
+access:
+
+```sh
+cargo run -p pleiades-jpl --features horizons-fetch --bin check-snapshot-fixtures
+```
 
 ## License
 
