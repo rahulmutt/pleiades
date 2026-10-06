@@ -174,12 +174,14 @@ fn snapshot_reconstruction_covers_only_constrained_asteroids() {
     );
 }
 
-/// The constrained asteroid's segments are fitted to the reference snapshot's
-/// interpolation. This pins the generator's output, so a change in what the
+/// Pins the checksum of the whole artifact regenerated from the reference
+/// snapshot, and asserts the constrained asteroid is in it. The asteroid's
+/// segments are fitted to the snapshot's interpolation, so a change in what the
 /// generator samples cannot pass unnoticed (the kernel-free regeneration path
-/// returns the committed bytes and proves nothing about the generator).
+/// returns the committed bytes and proves nothing about the generator). The
+/// committed artifact is not compared: its Eros segments come from another path.
 #[test]
-fn snapshot_fit_of_the_constrained_asteroid_matches_the_committed_artifact() {
+fn snapshot_regeneration_output_is_pinned() {
     use pleiades_backend::{CelestialBody, CustomBodyId};
     let eros = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
     let regenerated = try_regenerate_packaged_artifact_from_snapshot(reference_snapshot())
