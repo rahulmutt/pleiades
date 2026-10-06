@@ -12,9 +12,9 @@
 //!     phenomenon only.
 //! Frame `helio`: heliocentric geometric place (SEFLG_HELCTR | SEFLG_TRUEPOS)
 //!   via `swe_helio_cross` (ET/TDB). Without SEFLG_TRUEPOS Swiss Ephemeris
-//!   retards the planet by the heliocentric light-time r/c, which is 8 minutes
-//!   for the Earth's distance and over 5 hours for Pluto's; the engine's
-//!   heliocentric frame is the place at the instant itself (issue #163).
+//!   retards the planet by the heliocentric light-time r/c, which is 3 minutes
+//!   for Mercury and four to six hours for Pluto; the engine's heliocentric
+//!   frame is the place at the instant itself (issue #163).
 //! Frame `geo-mean`: geocentric geometric longitude on the mean equinox of
 //!   date (SEFLG_TRUEPOS | SEFLG_NOABERR | SEFLG_NOGDEFL | SEFLG_NONUT),
 //!   bisected on `swe_calc` like the geocentric planets.
