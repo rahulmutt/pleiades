@@ -475,8 +475,11 @@ fn interpolation_quality_samples_are_reportable() {
     assert!(samples
         .iter()
         .any(|sample| sample.interpolation_kind == InterpolationQualityKind::Cubic));
-    // Apophis keeps four sampled rows, so each of its two leave-one-out fits
-    // has three points and is quadratic.
+    // Of Apophis's six reference rows, the reference-only epochs 2378498.5 and
+    // 2451917.5 are excluded from the interpolation set, leaving four:
+    // 2451545, 2451915.5, 2451918.5 and 2451919.5. The two interior rows are
+    // the leave-one-out samples, and leaving one out keeps three points, so
+    // both fits are quadratic.
     let quadratic: Vec<_> = samples
         .iter()
         .filter(|sample| sample.interpolation_kind == InterpolationQualityKind::Quadratic)

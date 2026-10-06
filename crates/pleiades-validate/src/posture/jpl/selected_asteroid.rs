@@ -783,13 +783,21 @@ mod tests {
         assert_eq!(summary.sample_count, 5);
         assert_eq!(
             summary.sample_bodies,
-            pleiades_jpl::reference_asteroids().to_vec()
+            vec![
+                pleiades_backend::CelestialBody::Ceres,
+                pleiades_backend::CelestialBody::Pallas,
+                pleiades_backend::CelestialBody::Juno,
+                pleiades_backend::CelestialBody::Vesta,
+                pleiades_backend::CelestialBody::Custom(pleiades_types::CustomBodyId::new(
+                    "asteroid", "433-Eros"
+                )),
+            ]
         );
         assert_eq!(summary.epoch.julian_day.days(), 2_451_915.0);
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             selected_asteroid_bridge_summary_line(&summary),
-            "Selected asteroid bridge evidence: 5 exact samples at JD 2451915.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); bridge sample across the asteroid-only gap"
+            "Selected asteroid bridge evidence: 5 exact samples at JD 2451915.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); bridge sample across the asteroid-only gap"
         );
         assert_eq!(
             selected_asteroid_bridge_summary_for_report(),

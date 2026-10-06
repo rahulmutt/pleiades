@@ -265,7 +265,16 @@ fn selected_asteroid_bridge_summary_reports_the_bridge_day() {
     let summary =
         selected_asteroid_bridge_summary().expect("selected asteroid bridge summary should exist");
     assert_eq!(summary.sample_count, 5);
-    assert_eq!(summary.sample_bodies, reference_asteroids().to_vec());
+    assert_eq!(
+        summary.sample_bodies,
+        vec![
+            pleiades_backend::CelestialBody::Ceres,
+            pleiades_backend::CelestialBody::Pallas,
+            pleiades_backend::CelestialBody::Juno,
+            pleiades_backend::CelestialBody::Vesta,
+            pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+        ]
+    );
     assert_eq!(summary.epoch.julian_day.days(), 2_451_915.0);
     assert_eq!(summary.validate(), Ok(()));
 }

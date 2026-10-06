@@ -1271,8 +1271,14 @@ impl SelectedAsteroidBridgeSummary {
                 },
             );
         }
-        if self.sample_bodies.as_slice() != reference_asteroids() {
-            for (index, (expected, found)) in reference_asteroids()
+        let mut expected_bodies = Vec::new();
+        for entry in evidence {
+            if !expected_bodies.contains(&entry.body) {
+                expected_bodies.push(entry.body.clone());
+            }
+        }
+        if self.sample_bodies.as_slice() != expected_bodies.as_slice() {
+            for (index, (expected, found)) in expected_bodies
                 .iter()
                 .zip(self.sample_bodies.iter())
                 .enumerate()
@@ -1310,9 +1316,16 @@ impl SelectedAsteroidBridgeSummary {
 
 pub(crate) fn selected_asteroid_bridge_summary_details() -> Option<SelectedAsteroidBridgeSummary> {
     let evidence = selected_asteroid_bridge_entries()?;
+    let mut sample_bodies = Vec::new();
+    for entry in evidence {
+        if !sample_bodies.contains(&entry.body) {
+            sample_bodies.push(entry.body.clone());
+        }
+    }
+
     Some(SelectedAsteroidBridgeSummary {
         sample_count: evidence.len(),
-        sample_bodies: reference_asteroids().to_vec(),
+        sample_bodies,
         epoch: evidence[0].epoch,
     })
 }
