@@ -169,9 +169,8 @@ pub fn audit_structural() -> Result<(), Vec<ClaimAuditError>> {
 ///   J2000-only snapshot and is tuned for the VSOP/ELP comparison, which inflates
 ///   latitude/distance deltas by orders of magnitude and does not reflect the
 ///   packaged artifact's true accuracy. This path runs with real teeth in the
-///   kernel-free environment. (The packaged Eros claim has no hold-out truth row
-///   and is therefore not exercised here; it remains covered by the broad
-///   production corpus inside `pleiades-data`.)
+///   kernel-free environment. (The packaged backend no longer serves Eros and
+///   claims nothing for it, so no Eros row is exercised here.)
 /// - **jpl-spk** (`jpl-spk`): the sb441-n373s Tier-A asteroid reference (a
 ///   [`SnapshotCorpusBackend`] over [`crate::corpus::asteroid_corpus`]) is
 ///   compared against the SPK release backend. In the kernel-free environment
@@ -197,10 +196,9 @@ pub fn audit_release_grade_accuracy() -> Result<(), Vec<ClaimAuditError>> {
         let corpus = crate::corpus::holdout_corpus();
 
         // Derive the set of release-grade bodies that have a hold-out truth row.
-        // asteroid:433-Eros is release-grade but has NO independent hold-out truth
-        // row (it is covered by pleiades-data's own self-consistency gate in
-        // accuracy_baseline.rs), so it is intentionally excluded here via the
-        // intersection below.
+        // the packaged backend claims Pluto and the Moon, not
+        // asteroid:433-Eros (it is unsupported there), so the intersection with the
+        // hold-out truth rows below keeps only bodies that have both a claim and a row.
         let holdout_bodies: std::collections::HashSet<CelestialBody> =
             pleiades_jpl::production_holdout_corpus()
                 .iter()

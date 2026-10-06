@@ -950,8 +950,8 @@ mod tests {
         }
 
         assert!(
-            release_notes.contains("selected asteroid coverage"),
-            "release notes should mention selected asteroid coverage"
+            release_notes.contains("serves the selected asteroids"),
+            "release notes should mention the selected asteroids"
         );
         assert!(
             release_notes.contains("asteroid:433-Eros"),

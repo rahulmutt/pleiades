@@ -36,7 +36,7 @@ fn release_notes_command_renders_the_release_notes() {
         "House code aliases: {}",
         profile.house_code_aliases_summary_line()
     )));
-    assert!(rendered.contains("selected asteroid coverage"));
+    assert!(rendered.contains("serves the selected asteroids"));
     assert!(rendered.contains("WvA"));
     assert!(rendered.contains("Selected asteroid evidence: 6 exact J2000 samples"));
     assert!(rendered.contains("Selected asteroid batch parity: 6 requests across 6 bodies at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); frame mix: 3 ecliptic, 3 equatorial; batch/single parity preserved"));

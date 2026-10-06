@@ -5,15 +5,19 @@
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 Packaged offline ephemeris data (precomputed positions for the Sun, the Moon,
-Mercury through Pluto and the asteroid 433 Eros, derived from JPL public-domain
-ephemerides) and its `EphemerisBackend` for the
+Mercury through Pluto, derived from JPL public-domain ephemerides) and its `EphemerisBackend` for the
 [pleiades](https://github.com/rahulmutt/pleiades) astrology workspace.
 
 The crate ships a compressed artifact covering 1900-01-01 through 2100-01-01,
 regenerated from the checked-in JPL reference snapshot and validated against a
-deterministic binary fixture. It covers the comparison-body planetary set plus
-the source-backed custom asteroid `asteroid:433-Eros`, and falls back to other
-providers when callers request bodies outside the packaged slice. Enable the
+deterministic binary fixture. The backend serves the Sun, the Moon and Mercury
+through Pluto, and falls back to other providers when callers request bodies
+outside the packaged slice.
+
+The artifact also carries segments for `asteroid:433-Eros`, fitted to 17
+reference rows. They are not served: outside those rows the fit is wrong by
+tens of degrees. `PackagedDataBackend` reports the body unsupported, and
+`packaged_lookup` refuses it too. Enable the
 `packaged-artifact-path` feature to load an explicit artifact file for larger
 or externally distributed packaged datasets.
 

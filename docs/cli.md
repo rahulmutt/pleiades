@@ -61,7 +61,7 @@ Notes:
 - `--mean` reports the geometric place: on the J2000 equinox in the tropical zodiac, and on the mean equinox of date less the ayanamsa when `--ayanamsa` is given.
 - `chart` defaults to `JD 2451545.0` if `--jd` is omitted.
 - If no `--body` flags are given, the CLI uses the default chart body set from `pleiades-core`.
-- `--body` accepts built-in labels such as `Sun`, `Moon`, and `Ceres`, plus custom identifiers such as `asteroid:433-Eros` when supported by the selected path.
+- `--body` accepts built-in labels such as `Sun`, `Moon`, and `Ceres`, plus custom identifiers such as `asteroid:433-Eros`. Asteroids are served offline only at the sample epochs of a sparse JPL fixture (a handful of epochs such as J2000, and a cluster from 2001-01-01 to 2001-01-10); any other date returns an out-of-range error that names `SpkBackend`, the kernel-backed way to compute them. `stations` and `aspects` return the same error for an asteroid.
 - `--ayanamsa` accepts built-in names such as `Lahiri` and custom definitions such as `custom:True Balarama|2451545.0|12.5`.
 - Built-in civil-time conversion: use `--civil <YYYY-MM-DDTHH:MM:SS> [--civil-scale utc|ut1] [--civil-target tt|tdb]` to convert a calendar datetime to TT/TDB automatically (1900–2100, tiered quality). Alternatively, supply caller-chosen offsets via the `--tt-*` or `--tdb-*` flags. See [docs/time-observer-policy.md](time-observer-policy.md).
 

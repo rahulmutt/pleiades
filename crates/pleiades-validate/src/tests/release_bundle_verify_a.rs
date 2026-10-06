@@ -461,7 +461,7 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(release_notes.contains("API stability posture:"));
     assert!(release_notes.contains("Deprecation policy:"));
     assert!(release_notes.contains("Release-specific coverage:"));
-    assert!(release_notes.contains("selected asteroid coverage"));
+    assert!(release_notes.contains("serves the selected asteroids"));
     assert!(release_notes.contains("Selected asteroid evidence: 6 exact J2000 samples"));
     assert!(release_notes.contains("Selected asteroid batch parity: 6 requests across 6 bodies at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); frame mix: 3 ecliptic, 3 equatorial; batch/single parity preserved"));
     assert!(release_notes.contains("Selected asteroid equatorial evidence: 6 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) using a mean-obliquity equatorial transform"));

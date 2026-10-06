@@ -121,8 +121,10 @@ than the step are not reported. That happens only for the osculating lunar
 points. The true node is retrograde on average and its speed touches zero
 about every two weeks; whether a touch crosses zero for a few hours depends on
 the ephemeris, so the gate compares only true-node stations at least 3 days
-from their neighbours. Stations of asteroids, fictitious bodies and the
-osculating apogee are found but not gated.
+from their neighbours. Stations of fictitious bodies and the osculating
+apogee are found but not gated. An asteroid's stations cannot be searched
+offline: the backend chain serves asteroids only at sparse sample rows and the
+search returns its out-of-range error (issue #201).
 
 ## Aspects
 
@@ -175,5 +177,7 @@ relative speed:
 | Saturn–Pluto | 109 | 1.565″ | 744.8 s | 1.662″ |
 
 The gate also covers Mercury–Venus and Mars–Saturn in the mean place and
-Mars–Jupiter from the Sun. Aspects of the lunar points, asteroids and
-fictitious bodies are found but not gated.
+Mars–Jupiter from the Sun. Aspects of the lunar points and fictitious
+bodies are found but not gated. An asteroid's aspects cannot be searched
+offline: the backend chain serves asteroids only at sparse sample rows and the
+search returns its out-of-range error.

@@ -7,10 +7,16 @@
 //! This crate now ships a small stage-5 draft artifact backed by the
 //! `pleiades-compression` codec. The bundled data is regenerated from the
 //! checked-in JPL reference snapshot and validated against a deterministic
-//! binary fixture that covers the comparison-body planetary set plus the
-//! source-backed custom asteroid `asteroid:433-Eros`, and the backend falls
-//! back to other providers when callers request bodies outside that packaged
-//! slice. The packaged artifact stores J2000 ecliptic coordinates directly,
+//! binary fixture. The backend serves the Sun, the Moon and Mercury through
+//! Pluto, and falls back to other providers when callers request bodies
+//! outside that packaged slice.
+//!
+//! The artifact also carries segments for `asteroid:433-Eros`, fitted to 17
+//! reference rows. They are not served: outside those rows the fit is wrong by
+//! tens of degrees. `PackagedDataBackend` reports the body unsupported, and
+//! `packaged_lookup` refuses it too.
+//!
+//! The packaged artifact stores J2000 ecliptic coordinates directly,
 //! reconstructs equatorial coordinates from the stored channels and
 //! mean-obliquity transform when requested, and adds residual correction
 //! channels on high-curvature spans when they improve the fit. A

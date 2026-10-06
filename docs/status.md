@@ -39,9 +39,18 @@ crate source in this repo; gate names are the runnable `validate-*` subcommands
 
 ### Known limits
 
-- Body/backend grades are **per-backend**: Pluto/Moon/Eros are release-grade via
-  the packaged artifact; VSOP87 Pluto and the compact ELP Moon stay constrained.
-  See the [compatibility registry](../crates/pleiades-core/src/compatibility/mod.rs).
+- Body/backend grades are **per-backend**: Pluto and the Moon are release-grade
+  via the packaged artifact; VSOP87 Pluto and the compact ELP Moon stay
+  constrained. See `packaged_body_claims` in
+  [`crates/pleiades-data/src/lib.rs`](../crates/pleiades-data/src/lib.rs).
+- **Asteroids offline are served only at their sample rows.** Ceres, Pallas,
+  Juno, Vesta, `asteroid:433-Eros` and `asteroid:99942-Apophis` come from a
+  sparse JPL Horizons fixture: a handful of epochs and a nine-day cluster in
+  January 2001. Any other date returns an out-of-range error. The packaged
+  artifact still carries an Eros fit that the backend does not serve. For
+  asteroid positions across 1900–2100, use `pleiades_jpl::SpkBackend` with a
+  JPL kernel (`docs/spk-kernel-sourcing.md`); offline coverage is tracked in
+  issue #201.
 - Apparent place omits gravitational light-deflection. Rise/set/transit and
   horizontal coordinates read the `TimeScale` tag on their query instants and
   return **TDB** instants; their accuracy in civil time is bounded by the
