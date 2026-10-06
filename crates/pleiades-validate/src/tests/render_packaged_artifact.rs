@@ -725,7 +725,7 @@ fn production_generation_summary_command_renders_the_overall_block() {
         .expect("production generation summary should render");
 
     assert!(rendered.contains("Production generation coverage:"));
-    assert!(rendered.contains("272 rows across 16 bodies and 23 epochs"));
+    assert!(rendered.contains("273 rows across 16 bodies and 23 epochs"));
     assert_eq!(
         rendered,
         production_generation_snapshot_summary_for_report()

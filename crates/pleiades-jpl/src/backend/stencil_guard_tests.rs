@@ -219,9 +219,8 @@ fn a_request_before_ceress_first_row_names_the_remedy() {
 
 /// Holds every asteroid row out in turn. Where the remaining rows pass the
 /// guard, the interpolation must reproduce the held-out row. This is the
-/// measurement behind `MAX_STENCIL_SPAN_DAYS`. Major bodies are left out:
-/// some of their cluster rows are not geocentric ecliptic positions, and the
-/// Moon moves too fast for a cubic through day-spaced rows (issue #200).
+/// measurement behind `MAX_STENCIL_SPAN_DAYS`. Major bodies have their own
+/// test below.
 #[test]
 fn stencils_the_guard_admits_reproduce_held_out_rows() {
     let entries = reference_snapshot();
@@ -258,6 +257,104 @@ fn stencils_the_guard_admits_reproduce_held_out_rows() {
 /// so its in-cluster interpolation is served under the same rule but is not
 /// covered by this figure.
 const ADMITTED_ASTEROID_CEILING_ARCSEC: f64 = 0.05;
+
+/// Holds every major-body row out in turn, as the asteroid test above does.
+/// A row that is not the body's geocentric ecliptic position fails here
+/// twice over: its neighbours do not reproduce it, and it spoils the
+/// neighbours it helps to interpolate. Ten rows at JD 2451913.5 and the Mars
+/// and Jupiter rows at JD 2451917.5 once were such rows (issue #200).
+///
+/// The Moon's rows are held to a far looser figure. They are checked for
+/// consistency only, because the backend never interpolates the Moon.
+#[test]
+fn stencils_the_guard_admits_reproduce_held_out_major_body_rows() {
+    let entries = reference_snapshot();
+    let is_asteroid = |body: &CelestialBody| truth_bodies().contains(body) || *body == apophis();
+    let mut planet_cases = 0_usize;
+    let mut moon_cases = 0_usize;
+    let mut worst_planet = 0.0_f64;
+    let mut worst_moon = 0.0_f64;
+    for held_out in entries.iter().filter(|entry| !is_asteroid(&entry.body)) {
+        let jd = held_out.epoch.julian_day.days();
+        let rest = entries
+            .iter()
+            .filter(|entry| entry.body != held_out.body || entry.epoch.julian_day.days() != jd)
+            .cloned()
+            .collect::<Vec<_>>();
+        if !stencil_supports(&rest, &held_out.body, jd) {
+            continue;
+        }
+        let interpolated = interpolate_fixture_state(&rest, held_out.body.clone(), jd)
+            .expect("an admitted stencil interpolates");
+        let (longitude, latitude) =
+            separation_arcsec(&interpolated.ecliptic(), &held_out.ecliptic());
+        let worst = longitude.max(latitude);
+        if held_out.body == CelestialBody::Moon {
+            moon_cases += 1;
+            worst_moon = worst_moon.max(worst);
+        } else {
+            planet_cases += 1;
+            worst_planet = worst_planet.max(worst);
+        }
+    }
+    assert!(
+        planet_cases >= 120,
+        "only {planet_cases} Sun and planet cases"
+    );
+    assert!(moon_cases >= 15, "only {moon_cases} Moon cases");
+    assert!(
+        worst_planet <= ADMITTED_PLANET_CEILING_ARCSEC,
+        "Sun and planets: {worst_planet:.4}″"
+    );
+    assert!(
+        worst_moon <= MOON_ROW_CONSISTENCY_CEILING_ARCSEC,
+        "Moon: {worst_moon:.4}″"
+    );
+}
+
+/// Measured 2026-10-06 over 123 admitted Sun and planet cases: the worst is
+/// 0.2020″, Mercury at JD 2451919.5; every other body stays within 0.03″.
+const ADMITTED_PLANET_CEILING_ARCSEC: f64 = 0.3;
+
+/// Measured 2026-10-06 over 15 Moon cases: between 0.19″ (rows a quarter of a
+/// day apart) and 80.27″ (JD 2451919.5, rows a day apart). A row in another
+/// frame or of another body misses by degrees.
+const MOON_ROW_CONSISTENCY_CEILING_ARCSEC: f64 = 100.0;
+
+#[test]
+fn the_moon_is_served_at_a_row_and_refused_between_rows() {
+    let backend = JplSnapshotBackend;
+    let at_row = backend
+        .position(&mean_request(CelestialBody::Moon, 2_451_915.5))
+        .expect("the Moon has a row at JD 2451915.5");
+    assert_eq!(at_row.quality, QualityAnnotation::Exact);
+
+    // Rows a quarter of a day apart bracket this instant, well inside the span
+    // every other body is interpolated across.
+    let error = backend
+        .position(&mean_request(CelestialBody::Moon, 2_451_915.6))
+        .expect_err("the Moon is not interpolated");
+    assert_eq!(error.kind, EphemerisErrorKind::OutOfRangeInstant);
+    let message = error.to_string();
+    assert!(message.contains("only at a fixture row"), "{message}");
+    assert!(message.contains("SpkBackend"), "{message}");
+    assert!(
+        message.contains("nearest row before: JD 2451915.5"),
+        "{message}"
+    );
+    assert!(
+        message.contains("nearest after: JD 2451915.75"),
+        "{message}"
+    );
+}
+
+#[test]
+fn a_planet_between_cluster_rows_is_still_interpolated() {
+    let result = JplSnapshotBackend
+        .position(&mean_request(CelestialBody::Mars, 2_451_915.6))
+        .expect("the cluster supports Mars at this instant");
+    assert_eq!(result.quality, QualityAnnotation::Interpolated);
+}
 
 const SYNTHETIC_BASE_JD: f64 = 2_451_910.5;
 

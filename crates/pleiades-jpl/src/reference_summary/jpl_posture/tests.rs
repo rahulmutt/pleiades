@@ -280,7 +280,7 @@ fn reference_snapshot_source_summary_reports_the_expected_provenance() {
     );
     assert_eq!(
             summary.coverage,
-            "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; selected bodies sampled at 1900-01-01 for Sun, Moon, Mercury, Venus; selected bodies sampled at 2451915.25 and 2451915.75 for Sun, Moon, Mercury, Venus; major bodies sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; major bodies sampled at 2451915.5 for Sun through Pluto; major bodies sampled at 2451913.5 through 2451917.5 for additional boundary coverage; selected asteroids sampled at J2000, 2378498.5, 2451910.5 through 2451919.5, with 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451917.5, 2451918.5, and 2451919.5 boundary coverage, 2003-12-27, 2132-08-31, 2500-01-01, and 2634167; asteroid:99942-Apophis is now also sampled at 2378498.5 and 2451917.5 to complete the selected-asteroid bridge."
+            "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Sun, Moon, Mercury and Venus sampled at 2415020.5 (1900-01-01), 2451915.25 and 2451915.75; Sun through Pluto sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; Ceres, Pallas, Juno, Vesta and asteroid:433-Eros sampled at 2378498.5, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.5, 2451917.5, 2451918.5, 2451919.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis sampled at 2378498.5, 2451545, 2451915.5, 2451917.5, 2451918.5, and 2451919.5."
         );
     assert_eq!(summary.evidence_class, REFERENCE_SNAPSHOT_EVIDENCE_CLASS);
     assert_eq!(summary.columns, REFERENCE_SNAPSHOT_COLUMNS);
@@ -375,7 +375,7 @@ fn reference_snapshot_source_summary_reports_the_expected_provenance() {
     assert_eq!(body_class_summary.major_bodies.len(), 10);
     assert_eq!(body_class_summary.major_epoch_count, 20);
     assert_eq!(body_class_summary.major_windows.len(), 10);
-    assert_eq!(body_class_summary.asteroid_row_count, 90);
+    assert_eq!(body_class_summary.asteroid_row_count, 91);
     assert_eq!(body_class_summary.asteroid_bodies.len(), 6);
     assert_eq!(body_class_summary.asteroid_epoch_count, 17);
     assert_eq!(body_class_summary.asteroid_windows.len(), 6);

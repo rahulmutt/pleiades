@@ -582,7 +582,7 @@ mod tests {
         assert_eq!(
             reference_snapshot_summary_line(&summary),
             format!(
-                "Reference snapshot coverage: 272 rows across 16 bodies and 23 epochs (90 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
+                "Reference snapshot coverage: 273 rows across 16 bodies and 23 epochs (91 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}",
                 format_bodies(pleiades_jpl::reference_bodies())
             )
         );

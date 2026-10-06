@@ -876,7 +876,7 @@ fn backend_matrix_summary_command_renders_the_summary() {
         .expect("JPL backend matrix entry should exist");
     assert!(jpl_entry
         .status_note
-        .contains("reference corpus now spans 272 rows across 16 bodies and 23 epochs"));
+        .contains("reference corpus now spans 273 rows across 16 bodies and 23 epochs"));
     assert!(rendered.contains("Families:"));
     assert!(rendered.contains("Algorithmic: 2"));
     assert!(rendered.contains("ReferenceData: 1"));
@@ -1053,7 +1053,7 @@ fn backend_matrix_summary_command_renders_the_summary() {
     assert!(rendered.contains("Compatibility profile summary: compatibility-profile-summary"));
     assert!(rendered.contains("API stability summary: api-stability-summary"));
     assert!(rendered.contains("Release notes summary: release-notes-summary"));
-    assert!(rendered.contains("Reference snapshot coverage: 272 rows across 16 bodies and 23 epochs (90 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
+    assert!(rendered.contains("Reference snapshot coverage: 273 rows across 16 bodies and 23 epochs (91 asteroid rows; JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"));
     assert!(rendered.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_high_curvature_summary_for_report()));
     assert!(rendered.contains(&reference_snapshot_high_curvature_window_summary_for_report()));

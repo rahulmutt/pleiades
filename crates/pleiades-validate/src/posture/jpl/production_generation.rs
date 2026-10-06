@@ -1133,7 +1133,7 @@ mod tests {
         assert_eq!(
             production_generation_snapshot_summary_line(&summary),
             format!(
-                "Production generation coverage: 272 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 64 rows across 16 bodies and 12 epochs.): 64 rows across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); boundary bodies: {}; quarter-day boundary samples: 8 rows across 4 bodies and 2 epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB)); quarter-day bodies: {}",
+                "Production generation coverage: 273 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; boundary overlay (major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Mars and Jupiter at 2001-01-01 through 2001-01-03, plus Mercury and Venus at 2451545, 2451915.25, and 2451915.75, plus Jupiter, Saturn, Uranus, Neptune, and Pluto at 2451545, plus Mars at 2451545, plus Sun at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Moon at 2451545, 2451915.25, 2451915.75, and 2451915.5, plus Mercury at 2451915.5, plus Venus at 2451915.5, plus major bodies at 2451915.5 for Sun through Pluto, plus selected asteroids at 2378498.5, 2451545, 2451915.5, 2451917.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis now also appears at 2378498.5 so the selected-asteroid hold-out bridge matches the reference slice; total slice size is 64 rows across 16 bodies and 12 epochs.): 64 rows across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); boundary bodies: {}; quarter-day boundary samples: 8 rows across 4 bodies and 2 epochs (JD 2451915.25 (TDB)..JD 2451915.75 (TDB)); quarter-day bodies: {}",
                 reference_bodies,
                 boundary_bodies,
                 quarter_day_bodies
@@ -1155,7 +1155,7 @@ mod tests {
             "redistribution posture=repository-checked regression fixtures, not a broad public corpus"
         ));
         assert!(production_generation_source_summary
-            .contains("source windows=272 source-backed samples across 16 bodies and 23 epochs"));
+            .contains("source windows=273 source-backed samples across 16 bodies and 23 epochs"));
         assert!(production_generation_source_summary
             .contains("evidence classes=reference, hold-out, boundary overlay, provenance-only"));
         assert!(production_generation_source_summary
@@ -1204,7 +1204,7 @@ mod tests {
             production_generation_snapshot_window_line(&summary.windows[0]).starts_with("Ceres: ")
         );
         assert!(production_generation_snapshot_window_summary_line(&summary).starts_with(
-            "Production generation source windows: 272 source-backed samples across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: "
+            "Production generation source windows: 273 source-backed samples across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); windows: "
         ));
         assert!(production_generation_snapshot_window_summary_line(&summary).contains("Mars:"));
         assert!(production_generation_snapshot_window_summary_line(&summary).contains("Jupiter:"));
@@ -1330,7 +1330,7 @@ mod tests {
             .contains("evidence classes=reference, hold-out, boundary overlay, provenance-only"));
         assert!(report.contains("independent_holdout_snapshot.csv checksum=0x"));
         assert!(report
-            .contains("source windows=272 source-backed samples across 16 bodies and 23 epochs"));
+            .contains("source windows=273 source-backed samples across 16 bodies and 23 epochs"));
         assert!(report.contains("license posture=public-source provenance only; checked-in fixtures remain repository-local regression data"));
         assert!(report.contains("generation command=generate-packaged-artifact --check"));
         assert!(report.contains("checksum expectation=byte-identical fixture contents"));

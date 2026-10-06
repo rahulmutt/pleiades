@@ -16,7 +16,7 @@ fn production_generation_snapshot_summary_reports_the_boundary_overlay() {
     summary
         .validate()
         .expect("production-generation snapshot summary should validate");
-    assert_eq!(summary.row_count, 272);
+    assert_eq!(summary.row_count, 273);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.epoch_count, 23);
     assert_eq!(summary.boundary_row_count, 64);
@@ -65,7 +65,7 @@ fn production_generation_snapshot_window_summary_reports_the_source_windows() {
     summary
         .validate()
         .expect("production-generation source window summary should validate");
-    assert_eq!(summary.sample_count, 272);
+    assert_eq!(summary.sample_count, 273);
     assert_eq!(summary.sample_bodies.len(), 16);
     assert_eq!(summary.windows.len(), summary.sample_bodies.len());
     assert_eq!(summary.sample_bodies, reference_bodies());
@@ -111,7 +111,7 @@ fn production_generation_snapshot_body_class_coverage_summary_reports_the_split(
     summary
         .validate()
         .expect("production-generation body-class coverage summary should validate");
-    assert_eq!(summary.row_count, 272);
+    assert_eq!(summary.row_count, 273);
     assert_eq!(summary.major_bodies.len(), 10);
     assert_eq!(summary.asteroid_bodies.len(), 6);
 }
@@ -286,7 +286,7 @@ fn production_generation_snapshot_requests_preserve_the_boundary_overlay() {
 fn production_generation_snapshot_summary_reports_the_expected_coverage() {
     let summary = production_generation_snapshot_summary()
         .expect("production generation summary should exist");
-    assert_eq!(summary.row_count, 272);
+    assert_eq!(summary.row_count, 273);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.epoch_count, 23);
     assert_eq!(summary.boundary_row_count, 64);
