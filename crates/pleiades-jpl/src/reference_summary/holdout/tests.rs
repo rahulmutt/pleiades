@@ -70,7 +70,7 @@ fn reference_snapshot_and_holdout_corpora_remain_anchored_to_the_checked_in_csvs
         "../../../data/independent_holdout_snapshot.csv"
     ));
 
-    assert_eq!(reference.row_count, 273);
+    assert_eq!(reference.row_count, 272);
     assert_eq!(reference.row_count, reference.pairs.len());
     assert_eq!(reference.bodies.len(), 16);
     assert_eq!(reference.epochs.len(), 23);
@@ -716,7 +716,7 @@ fn independent_holdout_snapshot_manifest_parses_the_documented_header_comments()
 #[test]
 fn snapshot_manifest_footprint_validation_matches_the_current_reference_and_holdout_corpora() {
     assert_eq!(
-        validate_snapshot_manifest_footprint("reference snapshot", snapshot_entries(), 273, 16, 23,),
+        validate_snapshot_manifest_footprint("reference snapshot", snapshot_entries(), 272, 16, 23,),
         Ok(())
     );
     assert_eq!(

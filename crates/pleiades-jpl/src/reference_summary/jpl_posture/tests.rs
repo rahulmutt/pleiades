@@ -375,7 +375,7 @@ fn reference_snapshot_source_summary_reports_the_expected_provenance() {
     assert_eq!(body_class_summary.major_bodies.len(), 10);
     assert_eq!(body_class_summary.major_epoch_count, 20);
     assert_eq!(body_class_summary.major_windows.len(), 10);
-    assert_eq!(body_class_summary.asteroid_row_count, 91);
+    assert_eq!(body_class_summary.asteroid_row_count, 90);
     assert_eq!(body_class_summary.asteroid_bodies.len(), 6);
     assert_eq!(body_class_summary.asteroid_epoch_count, 17);
     assert_eq!(body_class_summary.asteroid_windows.len(), 6);

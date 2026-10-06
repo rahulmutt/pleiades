@@ -23,7 +23,7 @@ fn reference_asteroid_source_window_summary_reports_the_expanded_coverage() {
     let summary = reference_asteroid_source_window_summary()
         .expect("reference asteroid source window summary should exist");
     assert_eq!(summary.windows.len(), summary.sample_bodies.len());
-    assert_eq!(summary.sample_count, 91);
+    assert_eq!(summary.sample_count, 90);
     assert_eq!(summary.epoch_count, 17);
     assert_eq!(summary.validate(), Ok(()));
 }

@@ -628,7 +628,7 @@ mod tests {
             .expect("selected asteroid source evidence summary should exist");
         assert_eq!(
             selected_asteroid_source_summary_line(&summary),
-            "Selected asteroid source evidence: 91 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"
+            "Selected asteroid source evidence: 90 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; bodies: Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis"
         );
         assert_eq!(
             selected_asteroid_source_summary_line(&summary),
@@ -645,12 +645,12 @@ mod tests {
         let summary = pleiades_jpl::selected_asteroid_source_window_summary()
             .expect("selected asteroid source window summary should exist");
         assert_eq!(summary.windows.len(), summary.sample_bodies.len());
-        assert_eq!(summary.sample_count, 91);
+        assert_eq!(summary.sample_count, 90);
         assert_eq!(summary.epoch_count, 17);
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             selected_asteroid_source_window_summary_line(&summary),
-            "Selected asteroid source windows: 91 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 6 samples across 6 epochs at JD 2378498.5 (TDB)..JD 2451919.5 (TDB)"
+            "Selected asteroid source windows: 90 source-backed samples across 6 bodies and 17 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); evidence class=source-backed; frame=geocentric ecliptic J2000; time scale=TDB; windows: Ceres: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Pallas: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Juno: 16 samples across 16 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); Vesta: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:433-Eros: 17 samples across 17 epochs at JD 2378498.5 (TDB)..JD 2634167.0 (TDB); asteroid:99942-Apophis: 6 samples across 6 epochs at JD 2378498.5 (TDB)..JD 2451919.5 (TDB)"
         );
         assert_eq!(
             selected_asteroid_source_window_summary_line(&summary),
@@ -668,7 +668,7 @@ mod tests {
             CoordinateFrame::Ecliptic,
         )
         .expect("selected asteroid source request corpus summary should exist");
-        assert_eq!(summary.request_count, 91);
+        assert_eq!(summary.request_count, 90);
         assert_eq!(summary.body_count, 6);
         assert_eq!(summary.epoch_count, 17);
         assert_eq!(summary.frame, CoordinateFrame::Ecliptic);

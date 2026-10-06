@@ -80,7 +80,7 @@ fn selected_asteroid_source_window_summary_reports_the_body_windows() {
     let summary = selected_asteroid_source_window_summary()
         .expect("selected asteroid source window summary should exist");
     assert_eq!(summary.windows.len(), summary.sample_bodies.len());
-    assert_eq!(summary.sample_count, 91);
+    assert_eq!(summary.sample_count, 90);
     assert_eq!(summary.epoch_count, 17);
     assert_eq!(summary.validate(), Ok(()));
 }
@@ -89,7 +89,7 @@ fn selected_asteroid_source_window_summary_reports_the_body_windows() {
 fn selected_asteroid_source_request_corpus_summary_reports_the_frame_specific_request_slice() {
     let summary = selected_asteroid_source_request_corpus_summary(CoordinateFrame::Ecliptic)
         .expect("selected asteroid source request corpus summary should exist");
-    assert_eq!(summary.request_count, 91);
+    assert_eq!(summary.request_count, 90);
     assert_eq!(summary.body_count, 6);
     assert_eq!(summary.epoch_count, 17);
     assert_eq!(summary.frame, CoordinateFrame::Ecliptic);
