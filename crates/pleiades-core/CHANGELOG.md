@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.8.1] - 2026-10-06
+
+### Fixed
+
+- Take nutation off sidereal house cusps and angles ([#157](https://github.com/rahulmutt/pleiades/pull/157)) ([#175](https://github.com/rahulmutt/pleiades/pull/175)) ([b5aeaea](https://github.com/rahulmutt/pleiades/commit/b5aeaea8525ce01bc90f4aac7c8e3c8a0b449a8e))
+- Report a failed apparent reduction at the snapshot level ([#170](https://github.com/rahulmutt/pleiades/pull/170)) ([#176](https://github.com/rahulmutt/pleiades/pull/176)) ([da25051](https://github.com/rahulmutt/pleiades/commit/da250512f50054eda685ebe6809bd6788c8c12fe))
+- Put sidereal Whole Sign and Equal (1=Aries) cusps on sidereal sign boundaries ([#180](https://github.com/rahulmutt/pleiades/pull/180)) ([#183](https://github.com/rahulmutt/pleiades/pull/183)) ([f646409](https://github.com/rahulmutt/pleiades/commit/f646409c1647da36be0bf8adf4ff20fbaad995f5))
+- Assign a body's house from the longitude its placement reports ([#182](https://github.com/rahulmutt/pleiades/pull/182)) ([#184](https://github.com/rahulmutt/pleiades/pull/184)) ([06d2984](https://github.com/rahulmutt/pleiades/commit/06d29848a508d7b305d58dbcc7840269c2a76780))
+- Report the ascmc chart points in a sidereal chart's own zodiac ([#179](https://github.com/rahulmutt/pleiades/pull/179)) ([#185](https://github.com/rahulmutt/pleiades/pull/185)) ([2508022](https://github.com/rahulmutt/pleiades/commit/2508022dc71d904cb9428891a4730154b75cf678))
+
 ## [0.8.0] - 2026-10-05
 
 ### Breaking Changes

@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.7.2] - 2026-10-06
+
+### Added
+
+- Add previous_station ([#167](https://github.com/rahulmutt/pleiades/pull/167)) ([#187](https://github.com/rahulmutt/pleiades/pull/187)) ([daea37e](https://github.com/rahulmutt/pleiades/commit/daea37edd39f809ab71c1f925b6f840f77fb637f))
+- Add previous_aspect ([#168](https://github.com/rahulmutt/pleiades/pull/168)) ([#189](https://github.com/rahulmutt/pleiades/pull/189)) ([9bebf13](https://github.com/rahulmutt/pleiades/commit/9bebf1348f42d98f0341f29095fe7e31e0349346))
+- Give event results a civil() datetime ([#165](https://github.com/rahulmutt/pleiades/pull/165)) ([#190](https://github.com/rahulmutt/pleiades/pull/190)) ([15eeb36](https://github.com/rahulmutt/pleiades/commit/15eeb36842a376ef86db2fa07b34762f6a055cf0))
+
+### Fixed
+
+- Fail nod_aps with a typed error for a point with no direction ([#161](https://github.com/rahulmutt/pleiades/pull/161)) ([#177](https://github.com/rahulmutt/pleiades/pull/177)) ([76be56b](https://github.com/rahulmutt/pleiades/commit/76be56bf9c7410db1c061a1077dabf350397dc56))
+- Settle backward longitude crossings and range ends at the query instant ([#159](https://github.com/rahulmutt/pleiades/pull/159)) ([#181](https://github.com/rahulmutt/pleiades/pull/181)) ([0a29db9](https://github.com/rahulmutt/pleiades/commit/0a29db92c0e260dcf413c579146c932d7f0fcb9d))
+- Sample a backward search's empty range inside the window ([#159](https://github.com/rahulmutt/pleiades/pull/159)) ([#186](https://github.com/rahulmutt/pleiades/pull/186)) ([de77718](https://github.com/rahulmutt/pleiades/commit/de777188cbabe9cbb95b35af2125985565c8fb53))
+- Report an apparent read reaching before the window as OutOfWindow ([#163](https://github.com/rahulmutt/pleiades/pull/163)) ([#191](https://github.com/rahulmutt/pleiades/pull/191)) ([9e33099](https://github.com/rahulmutt/pleiades/commit/9e33099812568bfc7c9d5149460e0f64302e6833))
+
 ## [0.7.1] - 2026-10-05
 
 ### Added
