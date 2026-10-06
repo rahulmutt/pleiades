@@ -150,7 +150,7 @@ impl PackagedArtifactFitEnvelopeSummary {
         // ecliptic+distance state). The fit-truth backend (see `FitTruthBackend`) measures major
         // bodies against the dense de440 production reference corpus (full 1900–2100 window, ≥3
         // entries/body, brackets every sampled epoch) and asteroid/custom bodies against the
-        // JplSnapshotBackend they were fit from. Both `expected_sample_count` and `sample_count`
+        // reference snapshot rows (`snapshot_fit_source`) they were fit from. Both `expected_sample_count` and `sample_count`
         // are derived from the same realized sample set, so the two checks below are informational
         // consistency guards (they confirm the live summary was built from the same realized set)
         // rather than a strict planned-vs-realized invariant.
@@ -401,7 +401,8 @@ where
     // `FitTruthBackend`: major bodies against the dense de440 production reference
     // corpus (interior ∪ boundary ∪ fast_clusters, full 1900–2100 window, ≥3
     // entries/body so it brackets every sampled epoch and never extrapolates), and
-    // asteroid/custom bodies against the `JplSnapshotBackend` they were fit from.
+    // asteroid/custom bodies against the reference snapshot rows
+    // (`snapshot_fit_source`) they were fit from.
     //
     // The expected count is DEFINED as the number of GENUINELY COVERABLE planned
     // samples for the artifact's window — i.e. exactly the realized fit samples
@@ -427,15 +428,15 @@ fn packaged_artifact_fit_expected_sample_count(artifact: &CompressedArtifact) ->
 ///
 /// The artifact generator (`regenerate.rs`) fits the ten major bodies from the
 /// de440 kernel and fits the selected-asteroid / custom bodies from the narrow
-/// `JplSnapshotBackend` reference snapshot (`regenerate.rs:162–182`,
-/// "major bodies are fit from the kernel, never from the snapshot"). This truth
-/// backend mirrors that split:
+/// reference snapshot rows (`body_segments_from_entries` over
+/// `snapshot_fit_source`; "major bodies are fit from the kernel, never from the
+/// snapshot"). This truth backend mirrors that split:
 /// - major bodies → the dense de440-derived production reference corpus
 ///   (interior ∪ boundary ∪ fast_clusters), the kernel-free analogue of the de440
 ///   kernel they were fit from. It spans the full 1900–2100 window with ≥3
 ///   entries/body so Lagrange interpolation never extrapolates.
-/// - selected-asteroid / custom bodies → `JplSnapshotBackend`, the exact source
-///   they were fit against. Measuring asteroids against the corpus instead would
+/// - selected-asteroid / custom bodies → the reference snapshot rows through
+///   `snapshot_fit_source`, the exact source they were fit against. Measuring asteroids against the corpus instead would
 ///   compare them to a body they were never fit from, and the constrained asteroid
 ///   corpus is too coarse for fast movers (Eros at ~180-day spacing) so cubic
 ///   interpolation overshoots into non-physical multi-million-AU deltas — an
@@ -457,7 +458,7 @@ fn packaged_artifact_fit_expected_sample_count(artifact: &CompressedArtifact) ->
 /// touches the committed CSVs.
 struct FitTruthBackend {
     corpus: SnapshotCorpusBackend,
-    snapshot: JplSnapshotBackend,
+    snapshot: &'static SnapshotCorpusBackend,
 }
 
 impl FitTruthBackend {
@@ -507,7 +508,7 @@ fn fit_truth_backend() -> &'static FitTruthBackend {
             .collect::<Vec<_>>();
         FitTruthBackend {
             corpus: SnapshotCorpusBackend::from_entries(entries),
-            snapshot: JplSnapshotBackend,
+            snapshot: crate::regenerate::snapshot_fit_source(),
         }
     })
 }
@@ -520,7 +521,6 @@ where
     F: FnMut(&CelestialBody) -> bool,
 {
     let reference_backend = fit_truth_backend();
-    let packaged_backend = packaged_backend();
     let mut samples = Vec::new();
 
     for body_artifact in &artifact.bodies {
@@ -538,14 +538,16 @@ where
                     Ok(result) => result,
                     Err(_) => continue,
                 };
-                let actual = match packaged_backend.position(&request) {
-                    Ok(result) => result,
+                // The artifact is read directly, not through the backend, so a body the
+                // artifact carries but the backend declines is still measured.
+                let actual_ecliptic = match artifact.lookup_ecliptic(
+                    &body_artifact.body,
+                    crate::regenerate::normalize_lookup_instant(request.instant),
+                ) {
+                    Ok(ecliptic) => ecliptic,
                     Err(_) => continue,
                 };
-
-                let (Some(expected_ecliptic), Some(actual_ecliptic)) =
-                    (expected.ecliptic, actual.ecliptic)
-                else {
+                let Some(expected_ecliptic) = expected.ecliptic else {
                     continue;
                 };
                 let (Some(expected_distance), Some(actual_distance)) =
@@ -608,7 +610,6 @@ where
     F: FnMut(&CelestialBody) -> bool,
 {
     let reference_backend = fit_truth_backend();
-    let packaged_backend = packaged_backend();
     let mut samples = Vec::new();
 
     for body_artifact in &artifact.bodies {
@@ -626,14 +627,16 @@ where
                     Ok(result) => result,
                     Err(_) => continue,
                 };
-                let actual = match packaged_backend.position(&request) {
-                    Ok(result) => result,
+                // The artifact is read directly, not through the backend, so a body the
+                // artifact carries but the backend declines is still measured.
+                let actual_ecliptic = match artifact.lookup_ecliptic(
+                    &body_artifact.body,
+                    crate::regenerate::normalize_lookup_instant(request.instant),
+                ) {
+                    Ok(ecliptic) => ecliptic,
                     Err(_) => continue,
                 };
-
-                let (Some(expected_ecliptic), Some(actual_ecliptic)) =
-                    (expected.ecliptic, actual.ecliptic)
-                else {
+                let Some(expected_ecliptic) = expected.ecliptic else {
                     continue;
                 };
                 let (Some(expected_distance), Some(actual_distance)) =

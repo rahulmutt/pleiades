@@ -372,6 +372,7 @@ impl EphemerisBackend for PackagedDataBackend {
             .bodies
             .iter()
             .map(|series| series.body.clone())
+            .filter(|body| !crate::is_carried_but_unserved(body))
             .collect::<Vec<_>>();
         let range = artifact_time_range(artifact);
 
@@ -439,11 +440,12 @@ impl EphemerisBackend for PackagedDataBackend {
                 | CelestialBody::MeanNode
                 | CelestialBody::MeanApogee
                 | CelestialBody::MeanPerigee
-        ) || self
-            .artifact
-            .bodies
-            .iter()
-            .any(|series| series.body == body)
+        ) || (!crate::is_carried_but_unserved(&body)
+            && self
+                .artifact
+                .bodies
+                .iter()
+                .any(|series| series.body == body))
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
@@ -483,6 +485,18 @@ impl EphemerisBackend for PackagedDataBackend {
         ) {
             let body = req.body.clone();
             return self.derived_point_position(req, &|i| self.mean_lunar_point_ecliptic(&body, i));
+        }
+
+        if crate::is_carried_but_unserved(&req.body) {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::UnsupportedBody,
+                format!(
+                    "packaged data carries {} but does not serve it: its segments are fitted \
+                     to rows too sparse to interpolate. Serve it from pleiades_jpl::SpkBackend \
+                     with a JPL kernel",
+                    req.body
+                ),
+            ));
         }
 
         let lookup_instant = normalize_lookup_instant(req.instant);

@@ -2758,7 +2758,7 @@ fn build_from_reference_produces_all_bodies_with_spanning_segments() {
                 // matches the expected snapshot-fit count — this is
                 // format/version-independent and does not decode the committed
                 // .bin.
-                use pleiades_jpl::{reference_snapshot, JplSnapshotBackend, SnapshotEntry};
+                use pleiades_jpl::{reference_snapshot, SnapshotEntry};
                 use std::cmp::Ordering;
                 let snap = reference_snapshot();
                 let mut e: Vec<&SnapshotEntry> = snap.iter().filter(|x| x.body == *body).collect();
@@ -2769,8 +2769,11 @@ fn build_from_reference_produces_all_bodies_with_spanning_segments() {
                         .partial_cmp(&right.epoch.julian_day.days())
                         .unwrap_or(Ordering::Equal)
                 });
-                let expected =
-                    crate::regenerate::body_segments_from_entries(&e, &JplSnapshotBackend).len();
+                let expected = crate::regenerate::body_segments_from_entries(
+                    &e,
+                    crate::regenerate::snapshot_fit_source(),
+                )
+                .len();
                 assert_eq!(
                     ba.segments.len(),
                     expected,

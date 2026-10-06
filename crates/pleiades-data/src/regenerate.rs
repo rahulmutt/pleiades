@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::OnceLock;
 use std::{cmp::Ordering, fmt};
 
 use pleiades_backend::{
@@ -12,7 +13,7 @@ use pleiades_compression::{
 };
 use pleiades_jpl::{
     production_generation_source_summary, reference_snapshot, reference_snapshot_summary,
-    JplSnapshotBackend, SnapshotEntry,
+    SnapshotCorpusBackend, SnapshotEntry,
 };
 
 use crate::coverage::{
@@ -23,6 +24,20 @@ use crate::coverage::{
 };
 use crate::data::{packaged_artifact_bytes, packaged_artifact_from_bytes};
 use crate::{packaged_artifact_source_text, packaged_bodies, ARTIFACT_LABEL, AU_IN_KM};
+
+/// The reference snapshot rows behind a backend that interpolates them
+/// without refusing.
+///
+/// The constrained asteroid's segments are fitted to the snapshot's cubic
+/// between rows that can lie decades apart. `JplSnapshotBackend::position`
+/// refuses such a request (issue #158), so the generator and the fit-envelope
+/// check read the same rows through [`SnapshotCorpusBackend`], which runs the
+/// same interpolation and never refuses. Nothing fitted here is served: the
+/// packaged backend declines the bodies fitted this way.
+pub(crate) fn snapshot_fit_source() -> &'static SnapshotCorpusBackend {
+    static SOURCE: OnceLock<SnapshotCorpusBackend> = OnceLock::new();
+    SOURCE.get_or_init(|| SnapshotCorpusBackend::from_entries(reference_snapshot().to_vec()))
+}
 
 pub(crate) fn build_packaged_artifact() -> CompressedArtifact {
     packaged_artifact_from_bytes(packaged_artifact_bytes())
@@ -180,8 +195,7 @@ fn packaged_body_artifacts_from_snapshot(snapshot: &[SnapshotEntry]) -> Vec<Body
                         .unwrap_or(Ordering::Equal)
                 });
 
-                let reference_backend = JplSnapshotBackend;
-                let segments = body_segments_from_entries(&entries, &reference_backend);
+                let segments = body_segments_from_entries(&entries, snapshot_fit_source());
 
                 (body_index, BodyArtifact::new(body, segments))
             }));
@@ -205,7 +219,7 @@ fn packaged_body_artifacts_from_snapshot(snapshot: &[SnapshotEntry]) -> Vec<Body
 
 pub(crate) fn body_segments_from_entries(
     entries: &[&SnapshotEntry],
-    reference_backend: &JplSnapshotBackend,
+    reference_backend: &SnapshotCorpusBackend,
 ) -> Vec<Segment> {
     match entries.len() {
         0 => Vec::new(),
@@ -630,7 +644,7 @@ pub(crate) fn packaged_artifact_segment_validation_fractions_for_body(
 fn packaged_artifact_segment_fit_error(
     body: &CelestialBody,
     segment: &Segment,
-    reference_backend: &JplSnapshotBackend,
+    reference_backend: &SnapshotCorpusBackend,
 ) -> Option<PackagedArtifactSegmentFitError> {
     let artifact = CompressedArtifact::new(
         ArtifactHeader::new(ARTIFACT_LABEL, packaged_artifact_source_text()),
@@ -907,7 +921,7 @@ pub fn packaged_artifact_body_cadence_summary_details() -> PackagedArtifactBodyC
 fn body_segment_windows_for_interval(
     start: &SnapshotEntry,
     end: &SnapshotEntry,
-    reference_backend: &JplSnapshotBackend,
+    reference_backend: &SnapshotCorpusBackend,
 ) -> Vec<Segment> {
     let span_days = end.epoch.julian_day.days() - start.epoch.julian_day.days();
     let span_limit = body_segment_span_limit(&start.body);
@@ -1234,7 +1248,7 @@ fn segment_from_single_entry(entry: &SnapshotEntry) -> Segment {
 pub(crate) fn segment_from_pair(
     start: &SnapshotEntry,
     end: &SnapshotEntry,
-    reference_backend: &JplSnapshotBackend,
+    reference_backend: &SnapshotCorpusBackend,
 ) -> Segment {
     let span_days = end.epoch.julian_day.days() - start.epoch.julian_day.days();
     let span_limit = body_segment_span_limit(&start.body);
@@ -1328,7 +1342,7 @@ fn segment_from_pair_fit_attempt<F>(
     start_coordinates: &EclipticCoordinates,
     end_coordinates: &EclipticCoordinates,
     sample_fraction: &F,
-    reference_backend: &JplSnapshotBackend,
+    reference_backend: &SnapshotCorpusBackend,
     sample_count: usize,
 ) -> Option<(Segment, PackagedArtifactSegmentFitError)>
 where
@@ -1869,7 +1883,7 @@ pub(crate) fn segment_from_pair_fallback(
 fn segment_with_optional_residual_channels(
     body: &CelestialBody,
     segment: Segment,
-    reference_backend: &JplSnapshotBackend,
+    reference_backend: &SnapshotCorpusBackend,
 ) -> Segment {
     let Some(base_error) = packaged_artifact_segment_fit_error(body, &segment, reference_backend)
     else {
@@ -1984,7 +1998,7 @@ where
 fn residual_segment(
     body: &CelestialBody,
     segment: &Segment,
-    reference_backend: &JplSnapshotBackend,
+    reference_backend: &SnapshotCorpusBackend,
     kind: ChannelKind,
 ) -> Option<Segment> {
     if segment
@@ -2448,7 +2462,7 @@ pub(crate) fn build_packaged_artifact_from_reference_over(
                             .partial_cmp(&right.epoch.julian_day.days())
                             .unwrap_or(Ordering::Equal)
                     });
-                    let segments = body_segments_from_entries(&entries, &JplSnapshotBackend);
+                    let segments = body_segments_from_entries(&entries, snapshot_fit_source());
                     handles
                         .push(scope.spawn(move || (body_index, BodyArtifact::new(body, segments))));
                 }

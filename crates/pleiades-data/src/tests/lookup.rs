@@ -95,8 +95,14 @@ fn lookup_uses_packaged_custom_asteroid_segments() {
         })
         .expect("reference snapshot should include asteroid:433-Eros at J2000");
     let body = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
-    let ecliptic = packaged_lookup(&body, reference.epoch)
-        .expect("packaged lookup should succeed for the custom asteroid");
+    // The artifact is read directly: `packaged_lookup` declines Eros (issue #158),
+    // but the artifact still carries its segments.
+    let ecliptic = packaged_artifact()
+        .lookup_ecliptic(
+            &body,
+            crate::regenerate::normalize_lookup_instant(reference.epoch),
+        )
+        .expect("the artifact should carry the custom asteroid");
     let expected = coordinates(reference);
 
     assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-8);
@@ -690,7 +696,7 @@ fn segment_error_prefers_the_fallback_when_it_is_more_accurate() {
 
 #[test]
 fn short_dense_span_prefers_the_fit_candidate_over_the_fallback_when_it_is_no_worse() {
-    let reference_backend = JplSnapshotBackend;
+    let reference_backend = crate::regenerate::snapshot_fit_source();
     let body = CelestialBody::Moon;
     let start_julian_day = 2_451_545.0;
     let end_julian_day = start_julian_day + 1.0;
@@ -718,7 +724,7 @@ fn short_dense_span_prefers_the_fit_candidate_over_the_fallback_when_it_is_no_wo
     let end =
         snapshot_entry_from_ecliptic_coordinates(body.clone(), end_julian_day, end_coordinates);
 
-    let segment = segment_from_pair(&start, &end, &reference_backend);
+    let segment = segment_from_pair(&start, &end, reference_backend);
 
     assert!(segment
         .channels
@@ -996,7 +1002,8 @@ fn backend_metadata_exposes_packaged_scope() {
         .supported_bodies()
         .contains(&CelestialBody::Jupiter));
     assert!(metadata.supported_bodies().contains(&CelestialBody::Pluto));
-    assert!(metadata
+    // The artifact carries Eros, but the backend does not serve it (issue #158).
+    assert!(!metadata
         .supported_bodies()
         .contains(&CelestialBody::Custom(CustomBodyId::new(
             "asteroid", "433-Eros",
@@ -1633,5 +1640,72 @@ fn mean_lunar_points_carry_release_grade_corpus_claims() {
             .count(),
         3,
         "exactly one claim per mean lunar point"
+    );
+}
+
+/// The artifact carries Eros segments fitted to rows decades apart. The
+/// backend does not serve them (issue #158): it reports the body unsupported
+/// so a routing chain moves on to a backend that can answer honestly.
+#[test]
+fn the_backend_does_not_serve_the_constrained_asteroid() {
+    use pleiades_backend::{BodyClaimTier, EphemerisBackend, EphemerisErrorKind};
+    let eros = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
+    let backend = crate::PackagedDataBackend::new();
+
+    assert!(
+        crate::packaged_bodies().contains(&eros),
+        "the artifact still carries it"
+    );
+    assert!(!backend.supports_body(eros.clone()));
+
+    let request = EphemerisRequest {
+        body: eros.clone(),
+        instant: instant_tt(2_451_545.0),
+        observer: None,
+        frame: CoordinateFrame::Ecliptic,
+        zodiac_mode: ZodiacMode::Tropical,
+        apparent: Apparentness::Mean,
+    };
+    let error = backend
+        .position(&request)
+        .expect_err("the constrained asteroid is not served");
+    assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
+    assert!(error.to_string().contains("SpkBackend"), "{error}");
+    let batch_error = backend
+        .positions(std::slice::from_ref(&request))
+        .expect_err("the batch path declines the constrained asteroid too");
+    assert_eq!(batch_error.kind, EphemerisErrorKind::UnsupportedBody);
+
+    let lookup_error = crate::packaged_lookup(&eros, request.instant)
+        .expect_err("the public lookup declines the constrained asteroid");
+    assert_eq!(
+        lookup_error.kind,
+        pleiades_compression::CompressionErrorKind::MissingBody
+    );
+    assert!(
+        lookup_error.to_string().contains("SpkBackend"),
+        "{lookup_error}"
+    );
+    assert!(
+        crate::packaged_artifact()
+            .lookup_ecliptic(
+                &eros,
+                crate::regenerate::normalize_lookup_instant(request.instant)
+            )
+            .is_ok(),
+        "the artifact still carries the constrained asteroid"
+    );
+
+    let metadata = backend.metadata();
+    assert!(metadata.claim_for(&eros).is_none());
+    assert!(metadata
+        .release_grade_bodies()
+        .iter()
+        .all(|body| body != &eros));
+    assert_eq!(
+        metadata
+            .claim_for(&CelestialBody::Pluto)
+            .map(|claim| claim.tier),
+        Some(BodyClaimTier::ReleaseGrade)
     );
 }

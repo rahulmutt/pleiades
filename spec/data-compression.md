@@ -162,9 +162,11 @@ and measured against the de440-derived hold-out corpus.
 | Outer planet | Jupiter, Saturn, Uranus, Neptune, Pluto | 5.0″ | 5.0″ | 1,000 km | 0.05 ″/day | 1×10⁻⁴ AU/day |
 | Asteroid | Eros | 30″ | 30″ | 5,000,000 km | 120 ″/day | 1×10⁻² AU/day |
 
-**Asteroid note:** Eros ceilings are a self-consistency target only. Eros is absent from de440 so
-no independent-truth gate is applied; the ceiling documents the documented target derived from the
-committed Horizons reference snapshot.
+**Asteroid note:** Eros ceilings are a self-consistency target only: they compare the artifact
+with the 17 reference rows it was fitted to. No independent-truth gate is applied, and against the
+JPL `sb441-n373s` rows the fit is wrong by tens of degrees on almost every date. The packaged
+backend therefore does not serve Eros; the segments remain in the artifact until they are
+regenerated from dense data (issue #201).
 
 **Size budget:** Encoded artifact ≤ 12,000,000 bytes (measured ~10.0 MB); enforced as a hard CI
 gate via `PACKAGED_BUDGETS.max_encoded_bytes`.

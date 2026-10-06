@@ -461,7 +461,7 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(release_notes.contains("API stability posture:"));
     assert!(release_notes.contains("Deprecation policy:"));
     assert!(release_notes.contains("Release-specific coverage:"));
-    assert!(release_notes.contains("selected asteroid coverage"));
+    assert!(release_notes.contains("serves the selected asteroids"));
     assert!(release_notes.contains("Selected asteroid evidence: 6 exact J2000 samples"));
     assert!(release_notes.contains("Selected asteroid batch parity: 6 requests across 6 bodies at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); frame mix: 3 ecliptic, 3 equatorial; batch/single parity preserved"));
     assert!(release_notes.contains("Selected asteroid equatorial evidence: 6 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) using a mean-obliquity equatorial transform"));
@@ -745,10 +745,10 @@ fn release_bundle_writes_expected_artifacts() {
         }));
     assert!(release_summary.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
     assert!(release_summary.contains(
-            "JPL reference snapshot equatorial parity: 277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 272 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
     assert!(release_summary.contains(
-            "JPL reference snapshot batch parity: 277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot batch parity: 272 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
     assert!(release_summary.contains("Production generation coverage:"));
     assert!(release_summary.contains("JPL production-generation coverage:"));
@@ -789,7 +789,7 @@ fn release_bundle_writes_expected_artifacts() {
         .contains(&reference_snapshot_high_curvature_epoch_coverage_summary_for_report()));
     assert!(release_summary.contains(&comparison_snapshot_body_class_coverage_summary_for_report()));
     assert!(release_summary
-        .contains("selected asteroids: 95 rows across 6 bodies and 17 epochs; asteroid windows: "));
+        .contains("selected asteroids: 90 rows across 6 bodies and 17 epochs; asteroid windows: "));
     assert!(release_summary.contains(&reference_snapshot_lunar_boundary_summary_for_report()));
     assert!(release_summary.contains(&reference_snapshot_source_summary_for_report()));
     assert!(release_summary.contains(&reference_snapshot_source_window_summary_for_report()));
@@ -1014,7 +1014,7 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(backend_matrix_summary.contains("Algorithmic: 2"));
     assert!(backend_matrix_summary.contains("Composite: 1"));
     assert!(backend_matrix_summary.contains(
-            "JPL reference snapshot equatorial parity: 277 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
+            "JPL reference snapshot equatorial parity: 272 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies:"
         ));
     assert!(
         backend_matrix_summary.contains(&reference_snapshot_major_body_bridge_summary_for_report())

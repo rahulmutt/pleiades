@@ -766,7 +766,7 @@ pub fn packaged_artifact_fit_channel_outlier_summary_details(
 // draft artifact. Each body is measured against the SAME source it was fit from:
 // major bodies against the dense de440 production reference corpus (1900–2100, ≥3
 // entries/body, no extrapolation), selected-asteroid/custom bodies against the
-// JplSnapshotBackend reference snapshot they were fit against. So the posture
+// reference snapshot rows (`snapshot_fit_source`) they were fit against. So the posture
 // reflects measured reality, not an enforced target. These are sample-residual
 // envelopes (not the per-body hold-out accuracy); they are finite and bounded.
 // SP2 tunes these toward real accuracy goals.

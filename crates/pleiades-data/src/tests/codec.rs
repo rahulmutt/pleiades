@@ -99,18 +99,17 @@ fn packaged_artifact_decode_rejects_checksum_corruption() {
 }
 
 #[test]
-fn packaged_metadata_claims_seventeen_bodies_release_grade() {
-    use pleiades_backend::{BodyClaimTier, CelestialBody, CustomBodyId, EphemerisBackend};
+fn packaged_metadata_claims_sixteen_bodies_release_grade() {
+    use pleiades_backend::{BodyClaimTier, CelestialBody, EphemerisBackend};
     let backend = crate::PackagedDataBackend::default();
     let meta = backend.metadata();
-    // 11 artifact bodies + 2 derived osculating apsides (TrueApogee, TruePerigee) + 1
+    // 10 served artifact bodies + 2 derived osculating apsides (TrueApogee, TruePerigee) + 1
     // derived osculating node (TrueNode) + 3 mean lunar points (MeanNode, MeanApogee,
     // MeanPerigee).
-    assert_eq!(meta.release_grade_bodies().len(), 17);
+    assert_eq!(meta.release_grade_bodies().len(), 16);
     for body in [
         CelestialBody::Pluto,
         CelestialBody::Moon,
-        CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
         CelestialBody::TrueApogee,
         CelestialBody::TruePerigee,
         CelestialBody::TrueNode,
@@ -172,6 +171,39 @@ fn snapshot_reconstruction_covers_only_constrained_asteroids() {
         !bodies.contains(&pleiades_backend::CelestialBody::Sun),
         "major bodies must not come from the snapshot path"
     );
+}
+
+/// The generator, reading the snapshot rows through `SnapshotCorpusBackend`,
+/// reproduces the committed Eros segments once they are quantized: encoding
+/// the regenerated artifact and decoding it yields the committed artifact's
+/// Eros body. The checksum additionally pins the whole regenerated artifact.
+/// The kernel-free regeneration path returns the committed bytes and proves
+/// nothing about the generator, so this is the test that does.
+#[test]
+fn snapshot_regeneration_reproduces_the_committed_constrained_asteroid() {
+    use pleiades_backend::{CelestialBody, CustomBodyId};
+    let eros = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
+    let regenerated = try_regenerate_packaged_artifact_from_snapshot(reference_snapshot())
+        .expect("the reference snapshot should regenerate");
+    // The in-memory fit holds unquantized coefficients; the committed artifact
+    // holds quantized ones, so compare after an encode/decode round trip.
+    let round_tripped = CompressedArtifact::decode(
+        &regenerated
+            .encode()
+            .expect("the regenerated artifact should encode"),
+    )
+    .expect("the regenerated artifact should decode");
+    let eros_of = |artifact: &CompressedArtifact| {
+        artifact
+            .bodies
+            .iter()
+            .find(|series| series.body == eros)
+            .cloned()
+    };
+    let committed = eros_of(packaged_artifact()).expect("the committed artifact carries Eros");
+    assert_eq!(eros_of(&round_tripped), Some(committed));
+    // Measured 2026-10-06 from the generator's own output.
+    assert_eq!(regenerated.checksum, 4165010080501629842);
 }
 
 #[test]

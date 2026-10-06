@@ -571,7 +571,7 @@ pub fn reference_snapshot_manifest_summary_for_report() -> String {
         Ok(()) => match pleiades_jpl::validate_snapshot_manifest_footprint(
             "reference snapshot",
             pleiades_jpl::snapshot_entries(),
-            277,
+            272,
             16,
             23,
         ) {
@@ -1192,7 +1192,7 @@ mod tests {
         let summary = pleiades_jpl::reference_snapshot_source_window_summary()
             .expect("reference snapshot source window summary should exist");
 
-        assert_eq!(summary.sample_count, 277);
+        assert_eq!(summary.sample_count, 272);
         assert_eq!(summary.sample_bodies.len(), 16);
         assert_eq!(summary.epoch_count, 23);
         assert_eq!(summary.validate(), Ok(()));
@@ -1221,15 +1221,15 @@ mod tests {
                 "99942-Apophis"
             ))
         );
-        assert_eq!(summary.windows[5].sample_count, 10);
-        assert_eq!(summary.windows[5].epoch_count, 10);
+        assert_eq!(summary.windows[5].sample_count, 6);
+        assert_eq!(summary.windows[5].epoch_count, 6);
         assert_eq!(
             summary.windows[5].earliest_epoch.julian_day.days(),
             2_378_498.5
         );
         assert_eq!(
             summary.windows[5].latest_epoch.julian_day.days(),
-            2_634_167.0
+            2_451_919.5
         );
         assert_eq!(
             summary.windows[9].body,

@@ -519,12 +519,25 @@ fn parse_ayanamsa_rejects_padded_custom_definition_names() {
     );
 }
 
+/// Ceres at J2000 sits on a snapshot row. The apparent reduction's light-time
+/// step lands off the row and is refused (issue #158), so the placement
+/// renders on its mean place. At JD 2451700, between J2000 and the January
+/// 2001 cluster, no rows support an interpolation, so the chart itself fails
+/// with the snapshot's refusal, which names `SpkBackend`.
 #[test]
 fn chart_command_routes_selected_asteroids_via_jpl_fallback() {
     let rendered = render_chart(&["--jd", "2451545.0", "--body", "Ceres"])
         .expect("asteroid chart should render");
-    assert!(rendered.contains("Ceres"));
+    assert!(rendered.contains("Ceres 184.4"), "{rendered}");
     assert!(rendered.contains("Backend:"));
+    assert!(
+        rendered.contains("Apparentness: Apparent (0 of 1 placements reduced)"),
+        "{rendered}"
+    );
+
+    let refused = render_chart(&["--jd", "2451700.0", "--body", "Ceres"])
+        .expect_err("no snapshot row supports this date");
+    assert!(refused.contains("SpkBackend"), "{refused}");
 }
 
 #[test]

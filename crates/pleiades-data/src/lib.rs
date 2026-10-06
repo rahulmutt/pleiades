@@ -7,10 +7,16 @@
 //! This crate now ships a small stage-5 draft artifact backed by the
 //! `pleiades-compression` codec. The bundled data is regenerated from the
 //! checked-in JPL reference snapshot and validated against a deterministic
-//! binary fixture that covers the comparison-body planetary set plus the
-//! source-backed custom asteroid `asteroid:433-Eros`, and the backend falls
-//! back to other providers when callers request bodies outside that packaged
-//! slice. The packaged artifact stores J2000 ecliptic coordinates directly,
+//! binary fixture. The backend serves the Sun, the Moon and Mercury through
+//! Pluto, and falls back to other providers when callers request bodies
+//! outside that packaged slice.
+//!
+//! The artifact also carries segments for `asteroid:433-Eros`, fitted to 17
+//! reference rows. They are not served: outside those rows the fit is wrong by
+//! tens of degrees. `PackagedDataBackend` reports the body unsupported, and
+//! `packaged_lookup` refuses it too.
+//!
+//! The packaged artifact stores J2000 ecliptic coordinates directly,
 //! reconstructs equatorial coordinates from the stored channels and
 //! mean-obliquity transform when requested, and adds residual correction
 //! channels on high-curvature spans when they improve the fit. A
@@ -135,7 +141,6 @@ pub(crate) use pleiades_compression::{
 #[cfg(test)]
 pub(crate) use pleiades_jpl::{
     production_generation_source_summary_for_report, production_holdout_corpus, reference_snapshot,
-    JplSnapshotBackend,
 };
 
 const PACKAGE_NAME: &str = "pleiades-data";
@@ -191,12 +196,29 @@ pub(crate) fn packaged_bodies() -> &'static [CelestialBody] {
     })
 }
 
-/// Returns the per-body release claims for the packaged artifact: every shipped
-/// body is release-grade, validated inside the artifact build against the corpus.
+/// Whether the artifact carries `body` without the backend serving it.
+///
+/// `asteroid:433-Eros` is fitted to 17 reference rows that lie decades apart
+/// outside one nine-day cluster, so its segments are wrong by tens of degrees
+/// on almost every date (issue #158). The artifact keeps them, so its bytes
+/// and checksum are unchanged, and [`PackagedDataBackend`] declines the body.
+/// The dense-data follow-up (issue #201) removes or replaces the segments.
+pub(crate) fn is_carried_but_unserved(body: &CelestialBody) -> bool {
+    matches!(
+        body,
+        CelestialBody::Custom(id) if id.catalog == "asteroid" && id.designation == "433-Eros"
+    )
+}
+
+/// Returns the per-body release claims for the packaged artifact: every body
+/// the backend serves is release-grade, validated inside the artifact build
+/// against the corpus. A body the artifact carries but the backend does not
+/// serve (`asteroid:433-Eros`, issue #201) has no claim.
 pub fn packaged_body_claims() -> Vec<pleiades_backend::BodyClaim> {
     use pleiades_backend::{AccuracyClass, BodyClaim, ClaimEvidence};
     packaged_bodies()
         .iter()
+        .filter(|body| !is_carried_but_unserved(body))
         .cloned()
         .map(|body| {
             BodyClaim::release_grade(body, AccuracyClass::High, ClaimEvidence::ArtifactValidated)

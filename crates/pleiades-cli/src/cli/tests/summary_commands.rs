@@ -463,7 +463,7 @@ fn release_summary_commands_render_compact_reports() {
         .contains("Comparison corpus release-grade guard: Pluto excluded from tolerance evidence"));
     assert!(release_summary.contains("House formula families: 7 (Equal, Equatorial projection, Great-circle, Quadrant, Sector, Solar arc, Whole Sign)"));
     assert!(release_summary.lines().any(|line| {
-        line == "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.7.25, api-stability=pleiades-api-stability/0.3.0"
+        line == "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.7.26, api-stability=pleiades-api-stability/0.3.0"
     }));
     assert!(release_summary.contains("API stability summary line: API stability posture: pleiades-api-stability/0.3.0; stable surfaces: 8; experimental surfaces: 3; deprecation policy items: 4; intentional limits: 3"));
     assert!(release_summary.lines().any(|line| {
@@ -521,7 +521,7 @@ fn release_summary_commands_render_compact_reports() {
         .lines()
         .any(|line| { line == format!("Packaged batch parity: {expected_tt_tdb}") }));
     assert!(release_summary.contains(
-        "Packaged batch parity: Packaged mixed TT/TDB batch parity: 11 requests across 11 bodies, TT requests=6, TDB requests=5; quality counts: Exact=0, Interpolated=11, Approximate=0, Unknown=0; order=preserved, single-query parity=preserved"
+        "Packaged batch parity: Packaged mixed TT/TDB batch parity: 10 requests across 10 bodies, TT requests=5, TDB requests=5; quality counts: Exact=0, Interpolated=10, Approximate=0, Unknown=0; order=preserved, single-query parity=preserved"
     ));
     assert!(release_summary.contains("Lunar high-curvature equatorial continuity evidence"));
     assert!(release_summary.contains("Artifact inspection:"));

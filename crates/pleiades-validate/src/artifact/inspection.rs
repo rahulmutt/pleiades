@@ -418,8 +418,14 @@ pub(crate) fn benchmark_packaged_artifact_batch_lookup(
     Ok(report)
 }
 
+/// Endpoints and midpoints of every body the packaged backend serves. A body
+/// the artifact carries but the backend declines is left out: the corpus is
+/// run against the backend.
 pub(crate) fn packaged_artifact_corpus() -> ValidationCorpus {
-    artifact_comparison_corpus(packaged_artifact())
+    let backend = pleiades_data::PackagedDataBackend::new();
+    artifact_comparison_corpus_filtered(packaged_artifact(), |body| {
+        backend.supports_body(body.clone())
+    })
 }
 
 fn artifact_timing_corpus(artifact: &CompressedArtifact) -> ValidationCorpus {
@@ -432,10 +438,6 @@ fn artifact_timing_corpus(artifact: &CompressedArtifact) -> ValidationCorpus {
 
 fn artifact_model_comparison_corpus(artifact: &CompressedArtifact) -> ValidationCorpus {
     artifact_comparison_corpus_filtered(artifact, |body| !matches!(body, CelestialBody::Custom(_)))
-}
-
-fn artifact_comparison_corpus(artifact: &CompressedArtifact) -> ValidationCorpus {
-    artifact_comparison_corpus_filtered(artifact, |_| true)
 }
 
 fn artifact_comparison_corpus_filtered<F>(

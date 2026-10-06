@@ -49,7 +49,7 @@ pub(crate) fn sample_request_for(
 /// kernel). When neither is set — as in the default build/test environment — an
 /// empty backend is built: its `covered_bodies()` is empty and it contributes no
 /// claims, so the derived posture stays well-defined (packaged-data still carries
-/// the release-grade Pluto/Moon/Eros claims). Kernel-absence for a
+/// its own release-grade claims; Eros has none). Kernel-absence for a
 /// `ReleaseGrade`-intended body is reported by the claims audit, not here.
 pub(crate) fn spk_release_backend() -> pleiades_jpl::SpkBackend {
     // Probe each env var, collect paths that are (a) set and (b) loadable.
