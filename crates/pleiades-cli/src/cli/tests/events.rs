@@ -361,3 +361,43 @@ fn help_lists_the_event_commands() {
     assert!(run(&["stations", "--help"]).contains("Usage:\n  stations "));
     assert!(run(&["aspects", "--help"]).contains("Usage:\n  aspects "));
 }
+
+#[test]
+fn a_next_search_the_window_cuts_short_is_a_note_not_an_error() {
+    let rendered = run(&[
+        "aspects",
+        "--pair",
+        "Sun,Mercury",
+        "--pair",
+        "Sun,Moon",
+        "--angle",
+        "60",
+        "--next",
+        "--at",
+        "2488039.5",
+    ]);
+    // Sun–Moon 60° happens within days; Sun–Mercury never does.
+    assert!(rendered.contains("Sun–Moon 60°"), "{rendered}");
+    assert!(
+        rendered.contains("Sun–Mercury 60°: none before the window's end (2100-01-01)"),
+        "{rendered}"
+    );
+}
+
+#[test]
+fn a_previous_search_the_window_cuts_short_is_a_note() {
+    let rendered = run(&[
+        "stations",
+        "--body",
+        "Mercury",
+        "--frame",
+        "mean",
+        "--previous",
+        "--at",
+        "2415021.5",
+    ]);
+    assert!(
+        rendered.contains("Mercury: none after the window's start (1900-01-01)"),
+        "{rendered}"
+    );
+}

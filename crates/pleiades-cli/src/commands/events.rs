@@ -195,27 +195,66 @@ fn aspect_line(event: &AspectEvent) -> Result<Line, String> {
     )
 }
 
-/// The header line, then the events in time order or a line saying there are
-/// none.
-fn render(title: &str, shared: &SharedArgs, mut lines: Vec<Line>, none: &str) -> String {
+/// The header line, then the events in time order, then a note for each search
+/// the window cut short; a line saying there are none when there is neither.
+fn render(
+    title: &str,
+    shared: &SharedArgs,
+    mut lines: Vec<Line>,
+    notes: &[String],
+    none: &str,
+) -> String {
     let reference = shared.reference();
     let mut out = format!(
         "{title} ({}; {} zodiac)\n",
         frame_label(reference.frame),
         reference.zodiac
     );
-    if lines.is_empty() {
+    if lines.is_empty() && notes.is_empty() {
         out.push_str(none);
         return out;
     }
     lines.sort_by(|a, b| a.julian_day.total_cmp(&b.julian_day));
-    let texts: Vec<&str> = lines.iter().map(|line| line.text.as_str()).collect();
+    let texts: Vec<&str> = lines
+        .iter()
+        .map(|line| line.text.as_str())
+        .chain(notes.iter().map(String::as_str))
+        .collect();
     out.push_str(&texts.join("\n"));
     out
 }
 
 fn event_error(error: EventError) -> String {
     error.to_string()
+}
+
+/// The note for a `--next`/`--previous` search the window cut short.
+fn cut_short_note(label: &str, search: &Search) -> String {
+    match search {
+        Search::Previous(_) => format!("{label}: none after the window's start (1900-01-01)"),
+        _ => format!("{label}: none before the window's end (2100-01-01)"),
+    }
+}
+
+/// Adds a `--next`/`--previous` result to `found`, or its note to `notes`
+/// when the window ended first; any other error fails the command.
+fn found_or_note<T>(
+    result: Result<Option<T>, EventError>,
+    found: &mut Vec<T>,
+    notes: &mut Vec<String>,
+    note: impl FnOnce() -> String,
+) -> Result<(), String> {
+    match result {
+        Ok(event) => {
+            found.extend(event);
+            Ok(())
+        }
+        Err(EventError::OutOfWindow { .. }) => {
+            notes.push(note());
+            Ok(())
+        }
+        Err(error) => Err(event_error(error)),
+    }
 }
 
 pub(crate) fn render_stations(args: &[&str]) -> Result<String, String> {
@@ -245,30 +284,40 @@ pub(crate) fn render_stations(args: &[&str]) -> Result<String, String> {
     let reference = shared.reference();
     let engine = EventEngine::new(default_chart_backend());
     let mut found: Vec<Station> = Vec::new();
+    let mut notes: Vec<String> = Vec::new();
     for body in bodies {
+        let label = body.to_string();
         match &search {
             Search::Range { from, to } => found.extend(
                 engine
                     .stations_in_range(body, reference.clone(), *from, *to)
                     .map_err(event_error)?,
             ),
-            Search::Next(at) => found.extend(
-                engine
-                    .next_station(body, reference.clone(), *at)
-                    .map_err(event_error)?,
-            ),
-            Search::Previous(at) => found.extend(
-                engine
-                    .previous_station(body, reference.clone(), *at)
-                    .map_err(event_error)?,
-            ),
+            Search::Next(at) => found_or_note(
+                engine.next_station(body, reference.clone(), *at),
+                &mut found,
+                &mut notes,
+                || cut_short_note(&label, &search),
+            )?,
+            Search::Previous(at) => found_or_note(
+                engine.previous_station(body, reference.clone(), *at),
+                &mut found,
+                &mut notes,
+                || cut_short_note(&label, &search),
+            )?,
         }
     }
     let lines = found
         .iter()
         .map(station_line)
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(render("Stations", &shared, lines, "no stations found"))
+    Ok(render(
+        "Stations",
+        &shared,
+        lines,
+        &notes,
+        "no stations found",
+    ))
 }
 
 /// `<first>,<second>` as two bodies.
@@ -312,8 +361,10 @@ pub(crate) fn render_aspects(args: &[&str]) -> Result<String, String> {
     let reference = shared.reference();
     let engine = EventEngine::new(default_chart_backend());
     let mut found: Vec<AspectEvent> = Vec::new();
+    let mut notes: Vec<String> = Vec::new();
     for (first, second) in &pairs {
         for &angle in &angles {
+            let label = format!("{first}–{second} {}°", angle.degrees());
             let (first, second, reference) = (first.clone(), second.clone(), reference.clone());
             match &search {
                 Search::Range { from, to } => found.extend(
@@ -321,16 +372,18 @@ pub(crate) fn render_aspects(args: &[&str]) -> Result<String, String> {
                         .aspects_in_range(first, second, angle, reference, *from, *to)
                         .map_err(event_error)?,
                 ),
-                Search::Next(at) => found.extend(
-                    engine
-                        .next_aspect(first, second, angle, reference, *at)
-                        .map_err(event_error)?,
-                ),
-                Search::Previous(at) => found.extend(
-                    engine
-                        .previous_aspect(first, second, angle, reference, *at)
-                        .map_err(event_error)?,
-                ),
+                Search::Next(at) => found_or_note(
+                    engine.next_aspect(first, second, angle, reference, *at),
+                    &mut found,
+                    &mut notes,
+                    || cut_short_note(&label, &search),
+                )?,
+                Search::Previous(at) => found_or_note(
+                    engine.previous_aspect(first, second, angle, reference, *at),
+                    &mut found,
+                    &mut notes,
+                    || cut_short_note(&label, &search),
+                )?,
             }
         }
     }
@@ -338,5 +391,11 @@ pub(crate) fn render_aspects(args: &[&str]) -> Result<String, String> {
         .iter()
         .map(aspect_line)
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(render("Aspects", &shared, lines, "no aspects found"))
+    Ok(render(
+        "Aspects",
+        &shared,
+        lines,
+        &notes,
+        "no aspects found",
+    ))
 }
