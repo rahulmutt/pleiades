@@ -784,7 +784,12 @@ fn packaged_mixed_frame_batch_parity_request_entries(
     let mut requests = Vec::with_capacity(packaged_bodies().len());
     let mut entries = Vec::with_capacity(packaged_bodies().len());
 
-    for (index, body) in packaged_bodies().iter().cloned().enumerate() {
+    // The batch runs against the backend, so it requests the bodies it serves.
+    let served_bodies = packaged_bodies()
+        .iter()
+        .filter(|body| !crate::is_carried_but_unserved(body))
+        .cloned();
+    for (index, body) in served_bodies.enumerate() {
         let entry = packaged_reference_entry_for_body(snapshot, &body)?;
         entries.push(entry.clone());
         requests.push(EphemerisRequest {
@@ -978,7 +983,12 @@ fn packaged_mixed_tt_tdb_batch_parity_request_entries(
     let mut requests = Vec::with_capacity(packaged_bodies().len());
     let mut entries = Vec::with_capacity(packaged_bodies().len());
 
-    for (index, body) in packaged_bodies().iter().cloned().enumerate() {
+    // The batch runs against the backend, so it requests the bodies it serves.
+    let served_bodies = packaged_bodies()
+        .iter()
+        .filter(|body| !crate::is_carried_but_unserved(body))
+        .cloned();
+    for (index, body) in served_bodies.enumerate() {
         let entry = packaged_reference_entry_for_body(snapshot, &body)?;
         entries.push(entry.clone());
         requests.push(EphemerisRequest {

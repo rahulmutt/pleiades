@@ -521,7 +521,6 @@ where
     F: FnMut(&CelestialBody) -> bool,
 {
     let reference_backend = fit_truth_backend();
-    let packaged_backend = packaged_backend();
     let mut samples = Vec::new();
 
     for body_artifact in &artifact.bodies {
@@ -539,14 +538,16 @@ where
                     Ok(result) => result,
                     Err(_) => continue,
                 };
-                let actual = match packaged_backend.position(&request) {
-                    Ok(result) => result,
+                // The artifact is read directly, not through the backend, so a body the
+                // artifact carries but the backend declines is still measured.
+                let actual_ecliptic = match crate::data::packaged_artifact().lookup_ecliptic(
+                    &body_artifact.body,
+                    crate::regenerate::normalize_lookup_instant(request.instant),
+                ) {
+                    Ok(ecliptic) => ecliptic,
                     Err(_) => continue,
                 };
-
-                let (Some(expected_ecliptic), Some(actual_ecliptic)) =
-                    (expected.ecliptic, actual.ecliptic)
-                else {
+                let Some(expected_ecliptic) = expected.ecliptic else {
                     continue;
                 };
                 let (Some(expected_distance), Some(actual_distance)) =
@@ -609,7 +610,6 @@ where
     F: FnMut(&CelestialBody) -> bool,
 {
     let reference_backend = fit_truth_backend();
-    let packaged_backend = packaged_backend();
     let mut samples = Vec::new();
 
     for body_artifact in &artifact.bodies {
@@ -627,14 +627,16 @@ where
                     Ok(result) => result,
                     Err(_) => continue,
                 };
-                let actual = match packaged_backend.position(&request) {
-                    Ok(result) => result,
+                // The artifact is read directly, not through the backend, so a body the
+                // artifact carries but the backend declines is still measured.
+                let actual_ecliptic = match crate::data::packaged_artifact().lookup_ecliptic(
+                    &body_artifact.body,
+                    crate::regenerate::normalize_lookup_instant(request.instant),
+                ) {
+                    Ok(ecliptic) => ecliptic,
                     Err(_) => continue,
                 };
-
-                let (Some(expected_ecliptic), Some(actual_ecliptic)) =
-                    (expected.ecliptic, actual.ecliptic)
-                else {
+                let Some(expected_ecliptic) = expected.ecliptic else {
                     continue;
                 };
                 let (Some(expected_distance), Some(actual_distance)) =

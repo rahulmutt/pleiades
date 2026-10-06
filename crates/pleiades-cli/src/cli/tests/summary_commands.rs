@@ -521,7 +521,7 @@ fn release_summary_commands_render_compact_reports() {
         .lines()
         .any(|line| { line == format!("Packaged batch parity: {expected_tt_tdb}") }));
     assert!(release_summary.contains(
-        "Packaged batch parity: Packaged mixed TT/TDB batch parity: 11 requests across 11 bodies, TT requests=6, TDB requests=5; quality counts: Exact=0, Interpolated=11, Approximate=0, Unknown=0; order=preserved, single-query parity=preserved"
+        "Packaged batch parity: Packaged mixed TT/TDB batch parity: 10 requests across 10 bodies, TT requests=5, TDB requests=5; quality counts: Exact=0, Interpolated=10, Approximate=0, Unknown=0; order=preserved, single-query parity=preserved"
     ));
     assert!(release_summary.contains("Lunar high-curvature equatorial continuity evidence"));
     assert!(release_summary.contains("Artifact inspection:"));

@@ -996,7 +996,8 @@ fn backend_metadata_exposes_packaged_scope() {
         .supported_bodies()
         .contains(&CelestialBody::Jupiter));
     assert!(metadata.supported_bodies().contains(&CelestialBody::Pluto));
-    assert!(metadata
+    // The artifact carries Eros, but the backend does not serve it (issue #158).
+    assert!(!metadata
         .supported_bodies()
         .contains(&CelestialBody::Custom(CustomBodyId::new(
             "asteroid", "433-Eros",
@@ -1633,5 +1634,48 @@ fn mean_lunar_points_carry_release_grade_corpus_claims() {
             .count(),
         3,
         "exactly one claim per mean lunar point"
+    );
+}
+
+/// The artifact carries Eros segments fitted to rows decades apart. The
+/// backend does not serve them (issue #158): it reports the body unsupported
+/// so a routing chain moves on to a backend that can answer honestly.
+#[test]
+fn the_backend_does_not_serve_the_constrained_asteroid() {
+    use pleiades_backend::{BodyClaimTier, EphemerisBackend, EphemerisErrorKind};
+    let eros = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
+    let backend = crate::PackagedDataBackend::new();
+
+    assert!(
+        crate::packaged_bodies().contains(&eros),
+        "the artifact still carries it"
+    );
+    assert!(!backend.supports_body(eros.clone()));
+
+    let request = EphemerisRequest {
+        body: eros.clone(),
+        instant: instant_tt(2_451_545.0),
+        observer: None,
+        frame: CoordinateFrame::Ecliptic,
+        zodiac_mode: ZodiacMode::Tropical,
+        apparent: Apparentness::Mean,
+    };
+    let error = backend
+        .position(&request)
+        .expect_err("the constrained asteroid is not served");
+    assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
+    assert!(error.to_string().contains("SpkBackend"), "{error}");
+
+    let metadata = backend.metadata();
+    assert!(metadata.claim_for(&eros).is_none());
+    assert!(metadata
+        .release_grade_bodies()
+        .iter()
+        .all(|body| body != &eros));
+    assert_eq!(
+        metadata
+            .claim_for(&CelestialBody::Pluto)
+            .map(|claim| claim.tier),
+        Some(BodyClaimTier::ReleaseGrade)
     );
 }
