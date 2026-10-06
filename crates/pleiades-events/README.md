@@ -102,10 +102,15 @@ artifact-free VSOP87/ELP composite, Mercury's stations over 2000–2010 fall
 within 0.33 s of the packaged backend's; a blocking test holds the year 2000
 at 5 s.
 
-For the true node the gate is a coarse existence-and-kind check, not a timing
-check: it only confirms that each station at least 3 days from its neighbours
-has a counterpart of the same kind within about three days. The node's speed
-hovers near zero for days, so a station instant is ill-conditioned.
+For the true node the gate is a coarse check, not a station-by-station timing
+check. It confirms that each station at least 3 days from its neighbours has
+a counterpart of the same kind within about three days, and that at least
+90 % of those stations are within half a day of their counterpart (96.9 %
+are). The node's speed hovers near zero for days, so a single station instant
+is ill-conditioned, but the series as a whole cannot move by a day unnoticed.
+
+The Sun, the Moon and the mean lunar points never station, and neither does a
+planet in the heliocentric frame; a search for one of them answers at once.
 
 The search steps by 0.25 day for the Moon and the lunar points, 1 day for the
 Sun, Mercury and Venus, and 2 days otherwise; two stations closer together

@@ -62,6 +62,35 @@ pub(crate) fn step_days(body: &CelestialBody) -> f64 {
     }
 }
 
+/// Whether `body` is known never to station in `frame`, so that a search can
+/// answer without scanning the window (issue #167 (e)).
+///
+/// Geocentrically that is the Sun, the Moon and the mean lunar points;
+/// heliocentrically it is the planets, whose longitude only ever increases.
+/// Each one's speed keeps its sign well clear of zero over the whole window
+/// (`the_bodies_answered_without_a_scan_keep_one_direction_all_window`), and
+/// an ayanamsa's rate, about 50″ a year, is far too small to change it.
+///
+/// Every other body is scanned, including those that happen never to
+/// station: an asteroid's or a fictitious body's heliocentric speed comes
+/// from data that is not trusted to keep its sign (issue #158), and a station
+/// is defined as a sign change of the speed the engine reports.
+fn never_stations(body: &CelestialBody, frame: CrossingFrame) -> bool {
+    use CelestialBody::{
+        Jupiter, Mars, MeanApogee, MeanNode, MeanPerigee, Mercury, Moon, Neptune, Pluto, Saturn,
+        Sun, Uranus, Venus,
+    };
+    match frame {
+        CrossingFrame::Heliocentric => matches!(
+            body,
+            Mercury | Venus | Mars | Jupiter | Saturn | Uranus | Neptune | Pluto
+        ),
+        CrossingFrame::GeocentricApparentOfDate | CrossingFrame::GeocentricMeanOfDate => {
+            matches!(body, Sun | Moon | MeanNode | MeanApogee | MeanPerigee)
+        }
+    }
+}
+
 /// The settled instant carries the post-station sign; `root::bisect` counts
 /// zero as the negative side.
 fn kind_of(settled_speed: f64) -> StationKind {
@@ -128,7 +157,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///
     /// A body that never stations in `reference` (the Sun, the Moon, the
     /// mean node, every body in the heliocentric frame) returns an empty
-    /// list. An empty or inverted range returns an empty list, but the scan
+    /// list. For the Sun, the Moon, the mean lunar points and the
+    /// heliocentric planets that answer comes without scanning the range.
+    /// An empty or inverted range returns an empty list, but the scan
     /// still samples the speed at its start, so a body the backend cannot
     /// serve, or one with no longitude speed, still returns its error.
     ///
@@ -185,6 +216,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
         // Clamp like the crossings: keep the bracketing samples in-window.
         let scan_start = start_jd.max(WINDOW_START_JD + step);
         let scan_end = end_jd.min(WINDOW_END_JD - step);
+        if never_stations(&body, reference.frame) {
+            // The one sample an empty range gets, for the same errors.
+            longitude_speed(&self.backend, &body, &reference, scan_start)?;
+            return Ok(Vec::new());
+        }
         let roots = crossings_in_range(
             |jd| longitude_speed(&self.backend, &body, &reference, jd),
             scan_start,
@@ -205,8 +241,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// returned [`Station::instant`] can be handed back as `after`: the
     /// search then returns the following station, not the same one.
     ///
-    /// For a body that never stations the search runs to the end of the
-    /// 1900–2100 window before returning `None`.
+    /// The Sun, the Moon, the mean lunar points and, in the heliocentric
+    /// frame, the planets never station and return `None` at once. Any other
+    /// body that happens never to station (an asteroid in the heliocentric
+    /// frame) is searched to the end of the 1900–2100 window first.
     ///
     /// The window-edge clamp (a station within one step of either end of
     /// the window is not reported), accuracy, step and errors are those of
@@ -242,6 +280,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
         // Same clamps as `stations_in_range` over `[after, WINDOW_END]`.
         let scan_start = after_jd.max(WINDOW_START_JD + step);
         let scan_end = WINDOW_END_JD - step;
+        if never_stations(&body, reference.frame) {
+            longitude_speed(&self.backend, &body, &reference, scan_start)?;
+            return Ok(None);
+        }
         let root = first_crossing_after(
             |jd| longitude_speed(&self.backend, &body, &reference, jd),
             scan_start,
@@ -271,8 +313,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// than `before`. To step back to the station before it, move `before`
     /// back by a second.
     ///
-    /// For a body that never stations the search runs to the start of the
-    /// 1900–2100 window before returning `None`.
+    /// The Sun, the Moon, the mean lunar points and, in the heliocentric
+    /// frame, the planets never station and return `None` at once. Any other
+    /// body that happens never to station is searched to the start of the
+    /// 1900–2100 window first.
     ///
     /// The window-edge clamp (a station within one step of either end of
     /// the window is not reported), accuracy, step and errors are those of
@@ -308,6 +352,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
         // Same clamps as `stations_in_range` over `[WINDOW_START, before]`.
         let scan_start = WINDOW_START_JD + step;
         let scan_end = before_jd.min(WINDOW_END_JD - step);
+        if never_stations(&body, reference.frame) {
+            // Sampled where the backward scan would start, or at the window's
+            // first step when `before` lies ahead of it.
+            longitude_speed(&self.backend, &body, &reference, scan_end.max(scan_start))?;
+            return Ok(None);
+        }
         let root = last_crossing_before(
             |jd| longitude_speed(&self.backend, &body, &reference, jd),
             scan_start,
