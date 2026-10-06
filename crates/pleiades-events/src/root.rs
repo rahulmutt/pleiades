@@ -208,15 +208,13 @@ where
 }
 
 /// Appends the roots of `d − level`, for each of `levels`, in the bracket
-/// `[a, b]` that fall inside `[lo_jd, hi_jd]`, ascending. Same sign test,
-/// wrap-seam guard and bisection as [`crossings_in_range`].
+/// `[a, b]`, ascending. Same sign test, wrap-seam guard and bisection as
+/// [`crossings_in_range`].
 fn level_roots_between<F>(
     d: &mut F,
     levels: &[f64],
     a: Sample,
     b: Sample,
-    lo_jd: f64,
-    hi_jd: f64,
     out: &mut Vec<f64>,
 ) -> Result<(), EventError>
 where
@@ -226,12 +224,9 @@ where
     for &level in levels {
         let f_a = wrap180(a.1 - level);
         let f_b = wrap180(b.1 - level);
-        if (f_a <= 0.0) != (f_b <= 0.0) && (f_a - f_b).abs() < 180.0 {
+        if brackets_crossing(f_a, f_b) {
             let mut f = |jd: f64| Ok(wrap180(d(jd)? - level));
-            let root = bisect(&mut f, a.0, f_a, b.0)?;
-            if root >= lo_jd && root <= hi_jd {
-                out.push(root);
-            }
+            out.push(bisect(&mut f, a.0, f_a, b.0)?);
         }
     }
     out[first_new..].sort_by(f64::total_cmp);
@@ -246,15 +241,13 @@ fn drain_until<F>(
     levels: &[f64],
     pending: &mut Vec<Sample>,
     limit_jd: f64,
-    lo_jd: f64,
-    hi_jd: f64,
     out: &mut Vec<f64>,
 ) -> Result<(), EventError>
 where
     F: FnMut(f64) -> Result<f64, EventError>,
 {
     while pending.len() >= 2 && pending[1].0 <= limit_jd {
-        level_roots_between(d, levels, pending[0], pending[1], lo_jd, hi_jd, out)?;
+        level_roots_between(d, levels, pending[0], pending[1], out)?;
         pending.remove(0);
     }
     Ok(())
@@ -262,10 +255,16 @@ where
 
 /// The scan behind [`level_crossings_in_range`] and
 /// [`first_level_crossing_after`]. Brackets are the intervals between
-/// consecutive breakpoints: the grid `lo_jd + k·step_days`, plus every
-/// turning point of `d` the samples reveal. A turning point between grid
-/// samples `k − 2` and `k` is only known once sample `k` is taken, so the
-/// brackets up to sample `k − 1` are tested one step late.
+/// consecutive breakpoints: the grid `lo_jd + k·step_days` with its last
+/// interval cut short at `hi_jd`, plus every turning point of `d` the samples
+/// reveal. A turning point between grid samples `k − 2` and `k` is only known
+/// once sample `k` is taken, so the brackets up to sample `k − 1` are tested
+/// one step late.
+///
+/// No bracket reaches outside `[lo_jd, hi_jd]`, so each end decides
+/// membership by the sign of `d − level` there, as in
+/// [`crossings_in_range`]. The turning points are still looked for on the
+/// uncut grid, one sample either side of the range.
 fn scan_levels<F>(
     mut d: F,
     levels: &[f64],
@@ -298,49 +297,43 @@ where
         let jd = at(k);
         let sample = (jd, d(jd)?);
         if let Some(turn) = turning_point(&mut d, older, newer, sample)? {
-            if pending.first().is_some_and(|earliest| turn.0 > earliest.0) {
+            let inside =
+                pending.first().is_some_and(|earliest| turn.0 > earliest.0) && turn.0 < hi_jd;
+            if inside {
                 let index = pending.partition_point(|point| point.0 < turn.0);
                 pending.insert(index, turn);
             }
         }
-        if k <= intervals {
+        if k < intervals || jd == hi_jd {
             pending.push(sample);
+        } else if k == intervals {
+            pending.push((hi_jd, d(hi_jd)?));
         }
         // No later sample can add a breakpoint before `newer`.
-        drain_until(
-            &mut d,
-            levels,
-            &mut pending,
-            newer.0,
-            lo_jd,
-            hi_jd,
-            &mut out,
-        )?;
+        drain_until(&mut d, levels, &mut pending, newer.0, &mut out)?;
         if first_only && !out.is_empty() {
             return Ok(out);
         }
         older = newer;
         newer = sample;
     }
-    drain_until(
-        &mut d,
-        levels,
-        &mut pending,
-        at(intervals),
-        lo_jd,
-        hi_jd,
-        &mut out,
-    )?;
+    drain_until(&mut d, levels, &mut pending, hi_jd, &mut out)?;
     Ok(out)
 }
 
-/// Every instant in `[lo_jd, hi_jd]` at which the wrapped-degree function `d`
-/// equals one of `levels`, ascending. Each is a settled instant, as from
+/// Every instant in `(lo_jd, hi_jd]` at which the wrapped-degree function `d`
+/// crosses one of `levels`, ascending. Each is a settled instant, as from
 /// [`bisect`].
 ///
 /// Unlike [`crossings_in_range`], each step is split at the turning points
 /// of `d`, so two crossings of a level inside one step are both found. `d`
 /// is sampled only in `[lo_jd − step_days, hi_jd + 2·step_days)`.
+///
+/// Like it, each end decides membership by the sign of `d − level` there: a
+/// crossing is in range when it has not happened at `lo_jd` and has happened
+/// by `hi_jd`. Ranges that share an end therefore hold each crossing exactly
+/// once, whatever that end is, including an instant this module returned
+/// (issue #168).
 ///
 /// Limits: two turning points within two steps of each other may go unseen,
 /// and with them a pair of crossings between them.
@@ -377,8 +370,8 @@ where
 /// Steps per chunk of [`last_level_crossing_before`]'s backward walk.
 pub(crate) const LEVEL_CHUNK_STEPS: f64 = 64.0;
 
-/// The last instant in `[lo_jd, hi_jd]` at which `d` equals one of `levels`,
-/// or `None`. The backward twin of [`first_level_crossing_after`].
+/// The last instant in `(lo_jd, hi_jd]` at which `d` crosses one of
+/// `levels`, or `None`. The backward twin of [`first_level_crossing_after`].
 ///
 /// The level scanner only runs forward, because it needs the samples either
 /// side of a step to split it at a turning point. So this walks the range in
@@ -387,15 +380,15 @@ pub(crate) const LEVEL_CHUNK_STEPS: f64 = 64.0;
 /// one: the cost follows the distance back to the crossing, not the length
 /// of the range.
 ///
-/// Every chunk after the first reaches one step past its upper seam. The
-/// forward scan keeps a crossing only if its settled instant lies in the
-/// scanned range, so a crossing just below a seam, which settles just above
-/// it, is in neither neighbouring chunk's own range.
+/// The forward scan decides each end of its range by the sign of
+/// `d − level` there, so the chunks hold each crossing exactly once and the
+/// upper end is exact: a crossing is at or before `hi_jd` when it has
+/// already happened there. An instant [`bisect`] settled on a crossing,
+/// handed back as `hi_jd`, finds that same crossing.
 ///
-/// Limits: those of [`level_crossings_in_range`], and its upper end: a
-/// crossing within the bisection tolerance of `hi_jd` may settle past it and
-/// go unreported. `d` is sampled within the same bounds, `[lo_jd −
-/// step_days, hi_jd + 2·step_days)`, and at `lo_jd` even on an empty range.
+/// Limits: those of [`level_crossings_in_range`]. `d` is sampled within the
+/// same bounds, `[lo_jd − step_days, hi_jd + 2·step_days)`, and at `lo_jd`
+/// even on an empty range.
 pub(crate) fn last_level_crossing_before<F>(
     mut d: F,
     levels: &[f64],
@@ -413,15 +406,13 @@ where
     }
     let chunk_days = LEVEL_CHUNK_STEPS * step_days;
     let mut chunk_hi = hi_jd;
-    let mut scan_hi = hi_jd;
     while chunk_hi > lo_jd {
         let chunk_lo = (chunk_hi - chunk_days).max(lo_jd);
-        let roots = scan_levels(&mut d, levels, chunk_lo, scan_hi, step_days, false)?;
+        let roots = scan_levels(&mut d, levels, chunk_lo, chunk_hi, step_days, false)?;
         if let Some(&last) = roots.last() {
             return Ok(Some(last));
         }
         chunk_hi = chunk_lo;
-        scan_hi = chunk_lo + step_days;
     }
     Ok(None)
 }
