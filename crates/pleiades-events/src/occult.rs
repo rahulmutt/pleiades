@@ -925,6 +925,45 @@ impl<B: EphemerisBackend> EventEngine<B> {
 /// Moon step and cannot skip a monthly conjunction).
 const OCC_CONJUNCTION_STEP_DAYS: f64 = 0.25;
 
+// How the occultation searches select (issue #159).
+//
+// An occultation is found from the Moon–target conjunction in longitude, but
+// it is selected by its maximum, which the refinement looks for within
+// `OCC_CONTACT_HALF_WINDOW_DAYS` of that conjunction and which falls before
+// the conjunction as often as after it. Two things follow.
+//
+// The conjunction scan reaches `OCC_SELECTION_MARGIN_DAYS` past the query
+// instant, on the side the search is not looking: a search that started at
+// the query instant would miss every occultation whose conjunction lies
+// between the two.
+//
+// The scan runs on a grid of absolute multiples of the step, not one anchored
+// at the query instant, so every search that covers a conjunction bisects the
+// same bracket and refines to the bit-identical instant, and the maximum and
+// contacts derived from it do not depend on where the search started. The
+// strict comparison of the maximum with the query instant is then exact: a
+// returned maximum handed back gives the neighbouring occultation, never the
+// same one, and `next` and `previous` at any instant split the occultations
+// between them. `pleiades-eclipse` selects eclipses by their greatest instant
+// the same way.
+
+/// How far the conjunction scan reaches past the query instant: the distance
+/// a maximum can lie from its settled conjunction, which itself trails the
+/// crossing by up to the bisection tolerance.
+const OCC_SELECTION_MARGIN_DAYS: f64 = OCC_CONTACT_HALF_WINDOW_DAYS + REFINE_TOLERANCE_DAYS;
+
+/// The conjunction grid point at or before `jd`. Multiples of a quarter day
+/// are exact at Julian-day magnitudes, so stepping from one stays on the grid.
+fn conjunction_grid_floor(jd: f64) -> f64 {
+    (jd / OCC_CONJUNCTION_STEP_DAYS).floor() * OCC_CONJUNCTION_STEP_DAYS
+}
+
+/// The conjunction grid point at or after `jd`. For a settled conjunction
+/// this is the later end of the grid cell that brackets it.
+fn conjunction_grid_ceil(jd: f64) -> f64 {
+    (jd / OCC_CONJUNCTION_STEP_DAYS).ceil() * OCC_CONJUNCTION_STEP_DAYS
+}
+
 impl<B: EphemerisBackend> EventEngine<B> {
     /// Signed Moon−target apparent ecliptic longitude difference, wrapped.
     fn moon_target_lon_diff(&self, target: &OccultTarget, jd: f64) -> Result<f64, EventError> {
@@ -947,9 +986,15 @@ impl<B: EphemerisBackend> EventEngine<B> {
         Ok(wrap180(moon - tgt))
     }
 
-    /// Next occultation of `target` locally visible at `observer`, strictly after
-    /// `after` — `swe_lun_occult_when_loc` analogue. `None` if none occurs before
-    /// the window end (or ever, for an un-occultable star).
+    /// Next occultation of `target` locally visible at `observer` whose
+    /// maximum is strictly after `after` — `swe_lun_occult_when_loc` analogue.
+    /// `None` if none occurs before the window end (or ever, for an
+    /// un-occultable star).
+    ///
+    /// Selection is by the maximum, and the circumstances of an occultation
+    /// do not depend on `after`. A returned maximum handed back as `after`
+    /// therefore gives the following occultation, and an instant inside an
+    /// occultation but before its maximum gives that occultation.
     pub fn next_occultation(
         &self,
         target: OccultTarget,
@@ -969,7 +1014,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
         if self.target_never_occultable(&target, after_jd)? {
             return Ok(None);
         }
-        let mut scan_start = after_jd.max(WINDOW_START_JD + OCC_CONJUNCTION_STEP_DAYS);
+        let mut scan_start = conjunction_grid_floor(after_jd - OCC_SELECTION_MARGIN_DAYS)
+            .max(WINDOW_START_JD + OCC_CONJUNCTION_STEP_DAYS);
         let scan_end = WINDOW_END_JD - OCC_CONJUNCTION_STEP_DAYS;
         loop {
             let conj = first_crossing_after(
@@ -987,16 +1033,21 @@ impl<B: EphemerisBackend> EventEngine<B> {
             {
                 return Ok(Some(local));
             }
-            // Advance just past this conjunction to find the next one.
-            scan_start = conj_jd + OCC_CONJUNCTION_STEP_DAYS;
+            // On from the grid cell that held this conjunction.
+            scan_start = conjunction_grid_ceil(conj_jd);
             if scan_start >= scan_end {
                 return Ok(None);
             }
         }
     }
 
-    /// Previous occultation of `target` locally visible at `observer`, strictly
-    /// before `before`.
+    /// Previous occultation of `target` locally visible at `observer` whose
+    /// maximum is strictly before `before`.
+    ///
+    /// The mirror of [`EventEngine::next_occultation`]: a returned maximum
+    /// handed back as `before` gives the preceding occultation, and an
+    /// instant inside an occultation but after its maximum gives that
+    /// occultation.
     pub fn previous_occultation(
         &self,
         target: OccultTarget,
@@ -1016,7 +1067,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
         if self.target_never_occultable(&target, before_jd)? {
             return Ok(None);
         }
-        let mut scan_end = before_jd.min(WINDOW_END_JD - OCC_CONJUNCTION_STEP_DAYS);
+        let mut scan_end = conjunction_grid_ceil(before_jd + OCC_SELECTION_MARGIN_DAYS)
+            .min(WINDOW_END_JD - OCC_CONJUNCTION_STEP_DAYS);
         let scan_start = WINDOW_START_JD + OCC_CONJUNCTION_STEP_DAYS;
         loop {
             let conj = last_crossing_before(
@@ -1034,17 +1086,22 @@ impl<B: EphemerisBackend> EventEngine<B> {
             {
                 return Ok(Some(local));
             }
-            scan_end = conj_jd - OCC_CONJUNCTION_STEP_DAYS;
+            // Back from the grid cell that held this conjunction.
+            scan_end = conjunction_grid_ceil(conj_jd) - OCC_CONJUNCTION_STEP_DAYS;
             if scan_end <= scan_start {
                 return Ok(None);
             }
         }
     }
 
-    /// Next occultation of `target` anywhere on Earth, strictly after `after` —
-    /// `swe_lun_occult_when_glob` analogue. Reports the greatest-occultation
-    /// instant and the central-observation point where it is central/greatest (not the
-    /// full path). `None` if none occurs before the window end.
+    /// Next occultation of `target` anywhere on Earth whose greatest instant
+    /// is strictly after `after` — `swe_lun_occult_when_glob` analogue.
+    /// Reports the greatest-occultation instant and the central-observation
+    /// point where it is central/greatest (not the full path). `None` if none
+    /// occurs before the window end.
+    ///
+    /// Selection is by the greatest instant, which does not depend on
+    /// `after`: handed back as `after` it gives the following occultation.
     pub fn next_global_occultation(
         &self,
         target: OccultTarget,
@@ -1056,7 +1113,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
         if self.target_never_occultable(&target, after_jd)? {
             return Ok(None);
         }
-        let mut scan_start = after_jd.max(WINDOW_START_JD + OCC_CONJUNCTION_STEP_DAYS);
+        let mut scan_start = conjunction_grid_floor(after_jd - OCC_SELECTION_MARGIN_DAYS)
+            .max(WINDOW_START_JD + OCC_CONJUNCTION_STEP_DAYS);
         let scan_end = WINDOW_END_JD - OCC_CONJUNCTION_STEP_DAYS;
         loop {
             let conj = first_crossing_after(
@@ -1122,7 +1180,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
                     occultation_type: occ_type,
                 }));
             }
-            scan_start = conj_jd + OCC_CONJUNCTION_STEP_DAYS;
+            scan_start = conjunction_grid_ceil(conj_jd);
             if scan_start >= scan_end {
                 return Ok(None);
             }
