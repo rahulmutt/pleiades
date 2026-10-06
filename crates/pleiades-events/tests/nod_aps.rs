@@ -225,13 +225,11 @@ fn fictitious_bodies_compose_through_the_chain() {
 
 /// Ceres (and the other JPL-snapshot-only selected asteroids) is served by no
 /// continuous backend in the production chain — only `JplSnapshotBackend`,
-/// whose sparse regression fixtures are linearly interpolated between epochs
-/// that can lie centuries apart. That interpolation cannot support nod_aps's
-/// sub-day finite-difference sampling: the velocity estimate straddles an
-/// epoch-bracket seam and comes out non-physical, so the engine fails closed
-/// with a typed error instead of returning garbage orbital points. SE
-/// small-body parity here is a documented coverage bound (issues #158 and
-/// #160).
+/// which answers at its sample rows and refuses an instant its rows cannot
+/// support (issue #158). nod_aps samples a fraction of a day either side of
+/// the query, off the J2000 row, so the engine fails closed with the
+/// backend's refusal. SE small-body parity here is a documented coverage
+/// bound (issues #158 and #160).
 #[test]
 fn snapshot_only_asteroids_fail_closed() {
     let engine = engine();
@@ -244,9 +242,10 @@ fn snapshot_only_asteroids_fail_closed() {
         )
         .unwrap_err();
     assert!(
-        matches!(err, EventError::DegenerateNodAps { .. }),
-        "expected a fail-closed DegenerateNodAps error, got: {err:?}"
+        matches!(err, EventError::Backend { .. }),
+        "expected the backend's refusal, got: {err:?}"
     );
+    assert!(err.to_string().contains("SpkBackend"), "{err}");
 }
 
 /// asteroid:433-Eros is the one custom asteroid the packaged artifact serves

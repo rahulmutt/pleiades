@@ -151,6 +151,12 @@ impl InterpolationQualitySample {
 }
 
 /// A reference-backend implementation backed by JPL Horizons fixture data.
+///
+/// A request is answered at an exact row, or between rows that lie on both
+/// sides of it and span at most [`MAX_STENCIL_SPAN_DAYS`]. Any other instant
+/// returns `EphemerisErrorKind::OutOfRangeInstant`: the rows are too sparse
+/// to interpolate across (issue #158). [`crate::SpkBackend`] serves these
+/// bodies from a JPL kernel.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct JplSnapshotBackend;
 
@@ -228,7 +234,13 @@ impl EphemerisBackend for JplSnapshotBackend {
             ));
         }
 
-        let resolved = resolve_fixture_state(req.body.clone(), req.instant.julian_day.days())?;
+        let epoch_jd = req.instant.julian_day.days();
+        let resolved = resolve_fixture_state(req.body.clone(), epoch_jd)?;
+        if resolved.quality != QualityAnnotation::Exact {
+            if let Some(entries) = snapshot_entries() {
+                require_supported_stencil(entries, &req.body, epoch_jd)?;
+            }
+        }
 
         let mut result = EphemerisResult::new(
             BackendId::new("jpl-snapshot"),
@@ -1409,88 +1421,144 @@ fn lagrange_interpolate_4(x: f64, xs: [f64; 4], ys: [f64; 4]) -> f64 {
     y0 * l0 + y1 * l1 + y2 * l2 + y3 * l3
 }
 
-pub(crate) fn interpolate_fixture_state(
-    entries: &[SnapshotEntry],
-    body: pleiades_backend::CelestialBody,
+/// Widest stencil, in days, that [`JplSnapshotBackend`] interpolates across.
+///
+/// The backend answers between rows only where the rows it would use lie on
+/// both sides of the instant and span no more than this. Holding each row out
+/// in turn, every stencil this admits reproduces the held-out asteroid row
+/// within 0.05″ (`stencils_the_guard_admits_reproduce_held_out_rows`). The
+/// next wider bracket in the snapshot is a year, where the same cubic is
+/// wrong by tens of degrees (issue #158).
+///
+/// The 0.05″ figure is measured for the asteroids. The rule applies to every
+/// body the backend holds, but major bodies are not held to that figure: some
+/// major-body cluster rows are not geocentric ecliptic positions, and the
+/// Moon moves too fast for a cubic through day-spaced rows (issue #200).
+pub const MAX_STENCIL_SPAN_DAYS: f64 = 5.0;
+
+/// The rows an interpolation at `epoch_jd` uses for `body`, ascending: the
+/// four nearest in time, or all three when the body has exactly three. Empty
+/// when the body has fewer than three rows.
+fn interpolation_stencil<'a>(
+    entries: &'a [SnapshotEntry],
+    body: &pleiades_backend::CelestialBody,
     epoch_jd: f64,
-) -> Option<SnapshotEntry> {
-    let mut body_entries = entries
+) -> Vec<&'a SnapshotEntry> {
+    let epoch_of = |entry: &SnapshotEntry| entry.epoch.julian_day.days();
+    let mut ranked = entries
         .iter()
-        .filter(|entry| entry.body == body)
+        .filter(|entry| &entry.body == body)
+        .map(|entry| ((epoch_of(entry) - epoch_jd).abs(), entry))
         .collect::<Vec<_>>();
-
-    if body_entries.len() < 3 {
-        return None;
+    if ranked.len() < 3 {
+        return Vec::new();
     }
-
-    body_entries.sort_by(|left, right| {
-        left.epoch
-            .julian_day
-            .days()
-            .partial_cmp(&right.epoch.julian_day.days())
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
-
-    let body_entry_count = body_entries.len();
-    let mut ranked = body_entries
-        .into_iter()
-        .map(|entry| ((entry.epoch.julian_day.days() - epoch_jd).abs(), entry))
-        .collect::<Vec<_>>();
     ranked.sort_by(|left, right| {
         left.0
             .partial_cmp(&right.0)
             .unwrap_or(std::cmp::Ordering::Equal)
             .then_with(|| {
-                left.1
-                    .epoch
-                    .julian_day
-                    .days()
-                    .partial_cmp(&right.1.epoch.julian_day.days())
+                epoch_of(left.1)
+                    .partial_cmp(&epoch_of(right.1))
                     .unwrap_or(std::cmp::Ordering::Equal)
             })
     });
-
-    let window_size = if body_entry_count >= 4 { 4 } else { 3 };
-    let mut selected = ranked
+    let window_size = if ranked.len() >= 4 { 4 } else { 3 };
+    let mut stencil = ranked
         .into_iter()
         .take(window_size)
         .map(|(_, entry)| entry)
         .collect::<Vec<_>>();
+    stencil.sort_by(|left, right| {
+        epoch_of(left)
+            .partial_cmp(&epoch_of(right))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    stencil
+}
 
-    match selected.len() {
-        4 => {
-            selected.sort_by(|left, right| {
-                left.epoch
-                    .julian_day
-                    .days()
-                    .partial_cmp(&right.epoch.julian_day.days())
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            });
-            Some(SnapshotEntry::interpolate_cubic(
-                selected[0],
-                selected[1],
-                selected[2],
-                selected[3],
-                epoch_jd,
-            ))
-        }
-        3 => {
-            selected.sort_by(|left, right| {
-                left.epoch
-                    .julian_day
-                    .days()
-                    .partial_cmp(&right.epoch.julian_day.days())
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            });
-            Some(SnapshotEntry::interpolate_quadratic(
-                selected[0],
-                selected[1],
-                selected[2],
-                epoch_jd,
-            ))
-        }
+pub(crate) fn interpolate_fixture_state(
+    entries: &[SnapshotEntry],
+    body: pleiades_backend::CelestialBody,
+    epoch_jd: f64,
+) -> Option<SnapshotEntry> {
+    match *interpolation_stencil(entries, &body, epoch_jd).as_slice() {
+        [a, b, c, d] => Some(SnapshotEntry::interpolate_cubic(a, b, c, d, epoch_jd)),
+        [a, b, c] => Some(SnapshotEntry::interpolate_quadratic(a, b, c, epoch_jd)),
         _ => None,
     }
+}
+
+/// First and last epoch of the rows an interpolation at `epoch_jd` rests on:
+/// the stencil, or the two adjacent rows when the body has fewer than three.
+fn stencil_bounds(
+    entries: &[SnapshotEntry],
+    body: &pleiades_backend::CelestialBody,
+    epoch_jd: f64,
+) -> Option<(f64, f64)> {
+    let stencil = interpolation_stencil(entries, body, epoch_jd);
+    if let (Some(first), Some(last)) = (stencil.first(), stencil.last()) {
+        return Some((first.epoch.julian_day.days(), last.epoch.julian_day.days()));
+    }
+    let (before, after) = adjacent_epochs(entries, body, epoch_jd);
+    Some((before?, after?))
+}
+
+/// The body's nearest row epoch before `epoch_jd` and nearest after it.
+fn adjacent_epochs(
+    entries: &[SnapshotEntry],
+    body: &pleiades_backend::CelestialBody,
+    epoch_jd: f64,
+) -> (Option<f64>, Option<f64>) {
+    let epochs = || {
+        entries
+            .iter()
+            .filter(|entry| &entry.body == body)
+            .map(|entry| entry.epoch.julian_day.days())
+    };
+    (
+        epochs().filter(|jd| *jd < epoch_jd).reduce(f64::max),
+        epochs().filter(|jd| *jd > epoch_jd).reduce(f64::min),
+    )
+}
+
+/// Whether the rows nearest `epoch_jd` support an interpolation there: they
+/// lie on both sides of it and span at most [`MAX_STENCIL_SPAN_DAYS`].
+fn stencil_supports(
+    entries: &[SnapshotEntry],
+    body: &pleiades_backend::CelestialBody,
+    epoch_jd: f64,
+) -> bool {
+    stencil_bounds(entries, body, epoch_jd).is_some_and(|(first, last)| {
+        first < epoch_jd && epoch_jd < last && last - first <= MAX_STENCIL_SPAN_DAYS
+    })
+}
+
+/// Refuses an interpolation the rows cannot support (issue #158).
+fn require_supported_stencil(
+    entries: &[SnapshotEntry],
+    body: &pleiades_backend::CelestialBody,
+    epoch_jd: f64,
+) -> Result<(), EphemerisError> {
+    if stencil_supports(entries, body, epoch_jd) {
+        return Ok(());
+    }
+    let describe = |epoch: Option<f64>| match epoch {
+        Some(jd) => format!("JD {jd}"),
+        None => "none".to_string(),
+    };
+    let (before, after) = adjacent_epochs(entries, body, epoch_jd);
+    Err(EphemerisError::new(
+        EphemerisErrorKind::OutOfRangeInstant,
+        format!(
+            "the JPL snapshot has no rows close enough to JD {epoch_jd} to interpolate {body} \
+             (nearest row before: {}; nearest after: {}); it interpolates only between rows on \
+             both sides of an instant that span at most {MAX_STENCIL_SPAN_DAYS} days. Serve \
+             {body} at this instant from pleiades_jpl::SpkBackend with a JPL kernel",
+            describe(before),
+            describe(after)
+        ),
+    ))
 }
 
 pub(crate) fn angular_degrees_delta(left: f64, right: f64) -> f64 {
@@ -2383,3 +2451,6 @@ fn parse_f64(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod stencil_guard_tests;

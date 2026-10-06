@@ -12,6 +12,11 @@ Depends on `pleiades-types` and `pleiades-backend`. This is a reference/validati
 
 Experimental, pre-1.0: breaking changes can land in any minor release. The checked-in corpus is regression evidence, sparse relative to production-coverage goals; see the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
 
+`JplSnapshotBackend` answers at an exact fixture row, or between rows that lie
+on both sides of the instant and span at most five days. Any other instant
+returns `OutOfRangeInstant`. Use `SpkBackend` with a JPL kernel for positions
+at arbitrary dates.
+
 ## License
 
 MIT OR Apache-2.0
