@@ -988,6 +988,33 @@ impl<B: EphemerisBackend> EventEngine<B> {
         Ok(wrap180(moon - tgt))
     }
 
+    /// Where a forward conjunction scan for a search `after` starts: the
+    /// first grid instant at or after `floor(after - margin)` (and the
+    /// window's start) at which the conjunction function can be read.
+    ///
+    /// The scan reaches before `after` only for its margin, so an unreadable
+    /// margin must not fail the caller: the apparent Moon cannot be read in
+    /// the first light-time of the window, and a conjunction inside that
+    /// sliver cannot be computed anyway. Any other error propagates. When no
+    /// instant up to `scan_end` is readable, the start is `scan_end`.
+    fn readable_scan_start(
+        &self,
+        target: &OccultTarget,
+        after_jd: f64,
+        scan_end: f64,
+    ) -> Result<f64, EventError> {
+        let mut start =
+            conjunction_grid_floor(after_jd - OCC_SELECTION_MARGIN_DAYS).max(WINDOW_START_JD);
+        while start < scan_end {
+            match self.moon_target_lon_diff(target, start) {
+                Err(EventError::OutOfWindow { .. }) => start += OCC_CONJUNCTION_STEP_DAYS,
+                Err(e) => return Err(e),
+                Ok(_) => return Ok(start),
+            }
+        }
+        Ok(scan_end)
+    }
+
     /// Next occultation of `target` locally visible at `observer` whose
     /// maximum is strictly after `after` — `swe_lun_occult_when_loc` analogue.
     /// `None` for a target the Moon can never occult (a star too far from the
@@ -1018,9 +1045,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
         if self.target_never_occultable(&target, after_jd)? {
             return Ok(None);
         }
-        let mut scan_start =
-            conjunction_grid_floor(after_jd - OCC_SELECTION_MARGIN_DAYS).max(WINDOW_START_JD);
         let scan_end = WINDOW_END_JD;
+        let mut scan_start = self.readable_scan_start(&target, after_jd, scan_end)?;
         loop {
             let conj = first_crossing_after(
                 |jd| self.moon_target_lon_diff(&target, jd),
@@ -1052,6 +1078,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// never occult. When the window starts after the previous visible
     /// occultation, the result is [`EventError::OutOfWindow`] naming the
     /// instant one conjunction step before the window's start.
+    ///
+    /// When the search reaches the window's first light-time, the apparent
+    /// Moon cannot be read there: the error comes from that read and names
+    /// its instant instead, within a light-time of the window's first
+    /// instant.
     ///
     /// The mirror of [`EventEngine::next_occultation`]: a returned maximum
     /// handed back as `before` gives the preceding occultation, and an
@@ -1126,9 +1157,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
         if self.target_never_occultable(&target, after_jd)? {
             return Ok(None);
         }
-        let mut scan_start =
-            conjunction_grid_floor(after_jd - OCC_SELECTION_MARGIN_DAYS).max(WINDOW_START_JD);
         let scan_end = WINDOW_END_JD;
+        let mut scan_start = self.readable_scan_start(&target, after_jd, scan_end)?;
         loop {
             let conj = first_crossing_after(
                 |jd| self.moon_target_lon_diff(&target, jd),
@@ -1414,6 +1444,26 @@ mod when_loc_tests {
     }
 
     #[test]
+    fn a_forward_search_from_the_window_start_is_not_failed_by_its_margin() {
+        let engine = EventEngine::new(pleiades_data::packaged_backend());
+        let observer = ObserverLocation::new(
+            Latitude::from_degrees(0.0),
+            Longitude::from_degrees(0.0),
+            None,
+        );
+        let next = engine.next_occultation(
+            OccultTarget::Body(CelestialBody::Mars),
+            observer,
+            Atmosphere::default(),
+            tdb(WINDOW_START_JD + 0.05),
+        );
+        assert!(
+            !matches!(next, Err(EventError::OutOfWindow { .. })),
+            "{next:?}"
+        );
+    }
+
+    #[test]
     fn a_local_search_the_window_cuts_short_is_out_of_window() {
         let engine = EventEngine::new(pleiades_data::packaged_backend());
         let observer = ObserverLocation::new(
@@ -1437,7 +1487,14 @@ mod when_loc_tests {
             Atmosphere::default(),
             tdb(WINDOW_START_JD + 0.1),
         );
-        out_of_window_jd(previous);
+        // The search's final read, at the window's first instant, fails: the
+        // apparent Moon is read a light-time earlier. The error names that
+        // read's instant, not `WINDOW_START_JD - OCC_CONJUNCTION_STEP_DAYS`.
+        let jd = out_of_window_jd(previous);
+        assert!(
+            (WINDOW_START_JD - 0.5..=WINDOW_START_JD).contains(&jd),
+            "{jd}"
+        );
     }
 
     #[test]
@@ -1536,6 +1593,19 @@ mod when_glob_tests {
             .next_global_occultation(OccultTarget::Star("Sirius".into()), after)
             .unwrap()
             .is_none());
+    }
+
+    #[test]
+    fn a_forward_global_search_from_the_window_start_is_not_failed_by_its_margin() {
+        let engine = EventEngine::new(pleiades_data::packaged_backend());
+        let next = engine.next_global_occultation(
+            OccultTarget::Body(CelestialBody::Mars),
+            tdb(WINDOW_START_JD + 0.05),
+        );
+        assert!(
+            !matches!(next, Err(EventError::OutOfWindow { .. })),
+            "{next:?}"
+        );
     }
 
     #[test]
