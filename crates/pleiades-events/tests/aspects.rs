@@ -320,6 +320,93 @@ fn previous_aspect_walks_a_retrograde_loop_backward() {
     );
 }
 
+// The scanner decides both ends of a range by the sign of the separation
+// there (issue #168), so a returned instant is a clean place to cut.
+
+#[test]
+fn previous_aspect_at_a_returned_instant_is_that_event() {
+    let in_range = aspects(
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        90.0,
+        GEO,
+        J2000,
+        J2000 + 120.0,
+    );
+    assert_eq!(in_range.len(), 8, "{in_range:?}");
+    let engine = EventEngine::new(packaged_backend());
+    let is = |found: &Option<AspectEvent>, event: &AspectEvent| {
+        found
+            .as_ref()
+            .is_some_and(|found| (jd(found) - jd(event)).abs() < TWO_SECONDS)
+    };
+    for event in &in_range {
+        let found = previous(CelestialBody::Sun, CelestialBody::Moon, 90.0, jd(event));
+        assert!(is(&found, event), "{found:?} is not {event:?}");
+        assert!(found.is_some_and(|found| jd(&found) <= jd(event)));
+        // Any instant, inside the tolerance or not, has the event on exactly
+        // one side of it.
+        for offset_s in [-0.6, -0.4, -0.2, 0.2] {
+            let at = jd(event) + offset_s / 86_400.0;
+            let before = previous(CelestialBody::Sun, CelestialBody::Moon, 90.0, at);
+            let after = engine
+                .next_aspect(
+                    CelestialBody::Sun,
+                    CelestialBody::Moon,
+                    Angle::from_degrees(90.0),
+                    GEO,
+                    tdb(at),
+                )
+                .expect("next_aspect");
+            assert!(
+                is(&before, event) != is(&after, event),
+                "{offset_s} s from {event:?}: {before:?} {after:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn aspect_ranges_sharing_an_end_hold_each_event_once() {
+    let in_range = aspects(
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        90.0,
+        GEO,
+        J2000,
+        J2000 + 120.0,
+    );
+    assert_eq!(in_range.len(), 8, "{in_range:?}");
+    // A returned instant trails its event by less than 0.5 s, so these
+    // shared ends fall on both sides of the event and inside the tolerance.
+    // The lower range keeps the grid that found the event, so the shared end
+    // falls inside the step that holds it.
+    for (index, event) in in_range.iter().enumerate() {
+        for offset_s in [-0.6, -0.4, -0.3, -0.2, -0.1, 0.0, 0.2] {
+            let shared = jd(event) + offset_s / 86_400.0;
+            let around = |start_jd: f64, end_jd: f64| {
+                aspects(
+                    CelestialBody::Sun,
+                    CelestialBody::Moon,
+                    90.0,
+                    GEO,
+                    start_jd,
+                    end_jd,
+                )
+            };
+            let below = around(J2000, shared);
+            let above = around(shared, shared + 3.0);
+            // The events before this one, and this one on one side only.
+            assert_eq!(
+                below.len() + above.len(),
+                index + 1,
+                "end {offset_s} s from {event:?}: {below:?} {above:?}"
+            );
+            assert!(below.iter().all(|found| jd(found) <= shared), "{below:?}");
+        }
+    }
+}
+
 #[test]
 fn previous_aspect_returns_nothing_for_a_pair_that_never_reaches_the_angle() {
     // Mercury is never 60 degrees from the Sun.

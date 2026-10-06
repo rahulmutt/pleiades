@@ -252,3 +252,74 @@ fn last_level_crossing_on_an_empty_range_still_samples_its_start() {
         Err(EventError::Backend("boom".into()))
     );
 }
+
+// Both ends of a range decide membership by the sign of `d − level` there,
+// as `crossings_in_range` does (issue #168): comparing a settled root with
+// an end drops a crossing that settles just past it.
+
+#[test]
+fn ranges_sharing_an_end_hold_each_crossing_once() {
+    // Put the shared end within the bisection tolerance of the root, on
+    // either side of it and exactly on it.
+    let root = T0 + 10.0;
+    for offset_s in [-0.6, -0.4, -0.2, -0.01, 0.0, 0.01, 0.2, 0.4, 0.6] {
+        let shared = root + offset_s / 86_400.0;
+        let below = level_crossings_in_range(sawtooth, &[0.0], T0, shared, 1.0).unwrap();
+        let above = level_crossings_in_range(sawtooth, &[0.0], shared, T0 + 30.0, 1.0).unwrap();
+        assert_eq!(
+            below.len() + above.len(),
+            1,
+            "end {offset_s} s from the root: {below:?} {above:?}"
+        );
+        // The crossing has happened by the shared end exactly when the
+        // separation is past the level there.
+        let happened = sawtooth(shared).unwrap() > 0.0;
+        assert_eq!(below.len() == 1, happened, "end {offset_s} s from the root");
+        for &found in below.iter().chain(&above) {
+            assert_settled(found, root);
+        }
+        assert!(below.iter().all(|&found| found <= shared), "{below:?}");
+    }
+}
+
+#[test]
+fn a_settled_instant_as_an_end_keeps_its_crossing_below_it() {
+    // Anchors off the forward grid, so the two searches bisect differently.
+    let (lo, hi, step) = (T0 + 0.3, T0 + 1000.0, 1.0);
+    let roots = [T0 + 10.0, T0 + 370.0, T0 + 730.0];
+    let all = level_crossings_in_range(sawtooth, &[0.0], T0, hi, step).unwrap();
+    assert_roots(&all, &roots);
+    for (index, &settled) in all.iter().enumerate() {
+        let last = last_level_crossing_before(sawtooth, &[0.0], lo, settled, step).unwrap();
+        let last = last.unwrap_or_else(|| panic!("root {index} lost at its settled instant"));
+        assert_settled(last, roots[index]);
+        assert!(last <= settled, "{last} is past {settled}");
+        let next = first_level_crossing_after(sawtooth, &[0.0], settled, hi, step).unwrap();
+        match roots.get(index + 1) {
+            Some(&following) => assert_settled(next.expect("a following root"), following),
+            None => assert_eq!(next, None),
+        }
+    }
+}
+
+#[test]
+fn an_end_inside_a_turn_back_keeps_the_crossings_before_it() {
+    // Roots 0.2 day either side of the peak, inside one 2-day step that the
+    // range ends in.
+    let centre = T0 + 10.7;
+    for (end_offset, want) in [(-0.3, 0), (-0.1, 1), (0.0, 1), (0.1, 1), (0.3, 2)] {
+        let end = centre + end_offset;
+        let roots =
+            level_crossings_in_range(parabola(centre, 0.0004), &[0.0], T0, end, 2.0).unwrap();
+        assert_eq!(roots.len(), want, "end {end_offset} d from the peak");
+        assert!(roots.iter().all(|&found| found <= end), "{roots:?}");
+        // The same turn back with the range starting inside it.
+        let rest = level_crossings_in_range(parabola(centre, 0.0004), &[0.0], end, T0 + 30.0, 2.0)
+            .unwrap();
+        assert_eq!(
+            roots.len() + rest.len(),
+            2,
+            "end {end_offset} d from the peak"
+        );
+    }
+}

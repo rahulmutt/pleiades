@@ -130,9 +130,10 @@ the first body is 90° ahead of the second and the moments it is 90° behind,
 and the two longitudes say which. The moment a pair enters a 3° orb of a
 square is the exact moment of the 87° or 93° separation. A returned instant
 can be handed back to `next_aspect`, which then returns the following event.
-`previous_aspect` returns the last event at or before an instant; an event
-within the 0.5 s tolerance of that instant may fall on either side, so step
-back a second from a returned instant to reach the event before it.
+`previous_aspect` returns the last event at or before an instant. Handed a
+returned instant it gives that same event back, so step back a second to
+reach the event before it. Each end of a range is decided by the separation
+there, so two ranges that share an end hold each event exactly once.
 
 A pair that approaches an angle and turns back before reaching it returns
 nothing. A sidereal zodiac changes the reported longitudes, not the instants:

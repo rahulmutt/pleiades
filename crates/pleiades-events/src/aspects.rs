@@ -194,6 +194,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// the reported longitudes only: the ayanamsa comes off both longitudes
     /// and cancels in the separation.
     ///
+    /// An event is in the range when it has not happened at `start` and has
+    /// happened by `end`, judged by the separation at each end and not by
+    /// comparing a returned instant with it. Two ranges that share an end
+    /// therefore hold each event exactly once, wherever that end falls,
+    /// including on an instant this engine returned.
+    ///
     /// A pair that approaches the angle and turns back before reaching it
     /// returns no event; that is not an error. An empty or inverted range
     /// returns an empty list, but the scan still samples both bodies at its
@@ -327,12 +333,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// stops at the first chunk that holds an event. The two agree on the
     /// instant to within the 0.5 s bisection tolerance, not bit for bit.
     ///
-    /// An event within that tolerance of `before` may land on either side:
-    /// given an [`AspectEvent::instant`] this engine returned, the result is
-    /// either that event or the one before it. Step `before` back by a second
-    /// to skip the described event for certain. (The crossing and station
-    /// searches decide this by the sign at `before`; the aspect scanner does
-    /// not yet.)
+    /// "At or before" is decided by the separation at `before`, as the
+    /// crossing and station searches decide it: an event counts when it has
+    /// already happened there. Given an [`AspectEvent::instant`] this engine
+    /// returned, the result is that same event, since a returned instant
+    /// trails its event by less than the tolerance and never precedes it. To
+    /// step back to the event before it, move `before` back by more than the
+    /// tolerance, a second say.
     ///
     /// For a pair that never reaches the angle (the Sun and Mercury at 60
     /// degrees) the search runs to the start of the 1900–2100 window before
