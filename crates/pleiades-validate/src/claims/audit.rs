@@ -196,9 +196,9 @@ pub fn audit_release_grade_accuracy() -> Result<(), Vec<ClaimAuditError>> {
         let corpus = crate::corpus::holdout_corpus();
 
         // Derive the set of release-grade bodies that have a hold-out truth row.
-        // the packaged backend claims Pluto and the Moon, not
-        // asteroid:433-Eros (it is unsupported there), so the intersection with the
-        // hold-out truth rows below keeps only bodies that have both a claim and a row.
+        // The packaged backend has no claim for asteroid:433-Eros (it is unsupported
+        // there), so the intersection with the hold-out truth rows below keeps only
+        // bodies that have both a claim and a row.
         let holdout_bodies: std::collections::HashSet<CelestialBody> =
             pleiades_jpl::production_holdout_corpus()
                 .iter()

@@ -46,9 +46,9 @@ crate source in this repo; gate names are the runnable `validate-*` subcommands
 - **Asteroids offline are served only at their sample rows.** Ceres, Pallas,
   Juno, Vesta, `asteroid:433-Eros` and `asteroid:99942-Apophis` come from a
   sparse JPL Horizons fixture: a handful of epochs and a nine-day cluster in
-  January 2001. Any other date returns an out-of-range error. The packaged
-  artifact still carries an Eros fit that the backend does not serve. For
-  asteroid positions across 1900–2100, use `pleiades_jpl::SpkBackend` with a
+  January 2001 (Apophis from 2001-01-06). Any other date returns an
+  out-of-range error. The packaged artifact still carries an Eros fit that the
+  backend does not serve. For asteroid positions across 1900–2100, use `pleiades_jpl::SpkBackend` with a
   JPL kernel (`docs/spk-kernel-sourcing.md`); offline coverage is tracked in
   issue #201.
 - Apparent place omits gravitational light-deflection. Rise/set/transit and

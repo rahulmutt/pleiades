@@ -5,7 +5,8 @@
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 Packaged offline ephemeris data (precomputed positions for the Sun, the Moon,
-Mercury through Pluto, derived from JPL public-domain ephemerides) and its `EphemerisBackend` for the
+Mercury through Pluto, derived from JPL public-domain ephemerides) and its
+`EphemerisBackend` for the
 [pleiades](https://github.com/rahulmutt/pleiades) astrology workspace.
 
 The crate ships a compressed artifact covering 1900-01-01 through 2100-01-01,

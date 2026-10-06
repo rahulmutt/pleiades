@@ -180,4 +180,4 @@ The gate also covers Mercury–Venus and Mars–Saturn in the mean place and
 Mars–Jupiter from the Sun. Aspects of the lunar points and fictitious
 bodies are found but not gated. An asteroid's aspects cannot be searched
 offline: the backend chain serves asteroids only at sparse sample rows and the
-search returns its out-of-range error.
+search returns its out-of-range error (issue #201).
