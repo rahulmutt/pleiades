@@ -173,21 +173,36 @@ fn snapshot_reconstruction_covers_only_constrained_asteroids() {
     );
 }
 
-/// Pins the checksum of the whole artifact regenerated from the reference
-/// snapshot, and asserts the constrained asteroid is in it. The asteroid's
-/// segments are fitted to the snapshot's interpolation, so a change in what the
-/// generator samples cannot pass unnoticed (the kernel-free regeneration path
-/// returns the committed bytes and proves nothing about the generator). The
-/// committed artifact is not compared: its Eros segments come from another path.
+/// The generator, reading the snapshot rows through `SnapshotCorpusBackend`,
+/// reproduces the committed Eros segments once they are quantized: encoding
+/// the regenerated artifact and decoding it yields the committed artifact's
+/// Eros body. The checksum additionally pins the whole regenerated artifact.
+/// The kernel-free regeneration path returns the committed bytes and proves
+/// nothing about the generator, so this is the test that does.
 #[test]
-fn snapshot_regeneration_output_is_pinned() {
+fn snapshot_regeneration_reproduces_the_committed_constrained_asteroid() {
     use pleiades_backend::{CelestialBody, CustomBodyId};
     let eros = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
     let regenerated = try_regenerate_packaged_artifact_from_snapshot(reference_snapshot())
         .expect("the reference snapshot should regenerate");
-    assert!(regenerated.bodies.iter().any(|series| series.body == eros));
-    // Pinned from the generator's own output, measured 2026-10-06: the committed
-    // Eros segments were not produced by this snapshot fit, so they cannot be compared.
+    // The in-memory fit holds unquantized coefficients; the committed artifact
+    // holds quantized ones, so compare after an encode/decode round trip.
+    let round_tripped = CompressedArtifact::decode(
+        &regenerated
+            .encode()
+            .expect("the regenerated artifact should encode"),
+    )
+    .expect("the regenerated artifact should decode");
+    let eros_of = |artifact: &CompressedArtifact| {
+        artifact
+            .bodies
+            .iter()
+            .find(|series| series.body == eros)
+            .cloned()
+    };
+    let committed = eros_of(packaged_artifact()).expect("the committed artifact carries Eros");
+    assert_eq!(eros_of(&round_tripped), Some(committed));
+    // Measured 2026-10-06 from the generator's own output.
     assert_eq!(regenerated.checksum, 4165010080501629842);
 }
 
