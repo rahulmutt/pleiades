@@ -490,3 +490,45 @@ fn an_out_of_window_look_around_read_is_no_sample() {
         "{at_start:?}"
     );
 }
+
+/// A `d` that cannot be read before the window's first instant plus a sliver,
+/// as an apparent place within a light-time of the window's start.
+fn unreadable_at_the_window_start(offset: f64) -> impl Fn(f64) -> Result<f64, EventError> {
+    move |jd| {
+        if jd < T0 + 0.01 {
+            Err(EventError::OutOfWindow { julian_day: jd })
+        } else {
+            Ok(jd - T0 - offset)
+        }
+    }
+}
+
+#[test]
+fn a_backward_walk_reaches_a_crossing_past_an_unreadable_window_start() {
+    let window = (T0, f64::INFINITY);
+    let found = last_level_crossing_before(
+        unreadable_at_the_window_start(3.5),
+        &[0.0],
+        T0,
+        T0 + 100.0,
+        1.0,
+        window,
+    )
+    .unwrap()
+    .expect("the crossing three steps in");
+    assert_settled(found, T0 + 3.5);
+}
+
+#[test]
+fn a_crossing_only_in_the_first_step_still_needs_the_unreadable_anchor() {
+    let window = (T0, f64::INFINITY);
+    let result = last_level_crossing_before(
+        unreadable_at_the_window_start(0.5),
+        &[0.0],
+        T0,
+        T0 + 100.0,
+        1.0,
+        window,
+    );
+    assert_eq!(result, Err(EventError::OutOfWindow { julian_day: T0 }));
+}

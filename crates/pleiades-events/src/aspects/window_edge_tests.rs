@@ -145,3 +145,27 @@ fn an_aspect_search_the_window_cuts_short_is_out_of_window() {
     );
     assert_eq!(out_of_window_jd(before_start), WINDOW_START_JD - STEP);
 }
+
+#[test]
+fn an_apparent_previous_aspect_finds_one_past_the_light_time_sliver() {
+    // The walk back from 10 days in ends in the chunk that touches the
+    // window's start, where the apparent Moon cannot be read; an aspect five
+    // days in is found without that read.
+    let at = WINDOW_START_JD + 5.0;
+    let angle = separation_at(APPARENT, at);
+    let previous = engine()
+        .previous_aspect(
+            CelestialBody::Sun,
+            CelestialBody::Moon,
+            angle,
+            APPARENT,
+            tdb(WINDOW_START_JD + 10.0),
+        )
+        .unwrap()
+        .expect("the aspect at WINDOW_START + 5 d");
+    let found = previous.instant.julian_day.days();
+    assert!(
+        (0.0..SETTLE_DAYS).contains(&(found - at)),
+        "{found} vs {at}"
+    );
+}

@@ -357,6 +357,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// engine does not know which pairs can reach which angles. This search
     /// never returns `Ok(None)`.
     ///
+    /// When the search reaches the window's first light-time in the apparent
+    /// frame, for a body other than the Sun, the error comes from that read
+    /// and names its instant instead.
+    ///
     /// The meaning of `angle`, the accuracy, the limits and the errors are
     /// those of [`EventEngine::aspects_in_range`].
     ///

@@ -455,7 +455,8 @@ fn previous_aspect_guards_match_next_aspect() {
         call(CelestialBody::Sun, CelestialBody::Moon, 0.0, 2_000_000.0),
         Err(EventError::OutOfWindow { .. })
     ));
-    // The window's first instant has nothing before it: the search is cut short.
+    // The apparent read at the window's first instant fails (a light-time
+    // before it is outside the window), so the search is out of window.
     assert!(matches!(
         call(
             CelestialBody::Sun,

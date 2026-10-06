@@ -245,6 +245,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// [`EventError::OutOfWindow`] naming the instant one step before the
     /// window's start. Every body crosses every longitude, so this search
     /// never returns `Ok(None)`.
+    ///
+    /// When the search reaches the window's first light-time in the apparent
+    /// frame, for a body other than the Sun, the error comes from that read
+    /// and names its instant instead.
     pub fn previous_longitude_crossing(
         &self,
         body: CelestialBody,

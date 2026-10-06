@@ -439,7 +439,10 @@ pub(crate) const LEVEL_CHUNK_STEPS: f64 = 64.0;
 /// Limits: those of [`level_crossings_in_range`], including the blind spot
 /// next to a limit of `window`. `d` is sampled within the same bounds,
 /// `[lo_jd − step_days, hi_jd + 2·step_days)` intersected with `window`, and
-/// at `lo_jd` even on an empty range.
+/// at `lo_jd` even on an empty range. The first step `[lo_jd, lo_jd +
+/// step_days]` is scanned last, and only when nothing later was found, so a
+/// `d` that cannot be read at `lo_jd` (an apparent place within a light-time
+/// of the window's start) fails only a search that must look there.
 pub(crate) fn last_level_crossing_before<F>(
     mut d: F,
     levels: &[f64],
@@ -460,6 +463,17 @@ where
     let mut chunk_hi = hi_jd;
     while chunk_hi > lo_jd {
         let chunk_lo = (chunk_hi - chunk_days).max(lo_jd);
+        // The chunk that touches `lo_jd` is split after its first step, so
+        // only that step needs the anchor read at `lo_jd`; the rest looks
+        // back to it as a look-around sample, which may be unreadable.
+        let seam = lo_jd + step_days;
+        if chunk_lo == lo_jd && chunk_hi > seam {
+            let roots = scan_levels(&mut d, levels, seam, chunk_hi, step_days, false, window)?;
+            if let Some(&last) = roots.last() {
+                return Ok(Some(last));
+            }
+            chunk_hi = seam;
+        }
         let roots = scan_levels(&mut d, levels, chunk_lo, chunk_hi, step_days, false, window)?;
         if let Some(&last) = roots.last() {
             return Ok(Some(last));
