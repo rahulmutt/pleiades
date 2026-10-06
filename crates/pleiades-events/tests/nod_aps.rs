@@ -1,12 +1,14 @@
 //! nod_aps integration over the production-style backend chain.
 //!
-//! Asteroid coverage bound: no asteroid in the offline chain supports
-//! `nod_aps`'s osculating sampling. Ceres, Pallas, Juno, Vesta,
-//! asteroid:99942-Apophis and asteroid:433-Eros are served only by
-//! `JplSnapshotBackend`, at or between closely spaced sample rows; the
-//! packaged backend carries an Eros fit it does not serve. nod_aps samples off
-//! the row, so every one fails closed with the backend's refusal (issue #158)
-//! — pinned below as the correct production behavior.
+//! Asteroid coverage bound: outside the January 2001 fixture cluster no
+//! asteroid in the offline chain supports `nod_aps`'s osculating sampling. Ceres,
+//! Pallas, Juno, Vesta, asteroid:99942-Apophis and asteroid:433-Eros are
+//! served only by `JplSnapshotBackend`, at or between closely spaced sample
+//! rows; the packaged backend carries an Eros fit it does not serve. nod_aps
+//! samples off the row, so at an isolated row it fails closed with the
+//! backend's refusal (issue #158) — pinned below as the correct production
+//! behavior. Inside the January 2001 cluster the rows are close enough and
+//! it is served (issue #201).
 
 use pleiades_backend::{CompositeBackend, RoutingBackend};
 use pleiades_data::PackagedDataBackend;
@@ -246,6 +248,24 @@ fn snapshot_only_asteroids_fail_closed() {
     );
     assert!(err.to_string().contains("SpkBackend"), "{err}");
     assert!(err.to_string().contains("OutOfRangeInstant"), "{err}");
+}
+
+/// Inside the January 2001 cluster the snapshot rows are a day or less apart,
+/// so the stencil guard admits nod_aps's sampling a fraction of a day either
+/// side of the query and Ceres is served (issue #201).
+#[test]
+fn a_snapshot_asteroid_is_served_inside_the_fixture_cluster() {
+    let engine = engine();
+    let result = engine
+        .nod_aps(
+            CelestialBody::Ceres,
+            tdb(2_451_915.0),
+            NodApsMethod::Osculating,
+            ApsisConvention::Aphelion,
+        )
+        .expect("the cluster rows support nod_aps's sampling");
+    assert!(result.perihelion.distance_au.is_finite() && result.perihelion.distance_au > 0.0);
+    assert!(result.ascending.latitude_deg.abs() < 0.5);
 }
 
 /// asteroid:433-Eros routes past the packaged backend, which carries a fit it

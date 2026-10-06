@@ -284,7 +284,17 @@ fn selected_asteroid_dense_boundary_summary_reports_the_dense_boundary_day() {
     let summary = selected_asteroid_dense_boundary_summary()
         .expect("selected asteroid dense boundary summary should exist");
     assert_eq!(summary.sample_count, 5);
-    assert_eq!(summary.sample_bodies, reference_asteroids().to_vec());
+    // The bodies the epoch holds: Apophis has no row at JD 2451916.5.
+    assert_eq!(
+        summary.sample_bodies,
+        vec![
+            pleiades_backend::CelestialBody::Ceres,
+            pleiades_backend::CelestialBody::Pallas,
+            pleiades_backend::CelestialBody::Juno,
+            pleiades_backend::CelestialBody::Vesta,
+            pleiades_backend::CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+        ]
+    );
     assert_eq!(summary.epoch.julian_day.days(), 2_451_916.5);
     assert_eq!(summary.validate(), Ok(()));
 }

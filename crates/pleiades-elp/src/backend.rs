@@ -20,6 +20,18 @@ use crate::{
 };
 
 /// A pure-Rust lunar backend.
+///
+/// # Frames
+///
+/// The `ecliptic` channel of every body is on the J2000 mean ecliptic and
+/// equinox, like every other first-party backend. The `equatorial` channel is
+/// not its rotation: it is the position of date rotated by the mean obliquity
+/// of date, i.e. right ascension and declination on the mean equator and
+/// equinox of date, the frame of the Meeus Ch. 47 example the backend is
+/// checked against. Away from J2000 the two differ by the precession since
+/// J2000 (about 5000″ in right ascension a century out). For J2000 right
+/// ascension and declination, rotate `ecliptic` by
+/// [`pleiades_types::OBLIQUITY_J2000_DEG`] (issue #171).
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ElpBackend;
 

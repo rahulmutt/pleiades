@@ -18,10 +18,10 @@
 #     2026-09-30 against TT-tagged goldens: Sun 0.111", Moon 0.109", Mercury 0.114",
 #     Venus 0.107", Mars 0.166", Jupiter 0.114", Saturn 0.131", Uranus 0.251",
 #     Neptune 0.179", Pluto 0.154" (the packaged-ephemeris fit floor).
-#   - 433-Eros: EXCLUDED. The light-time iteration diverges or goes out of range at 4 of 5 epochs
-#     because Eros's packaged data covers a limited span and the apparent-mode iteration steps outside
-#     it. Apparent-mode validation of Eros is not supported with the current packaged backend.
-#     (At J2000 the residual was 68 arcsec, also exceeding any reasonable tolerance.)
+#   - 433-Eros: EXCLUDED. No offline backend serves Eros at these epochs: the packaged artifact
+#     carries Eros segments it does not serve, and the JPL snapshot refuses an instant away from its
+#     fixture rows, which the light-time step leaves (issue #158). Dense offline coverage is
+#     issue #201.
 #
 # EPOCHS: 2415025.5 = 1900-Jan-06 TT (5 days past coverage start to avoid light-time stepping
 # before data start); 2488065.5 = 2099-Dec-26 TT (4 days before coverage end for same reason).

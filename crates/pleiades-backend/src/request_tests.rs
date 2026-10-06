@@ -801,3 +801,28 @@ fn request_policy_helpers_reject_unsupported_shapes() {
         .message
         .contains(&observer_request.observer.as_ref().unwrap().summary_line()));
 }
+
+#[test]
+fn a_non_finite_instant_is_an_invalid_request() {
+    for julian_day in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        let request = EphemerisRequest::new(
+            CelestialBody::Ceres,
+            Instant::new(JulianDay::from_days(julian_day), TimeScale::Tdb),
+        );
+        let error = validate_request_policy(
+            &request,
+            "toy backend",
+            &[TimeScale::Tt, TimeScale::Tdb],
+            &[CoordinateFrame::Ecliptic],
+            true,
+            false,
+        )
+        .expect_err("a non-finite instant cannot be served");
+        assert_eq!(
+            error.kind,
+            EphemerisErrorKind::InvalidRequest,
+            "JD {julian_day}"
+        );
+        assert!(error.message.contains("non-finite"), "{}", error.message);
+    }
+}

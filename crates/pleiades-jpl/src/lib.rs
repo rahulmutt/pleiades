@@ -6,7 +6,10 @@
 //! epochs and uses cubic interpolation on four-sample windows when it can,
 //! falling back to quadratic interpolation on three-sample windows and linear
 //! interpolation between adjacent samples when fewer fixture points are
-//! available. The checked-in ecliptic fixture can also be rotated into a
+//! available. It interpolates only between rows that lie on both sides of
+//! the instant and span at most five days, and serves the Moon at exact rows
+//! only; any other instant is refused (issues #158, #200). The checked-in
+//! ecliptic fixture can also be rotated into a
 //! mean-obliquity equatorial frame for chart requests that prefer equatorial
 //! output. This intentionally small derivative format proves the pure-Rust
 //! reader/interpolator path before larger public JPL-derived corpora are added.

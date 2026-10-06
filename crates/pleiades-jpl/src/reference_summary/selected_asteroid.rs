@@ -1316,16 +1316,10 @@ impl SelectedAsteroidBridgeSummary {
 
 pub(crate) fn selected_asteroid_bridge_summary_details() -> Option<SelectedAsteroidBridgeSummary> {
     let evidence = selected_asteroid_bridge_entries()?;
-    let mut sample_bodies = Vec::new();
-    for entry in evidence {
-        if !sample_bodies.contains(&entry.body) {
-            sample_bodies.push(entry.body.clone());
-        }
-    }
 
     Some(SelectedAsteroidBridgeSummary {
         sample_count: evidence.len(),
-        sample_bodies,
+        sample_bodies: bodies_in_first_seen_order(evidence),
         epoch: evidence[0].epoch,
     })
 }
@@ -1444,8 +1438,9 @@ impl SelectedAsteroidDenseBoundarySummary {
                 },
             );
         }
-        if self.sample_bodies.as_slice() != reference_asteroids() {
-            for (index, (expected, found)) in reference_asteroids()
+        let expected_bodies = bodies_in_first_seen_order(evidence);
+        if self.sample_bodies.as_slice() != expected_bodies.as_slice() {
+            for (index, (expected, found)) in expected_bodies
                 .iter()
                 .zip(self.sample_bodies.iter())
                 .enumerate()
@@ -1486,9 +1481,20 @@ pub(crate) fn selected_asteroid_dense_boundary_summary_details(
     let evidence = selected_asteroid_dense_boundary_entries()?;
     Some(SelectedAsteroidDenseBoundarySummary {
         sample_count: evidence.len(),
-        sample_bodies: reference_asteroids().to_vec(),
+        sample_bodies: bodies_in_first_seen_order(evidence),
         epoch: evidence[0].epoch,
     })
+}
+
+/// The distinct bodies of `entries`, in the order they first appear.
+fn bodies_in_first_seen_order(entries: &[SnapshotEntry]) -> Vec<pleiades_backend::CelestialBody> {
+    let mut bodies = Vec::new();
+    for entry in entries {
+        if !bodies.contains(&entry.body) {
+            bodies.push(entry.body.clone());
+        }
+    }
+    bodies
 }
 
 /// Returns the compact typed summary for the dense selected-asteroid boundary evidence.
