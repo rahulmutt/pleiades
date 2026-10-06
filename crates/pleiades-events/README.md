@@ -16,7 +16,9 @@ so a position is consistent with the crossings found in the same frame.
   by up to ≈ 41″ (Mercury). The Sun and Moon are an error in this frame.
 - `GeocentricMeanOfDate`: the geometric place from the Earth's centre (no
   light-time, no aberration, no nutation) in the mean ecliptic and equinox of
-  date. This is not the J2000 longitude a `pleiades-core` mean chart reports.
+  date. This is not the J2000 longitude a `pleiades-core` tropical mean chart
+  reports. In a sidereal zodiac the two agree: a sidereal mean chart is
+  precessed to the equinox of date before the ayanamsa comes off.
 
 A speed channel is `None` when the backend reports no speed to derive it from.
 
