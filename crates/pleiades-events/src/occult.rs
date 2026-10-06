@@ -1492,7 +1492,7 @@ mod when_loc_tests {
         // read's instant, not `WINDOW_START_JD - OCC_CONJUNCTION_STEP_DAYS`.
         let jd = out_of_window_jd(previous);
         assert!(
-            (WINDOW_START_JD - 0.5..=WINDOW_START_JD).contains(&jd),
+            (WINDOW_START_JD - 0.05..=WINDOW_START_JD).contains(&jd),
             "{jd}"
         );
     }

@@ -11,6 +11,7 @@ use pleiades_core::{
 };
 use pleiades_events::{
     AspectEvent, CrossingFrame, CrossingReference, EventEngine, EventError, Station, StationKind,
+    WINDOW_END_JD, WINDOW_START_JD,
 };
 use pleiades_time::{tdb_from_ut1_civil, tdb_from_utc_civil, CivilConversion};
 
@@ -74,8 +75,14 @@ impl SharedArgs {
             return Err("use only one of --next and --previous".to_string());
         }
         match (directed, self.at, self.from, self.to) {
-            (true, Some(at), _, _) if self.next => Ok(Search::Next(at)),
-            (true, Some(at), _, _) => Ok(Search::Previous(at)),
+            (true, Some(at), _, _) => {
+                check_in_window(at)?;
+                Ok(if self.next {
+                    Search::Next(at)
+                } else {
+                    Search::Previous(at)
+                })
+            }
             (true, None, _, _) => Err("--next and --previous need --at <instant>".to_string()),
             (false, Some(_), _, _) => Err("--at needs --next or --previous".to_string()),
             (false, None, Some(from), Some(to)) => Ok(Search::Range { from, to }),
@@ -228,11 +235,44 @@ fn event_error(error: EventError) -> String {
     error.to_string()
 }
 
+/// A `--next`/`--previous` search starts inside the 1900–2100 window; outside
+/// it the search is not cut short, it never had anywhere to start.
+fn check_in_window(at: Instant) -> Result<(), String> {
+    let jd = at.julian_day.days();
+    if (WINDOW_START_JD..=WINDOW_END_JD).contains(&jd) {
+        Ok(())
+    } else {
+        Err(format!(
+            "--at JD {jd} is outside the search window (JD {WINDOW_START_JD}..={WINDOW_END_JD}, 1900-2100)"
+        ))
+    }
+}
+
+/// Which way a `--next`/`--previous` search ran.
+#[derive(Clone, Copy)]
+enum Direction {
+    Next,
+    Previous,
+}
+
 /// The note for a `--next`/`--previous` search the window cut short.
-fn cut_short_note(label: &str, search: &Search) -> String {
-    match search {
-        Search::Previous(_) => format!("{label}: none after the window's start (1900-01-01)"),
-        _ => format!("{label}: none before the window's end (2100-01-01)"),
+fn cut_short_note(label: &str, direction: Direction) -> String {
+    match direction {
+        Direction::Previous => format!("{label}: none after the window's start (1900-01-01)"),
+        Direction::Next => format!("{label}: none before the window's end (2100-01-01)"),
+    }
+}
+
+/// Whether `error` says the search ran past the window's limit in its own
+/// direction. Any other `OutOfWindow` (a read at the search's own start, say)
+/// is a failure, not an exhausted search.
+fn cut_short(error: &EventError, direction: Direction) -> bool {
+    match (error, direction) {
+        (EventError::OutOfWindow { julian_day }, Direction::Next) => *julian_day > WINDOW_END_JD,
+        (EventError::OutOfWindow { julian_day }, Direction::Previous) => {
+            *julian_day <= WINDOW_START_JD
+        }
+        _ => false,
     }
 }
 
@@ -240,17 +280,18 @@ fn cut_short_note(label: &str, search: &Search) -> String {
 /// when the window ended first; any other error fails the command.
 fn found_or_note<T>(
     result: Result<Option<T>, EventError>,
+    direction: Direction,
     found: &mut Vec<T>,
     notes: &mut Vec<String>,
-    note: impl FnOnce() -> String,
+    label: &str,
 ) -> Result<(), String> {
     match result {
         Ok(event) => {
             found.extend(event);
             Ok(())
         }
-        Err(EventError::OutOfWindow { .. }) => {
-            notes.push(note());
+        Err(error) if cut_short(&error, direction) => {
+            notes.push(cut_short_note(label, direction));
             Ok(())
         }
         Err(error) => Err(event_error(error)),
@@ -295,15 +336,17 @@ pub(crate) fn render_stations(args: &[&str]) -> Result<String, String> {
             ),
             Search::Next(at) => found_or_note(
                 engine.next_station(body, reference.clone(), *at),
+                Direction::Next,
                 &mut found,
                 &mut notes,
-                || cut_short_note(&label, &search),
+                &label,
             )?,
             Search::Previous(at) => found_or_note(
                 engine.previous_station(body, reference.clone(), *at),
+                Direction::Previous,
                 &mut found,
                 &mut notes,
-                || cut_short_note(&label, &search),
+                &label,
             )?,
         }
     }
@@ -374,15 +417,17 @@ pub(crate) fn render_aspects(args: &[&str]) -> Result<String, String> {
                 ),
                 Search::Next(at) => found_or_note(
                     engine.next_aspect(first, second, angle, reference, *at),
+                    Direction::Next,
                     &mut found,
                     &mut notes,
-                    || cut_short_note(&label, &search),
+                    &label,
                 )?,
                 Search::Previous(at) => found_or_note(
                     engine.previous_aspect(first, second, angle, reference, *at),
+                    Direction::Previous,
                     &mut found,
                     &mut notes,
-                    || cut_short_note(&label, &search),
+                    &label,
                 )?,
             }
         }

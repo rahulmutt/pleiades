@@ -147,7 +147,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
             .collect())
     }
 
-    /// The first crossing strictly after `after`, or `None`.
+    /// The first crossing strictly after `after`.
     ///
     /// Early-terminating: this brackets and bisects forward from `after` and
     /// returns as soon as the first root is found, instead of scanning to
@@ -168,7 +168,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// When the window ends before the next crossing, the result is
     /// [`EventError::OutOfWindow`] naming the instant one step past the
     /// window's end. Every body crosses every longitude, so this search never
-    /// returns `Ok(None)`.
+    /// returns `Ok(None)`. An `after` within a light-time of the window's first
+    /// instant in the apparent frame, for a body other than the Sun, is
+    /// `OutOfWindow` too: the read at `after` fails.
     ///
     /// ```
     /// use pleiades_data::packaged_backend;
@@ -217,7 +219,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         Ok(Some(Self::crossing(&body, target, &reference, jd)))
     }
 
-    /// The last crossing that has happened by `before`, or `None`.
+    /// The last crossing that has happened by `before`.
     ///
     /// Early-terminating: this brackets and bisects backward from `before` and
     /// returns as soon as the last (highest-JD) root is found, instead of

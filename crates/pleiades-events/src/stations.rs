@@ -242,12 +242,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///
     /// The Sun, the Moon, the mean lunar points and, in the heliocentric
     /// frame, the planets never station and return `None` at once. Any other
-    /// body that happens never to station (an asteroid in the heliocentric
-    /// frame) is searched to the end of the 1900–2100 window first.
-    ///
-    /// Any other body is searched to the end of the 1900–2100 window; when
-    /// the window ends first, the result is [`EventError::OutOfWindow`]
-    /// naming the instant one step past it.
+    /// body is searched to the end of the 1900–2100 window; when the window
+    /// ends first (an asteroid in the heliocentric frame that happens never to
+    /// station, say), the result is [`EventError::OutOfWindow`] naming the
+    /// instant one step past it.
     ///
     /// The accuracy, step and errors are those of
     /// [`EventEngine::stations_in_range`].
@@ -313,12 +311,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///
     /// The Sun, the Moon, the mean lunar points and, in the heliocentric
     /// frame, the planets never station and return `None` at once. Any other
-    /// body that happens never to station is searched to the start of the
-    /// 1900–2100 window first.
-    ///
-    /// Any other body is searched to the start of the 1900–2100 window; when
-    /// the window starts first, the result is [`EventError::OutOfWindow`]
-    /// naming the instant one step before it.
+    /// body is searched to the start of the 1900–2100 window; when the window
+    /// starts first (a body that happens never to station, say), the result is
+    /// [`EventError::OutOfWindow`] naming the instant one step before it.
     ///
     /// When the search reaches the window's first light-time in the apparent
     /// frame, for a body other than the Sun, the error comes from that read

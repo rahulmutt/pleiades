@@ -176,7 +176,8 @@ fn previous_station_guards_match_next_station() {
         engine.previous_station(CelestialBody::Sun, HELIO, tdb(J2000)),
         Err(EventError::UnsupportedFrame { .. })
     ));
-    // The window's first instant has nothing before it: the search is cut short.
+    // The apparent read at the window's first instant needs the body a
+    // light-time earlier, outside the window, so the search fails there.
     assert!(matches!(
         engine.previous_station(CelestialBody::Mercury, GEO, tdb(WINDOW_START_JD)),
         Err(EventError::OutOfWindow { .. })

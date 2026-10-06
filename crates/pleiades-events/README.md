@@ -147,8 +147,9 @@ there, so two ranges that share an end hold each event exactly once.
 
 A pair that approaches an angle and turns back before reaching it has no
 event in a range; a `next_aspect` or `previous_aspect` search that reaches the
-window's end without one is `EventError::OutOfWindow`. A sidereal zodiac changes the reported longitudes, not the instants:
-the ayanamsa cancels in the separation.
+window's end without one is `EventError::OutOfWindow`. A sidereal zodiac
+changes the reported longitudes, not the instants: the ayanamsa cancels in
+the separation.
 
 The search steps by the smaller of the two bodies' steps (0.25 day for the
 Moon and the lunar points, 1 day for the Sun, Mercury and Venus, 2 days
