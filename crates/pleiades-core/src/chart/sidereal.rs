@@ -1,7 +1,8 @@
+use pleiades_apparent::motion::{apparent_motion, Correction, CorrectionSample, HALF_SPAN_DAYS};
 use pleiades_apparent::precess_ecliptic_j2000_to_date;
 use pleiades_ayanamsa::sidereal_offset;
 use pleiades_backend::{EphemerisError, EphemerisErrorKind};
-use pleiades_types::{EclipticCoordinates, Instant, Latitude, Longitude, ZodiacMode};
+use pleiades_types::{EclipticCoordinates, Instant, Latitude, Longitude, Motion, ZodiacMode};
 
 /// Converts a tropical longitude into the requested zodiac mode.
 ///
@@ -136,5 +137,41 @@ pub(super) fn mean_place_of_date(
         Longitude::from_degrees(of_date.longitude_deg),
         Latitude::from_degrees(of_date.latitude_deg),
         j2000.distance_au,
+    ))
+}
+
+/// Speed of [`mean_place_of_date`] at `julian_day`, from `base`, the speed of
+/// the J2000 place `j2000` itself.
+///
+/// The precession step is differenced centrally over ±[`HALF_SPAN_DAYS`] and
+/// added to `base`. Its two samples are taken at the J2000 place carried
+/// along its own speed, so no backend read is needed and a chart at the edge
+/// of a backend's range still gets a speed. A channel `base` leaves empty
+/// stays empty, and the distance speed is unchanged.
+pub(super) fn mean_motion_of_date(
+    j2000: EclipticCoordinates,
+    base: Motion,
+    julian_day: f64,
+) -> Result<Motion, EphemerisError> {
+    let sample = |offset_days: f64| -> Result<CorrectionSample, EphemerisError> {
+        let carried = EclipticCoordinates::new(
+            Longitude::from_degrees(
+                j2000.longitude.degrees() + base.longitude_deg_per_day.unwrap_or(0.0) * offset_days,
+            ),
+            Latitude::from_degrees(
+                j2000.latitude.degrees() + base.latitude_deg_per_day.unwrap_or(0.0) * offset_days,
+            ),
+            j2000.distance_au,
+        );
+        let of_date = mean_place_of_date(carried, julian_day + offset_days)?;
+        Ok(CorrectionSample {
+            julian_day: julian_day + offset_days,
+            correction: Correction::between(&of_date, &carried),
+        })
+    };
+    Ok(apparent_motion(
+        base,
+        &sample(-HALF_SPAN_DAYS)?,
+        &sample(HALF_SPAN_DAYS)?,
     ))
 }

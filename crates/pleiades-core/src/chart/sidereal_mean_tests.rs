@@ -8,10 +8,13 @@
 
 use pleiades_apparent::precess_ecliptic_j2000_to_date;
 use pleiades_backend::Apparentness;
-use pleiades_types::{CelestialBody, EclipticCoordinates, Latitude, Longitude};
+use pleiades_data::packaged_backend;
+use pleiades_types::{CelestialBody, EclipticCoordinates, Latitude, Longitude, Motion};
 
-use super::sidereal::mean_place_of_date;
-use super::sidereal_tests::{composite_backend, lahiri, lahiri_deg, tt, wrap_arcsec};
+use super::sidereal::{mean_motion_of_date, mean_place_of_date};
+use super::sidereal_tests::{
+    composite_backend, lahiri, lahiri_deg, rate, speed_deg_per_day, tt, wrap_arcsec,
+};
 use super::test_support::AbsurdDistanceReleaseGradeBackend;
 use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 
@@ -178,4 +181,124 @@ fn a_mean_fallback_in_a_sidereal_chart_reports_the_requested_mean_place() {
     let (fallback, requested) = (ecliptic(&apparent, &mars), ecliptic(&mean, &mars));
     assert_eq!(fallback.longitude.degrees(), requested.longitude.degrees());
     assert_eq!(fallback.latitude.degrees(), requested.latitude.degrees());
+}
+
+/// Bodies the composite backend reports a longitude speed for.
+fn moving_bodies() -> Vec<CelestialBody> {
+    vec![
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        CelestialBody::Saturn,
+        CelestialBody::Pluto,
+    ]
+}
+
+/// Rate of [`general_precession_arcsec`], in degrees per day.
+fn general_precession_rate_deg_per_day(jd_tt: f64) -> f64 {
+    let t = (jd_tt - 2_451_545.0) / 36_525.0;
+    (5029.0966 + 2.0 * 1.11113 * t - 3.0 * 0.000_006 * t * t) / 3600.0 / 36_525.0
+}
+
+// The Sun stays on the ecliptic, so its longitude on the equinox of date
+// moves faster than its J2000 longitude by the precession rate, 0.138″ a
+// day, and the ayanamsa takes its own rate off. Before the fix only the
+// ayanamsa's rate came off, and the speed was 3.8e-5 deg/day too low.
+#[test]
+fn the_suns_sidereal_mean_speed_gains_the_precession_rate_and_loses_the_ayanamsas() {
+    let sun = CelestialBody::Sun;
+    for jd in EPOCHS_JD_TT {
+        let (tropical, sidereal) = mean_charts(jd, vec![sun.clone()]);
+        let gain = speed_deg_per_day(&sidereal, &sun) - speed_deg_per_day(&tropical, &sun);
+        let want = general_precession_rate_deg_per_day(jd) - rate(lahiri_deg, jd);
+        assert!(
+            (gain - want).abs() < 5e-7,
+            "at {jd}: sidereal − tropical speed is {gain}, expected {want} deg/day"
+        );
+    }
+    assert!(general_precession_rate_deg_per_day(2_451_545.0) > 3.8e-5);
+}
+
+// For every body the reported speed is the rate of the reported longitude.
+// Off the ecliptic the precession step also depends on where the body is, so
+// the Moon's speed changes by up to 0.8″ a day at 1913; a difference of the
+// charts' own longitudes a day apart sees that too. The tolerance covers the
+// truncation of that difference for the Moon (5e-7 deg/day).
+#[test]
+fn a_sidereal_mean_speed_is_the_rate_of_the_reported_longitude() {
+    let jd = EPOCHS_JD_TT[0];
+    let step_longitudes = |jd_tt: f64| {
+        let (tropical, sidereal) = mean_charts(jd_tt, moving_bodies());
+        moving_bodies()
+            .into_iter()
+            .map(|body| {
+                ecliptic(&sidereal, &body).longitude.degrees()
+                    - ecliptic(&tropical, &body).longitude.degrees()
+            })
+            .collect::<Vec<f64>>()
+    };
+    let (earlier, later) = (step_longitudes(jd - 0.5), step_longitudes(jd + 0.5));
+    let (tropical, sidereal) = mean_charts(jd, moving_bodies());
+    for (index, body) in moving_bodies().into_iter().enumerate() {
+        let gain = speed_deg_per_day(&sidereal, &body) - speed_deg_per_day(&tropical, &body);
+        let want = wrap_arcsec(later[index] - earlier[index]) / 3600.0;
+        assert!(
+            (gain - want).abs() < 2e-6,
+            "{body:?}: sidereal − tropical speed is {gain}, the step's rate is {want} deg/day"
+        );
+    }
+}
+
+#[test]
+fn a_missing_speed_channel_stays_missing() {
+    let j2000 = EclipticCoordinates::new(
+        Longitude::from_degrees(120.0),
+        Latitude::from_degrees(4.0),
+        Some(1.0),
+    );
+    let jd = EPOCHS_JD_TT[0];
+    let none = mean_motion_of_date(j2000, Motion::new(None, None, None), jd).expect("motion");
+    assert_eq!(none, Motion::new(None, None, None));
+    let latitude_only =
+        mean_motion_of_date(j2000, Motion::new(None, Some(0.01), None), jd).expect("motion");
+    assert_eq!(latitude_only.longitude_deg_per_day, None);
+    assert_eq!(latitude_only.distance_au_per_day, None);
+    let latitude_speed = latitude_only.latitude_deg_per_day.expect("latitude speed");
+    assert!((latitude_speed - 0.01).abs() < 1e-6, "{latitude_speed}");
+    // A distance speed is not a matter of frame.
+    let with_distance =
+        mean_motion_of_date(j2000, Motion::new(Some(1.0), Some(0.0), Some(1e-4)), jd)
+            .expect("motion");
+    assert_eq!(with_distance.distance_au_per_day, Some(1e-4));
+}
+
+#[test]
+fn a_speed_across_the_zero_of_longitude_is_continuous() {
+    // The place precesses from 0.2° back past 360° at 1913 (Task 1's test).
+    let j2000 = EclipticCoordinates::new(
+        Longitude::from_degrees(0.2),
+        Latitude::from_degrees(0.0),
+        Some(1.0),
+    );
+    let jd = EPOCHS_JD_TT[0];
+    let motion =
+        mean_motion_of_date(j2000, Motion::new(Some(1.0), Some(0.0), None), jd).expect("motion");
+    let speed = motion.longitude_deg_per_day.expect("longitude speed");
+    let want = 1.0 + general_precession_rate_deg_per_day(jd);
+    assert!((speed - want).abs() < 2e-6, "{speed} vs {want}");
+}
+
+// The speed needs no neighbouring backend read, so the first instant the
+// packaged backend serves has one.
+#[test]
+fn a_sidereal_mean_chart_at_the_window_start_has_a_speed() {
+    let request = ChartRequest::new(tt(2_415_020.5))
+        .with_bodies(vec![CelestialBody::Sun, CelestialBody::Moon])
+        .with_apparentness(Apparentness::Mean)
+        .with_zodiac_mode(lahiri());
+    let chart = ChartEngine::new(packaged_backend())
+        .chart(&request)
+        .expect("chart at the window start");
+    for body in [CelestialBody::Sun, CelestialBody::Moon] {
+        assert!(speed_deg_per_day(&chart, &body) > 0.9, "{body:?}");
+    }
 }

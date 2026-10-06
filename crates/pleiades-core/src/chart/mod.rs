@@ -539,10 +539,20 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                     None
                 };
                 // A mean placement (requested, or the fallback above) reports the
-                // backend's longitude less the ayanamsa, so its speed is the
-                // backend's less the ayanamsa's rate (issue #141). An apparent
-                // placement's speed took the sidereal step in `apparent_motion`.
+                // backend's place precessed to the equinox of date, less the
+                // ayanamsa. Its speed is the backend's plus the rate of that
+                // precession step (issue #164), less the ayanamsa's rate
+                // (issue #141). An apparent placement's speed took the sidereal
+                // step in `apparent_motion`.
                 if let (None, Some(zodiac_mode)) = (&apparent, chart_sidereal_mode) {
+                    // `batch_mean` is the J2000 place the backend's speed describes.
+                    if let (Some(j2000), Some(base)) = (batch_mean, position.motion) {
+                        position.motion = Some(sidereal::mean_motion_of_date(
+                            j2000,
+                            base,
+                            request.instant.julian_day.days(),
+                        )?);
+                    }
                     if let Some(speed) = position
                         .motion
                         .as_mut()

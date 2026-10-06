@@ -231,22 +231,6 @@ fn sidereal_apparent_speed_drops_by_the_rate_of_the_ayanamsa_plus_nutation() {
     }
 }
 
-#[test]
-fn sidereal_mean_speed_drops_by_the_rate_of_the_ayanamsa() {
-    // A mean chart subtracts the ayanamsa from the backend's J2000 longitude,
-    // with no nutation to remove.
-    let (tropical, sidereal) = issue_141_charts(Apparentness::Mean);
-    let expected_drop = rate(lahiri_deg, ISSUE_141_JD_TT);
-    assert!(expected_drop > 3.5e-5, "drop {expected_drop}");
-    for body in issue_141_bodies() {
-        let drop = speed_deg_per_day(&tropical, &body) - speed_deg_per_day(&sidereal, &body);
-        assert!(
-            (drop - expected_drop).abs() < 1e-12,
-            "{body:?}: tropical − sidereal speed is {drop}, expected {expected_drop} deg/day"
-        );
-    }
-}
-
 // Issue #157: #120 moved body placements to the mean equinox before the
 // ayanamsa, but house cusps and angles, which `pleiades-houses` computes on
 // the true equinox, still had the ayanamsa alone subtracted and so kept Δψ.
