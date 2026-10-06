@@ -17,8 +17,7 @@ use pleiades_jpl::{
     independent_holdout_snapshot_body_class_coverage_summary, production_generation_source_summary,
     production_generation_source_summary_for_report, production_reference_corpus,
     reference_snapshot_summary, selected_asteroid_source_request_corpus_summary,
-    JplSnapshotBackend, ProductionGenerationSourceSummary, ReferenceSnapshotSummary,
-    SnapshotCorpusBackend,
+    ProductionGenerationSourceSummary, ReferenceSnapshotSummary, SnapshotCorpusBackend,
 };
 
 use crate::data::packaged_artifact;

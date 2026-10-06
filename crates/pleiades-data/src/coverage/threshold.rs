@@ -434,7 +434,7 @@ fn packaged_artifact_fit_expected_sample_count(artifact: &CompressedArtifact) ->
 ///   (interior ∪ boundary ∪ fast_clusters), the kernel-free analogue of the de440
 ///   kernel they were fit from. It spans the full 1900–2100 window with ≥3
 ///   entries/body so Lagrange interpolation never extrapolates.
-/// - selected-asteroid / custom bodies → `JplSnapshotBackend`, the exact source
+/// - selected-asteroid / custom bodies → the reference snapshot rows through `snapshot_fit_source`, the exact source
 ///   they were fit against. Measuring asteroids against the corpus instead would
 ///   compare them to a body they were never fit from, and the constrained asteroid
 ///   corpus is too coarse for fast movers (Eros at ~180-day spacing) so cubic
@@ -457,7 +457,7 @@ fn packaged_artifact_fit_expected_sample_count(artifact: &CompressedArtifact) ->
 /// touches the committed CSVs.
 struct FitTruthBackend {
     corpus: SnapshotCorpusBackend,
-    snapshot: JplSnapshotBackend,
+    snapshot: &'static SnapshotCorpusBackend,
 }
 
 impl FitTruthBackend {
@@ -507,7 +507,7 @@ fn fit_truth_backend() -> &'static FitTruthBackend {
             .collect::<Vec<_>>();
         FitTruthBackend {
             corpus: SnapshotCorpusBackend::from_entries(entries),
-            snapshot: JplSnapshotBackend,
+            snapshot: crate::regenerate::snapshot_fit_source(),
         }
     })
 }

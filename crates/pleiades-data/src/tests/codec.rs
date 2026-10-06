@@ -174,6 +174,22 @@ fn snapshot_reconstruction_covers_only_constrained_asteroids() {
     );
 }
 
+/// The constrained asteroid's segments are fitted to the reference snapshot's
+/// interpolation. This pins the generator's output, so a change in what the
+/// generator samples cannot pass unnoticed (the kernel-free regeneration path
+/// returns the committed bytes and proves nothing about the generator).
+#[test]
+fn snapshot_fit_of_the_constrained_asteroid_matches_the_committed_artifact() {
+    use pleiades_backend::{CelestialBody, CustomBodyId};
+    let eros = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
+    let regenerated = try_regenerate_packaged_artifact_from_snapshot(reference_snapshot())
+        .expect("the reference snapshot should regenerate");
+    assert!(regenerated.bodies.iter().any(|series| series.body == eros));
+    // Pinned from the generator's own output, measured 2026-10-06: the committed
+    // Eros segments were not produced by this snapshot fit, so they cannot be compared.
+    assert_eq!(regenerated.checksum, 4165010080501629842);
+}
+
 #[test]
 fn packaged_artifact_generation_rejects_tampered_reference_snapshot_inputs() {
     let mut snapshot = reference_snapshot().to_vec();

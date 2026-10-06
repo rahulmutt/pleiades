@@ -690,7 +690,7 @@ fn segment_error_prefers_the_fallback_when_it_is_more_accurate() {
 
 #[test]
 fn short_dense_span_prefers_the_fit_candidate_over_the_fallback_when_it_is_no_worse() {
-    let reference_backend = JplSnapshotBackend;
+    let reference_backend = crate::regenerate::snapshot_fit_source();
     let body = CelestialBody::Moon;
     let start_julian_day = 2_451_545.0;
     let end_julian_day = start_julian_day + 1.0;
@@ -718,7 +718,7 @@ fn short_dense_span_prefers_the_fit_candidate_over_the_fallback_when_it_is_no_wo
     let end =
         snapshot_entry_from_ecliptic_coordinates(body.clone(), end_julian_day, end_coordinates);
 
-    let segment = segment_from_pair(&start, &end, &reference_backend);
+    let segment = segment_from_pair(&start, &end, reference_backend);
 
     assert!(segment
         .channels
