@@ -19,6 +19,7 @@ use scan::{
     directed_crossings_in_range, first_directed_crossing_after, last_directed_crossing_before,
     Limits,
 };
+use track::BodyTrack;
 
 /// The instants the scanner may sample: the ephemeris window.
 const WINDOW: Limits = Limits {
@@ -207,13 +208,16 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// - `Body`: the geocentric apparent ecliptic position (from
     ///   `geocentric_apparent_ecliptic`), with `no_ecl_lat` applied, then
     ///   diurnal parallax + diurnal aberration via `topocentric_position`
-    ///   before rotating to equatorial.
+    ///   before rotating to equatorial. A search passes the body's `track`,
+    ///   which supplies that position from a few lattice samples (see
+    ///   [`BodyTrack`]); `None` reads it from the backend at `jd`.
     pub(crate) fn target_equatorial(
         &self,
         target: &RiseSetTarget,
         observer: &ObserverLocation,
         opts: &RiseSetOptions,
         jd: f64,
+        track: Option<&BodyTrack<'_, B>>,
     ) -> Result<(f64, f64), EventError> {
         let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
         let eps = true_obliquity_degrees(jd)
@@ -235,8 +239,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
                 Ok((equ.right_ascension.degrees(), equ.declination.degrees()))
             }
             RiseSetTarget::Body(b) => {
-                let (lon, lat, dist) =
-                    geocentric_apparent_ecliptic(&self.backend, b.clone(), "body", jd)?;
+                let (lon, lat, dist) = match track {
+                    Some(track) => track.place(jd)?,
+                    None => geocentric_apparent_ecliptic(&self.backend, b.clone(), "body", jd)?,
+                };
                 let lat = if opts.no_ecl_lat { 0.0 } else { lat };
                 let ecl = EclipticCoordinates::new(
                     Longitude::from_degrees(lon),
@@ -260,8 +266,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
         opts: &RiseSetOptions,
         atmos: Atmosphere,
         jd: f64,
+        track: Option<&BodyTrack<'_, B>>,
     ) -> Result<f64, EventError> {
-        let (ra_deg, dec_deg) = self.target_equatorial(target, observer, opts, jd)?;
+        let (ra_deg, dec_deg) = self.target_equatorial(target, observer, opts, jd, track)?;
         let phi = observer.latitude.degrees().to_radians();
         let lst = local_apparent_sidereal_deg(jd, observer.longitude)?;
         let ha = (lst - ra_deg).to_radians();
@@ -293,10 +300,16 @@ impl<B: EphemerisBackend> EventEngine<B> {
         opts: &RiseSetOptions,
         _atmos: Atmosphere,
         jd: f64,
+        track: Option<&BodyTrack<'_, B>>,
     ) -> Result<f64, EventError> {
-        // Distance (AU) for semidiameter; 0 for points/stars.
-        let distance_au = match target {
-            RiseSetTarget::Body(b) => read_mean_ecliptic(&self.backend, b.clone(), "body", jd)?.2,
+        // Distance (AU) for semidiameter; 0 for points/stars. A tracked body's
+        // distance comes with its place, which saves the second read every
+        // sample used to make for it (issue #204).
+        let distance_au = match (target, track) {
+            (RiseSetTarget::Body(_), Some(track)) => track.place(jd)?.2,
+            (RiseSetTarget::Body(b), None) => {
+                read_mean_ecliptic(&self.backend, b.clone(), "body", jd)?.2
+            }
             _ => 0.0,
         };
         let mut h0 = 0.0_f64;
@@ -314,6 +327,15 @@ impl<B: EphemerisBackend> EventEngine<B> {
         Ok(h0)
     }
 
+    /// The place source one search uses for its target: a [`BodyTrack`] for
+    /// a body that has one, `None` for a target read at every instant.
+    fn track(&self, target: &RiseSetTarget) -> Option<BodyTrack<'_, B>> {
+        match target {
+            RiseSetTarget::Body(body) => BodyTrack::new(&self.backend, body),
+            _ => None,
+        }
+    }
+
     /// The rise/set residual: apparent altitude minus standard altitude. Its
     /// zeros (ascending = rise, descending = set) are what `next_rise_set` and
     /// `rise_sets_in_range` root-find through the horizon scanner in `scan`,
@@ -325,9 +347,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
         opts: &RiseSetOptions,
         atmos: Atmosphere,
         jd: f64,
+        track: Option<&BodyTrack<'_, B>>,
     ) -> Result<f64, EventError> {
-        let alt = self.target_apparent_altitude(target, observer, opts, atmos, jd)?;
-        let h0 = self.standard_altitude(target, observer, opts, atmos, jd)?;
+        let alt = self.target_apparent_altitude(target, observer, opts, atmos, jd, track)?;
+        let h0 = self.standard_altitude(target, observer, opts, atmos, jd, track)?;
         Ok(alt - h0)
     }
 
@@ -426,8 +449,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
         match event {
             RiseSetEvent::Rise | RiseSetEvent::Set => {
                 let want_ascending = matches!(event, RiseSetEvent::Rise);
+                let track = self.track(&target);
                 let root = first_directed_crossing_after(
-                    |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
+                    |jd| {
+                        self.horizon_residual(&target, &observer, &opts, atmos, jd, track.as_ref())
+                    },
                     after_jd,
                     after_jd + RISE_SET_SEARCH_SPAN_DAYS,
                     RISE_SET_STEP_DAYS,
@@ -492,8 +518,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
         match event {
             RiseSetEvent::Rise | RiseSetEvent::Set => {
                 let want_ascending = matches!(event, RiseSetEvent::Rise);
+                let track = self.track(&target);
                 let root = last_directed_crossing_before(
-                    |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
+                    |jd| {
+                        self.horizon_residual(&target, &observer, &opts, atmos, jd, track.as_ref())
+                    },
                     before_jd - RISE_SET_SEARCH_SPAN_DAYS,
                     before_jd,
                     RISE_SET_STEP_DAYS,
@@ -553,8 +582,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
         match event {
             RiseSetEvent::Rise | RiseSetEvent::Set => {
                 let want_ascending = matches!(event, RiseSetEvent::Rise);
+                let track = self.track(&target);
                 let roots = directed_crossings_in_range(
-                    |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
+                    |jd| {
+                        self.horizon_residual(&target, &observer, &opts, atmos, jd, track.as_ref())
+                    },
                     start_jd,
                     end_jd,
                     RISE_SET_STEP_DAYS,
@@ -594,8 +626,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
         opts: &RiseSetOptions,
         lower: bool,
         jd: f64,
+        track: Option<&BodyTrack<'_, B>>,
     ) -> Result<f64, EventError> {
-        let (ra, _dec) = self.target_equatorial(target, observer, opts, jd)?;
+        let (ra, _dec) = self.target_equatorial(target, observer, opts, jd, track)?;
         let lst = local_apparent_sidereal_deg(jd, observer.longitude)?;
         let ha = lst - ra;
         Ok(if lower {
@@ -616,8 +649,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ) -> Result<Option<RiseSet>, EventError> {
         let lower = matches!(event, RiseSetEvent::LowerTransit);
         let after_jd = tdb_jd(after)?;
+        let track = self.track(&target);
         let root = first_directed_crossing_after(
-            |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
+            |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd, track.as_ref()),
             after_jd,
             after_jd + TRANSIT_SEARCH_SPAN_DAYS,
             TRANSIT_STEP_DAYS,
@@ -644,8 +678,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ) -> Result<Option<RiseSet>, EventError> {
         let lower = matches!(event, RiseSetEvent::LowerTransit);
         let before_jd = tdb_jd(before)?;
+        let track = self.track(&target);
         let root = last_directed_crossing_before(
-            |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
+            |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd, track.as_ref()),
             before_jd - TRANSIT_SEARCH_SPAN_DAYS,
             before_jd,
             TRANSIT_STEP_DAYS,
@@ -670,8 +705,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
         end: Instant,
     ) -> Result<Vec<RiseSet>, EventError> {
         let lower = matches!(event, RiseSetEvent::LowerTransit);
+        let track = self.track(&target);
         let roots = directed_crossings_in_range(
-            |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
+            |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd, track.as_ref()),
             tdb_jd(start)?,
             tdb_jd(end)?,
             TRANSIT_STEP_DAYS,
@@ -694,6 +730,11 @@ mod tests;
 
 mod scan;
 
+mod track;
+
+#[cfg(test)]
+mod test_support;
+
 #[cfg(test)]
 mod time_scale_tests;
 
@@ -702,3 +743,6 @@ mod chain_tests;
 
 #[cfg(test)]
 mod window_edge_tests;
+
+#[cfg(test)]
+mod cost_tests;
