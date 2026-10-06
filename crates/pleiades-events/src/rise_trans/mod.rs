@@ -17,6 +17,13 @@ use pleiades_types::{
 };
 use scan::{
     directed_crossings_in_range, first_directed_crossing_after, last_directed_crossing_before,
+    Limits,
+};
+
+/// The instants the scanner may sample: the ephemeris window.
+const WINDOW: Limits = Limits {
+    earliest: WINDOW_START_JD,
+    latest: WINDOW_END_JD,
 };
 
 /// Grid step for rise/set bracketing: 1 hour. The horizon scanner
@@ -38,18 +45,13 @@ const RISE_SET_STEP_DAYS: f64 = 1.0 / 24.0;
 /// 5-minute step.
 const TRANSIT_STEP_DAYS: f64 = 1.0 / 24.0;
 
-/// Earliest instant a scan may start from. The scanner samples up to two grid
-/// steps beyond the ends of the range it is given (the sample that overshoots
-/// the far end, plus one guard sample; see `scan`), and every sample must stay
-/// inside the ephemeris window.
-fn clamp_scan_start(jd: f64, step_days: f64) -> f64 {
-    jd.max(WINDOW_START_JD + 2.0 * step_days)
-}
-
-/// Latest instant a scan may run to; see [`clamp_scan_start`].
-fn clamp_scan_end(jd: f64, step_days: f64) -> f64 {
-    jd.min(WINDOW_END_JD - 2.0 * step_days)
-}
+/// How far a meridian-transit search looks from its query instant. A transit
+/// recurs once per sidereal day for a star and at most every 25.3 hours for
+/// the Moon, so 1.5 days always holds the next (or previous) one. The span is
+/// what lets a search the ephemeris window cuts short report `OutOfWindow`:
+/// a search that ended at the window's last instant would have nothing left
+/// to be cut short of (issue #203).
+const TRANSIT_SEARCH_SPAN_DAYS: f64 = 1.5;
 
 /// How far forward of `after` `next_rise_set`'s `Rise`/`Set` arm searches
 /// before giving up and returning `None`. This is a deliberate ~2.5×
@@ -407,15 +409,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
         self.check_window(after_jd)?;
         match event {
             RiseSetEvent::Rise | RiseSetEvent::Set => {
-                let scan_end =
-                    clamp_scan_end(after_jd + RISE_SET_SEARCH_SPAN_DAYS, RISE_SET_STEP_DAYS);
                 let want_ascending = matches!(event, RiseSetEvent::Rise);
-                let scan_start = clamp_scan_start(after_jd, RISE_SET_STEP_DAYS);
                 let root = first_directed_crossing_after(
                     |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
-                    scan_start,
-                    scan_end,
+                    after_jd,
+                    after_jd + RISE_SET_SEARCH_SPAN_DAYS,
                     RISE_SET_STEP_DAYS,
+                    WINDOW,
                     want_ascending,
                 )?;
                 Ok(root.filter(|&jd| jd > after_jd).map(|jd| RiseSet {
@@ -473,15 +473,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
         self.check_window(before_jd)?;
         match event {
             RiseSetEvent::Rise | RiseSetEvent::Set => {
-                let scan_start =
-                    clamp_scan_start(before_jd - RISE_SET_SEARCH_SPAN_DAYS, RISE_SET_STEP_DAYS);
-                let scan_end = clamp_scan_end(before_jd, RISE_SET_STEP_DAYS);
                 let want_ascending = matches!(event, RiseSetEvent::Rise);
                 let root = last_directed_crossing_before(
                     |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
-                    scan_start,
-                    scan_end,
+                    before_jd - RISE_SET_SEARCH_SPAN_DAYS,
+                    before_jd,
                     RISE_SET_STEP_DAYS,
+                    WINDOW,
                     want_ascending,
                 )?;
                 Ok(root.filter(|&jd| jd <= before_jd).map(|jd| RiseSet {
@@ -532,13 +530,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
         match event {
             RiseSetEvent::Rise | RiseSetEvent::Set => {
                 let want_ascending = matches!(event, RiseSetEvent::Rise);
-                let scan_start = clamp_scan_start(start_jd, RISE_SET_STEP_DAYS);
-                let scan_end = clamp_scan_end(end_jd, RISE_SET_STEP_DAYS);
                 let roots = directed_crossings_in_range(
                     |jd| self.horizon_residual(&target, &observer, &opts, atmos, jd),
-                    scan_start,
-                    scan_end,
+                    start_jd,
+                    end_jd,
                     RISE_SET_STEP_DAYS,
+                    WINDOW,
                     want_ascending,
                 )?;
                 Ok(roots
@@ -596,13 +593,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ) -> Result<Option<RiseSet>, EventError> {
         let lower = matches!(event, RiseSetEvent::LowerTransit);
         let after_jd = tdb_jd(after)?;
-        let scan_start = clamp_scan_start(after_jd, TRANSIT_STEP_DAYS);
-        let scan_end = clamp_scan_end(WINDOW_END_JD, TRANSIT_STEP_DAYS);
         let root = first_directed_crossing_after(
             |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
-            scan_start,
-            scan_end,
+            after_jd,
+            after_jd + TRANSIT_SEARCH_SPAN_DAYS,
             TRANSIT_STEP_DAYS,
+            WINDOW,
             true,
         )?;
         Ok(root.filter(|&jd| jd > after_jd).map(|jd| RiseSet {
@@ -625,13 +621,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ) -> Result<Option<RiseSet>, EventError> {
         let lower = matches!(event, RiseSetEvent::LowerTransit);
         let before_jd = tdb_jd(before)?;
-        let scan_start = clamp_scan_start(WINDOW_START_JD, TRANSIT_STEP_DAYS);
-        let scan_end = clamp_scan_end(before_jd, TRANSIT_STEP_DAYS);
         let root = last_directed_crossing_before(
             |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
-            scan_start,
-            scan_end,
+            before_jd - TRANSIT_SEARCH_SPAN_DAYS,
+            before_jd,
             TRANSIT_STEP_DAYS,
+            WINDOW,
             true,
         )?;
         Ok(root.filter(|&jd| jd <= before_jd).map(|jd| RiseSet {
@@ -652,13 +647,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
         end: Instant,
     ) -> Result<Vec<RiseSet>, EventError> {
         let lower = matches!(event, RiseSetEvent::LowerTransit);
-        let scan_start = clamp_scan_start(tdb_jd(start)?, TRANSIT_STEP_DAYS);
-        let scan_end = clamp_scan_end(tdb_jd(end)?, TRANSIT_STEP_DAYS);
         let roots = directed_crossings_in_range(
             |jd| self.hour_angle_residual(&target, &observer, &opts, lower, jd),
-            scan_start,
-            scan_end,
+            tdb_jd(start)?,
+            tdb_jd(end)?,
             TRANSIT_STEP_DAYS,
+            WINDOW,
             true,
         )?;
         Ok(roots
@@ -682,3 +676,6 @@ mod time_scale_tests;
 
 #[cfg(test)]
 mod chain_tests;
+
+#[cfg(test)]
+mod window_edge_tests;

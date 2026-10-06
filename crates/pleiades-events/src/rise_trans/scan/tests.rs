@@ -37,7 +37,8 @@ fn ok<F: Fn(f64) -> f64>(f: F) -> impl FnMut(f64) -> Result<f64, EventError> {
 
 #[test]
 fn range_returns_ascending_roots_in_order() {
-    let roots = directed_crossings_in_range(ok(diurnal), T0, T0 + 3.0, HOUR, true).unwrap();
+    let roots =
+        directed_crossings_in_range(ok(diurnal), T0, T0 + 3.0, HOUR, Limits::NONE, true).unwrap();
     assert_eq!(roots.len(), 3, "roots {roots:?}");
     for (k, r) in roots.iter().enumerate() {
         let want = T0 + k as f64 + a();
@@ -47,7 +48,8 @@ fn range_returns_ascending_roots_in_order() {
 
 #[test]
 fn range_returns_descending_roots_in_order() {
-    let roots = directed_crossings_in_range(ok(diurnal), T0, T0 + 3.0, HOUR, false).unwrap();
+    let roots =
+        directed_crossings_in_range(ok(diurnal), T0, T0 + 3.0, HOUR, Limits::NONE, false).unwrap();
     assert_eq!(roots.len(), 3, "roots {roots:?}");
     for (k, r) in roots.iter().enumerate() {
         let want = T0 + k as f64 + 0.5 - a();
@@ -59,7 +61,7 @@ fn range_returns_descending_roots_in_order() {
 fn first_after_skips_a_wrong_direction_crossing() {
     // The ascending root at T0 + A comes first; asking for descending must
     // skip it and land on T0 + 0.5 − A.
-    let root = first_directed_crossing_after(ok(diurnal), T0, T0 + 3.0, HOUR, false)
+    let root = first_directed_crossing_after(ok(diurnal), T0, T0 + 3.0, HOUR, Limits::NONE, false)
         .unwrap()
         .expect("a descending root");
     let want = T0 + 0.5 - a();
@@ -68,10 +70,12 @@ fn first_after_skips_a_wrong_direction_crossing() {
 
 #[test]
 fn first_after_returns_none_without_a_root_in_range() {
-    let none = first_directed_crossing_after(ok(|_| 90.0), T0, T0 + 3.0, HOUR, true).unwrap();
+    let none = first_directed_crossing_after(ok(|_| 90.0), T0, T0 + 3.0, HOUR, Limits::NONE, true)
+        .unwrap();
     assert!(none.is_none());
     // A range that ends before the first root.
-    let none = first_directed_crossing_after(ok(diurnal), T0, T0 + 0.01, HOUR, true).unwrap();
+    let none = first_directed_crossing_after(ok(diurnal), T0, T0 + 0.01, HOUR, Limits::NONE, true)
+        .unwrap();
     assert!(none.is_none());
 }
 
@@ -81,14 +85,28 @@ fn last_before_matches_range_last_for_misaligned_ranges() {
         let lo = T0 + 0.3 * HOUR * i as f64;
         let hi = lo + 2.3 + offset;
         for want_ascending in [true, false] {
-            let expected = directed_crossings_in_range(ok(diurnal), lo, hi, HOUR, want_ascending)
-                .unwrap()
-                .last()
-                .copied()
-                .expect("range has roots");
-            let actual = last_directed_crossing_before(ok(diurnal), lo, hi, HOUR, want_ascending)
-                .unwrap()
-                .expect("a last root");
+            let expected = directed_crossings_in_range(
+                ok(diurnal),
+                lo,
+                hi,
+                HOUR,
+                Limits::NONE,
+                want_ascending,
+            )
+            .unwrap()
+            .last()
+            .copied()
+            .expect("range has roots");
+            let actual = last_directed_crossing_before(
+                ok(diurnal),
+                lo,
+                hi,
+                HOUR,
+                Limits::NONE,
+                want_ascending,
+            )
+            .unwrap()
+            .expect("a last root");
             assert!(
                 (expected - actual).abs() < TOL,
                 "offset {offset} ascending {want_ascending}: {expected} vs {actual}"
@@ -99,10 +117,12 @@ fn last_before_matches_range_last_for_misaligned_ranges() {
 
 #[test]
 fn last_before_returns_none_without_a_root_in_range() {
-    let none = last_directed_crossing_before(ok(|_| -5.0), T0, T0 + 3.0, HOUR, false).unwrap();
+    let none = last_directed_crossing_before(ok(|_| -5.0), T0, T0 + 3.0, HOUR, Limits::NONE, false)
+        .unwrap();
     assert!(none.is_none());
     // A range that ends before the first root of the wanted direction.
-    let none = last_directed_crossing_before(ok(diurnal), T0, T0 + 0.2, HOUR, false).unwrap();
+    let none = last_directed_crossing_before(ok(diurnal), T0, T0 + 0.2, HOUR, Limits::NONE, false)
+        .unwrap();
     assert!(none.is_none());
 }
 
@@ -113,20 +133,26 @@ fn roots_in_the_overshoot_sample_are_dropped() {
     // root, which must still be rejected as out of range.
     let f = |t: f64| 100.0 * (t - (T0 + 3.5 * HOUR));
     let hi = T0 + 3.2 * HOUR;
-    assert!(directed_crossings_in_range(ok(f), T0, hi, HOUR, true)
-        .unwrap()
-        .is_empty());
-    assert!(first_directed_crossing_after(ok(f), T0, hi, HOUR, true)
-        .unwrap()
-        .is_none());
-    assert!(last_directed_crossing_before(ok(f), T0, hi, HOUR, true)
-        .unwrap()
-        .is_none());
+    assert!(
+        directed_crossings_in_range(ok(f), T0, hi, HOUR, Limits::NONE, true)
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        first_directed_crossing_after(ok(f), T0, hi, HOUR, Limits::NONE, true)
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        last_directed_crossing_before(ok(f), T0, hi, HOUR, Limits::NONE, true)
+            .unwrap()
+            .is_none()
+    );
     // Mirror: root at −0.5 h, range starting at −0.2 h.
     let g = |t: f64| 100.0 * (t - (T0 - 0.5 * HOUR));
     let lo = T0 - 0.2 * HOUR;
     assert!(
-        last_directed_crossing_before(ok(g), lo, T0 + 3.0 * HOUR, HOUR, true)
+        last_directed_crossing_before(ok(g), lo, T0 + 3.0 * HOUR, HOUR, Limits::NONE, true)
             .unwrap()
             .is_none()
     );
@@ -139,8 +165,8 @@ fn graze_peak_between_samples_yields_rise_then_set() {
     let lo = T0 + 0.3 * HOUR;
     let hi = T0 + 1.0;
     let tau = graze_tau();
-    let rises = directed_crossings_in_range(ok(graze), lo, hi, HOUR, true).unwrap();
-    let sets = directed_crossings_in_range(ok(graze), lo, hi, HOUR, false).unwrap();
+    let rises = directed_crossings_in_range(ok(graze), lo, hi, HOUR, Limits::NONE, true).unwrap();
+    let sets = directed_crossings_in_range(ok(graze), lo, hi, HOUR, Limits::NONE, false).unwrap();
     assert_eq!(rises.len(), 1, "rises {rises:?}");
     assert_eq!(sets.len(), 1, "sets {sets:?}");
     assert!(
@@ -157,18 +183,18 @@ fn graze_is_found_by_first_after_and_last_before() {
     let lo = T0 + 0.3 * HOUR;
     let hi = T0 + 1.0;
     let tau = graze_tau();
-    let rise = first_directed_crossing_after(ok(graze), lo, hi, HOUR, true)
+    let rise = first_directed_crossing_after(ok(graze), lo, hi, HOUR, Limits::NONE, true)
         .unwrap()
         .expect("rise");
-    let set = first_directed_crossing_after(ok(graze), lo, hi, HOUR, false)
+    let set = first_directed_crossing_after(ok(graze), lo, hi, HOUR, Limits::NONE, false)
         .unwrap()
         .expect("set");
     assert!((rise - (T0 + 0.25 - tau)).abs() < TOL);
     assert!((set - (T0 + 0.25 + tau)).abs() < TOL);
-    let rise = last_directed_crossing_before(ok(graze), lo, hi, HOUR, true)
+    let rise = last_directed_crossing_before(ok(graze), lo, hi, HOUR, Limits::NONE, true)
         .unwrap()
         .expect("rise");
-    let set = last_directed_crossing_before(ok(graze), lo, hi, HOUR, false)
+    let set = last_directed_crossing_before(ok(graze), lo, hi, HOUR, Limits::NONE, false)
         .unwrap()
         .expect("set");
     assert!((rise - (T0 + 0.25 - tau)).abs() < TOL);
@@ -183,15 +209,21 @@ fn near_miss_peak_below_zero_yields_nothing() {
     let lo = T0 + 0.3 * HOUR;
     let hi = T0 + 1.0;
     for want in [true, false] {
-        assert!(directed_crossings_in_range(ok(miss), lo, hi, HOUR, want)
-            .unwrap()
-            .is_empty());
-        assert!(first_directed_crossing_after(ok(miss), lo, hi, HOUR, want)
-            .unwrap()
-            .is_none());
-        assert!(last_directed_crossing_before(ok(miss), lo, hi, HOUR, want)
-            .unwrap()
-            .is_none());
+        assert!(
+            directed_crossings_in_range(ok(miss), lo, hi, HOUR, Limits::NONE, want)
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            first_directed_crossing_after(ok(miss), lo, hi, HOUR, Limits::NONE, want)
+                .unwrap()
+                .is_none()
+        );
+        assert!(
+            last_directed_crossing_before(ok(miss), lo, hi, HOUR, Limits::NONE, want)
+                .unwrap()
+                .is_none()
+        );
     }
 }
 
@@ -203,8 +235,8 @@ fn dip_between_samples_yields_set_then_rise() {
     let lo = T0 + 0.3 * HOUR;
     let hi = T0 + 1.0;
     let tau = graze_tau();
-    let rises = directed_crossings_in_range(ok(dip), lo, hi, HOUR, true).unwrap();
-    let sets = directed_crossings_in_range(ok(dip), lo, hi, HOUR, false).unwrap();
+    let rises = directed_crossings_in_range(ok(dip), lo, hi, HOUR, Limits::NONE, true).unwrap();
+    let sets = directed_crossings_in_range(ok(dip), lo, hi, HOUR, Limits::NONE, false).unwrap();
     assert_eq!(sets.len(), 1, "sets {sets:?}");
     assert_eq!(rises.len(), 1, "rises {rises:?}");
     assert!((sets[0] - (T0 + 0.25 - tau)).abs() < TOL, "set {}", sets[0]);
@@ -226,7 +258,7 @@ fn evaluation_count_stays_coarse() {
     };
     // Start just after the day-0 ascending root; the next one is ~24 h away.
     let after = T0 + a() + 0.5 * HOUR;
-    let root = first_directed_crossing_after(counted, after, after + 3.0, HOUR, true)
+    let root = first_directed_crossing_after(counted, after, after + 3.0, HOUR, Limits::NONE, true)
         .unwrap()
         .expect("next ascending root");
     assert!((root - (T0 + 1.0 + a())).abs() < TOL);
@@ -241,15 +273,15 @@ fn evaluation_count_stays_coarse() {
 fn errors_propagate_from_all_entry_points() {
     let boom = |_: f64| Err(EventError::Backend("boom".into()));
     assert!(matches!(
-        directed_crossings_in_range(boom, T0, T0 + 1.0, HOUR, true).unwrap_err(),
+        directed_crossings_in_range(boom, T0, T0 + 1.0, HOUR, Limits::NONE, true).unwrap_err(),
         EventError::Backend(_)
     ));
     assert!(matches!(
-        first_directed_crossing_after(boom, T0, T0 + 1.0, HOUR, true).unwrap_err(),
+        first_directed_crossing_after(boom, T0, T0 + 1.0, HOUR, Limits::NONE, true).unwrap_err(),
         EventError::Backend(_)
     ));
     assert!(matches!(
-        last_directed_crossing_before(boom, T0, T0 + 1.0, HOUR, true).unwrap_err(),
+        last_directed_crossing_before(boom, T0, T0 + 1.0, HOUR, Limits::NONE, true).unwrap_err(),
         EventError::Backend(_)
     ));
 }
@@ -286,14 +318,21 @@ fn first_after_a_returned_root_finds_the_following_one() {
                 start,
                 start + 3.0,
                 HOUR,
+                Limits::NONE,
                 want_ascending,
             )
             .unwrap()
             .expect("a root");
-            let next =
-                first_directed_crossing_after(ok(diurnal), root, root + 3.0, HOUR, want_ascending)
-                    .unwrap()
-                    .expect("a following root");
+            let next = first_directed_crossing_after(
+                ok(diurnal),
+                root,
+                root + 3.0,
+                HOUR,
+                Limits::NONE,
+                want_ascending,
+            )
+            .unwrap()
+            .expect("a following root");
             assert!(
                 (next - root - 1.0).abs() < TOL,
                 "start {start} ascending {want_ascending}: {root} then {next}"
@@ -311,14 +350,21 @@ fn last_before_a_returned_root_returns_that_root() {
                 start,
                 start + 3.0,
                 HOUR,
+                Limits::NONE,
                 want_ascending,
             )
             .unwrap()
             .expect("a root");
-            let back =
-                last_directed_crossing_before(ok(diurnal), root - 3.0, root, HOUR, want_ascending)
-                    .unwrap()
-                    .expect("the same root");
+            let back = last_directed_crossing_before(
+                ok(diurnal),
+                root - 3.0,
+                root,
+                HOUR,
+                Limits::NONE,
+                want_ascending,
+            )
+            .unwrap()
+            .expect("the same root");
             assert!(
                 back <= root && root - back < TOL,
                 "start {start} ascending {want_ascending}: {root} then {back}"
@@ -330,10 +376,19 @@ fn last_before_a_returned_root_returns_that_root() {
 #[test]
 fn range_starting_at_a_returned_root_excludes_it() {
     for start in spread_starts() {
-        let root = first_directed_crossing_after(ok(diurnal), start, start + 3.0, HOUR, true)
-            .unwrap()
-            .expect("a root");
-        let roots = directed_crossings_in_range(ok(diurnal), root, root + 0.5, HOUR, true).unwrap();
+        let root = first_directed_crossing_after(
+            ok(diurnal),
+            start,
+            start + 3.0,
+            HOUR,
+            Limits::NONE,
+            true,
+        )
+        .unwrap()
+        .expect("a root");
+        let roots =
+            directed_crossings_in_range(ok(diurnal), root, root + 0.5, HOUR, Limits::NONE, true)
+                .unwrap();
         assert!(roots.is_empty(), "start {start}: {root} then {roots:?}");
     }
 }
@@ -341,11 +396,12 @@ fn range_starting_at_a_returned_root_excludes_it() {
 #[test]
 fn first_after_a_returned_set_finds_the_rise_ending_a_short_night() {
     for start in (0..48).map(|i| dip_set() - 0.9 + 0.017_3 * f64::from(i)) {
-        let set = first_directed_crossing_after(ok(dip), start, start + 3.0, HOUR, false)
-            .unwrap()
-            .expect("the set");
+        let set =
+            first_directed_crossing_after(ok(dip), start, start + 3.0, HOUR, Limits::NONE, false)
+                .unwrap()
+                .expect("the set");
         assert!((set - dip_set()).abs() < TOL, "start {start}: set {set}");
-        let rise = first_directed_crossing_after(ok(dip), set, set + 3.0, HOUR, true)
+        let rise = first_directed_crossing_after(ok(dip), set, set + 3.0, HOUR, Limits::NONE, true)
             .unwrap()
             .expect("the rise");
         assert!(
@@ -363,7 +419,7 @@ fn first_after_finds_a_short_night_in_the_first_grid_interval() {
     // sample before the anchor can reveal the culmination.
     for minutes_before in [1.0, 5.0, 12.0, 18.0] {
         let lo = dip_set() - minutes_before * MINUTE;
-        let rise = first_directed_crossing_after(ok(dip), lo, lo + 3.0, HOUR, true)
+        let rise = first_directed_crossing_after(ok(dip), lo, lo + 3.0, HOUR, Limits::NONE, true)
             .unwrap()
             .expect("the rise");
         assert!(
@@ -371,7 +427,7 @@ fn first_after_finds_a_short_night_in_the_first_grid_interval() {
             "{minutes_before} min before: rise {rise} vs {}",
             dip_rise()
         );
-        let set = first_directed_crossing_after(ok(dip), lo, lo + 3.0, HOUR, false)
+        let set = first_directed_crossing_after(ok(dip), lo, lo + 3.0, HOUR, Limits::NONE, false)
             .unwrap()
             .expect("the set");
         assert!(
@@ -387,7 +443,7 @@ fn last_before_finds_a_short_night_in_the_first_grid_interval() {
     // The backward twin: anchored a few minutes after the rise.
     for minutes_after in [1.0, 5.0, 12.0, 18.0] {
         let hi = dip_rise() + minutes_after * MINUTE;
-        let set = last_directed_crossing_before(ok(dip), hi - 3.0, hi, HOUR, false)
+        let set = last_directed_crossing_before(ok(dip), hi - 3.0, hi, HOUR, Limits::NONE, false)
             .unwrap()
             .expect("the set");
         assert!(
@@ -395,7 +451,7 @@ fn last_before_finds_a_short_night_in_the_first_grid_interval() {
             "{minutes_after} min after: set {set} vs {}",
             dip_set()
         );
-        let rise = last_directed_crossing_before(ok(dip), hi - 3.0, hi, HOUR, true)
+        let rise = last_directed_crossing_before(ok(dip), hi - 3.0, hi, HOUR, Limits::NONE, true)
             .unwrap()
             .expect("the rise");
         assert!(
@@ -415,8 +471,8 @@ fn a_short_night_in_the_far_grid_interval_is_found() {
     // Forward: nodes at `centre − 40 min` and `centre + 20 min` straddle it.
     let hi = dip_rise() + 5.0 * MINUTE;
     let lo = centre + 20.0 * MINUTE - 6.0 * HOUR;
-    let sets = directed_crossings_in_range(ok(dip), lo, hi, HOUR, false).unwrap();
-    let rises = directed_crossings_in_range(ok(dip), lo, hi, HOUR, true).unwrap();
+    let sets = directed_crossings_in_range(ok(dip), lo, hi, HOUR, Limits::NONE, false).unwrap();
+    let rises = directed_crossings_in_range(ok(dip), lo, hi, HOUR, Limits::NONE, true).unwrap();
     assert_eq!(sets.len(), 1, "sets {sets:?}");
     assert_eq!(rises.len(), 1, "rises {rises:?}");
     assert!((sets[0] - dip_set()).abs() < TOL, "set {}", sets[0]);
@@ -424,7 +480,7 @@ fn a_short_night_in_the_far_grid_interval_is_found() {
     // Backward: nodes at `centre + 40 min` and `centre − 20 min`.
     let lo = dip_set() - 5.0 * MINUTE;
     let hi = centre - 20.0 * MINUTE + 6.0 * HOUR;
-    let set = last_directed_crossing_before(ok(dip), lo, hi, HOUR, false)
+    let set = last_directed_crossing_before(ok(dip), lo, hi, HOUR, Limits::NONE, false)
         .unwrap()
         .expect("the set");
     assert!((set - dip_set()).abs() < TOL, "set {set}");
@@ -435,12 +491,12 @@ fn a_short_day_in_the_first_grid_interval_is_found() {
     // The polar-night mirror of the short night: a ~20-minute day.
     let (rise_at, set_at) = (dip_set(), dip_rise());
     let lo = rise_at - 5.0 * MINUTE;
-    let set = first_directed_crossing_after(ok(graze), lo, lo + 3.0, HOUR, false)
+    let set = first_directed_crossing_after(ok(graze), lo, lo + 3.0, HOUR, Limits::NONE, false)
         .unwrap()
         .expect("the set");
     assert!((set - set_at).abs() < TOL, "set {set} vs {set_at}");
     let hi = set_at + 5.0 * MINUTE;
-    let rise = last_directed_crossing_before(ok(graze), hi - 3.0, hi, HOUR, true)
+    let rise = last_directed_crossing_before(ok(graze), hi - 3.0, hi, HOUR, Limits::NONE, true)
         .unwrap()
         .expect("the rise");
     assert!((rise - rise_at).abs() < TOL, "rise {rise} vs {rise_at}");
@@ -457,7 +513,9 @@ fn a_root_behind_the_anchor_is_neither_returned_nor_refined() {
         calls.set(calls.get() + 1);
         Ok(behind(t))
     };
-    let none = first_directed_crossing_after(counted, lo, lo + 5.0 * HOUR, HOUR, true).unwrap();
+    let none =
+        first_directed_crossing_after(counted, lo, lo + 5.0 * HOUR, HOUR, Limits::NONE, true)
+            .unwrap();
     assert!(none.is_none(), "{none:?}");
     assert!(
         calls.get() <= 9,
@@ -472,7 +530,9 @@ fn a_root_behind_the_anchor_is_neither_returned_nor_refined() {
         calls.set(calls.get() + 1);
         Ok(ahead(t))
     };
-    let none = last_directed_crossing_before(counted, hi - 5.0 * HOUR, hi, HOUR, true).unwrap();
+    let none =
+        last_directed_crossing_before(counted, hi - 5.0 * HOUR, hi, HOUR, Limits::NONE, true)
+            .unwrap();
     assert!(none.is_none(), "{none:?}");
     assert!(
         calls.get() <= 9,
@@ -484,9 +544,10 @@ fn a_root_behind_the_anchor_is_neither_returned_nor_refined() {
 #[test]
 fn an_empty_range_still_evaluates_the_anchor() {
     let boom = |_: f64| Err(EventError::Backend("boom".into()));
-    assert!(first_directed_crossing_after(boom, T0 + 1.0, T0, HOUR, true).is_err());
-    assert!(last_directed_crossing_before(boom, T0 + 1.0, T0, HOUR, true).is_err());
-    let none = first_directed_crossing_after(ok(diurnal), T0 + 1.0, T0, HOUR, true).unwrap();
+    assert!(first_directed_crossing_after(boom, T0 + 1.0, T0, HOUR, Limits::NONE, true).is_err());
+    assert!(last_directed_crossing_before(boom, T0 + 1.0, T0, HOUR, Limits::NONE, true).is_err());
+    let none =
+        first_directed_crossing_after(ok(diurnal), T0 + 1.0, T0, HOUR, Limits::NONE, true).unwrap();
     assert!(none.is_none());
 }
 
@@ -505,7 +566,8 @@ fn wrapped_sawtooth_yields_its_ascending_zeros_and_skips_the_seam() {
         calls.set(calls.get() + 1);
         Ok(sawtooth(t))
     };
-    let roots = directed_crossings_in_range(counted, T0, T0 + 3.0, HOUR, true).unwrap();
+    let roots =
+        directed_crossings_in_range(counted, T0, T0 + 3.0, HOUR, Limits::NONE, true).unwrap();
     assert_eq!(roots.len(), 3, "roots {roots:?}");
     for (k, r) in roots.iter().enumerate() {
         let want = T0 + 0.4 + k as f64;
@@ -518,8 +580,265 @@ fn wrapped_sawtooth_yields_its_ascending_zeros_and_skips_the_seam() {
         "expected grid samples and three bisections, got {}",
         calls.get()
     );
-    let last = last_directed_crossing_before(ok(sawtooth), T0, T0 + 3.0, HOUR, true)
+    let last = last_directed_crossing_before(ok(sawtooth), T0, T0 + 3.0, HOUR, Limits::NONE, true)
         .unwrap()
         .expect("a zero");
     assert!((last - (T0 + 2.4)).abs() < TOL, "{last}");
+}
+
+// Issue #203: the window's ends. A walk never samples outside its limits,
+// still brackets the partial interval before a limit, still finds a graze
+// next to a limit, and says so when a limit cuts it short.
+
+fn until(latest: f64) -> Limits {
+    Limits {
+        earliest: f64::NEG_INFINITY,
+        latest,
+    }
+}
+
+fn from(earliest: f64) -> Limits {
+    Limits {
+        earliest,
+        latest: f64::INFINITY,
+    }
+}
+
+/// The Julian Day an `OutOfWindow` error names.
+fn out_of_window_jd<T: std::fmt::Debug>(result: Result<T, EventError>) -> f64 {
+    match result {
+        Err(EventError::OutOfWindow { julian_day }) => julian_day,
+        other => panic!("expected OutOfWindow, got {other:?}"),
+    }
+}
+
+#[test]
+fn a_root_in_the_partial_interval_before_the_latest_limit_is_found() {
+    // The ascending root is at T0 + 1.16 h. The grid from T0 has nodes at 1 h
+    // and 2 h; the limit at 1.5 h replaces the second.
+    let limits = until(T0 + 1.5 * HOUR);
+    let root = first_directed_crossing_after(ok(diurnal), T0, T0 + 3.0, HOUR, limits, true)
+        .unwrap()
+        .expect("the root lies before the limit");
+    assert!((root - (T0 + a())).abs() < TOL, "{root}");
+    let roots =
+        directed_crossings_in_range(ok(diurnal), T0, T0 + 1.5 * HOUR, HOUR, limits, true).unwrap();
+    assert_eq!(roots.len(), 1, "{roots:?}");
+    assert!((roots[0] - (T0 + a())).abs() < TOL, "{roots:?}");
+}
+
+#[test]
+fn a_root_in_the_partial_interval_after_the_earliest_limit_is_found() {
+    // Backward from T0 + 3 h the nodes are 2 h, 1 h, 0 h. A limit at 1.1 h
+    // replaces the node at 1 h and still sits before the root at 1.16 h.
+    let limits = from(T0 + 1.1 * HOUR);
+    let root =
+        last_directed_crossing_before(ok(diurnal), T0 - 3.0, T0 + 3.0 * HOUR, HOUR, limits, true)
+            .unwrap()
+            .expect("the root lies after the limit");
+    assert!((root - (T0 + a())).abs() < TOL, "{root}");
+}
+
+#[test]
+fn a_search_a_limit_cuts_short_reports_out_of_window() {
+    // The limit at 1.1 h is before the root at 1.16 h: the search cannot say
+    // whether a root follows, and names the first node it could not sample.
+    let limits = until(T0 + 1.1 * HOUR);
+    let needed = out_of_window_jd(first_directed_crossing_after(
+        ok(diurnal),
+        T0,
+        T0 + 3.0,
+        HOUR,
+        limits,
+        true,
+    ));
+    assert!((needed - (T0 + 2.0 * HOUR)).abs() < 1e-9, "{needed}");
+    let needed = out_of_window_jd(directed_crossings_in_range(
+        ok(diurnal),
+        T0,
+        T0 + 3.0,
+        HOUR,
+        limits,
+        true,
+    ));
+    assert!((needed - (T0 + 2.0 * HOUR)).abs() < 1e-9, "{needed}");
+
+    // Backward: the limit at 1.3 h is after the root.
+    let needed = out_of_window_jd(last_directed_crossing_before(
+        ok(diurnal),
+        T0 - 3.0,
+        T0 + 3.0 * HOUR,
+        HOUR,
+        from(T0 + 1.3 * HOUR),
+        true,
+    ));
+    assert!((needed - (T0 + HOUR)).abs() < 1e-9, "{needed}");
+}
+
+#[test]
+fn a_range_that_ends_at_a_limit_is_covered() {
+    // Nothing is cut short when the range itself stops at the limit, whether
+    // or not it holds a root: only the guard samples are missing.
+    let hi = T0 + 1.1 * HOUR;
+    let none = first_directed_crossing_after(ok(diurnal), T0, hi, HOUR, until(hi), true).unwrap();
+    assert!(none.is_none(), "{none:?}");
+    let none =
+        last_directed_crossing_before(ok(diurnal), T0, T0 + HOUR, HOUR, from(T0), true).unwrap();
+    assert!(none.is_none(), "{none:?}");
+    let roots = directed_crossings_in_range(
+        ok(diurnal),
+        T0,
+        T0 + 2.0,
+        HOUR,
+        Limits {
+            earliest: T0,
+            latest: T0 + 2.0,
+        },
+        true,
+    )
+    .unwrap();
+    assert_eq!(roots.len(), 2, "{roots:?}");
+}
+
+#[test]
+fn a_graze_next_to_the_latest_limit_is_found_without_a_guard() {
+    // The graze peaks at T0 + 0.25 d and lasts 20 minutes. The last grid
+    // node is 31 minutes before the peak and the limit 14 minutes after it,
+    // so the peak is nearest the sample at the limit, which has no neighbour
+    // beyond it.
+    let lo = T0 + 0.02;
+    let hi = T0 + 0.26;
+    for (want_ascending, want) in [
+        (true, T0 + 0.25 - graze_tau()),
+        (false, T0 + 0.25 + graze_tau()),
+    ] {
+        let roots = directed_crossings_in_range(ok(graze), lo, hi, HOUR, until(hi), want_ascending)
+            .unwrap();
+        assert_eq!(roots.len(), 1, "ascending {want_ascending}: {roots:?}");
+        assert!((roots[0] - want).abs() < TOL, "{roots:?} vs {want}");
+        let first =
+            first_directed_crossing_after(ok(graze), lo, hi + 1.0, HOUR, until(hi), want_ascending)
+                .unwrap()
+                .expect("the graze lies before the limit");
+        assert!((first - want).abs() < TOL, "{first} vs {want}");
+    }
+}
+
+#[test]
+fn a_graze_next_to_the_anchor_is_found_without_a_guard() {
+    // Forward from 14 minutes before the peak, with the window starting at
+    // the anchor; backward from 14 minutes after it, with the window ending
+    // there. Either way the anchor is the sample nearest the peak.
+    let lo = T0 + 0.24;
+    let hi = T0 + 0.26;
+    for (want_ascending, want) in [
+        (true, T0 + 0.25 - graze_tau()),
+        (false, T0 + 0.25 + graze_tau()),
+    ] {
+        let first =
+            first_directed_crossing_after(ok(graze), lo, lo + 1.0, HOUR, from(lo), want_ascending)
+                .unwrap()
+                .expect("the graze follows the anchor");
+        assert!((first - want).abs() < TOL, "forward: {first} vs {want}");
+        let last =
+            last_directed_crossing_before(ok(graze), hi - 1.0, hi, HOUR, until(hi), want_ascending)
+                .unwrap()
+                .expect("the graze precedes the anchor");
+        assert!((last - want).abs() < TOL, "backward: {last} vs {want}");
+    }
+}
+
+#[test]
+fn a_near_miss_next_to_a_limit_yields_nothing() {
+    // The same peak 0.06° BELOW the horizon: the edge check refines it and
+    // finds no crossing.
+    let near_miss = |t: f64| 60.0 * (TAU * (t - T0)).sin() - 60.0 * (1.0 + EPS);
+    let hi = T0 + 0.26;
+    let roots =
+        directed_crossings_in_range(ok(near_miss), T0 + 0.02, hi, HOUR, until(hi), true).unwrap();
+    assert!(roots.is_empty(), "{roots:?}");
+}
+
+#[test]
+fn no_sample_is_taken_outside_the_limits() {
+    let limits = Limits {
+        earliest: T0 + 0.24,
+        latest: T0 + 1.26,
+    };
+    let seen = Cell::new((f64::INFINITY, f64::NEG_INFINITY));
+    let recording = |t: f64| {
+        let (lowest, highest) = seen.get();
+        seen.set((lowest.min(t), highest.max(t)));
+        Ok(graze(t))
+    };
+    let _ = directed_crossings_in_range(recording, T0 + 0.24, T0 + 1.26, HOUR, limits, true);
+    let _ = first_directed_crossing_after(recording, T0 + 0.3, T0 + 4.0, HOUR, limits, false);
+    let _ = last_directed_crossing_before(recording, T0 - 4.0, T0 + 1.2, HOUR, limits, false);
+    let (lowest, highest) = seen.get();
+    assert!(lowest >= limits.earliest, "sampled {lowest}");
+    assert!(highest <= limits.latest, "sampled {highest}");
+}
+
+/// `diurnal`, unreadable before `readable_from`, as an apparent place is
+/// within light-time of the window's start.
+fn unreadable_before(readable_from: f64) -> impl FnMut(f64) -> Result<f64, EventError> {
+    move |t| {
+        if t < readable_from {
+            Err(EventError::OutOfWindow { julian_day: t })
+        } else {
+            Ok(diurnal(t))
+        }
+    }
+}
+
+#[test]
+fn an_unreadable_node_ends_the_walk_like_a_limit() {
+    // Backward from T0 + 3 h; the root is at 1.16 h. With the node at 1 h
+    // readable the root is bracketed; with it unreadable the search is cut
+    // short and names that node.
+    let last = |readable_from: f64| {
+        last_directed_crossing_before(
+            unreadable_before(readable_from),
+            T0 - 3.0,
+            T0 + 3.0 * HOUR,
+            HOUR,
+            Limits::NONE,
+            true,
+        )
+    };
+    let root = last(T0 + 0.9 * HOUR)
+        .unwrap()
+        .expect("the root is bracketed");
+    assert!((root - (T0 + a())).abs() < TOL, "{root}");
+    let needed = out_of_window_jd(last(T0 + HOUR + 5.0 * MINUTE));
+    assert!((needed - (T0 + HOUR)).abs() < 1e-9, "{needed}");
+}
+
+#[test]
+fn an_unreadable_guard_does_not_stop_a_forward_search() {
+    // The anchor at 1.05 h is readable; the guard an hour behind it is not.
+    let root = first_directed_crossing_after(
+        unreadable_before(T0 + 0.9 * HOUR),
+        T0 + 1.05 * HOUR,
+        T0 + 3.0,
+        HOUR,
+        Limits::NONE,
+        true,
+    )
+    .unwrap()
+    .expect("the root follows the anchor");
+    assert!((root - (T0 + a())).abs() < TOL, "{root}");
+}
+
+#[test]
+fn an_unreadable_anchor_is_an_error() {
+    let needed = out_of_window_jd(first_directed_crossing_after(
+        unreadable_before(T0 + HOUR),
+        T0,
+        T0 + 3.0,
+        HOUR,
+        Limits::NONE,
+        true,
+    ));
+    assert_eq!(needed, T0);
 }
