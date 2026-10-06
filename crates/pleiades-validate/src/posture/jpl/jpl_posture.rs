@@ -224,11 +224,11 @@ pub(crate) fn jpl_interpolation_quality_summary_line(s: &JplInterpolationQuality
         s.sample_count,
         s.body_count,
         s.epoch_count,
-        format_instant(s.earliest_epoch),
-        format_instant(s.latest_epoch),
         s.cubic_sample_count,
         s.quadratic_sample_count,
         s.linear_sample_count,
+        format_instant(s.earliest_epoch),
+        format_instant(s.latest_epoch),
         s.max_bracket_span_days,
         format_body_epoch_suffix(&s.max_bracket_span_body, s.max_bracket_span_epoch),
         s.mean_bracket_span_days,
@@ -647,6 +647,23 @@ pub(crate) fn jpl_interpolation_body_class_error_envelopes_for_report() -> Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The aggregate statistics over the leave-one-out samples, pinned whole
+    /// (issue #201). Each value is a measurement of the fixture rows: it
+    /// changes only when the rows or the interpolator do, and then this line
+    /// is regenerated with the change. Pinning the line whole also caught the
+    /// kind counts and the epoch window being printed in each other's places.
+    #[test]
+    fn interpolation_quality_aggregates_are_pinned() {
+        let summary = pleiades_jpl::jpl_interpolation_quality_summary()
+            .expect("the interpolation-quality summary should exist");
+        assert_eq!(
+            jpl_interpolation_quality_summary_line(&summary),
+            EXPECTED_INTERPOLATION_QUALITY_SUMMARY_LINE
+        );
+    }
+
+    const EXPECTED_INTERPOLATION_QUALITY_SUMMARY_LINE: &str = r"JPL interpolation quality: 219 samples across 16 bodies and 19 epochs (217 cubic, 2 quadratic, 0 linear), epoch window JD 2451545.0 (TDB) → JD 2500000.0 (TDB); leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span=181166.5 d (Ceres @ JD 2500000.0 (TDB)); mean bracket span=6009.8 d; median bracket span=2.0 d; p95 bracket span=36890.0 d; max Δlon=179.218062830799° (Pallas @ JD 2453000.5 (TDB)); mean Δlon=7.251597715784°; median Δlon=0.000000297373°; p95 Δlon=78.457354458624°; rms Δlon=30.747799488276°; max Δlat=27.987857088489° (Pallas @ JD 2453000.5 (TDB)); mean Δlat=0.374670972881°; median Δlat=0.000000044866°; p95 Δlat=0.374777622854°; rms Δlat=2.331428338151°; max Δdist=18591789.124255102128 AU (asteroid:433-Eros @ JD 2500000.0 (TDB)); mean Δdist=388499.071196755103 AU; median Δdist=0.000000019375 AU; p95 Δdist=277.465364380563 AU; rms Δdist=2577503.422592955176 AU; transparency evidence only, not a production tolerance envelope";
     use pleiades_backend::EphemerisErrorKind;
     use pleiades_jpl::{
         InterpolationQualitySampleRequestCorpusSummaryValidationError,

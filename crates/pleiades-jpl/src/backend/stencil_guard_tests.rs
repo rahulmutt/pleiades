@@ -414,3 +414,15 @@ fn the_refusal_names_the_nearest_rows_on_both_sides() {
     );
     assert!(message.contains("nearest after: JD 2451920.5"), "{message}");
 }
+
+#[test]
+fn a_non_finite_instant_is_an_invalid_request() {
+    // Issue #201: a NaN instant used to reach the stencil guard and be
+    // refused with "nearest row before: none; nearest after: none".
+    for jd in [f64::NAN, f64::INFINITY] {
+        let error = JplSnapshotBackend
+            .position(&mean_request(CelestialBody::Ceres, jd))
+            .expect_err("a non-finite instant cannot be served");
+        assert_eq!(error.kind, EphemerisErrorKind::InvalidRequest, "JD {jd}");
+    }
+}

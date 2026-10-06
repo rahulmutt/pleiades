@@ -3066,3 +3066,35 @@ fn lunar_point_equatorial_is_derived_from_the_of_date_point() {
         );
     }
 }
+
+/// Issue #171: the `equatorial` channel is right ascension and declination
+/// of date, not the J2000 `ecliptic` rotated by an obliquity. A century from
+/// J2000 the two differ by the precession, thousands of arcseconds in right
+/// ascension; at J2000 itself they agree.
+#[test]
+fn the_equatorial_channel_is_of_date_not_a_rotation_of_the_j2000_ecliptic() {
+    let backend = ElpBackend::new();
+    let moon_at = |jd: f64| {
+        let instant = Instant::new(pleiades_types::JulianDay::from_days(jd), TimeScale::Tt);
+        let result = backend
+            .position(&EphemerisRequest::new(CelestialBody::Moon, instant))
+            .expect("the ELP Moon is served");
+        let ecliptic = result.ecliptic.expect("ecliptic");
+        let equatorial = result.equatorial.expect("equatorial");
+        let j2000 = ecliptic.to_equatorial(pleiades_types::Angle::from_degrees(
+            pleiades_types::OBLIQUITY_J2000_DEG,
+        ));
+        assert_equatorial_matches_of_date(&ecliptic, &equatorial, instant);
+        signed_longitude_delta_degrees(
+            j2000.right_ascension.degrees(),
+            equatorial.right_ascension.degrees(),
+        )
+        .abs()
+            * equatorial.declination.degrees().to_radians().cos()
+            * 3600.0
+    };
+    // Measured 2026-10-06: 5025″ at 1900-01-01, 4673″ at 2100-01-01.
+    assert!(moon_at(2_415_020.5) > 4000.0);
+    assert!(moon_at(2_488_069.5) > 4000.0);
+    assert!(moon_at(J2000) < 1e-6);
+}

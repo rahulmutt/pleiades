@@ -818,7 +818,7 @@ mod tests {
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
             selected_asteroid_dense_boundary_summary_line(&summary),
-            "Selected asteroid dense boundary evidence: 5 exact samples at JD 2451916.5 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis); dense boundary day"
+            "Selected asteroid dense boundary evidence: 5 exact samples at JD 2451916.5 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros); dense boundary day"
         );
         assert_eq!(
             selected_asteroid_dense_boundary_summary_for_report(),
