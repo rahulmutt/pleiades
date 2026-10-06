@@ -9,6 +9,22 @@ pub const WINDOW_START_JD: f64 = 2_415_020.5;
 /// the packaged backend's Sun/Moon/planet coverage.
 pub const WINDOW_END_JD: f64 = 2_488_069.5;
 
+/// The answer of a forward search that reached the window's end without an
+/// event: the event may lie past the window, where it cannot be computed.
+/// Names the next instant the scan would have sampled.
+pub(crate) fn past_window_end(step_days: f64) -> EventError {
+    EventError::OutOfWindow {
+        julian_day: WINDOW_END_JD + step_days,
+    }
+}
+
+/// The backward twin of [`past_window_end`].
+pub(crate) fn before_window_start(step_days: f64) -> EventError {
+    EventError::OutOfWindow {
+        julian_day: WINDOW_START_JD - step_days,
+    }
+}
+
 /// Errors returned by the event engine; all variants fail closed.
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
@@ -23,10 +39,13 @@ pub enum EventError {
     /// mean-of-date and heliocentric frames need no such read and are served
     /// from the window's first instant.
     ///
-    /// A rise, set or transit search also returns this when the window ends
-    /// before its search span does and no event lies inside the window: the
-    /// event may exist but cannot be computed. `julian_day` is then the first
-    /// instant past the window that the search needed.
+    /// A search for the next or previous event (rise, set, transit,
+    /// longitude crossing, station, exact aspect, occultation) also returns
+    /// this when it reaches the window's end, or for a backward search its
+    /// start, without finding an event: the event may exist but cannot be
+    /// computed. `julian_day` is then the first instant past the window the
+    /// search needed. `Ok(None)` from such a search means the engine knows
+    /// there is no event.
     OutOfWindow {
         /// The out-of-window instant, as a Julian Day.
         julian_day: f64,

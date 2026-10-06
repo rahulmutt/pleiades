@@ -135,6 +135,8 @@ mod semidiameter;
 mod state_vector;
 mod stations;
 mod time_scale;
+#[cfg(test)]
+mod window_edge_support;
 
 pub use aspects::AspectEvent;
 #[allow(deprecated)]
