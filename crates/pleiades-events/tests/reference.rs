@@ -750,45 +750,66 @@ fn sidereal_apparent_chart_agrees_with_the_crossing_reference() {
     }
 }
 
-/// Diagnostic for issue #164 (b): how a sidereal mean chart differs from a
-/// sidereal crossing reference (the apparent case is asserted above). Run with
-/// `cargo test -p pleiades-events --test reference measure_chart_sidereal_conventions -- --nocapture --ignored`
+/// Issue #164 (b): a sidereal mean chart reports the place this crate's
+/// mean-of-date sidereal reference reports. Before the fix the chart
+/// subtracted the ayanamsa from a J2000 longitude and the two differed by the
+/// precession since J2000: 4342.5″ at the first epoch here.
 #[test]
-#[ignore]
-fn measure_chart_sidereal_conventions() {
+fn a_sidereal_mean_chart_reports_the_mean_of_date_sidereal_place() {
     let engine = EventEngine::new(packaged_backend());
+    let charts = ChartEngine::new(packaged_backend());
     let zodiac = ZodiacMode::Sidereal {
         ayanamsa: Ayanamsa::Lahiri,
     };
+    let bodies = [
+        CelestialBody::Sun,
+        CelestialBody::Moon,
+        CelestialBody::Mars,
+        CelestialBody::Saturn,
+    ];
     for jd in [2_420_000.5, 2_451_545.0, 2_460_000.5, 2_480_000.5] {
-        for (label, apparentness, frame) in [
-            ("apparent", Apparentness::Apparent, APPARENT),
-            ("mean", Apparentness::Mean, MEAN),
-        ] {
-            let request = ChartRequest::new(tdb(jd))
-                .with_bodies(vec![CelestialBody::Sun])
-                .with_apparentness(apparentness)
-                .with_zodiac_mode(zodiac.clone());
-            let chart = ChartEngine::new(packaged_backend())
-                .chart(&request)
-                .expect("chart");
-            let chart_lon = chart
-                .placement_for(&CelestialBody::Sun)
-                .expect("placed")
-                .position
-                .ecliptic
-                .as_ref()
-                .expect("ecliptic")
-                .longitude
-                .degrees();
-            let engine_lon = engine
-                .longitude_at(CelestialBody::Sun, lahiri(frame), tdb(jd))
-                .unwrap()
-                .degrees();
-            let delta_psi = nutation(jd).unwrap().delta_psi_arcsec;
-            eprintln!(
-                "jd {jd} {label}: chart - crossing = {:.3}\" (Δψ = {delta_psi:.3}\")",
-                wrap(chart_lon - engine_lon) * 3600.0
+        let request = ChartRequest::new(tdb(jd))
+            .with_bodies(bodies.to_vec())
+            .with_apparentness(Apparentness::Mean)
+            .with_zodiac_mode(zodiac.clone());
+        let chart = charts.chart(&request).expect("chart");
+        for body in &bodies {
+            let placed = &chart.placement_for(body).expect("placed").position;
+            let ecliptic = placed.ecliptic.as_ref().expect("ecliptic");
+            let want = engine
+                .position_at(body.clone(), lahiri(MEAN), tdb(jd))
+                .expect("position");
+            let longitude_off =
+                wrap(ecliptic.longitude.degrees() - want.ecliptic.longitude.degrees()) * 3600.0;
+            let latitude_off =
+                (ecliptic.latitude.degrees() - want.ecliptic.latitude.degrees()) * 3600.0;
+            assert!(
+                longitude_off.abs() < 1e-6 && latitude_off.abs() < 1e-6,
+                "{body:?} at {jd}: chart − events is {longitude_off}″ in longitude, {latitude_off}″ in latitude"
+            );
+            // The chart carries the J2000 place along its own speed where
+            // this crate reads the backend again, so the speeds agree
+            // closely, not to the bit.
+            let speed = placed
+                .motion
+                .and_then(|motion| motion.longitude_deg_per_day)
+                .expect("chart speed");
+            let want_speed = want.motion.longitude_deg_per_day.expect("events speed");
+            assert!(
+                (speed - want_speed).abs() < 1e-6,
+                "{body:?} at {jd}: chart speed {speed}, events speed {want_speed} deg/day"
+            );
+            let latitude_speed = placed
+                .motion
+                .and_then(|motion| motion.latitude_deg_per_day)
+                .expect("chart latitude speed");
+            let want_latitude_speed = want
+                .motion
+                .latitude_deg_per_day
+                .expect("events latitude speed");
+            assert!(
+                (latitude_speed - want_latitude_speed).abs() < 1e-6,
+                "{body:?} at {jd}: chart latitude speed {latitude_speed}, events latitude speed {want_latitude_speed} deg/day"
             );
         }
     }

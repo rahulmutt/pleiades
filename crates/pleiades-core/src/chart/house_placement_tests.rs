@@ -118,3 +118,15 @@ fn mean_houses_follow_the_reported_longitude() {
     let charts = sweep(|request| request.with_apparentness(Apparentness::Mean));
     assert_eq!(assert_houses_match_reported_longitudes(&charts), 1260);
 }
+
+#[test]
+fn sidereal_mean_houses_follow_the_reported_longitude() {
+    let charts = sweep(|request| {
+        request
+            .with_apparentness(Apparentness::Mean)
+            .with_zodiac_mode(ZodiacMode::Sidereal {
+                ayanamsa: Ayanamsa::Lahiri,
+            })
+    });
+    assert_eq!(assert_houses_match_reported_longitudes(&charts), 1260);
+}

@@ -58,6 +58,7 @@ cargo run -q -p pleiades-cli -- chart \
 
 Notes:
 
+- `--mean` reports the geometric place: on the J2000 equinox in the tropical zodiac, and on the mean equinox of date less the ayanamsa when `--ayanamsa` is given.
 - `chart` defaults to `JD 2451545.0` if `--jd` is omitted.
 - If no `--body` flags are given, the CLI uses the default chart body set from `pleiades-core`.
 - `--body` accepts built-in labels such as `Sun`, `Moon`, and `Ceres`, plus custom identifiers such as `asteroid:433-Eros` when supported by the selected path.

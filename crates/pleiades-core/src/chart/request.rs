@@ -543,12 +543,28 @@ impl ChartRequest {
     }
 
     /// Sets the zodiac mode.
+    ///
+    /// A sidereal longitude is the longitude on the mean equinox of date
+    /// less the mean ayanamsa, whatever the apparentness. An apparent place
+    /// has nutation in longitude removed first. A mean place, which the
+    /// backends report on the J2000 equinox, is precessed to the equinox of
+    /// date first, and its latitude and speed are those of that place.
     pub fn with_zodiac_mode(mut self, zodiac_mode: ZodiacMode) -> Self {
         self.zodiac_mode = zodiac_mode;
         self
     }
 
     /// Sets the preferred apparentness.
+    ///
+    /// `Apparent`, the default, is the apparent place on the true equinox of
+    /// date. `Mean` is the backend's geometric place: on the J2000 equinox
+    /// in the tropical zodiac, and on the mean equinox of date in a sidereal
+    /// one (see [`ChartRequest::with_zodiac_mode`]). The equatorial
+    /// coordinates of a mean placement are the backend's J2000 right
+    /// ascension and declination in every zodiac, so a sidereal mean
+    /// placement has an ecliptic place on the equinox of date beside J2000
+    /// equatorial coordinates. House cusps and angles are on the equinox of
+    /// date in every chart.
     pub fn with_apparentness(mut self, apparentness: Apparentness) -> Self {
         self.apparentness = apparentness;
         self

@@ -1,14 +1,18 @@
+use pleiades_apparent::motion::{apparent_motion, Correction, CorrectionSample, HALF_SPAN_DAYS};
+use pleiades_apparent::precess_ecliptic_j2000_to_date;
 use pleiades_ayanamsa::sidereal_offset;
 use pleiades_backend::{EphemerisError, EphemerisErrorKind};
-use pleiades_types::{Instant, Longitude, ZodiacMode};
+use pleiades_types::{EclipticCoordinates, Instant, Latitude, Longitude, Motion, ZodiacMode};
 
 /// Converts a tropical longitude into the requested zodiac mode.
 ///
 /// Tropical mode returns the input unchanged. Sidereal mode subtracts the
 /// resolved ayanamsa for the provided instant. The longitude is taken to be
-/// on the mean equinox; the chart layer moves an apparent (true-equinox)
-/// longitude to the mean equinox first, so nutation does not move a body
-/// through a sidereal zodiac (issue #120).
+/// on the mean equinox of date. The chart layer brings its own longitudes
+/// there first: an apparent (true-equinox) one has nutation removed, so
+/// nutation does not move a body through a sidereal zodiac (issue #120), and
+/// a mean one, which the backends report on the J2000 equinox, is precessed
+/// to the equinox of date (issue #164).
 ///
 /// # Example
 ///
@@ -110,4 +114,67 @@ pub(super) fn sidereal_longitude_of_true_equinox(
     let mean_equinox =
         Longitude::from_degrees(longitude.degrees() - nutation_longitude_arcsec / 3600.0);
     sidereal_longitude(mean_equinox, instant, zodiac_mode)
+}
+
+/// The mean J2000 place `j2000` on the mean ecliptic and equinox of date
+/// `julian_day` (TT). The distance passes through.
+///
+/// The backends report a mean place on the J2000 equinox, and an ayanamsa is
+/// counted from the equinox of date, so a mean place takes this step before
+/// [`sidereal_longitude`] (issue #164). It is the IAU 1976 precession the
+/// apparent reduction and `pleiades-events`' mean-of-date frame use.
+pub(super) fn mean_place_of_date(
+    j2000: EclipticCoordinates,
+    julian_day: f64,
+) -> Result<EclipticCoordinates, EphemerisError> {
+    let of_date = precess_ecliptic_j2000_to_date(
+        j2000.longitude.degrees(),
+        j2000.latitude.degrees(),
+        julian_day,
+    )
+    .map_err(super::map_apparent_place_error)?;
+    Ok(EclipticCoordinates::new(
+        Longitude::from_degrees(of_date.longitude_deg),
+        Latitude::from_degrees(of_date.latitude_deg),
+        j2000.distance_au,
+    ))
+}
+
+/// Speed of [`mean_place_of_date`] at `julian_day`, from `base`, the speed of
+/// the J2000 place `j2000` itself.
+///
+/// The precession step is differenced centrally over ±[`HALF_SPAN_DAYS`] and
+/// added to `base`. Its two samples are taken at the J2000 place carried
+/// along its own speed, so no backend read is needed and a chart at the edge
+/// of a backend's range still gets a speed. A channel `base` leaves empty
+/// stays empty, and the distance speed is unchanged. An empty channel is
+/// carried as zero when the place is stepped, so a latitude speed without a
+/// longitude speed is stepped with the longitude held still (no first-party
+/// backend reports only part of a motion).
+pub(super) fn mean_motion_of_date(
+    j2000: EclipticCoordinates,
+    base: Motion,
+    julian_day: f64,
+) -> Result<Motion, EphemerisError> {
+    let sample = |offset_days: f64| -> Result<CorrectionSample, EphemerisError> {
+        let carried = EclipticCoordinates::new(
+            Longitude::from_degrees(
+                j2000.longitude.degrees() + base.longitude_deg_per_day.unwrap_or(0.0) * offset_days,
+            ),
+            Latitude::from_degrees(
+                j2000.latitude.degrees() + base.latitude_deg_per_day.unwrap_or(0.0) * offset_days,
+            ),
+            j2000.distance_au,
+        );
+        let of_date = mean_place_of_date(carried, julian_day + offset_days)?;
+        Ok(CorrectionSample {
+            julian_day: julian_day + offset_days,
+            correction: Correction::between(&of_date, &carried),
+        })
+    };
+    Ok(apparent_motion(
+        base,
+        &sample(-HALF_SPAN_DAYS)?,
+        &sample(HALF_SPAN_DAYS)?,
+    ))
 }
