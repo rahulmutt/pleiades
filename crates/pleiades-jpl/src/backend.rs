@@ -235,12 +235,26 @@ impl EphemerisBackend for JplSnapshotBackend {
         }
 
         let epoch_jd = req.instant.julian_day.days();
-        let resolved = resolve_fixture_state(req.body.clone(), epoch_jd)?;
-        if resolved.quality != QualityAnnotation::Exact {
-            if let Some(entries) = snapshot_entries() {
-                require_supported_stencil(entries, &req.body, epoch_jd)?;
+        let guard = || match snapshot_entries() {
+            Some(entries) => require_supported_stencil(entries, &req.body, epoch_jd),
+            None => Err(EphemerisError::new(
+                EphemerisErrorKind::MissingDataset,
+                "the JPL fixture corpus is unavailable",
+            )),
+        };
+        let resolved = match resolve_fixture_state(req.body.clone(), epoch_jd) {
+            Ok(resolved) if resolved.quality == QualityAnnotation::Exact => resolved,
+            Ok(resolved) => {
+                guard()?;
+                resolved
             }
-        }
+            // Before the body's first row or after its last: the guard's
+            // refusal names the nearest row and the remedy.
+            Err(error) if error.kind == EphemerisErrorKind::OutOfRangeInstant => {
+                return Err(guard().err().unwrap_or(error));
+            }
+            Err(error) => return Err(error),
+        };
 
         let mut result = EphemerisResult::new(
             BackendId::new("jpl-snapshot"),
@@ -1548,11 +1562,18 @@ fn require_supported_stencil(
         None => "none".to_string(),
     };
     let (before, after) = adjacent_epochs(entries, body, epoch_jd);
+    let reason = if before.is_some() && after.is_some() {
+        format!(
+            "it interpolates only between rows on both sides of an instant that span at most \
+             {MAX_STENCIL_SPAN_DAYS} days"
+        )
+    } else {
+        "the requested instant is outside adjacent JPL fixture samples for that body".to_string()
+    };
     Err(EphemerisError::new(
         EphemerisErrorKind::OutOfRangeInstant,
         format!(
-            "the JPL snapshot cannot interpolate {body} at JD {epoch_jd} (nearest row before: {}; nearest after: {}); it interpolates only between rows on \
-             both sides of an instant that span at most {MAX_STENCIL_SPAN_DAYS} days. Serve \
+            "the JPL snapshot cannot interpolate {body} at JD {epoch_jd} (nearest row before: {}; nearest after: {}); {reason}. Serve \
              {body} at this instant from pleiades_jpl::SpkBackend with a JPL kernel",
             describe(before),
             describe(after)

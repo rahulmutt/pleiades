@@ -187,6 +187,34 @@ fn a_request_past_the_last_row_keeps_its_message() {
     assert!(error
         .to_string()
         .contains("outside adjacent JPL fixture samples"));
+    assert!(error.to_string().contains("SpkBackend"), "{error}");
+}
+
+#[test]
+fn a_request_after_apophiss_last_row_names_the_row_and_the_remedy() {
+    for jd in [2_462_240.5, 2_451_920.5] {
+        let error = JplSnapshotBackend
+            .position(&mean_request(apophis(), jd))
+            .expect_err("Apophis has no row after JD 2451919.5");
+        assert_eq!(error.kind, EphemerisErrorKind::OutOfRangeInstant, "JD {jd}");
+        let message = error.to_string();
+        assert!(message.contains("SpkBackend"), "{message}");
+        assert!(
+            message.contains("outside adjacent JPL fixture samples"),
+            "{message}"
+        );
+        assert!(message.contains(&apophis().to_string()), "{message}");
+        assert!(message.contains("2451919.5"), "{message}");
+    }
+}
+
+#[test]
+fn a_request_before_ceress_first_row_names_the_remedy() {
+    let error = JplSnapshotBackend
+        .position(&mean_request(CelestialBody::Ceres, 2_341_972.5))
+        .expect_err("1700 is before Ceres's first row");
+    assert_eq!(error.kind, EphemerisErrorKind::OutOfRangeInstant);
+    assert!(error.to_string().contains("SpkBackend"), "{error}");
 }
 
 /// Holds every asteroid row out in turn. Where the remaining rows pass the
