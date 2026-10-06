@@ -60,8 +60,9 @@ These are the implementation gaps that still block a production release:
   active, latency tracked in `PACKAGED_BUDGETS`, motion output `Motion = Derived`
   via `SpeedPolicy::FittedDerivative` gated against speed ceilings, window
   1900–2100 CE).
-- body/backend claims are now **per-backend**: Pluto, the Moon, and Eros are
-  release-grade via the packaged-data artifact, while VSOP87's Pluto stays
+- body/backend claims are now **per-backend**: Pluto and the Moon are
+  release-grade via the packaged-data artifact (Eros is carried in it but not
+  served, issue #201), while VSOP87's Pluto stays
   approximate and the compact ELP Moon stays constrained; the thirty-six
   Tier-A asteroids/TNOs (Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris,
   Eunomia, Cybele, Astraea, Hebe, Flora, Metis, Fortuna, Sappho, Eros, plus

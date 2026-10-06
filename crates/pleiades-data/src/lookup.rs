@@ -1243,6 +1243,9 @@ pub fn packaged_backend_from_artifact(artifact: CompressedArtifact) -> PackagedD
 
 /// Returns a packaged-data backend built from decoded artifact bytes.
 ///
+/// A backend built from a caller-supplied artifact also declines
+/// `asteroid:433-Eros` (issue #201).
+///
 /// # Examples
 ///
 /// ```
@@ -1266,6 +1269,9 @@ pub fn packaged_backend_from_bytes(
 
 #[cfg(feature = "packaged-artifact-path")]
 /// Returns a packaged-data backend built from a decoded artifact file.
+///
+/// A backend built from a caller-supplied artifact also declines
+/// `asteroid:433-Eros` (issue #201).
 ///
 /// # Examples
 ///

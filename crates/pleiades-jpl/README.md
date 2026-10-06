@@ -15,9 +15,11 @@ Experimental, pre-1.0: breaking changes can land in any minor release. The check
 `JplSnapshotBackend` answers at an exact fixture row, or between rows that lie
 on both sides of the instant and span at most five days. Any other instant
 returns `OutOfRangeInstant`. Use `SpkBackend` with a JPL kernel for positions
-at arbitrary dates. The five-day interpolation is validated to 0.05″ for the
-selected asteroids only; the major-body rows in the January 2001 cluster are
-tracked in issue #200.
+at arbitrary dates. The five-day interpolation is validated to 0.05″ for
+Ceres, Pallas, Juno, Vesta and Eros only. Apophis's interpolation inside the
+cluster is served under the same rule, but its cluster rows are too few to
+hold one out, so that measurement does not cover it. The major-body rows in
+the January 2001 cluster are tracked in issue #200.
 
 ## License
 

@@ -279,6 +279,10 @@ impl EphemerisBackend for JplSnapshotBackend {
 /// snapshot, this backend interpolates whatever corpus rows it is constructed
 /// over. It is used by the packaged-artifact generator to fit against the broad
 /// production reference corpus.
+///
+/// It interpolates without the stencil guard [`JplSnapshotBackend`] applies,
+/// so between sparse rows its answers are not positions to serve; it exists
+/// for transparency reports and fitting.
 #[derive(Clone, Debug)]
 pub struct SnapshotCorpusBackend {
     entries: Vec<SnapshotEntry>,
@@ -1444,7 +1448,10 @@ fn lagrange_interpolate_4(x: f64, xs: [f64; 4], ys: [f64; 4]) -> f64 {
 /// next wider bracket in the snapshot is a year, where the same cubic is
 /// wrong by tens of degrees (issue #158).
 ///
-/// The 0.05″ figure is measured for the asteroids. The rule applies to every
+/// The 0.05″ figure is measured for Ceres, Pallas, Juno, Vesta and Eros.
+/// Apophis's interpolation inside the cluster is served under the same rule,
+/// but its cluster rows are too few to hold one out, so that measurement does
+/// not cover it. The rule applies to every
 /// body the backend holds, but major bodies are not held to that figure: some
 /// major-body cluster rows are not geocentric ecliptic positions, and the
 /// Moon moves too fast for a cubic through day-spaced rows (issue #200).

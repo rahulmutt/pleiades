@@ -252,8 +252,11 @@ fn stencils_the_guard_admits_reproduce_held_out_rows() {
     );
 }
 
-/// Measured 2026-10-06 over 48 admitted asteroid cases: the worst is 0.0032″,
-/// Juno at JD 2451918.5.
+/// Measured 2026-10-06 over 49 admitted asteroid cases: the worst is 0.0032″,
+/// Juno at JD 2451918.5. The cases are Ceres, Pallas, Juno, Vesta and Eros;
+/// Apophis contributes none, as its cluster rows are too few to hold one out,
+/// so its in-cluster interpolation is served under the same rule but is not
+/// covered by this figure.
 const ADMITTED_ASTEROID_CEILING_ARCSEC: f64 = 0.05;
 
 const SYNTHETIC_BASE_JD: f64 = 2_451_910.5;
