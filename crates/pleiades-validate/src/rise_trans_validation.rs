@@ -865,19 +865,18 @@ mod tests {
 
     #[test]
     fn no_event_row_yields_none() {
-        // Exercises the `none`/`none` schema branch with a row placed a
-        // fraction of a scan-step before the packaged ephemeris window's end
-        // (see `pleiades_events::WINDOW_END_JD`), so `next_rise_set` returns
-        // `None` immediately (no room left to scan) rather than via a slow
-        // full-window search. `next_rise_set` scans forward to the true next
-        // occurrence anywhere in the ~190-year window, unlike Swiss
-        // Ephemeris's `swe_rise_trans` (which only searches ~28h ahead per
-        // the vendored `swecl.c`); the committed corpus's own `none` rows
+        // Exercises the `none`/`none` schema branch with a row in the polar
+        // night at 80 N, where the Sun does not rise within `next_rise_set`'s
+        // search span. A row at the ephemeris window's end no longer serves:
+        // a search the window cuts short is `OutOfWindow`, not `None`
+        // (issue #203). `next_rise_set` searches three days ahead, unlike
+        // Swiss Ephemeris's `swe_rise_trans` (which only searches ~28h ahead
+        // per the vendored `swecl.c`); the committed corpus's own `none` rows
         // (53-56) hit exactly that semantic gap (Task 16 finding, see the
-        // report) rather than the window-boundary case exercised here, so
-        // this test deliberately avoids relying on that finding.
+        // report) rather than the circumpolar case exercised here, so this
+        // test deliberately avoids relying on that finding.
         let csv = "object,event,lat_deg,lon_deg,elev_m,preset,disc,refraction,no_ecl_lat,fixed_disc,hindu,horizon_deg,atpress_hpa,attemp_c,start_jd_ut,se_jd_ut,se_jd_tdb\n\
-Sun,Rise,40.0000,-74.0000,10.0,default,upper,1,0,0,0,none,1013.250,15.000,2488069.495000,none,none\n";
+Sun,Rise,80.0000,-74.0000,10.0,default,upper,1,0,0,0,none,1013.250,15.000,2451900.500000,none,none\n";
         let mut report = RiseTransReport::default();
         validate_rise_trans_csv(csv, &mut report).expect("no-event row should validate cleanly");
         assert_eq!(report.rise_trans_checked, 1);
