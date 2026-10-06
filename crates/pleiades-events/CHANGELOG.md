@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.7.3] - 2026-10-06
+
+### Added
+
+- Answer at once for bodies that never station; hold the true node's stations to half a day ([#167](https://github.com/rahulmutt/pleiades/pull/167)) ([#198](https://github.com/rahulmutt/pleiades/pull/198)) ([ba37e22](https://github.com/rahulmutt/pleiades/commit/ba37e22431aa4d6d1bfe362eccca4f63cc793d11))
+
+### Fixed
+
+- Decide aspect range ends by the separation there ([#168](https://github.com/rahulmutt/pleiades/pull/168)) ([#193](https://github.com/rahulmutt/pleiades/pull/193)) ([9f69926](https://github.com/rahulmutt/pleiades/commit/9f69926c054742b5f6361fa9cd7c88e168a5ebc8))
+- Select occultations by a maximum that does not move with the search ([#159](https://github.com/rahulmutt/pleiades/pull/159)) ([#194](https://github.com/rahulmutt/pleiades/pull/194)) ([5e3163b](https://github.com/rahulmutt/pleiades/commit/5e3163b30a3b96b888b3f7564d3a37db7554e401))
+- Put a sidereal mean chart on the mean equinox of date ([#164](https://github.com/rahulmutt/pleiades/pull/164)) ([#199](https://github.com/rahulmutt/pleiades/pull/199)) ([030983c](https://github.com/rahulmutt/pleiades/commit/030983cd6fe5937521cc758667ecc10a196b8f6d))
+- Refuse asteroid positions away from their sample rows ([#158](https://github.com/rahulmutt/pleiades/pull/158)) ([#202](https://github.com/rahulmutt/pleiades/pull/202)) ([45ae4e2](https://github.com/rahulmutt/pleiades/commit/45ae4e277ae9a618c3f247231ae3c4772a506d54))
+
 ## [0.7.2] - 2026-10-06
 
 ### Added
