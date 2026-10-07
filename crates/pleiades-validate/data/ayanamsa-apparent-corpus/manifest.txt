@@ -1,0 +1,1 @@
+slice ayanamsa-apparent file=ayanamsa-apparent.csv role=ayanamsa-apparent rows=1040 checksum=14077103874620012625
