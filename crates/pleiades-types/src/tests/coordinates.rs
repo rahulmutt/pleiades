@@ -358,3 +358,39 @@ fn coordinate_validation_error_display_matches_summary_line() {
         "ecliptic coordinate field `latitude` must stay within [-90, 90], got 91"
     );
 }
+
+#[test]
+fn to_j2000_equatorial_rotates_by_the_j2000_obliquity() {
+    // The summer solstice point (λ = 90°, β = 0) lies at RA 90° and
+    // Dec = +ε₀ on the J2000 equator.
+    let solstice = EclipticCoordinates::new(
+        Longitude::from_degrees(90.0),
+        Latitude::from_degrees(0.0),
+        Some(1.0),
+    );
+    let eq = solstice.to_j2000_equatorial();
+    assert!((eq.right_ascension.degrees() - 90.0).abs() < 1e-12);
+    assert!((eq.declination.degrees() - crate::OBLIQUITY_J2000_DEG).abs() < 1e-12);
+    assert_eq!(eq.distance_au, Some(1.0));
+    // The ecliptic pole (β = 90°) lies at RA 270°, Dec 90° − ε₀.
+    let pole = EclipticCoordinates::new(
+        Longitude::from_degrees(0.0),
+        Latitude::from_degrees(90.0),
+        None,
+    );
+    let eq = pole.to_j2000_equatorial();
+    assert!((eq.right_ascension.degrees() - 270.0).abs() < 1e-9);
+    assert!((eq.declination.degrees() - (90.0 - crate::OBLIQUITY_J2000_DEG)).abs() < 1e-12);
+}
+
+#[test]
+fn to_j2000_equatorial_keeps_right_ascension_in_range_west_of_the_equinox() {
+    // λ = 359.9°, β = 0: just west of the equinox, so RA is just under 360°.
+    let place = EclipticCoordinates::new(
+        Longitude::from_degrees(359.9),
+        Latitude::from_degrees(0.0),
+        None,
+    );
+    let ra = place.to_j2000_equatorial().right_ascension.degrees();
+    assert!((359.0..360.0).contains(&ra), "{ra}");
+}
