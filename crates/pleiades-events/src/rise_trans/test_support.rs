@@ -3,8 +3,8 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use pleiades_backend::{
-    BackendMetadata, CompositeBackend, EphemerisBackend, EphemerisError, EphemerisRequest,
-    EphemerisResult,
+    BackendMetadata, CompositeBackend, EphemerisBackend, EphemerisError, EphemerisErrorKind,
+    EphemerisRequest, EphemerisResult,
 };
 use pleiades_elp::ElpBackend;
 use pleiades_types::CelestialBody;
@@ -56,6 +56,63 @@ impl<B: EphemerisBackend> EphemerisBackend for CountingBackend<B> {
         req: &EphemerisRequest,
     ) -> Result<EphemerisResult, EphemerisError> {
         self.reads.fetch_add(1, Ordering::Relaxed);
+        self.inner.position_without_motion(req)
+    }
+}
+
+/// A backend whose first `failures` reads fail with a numerical error, which
+/// the engine reports as `EventError::Backend`, not as a window error.
+pub(crate) struct FailingFirstReads<B> {
+    inner: B,
+    failures: AtomicUsize,
+}
+
+impl<B> FailingFirstReads<B> {
+    pub(crate) fn new(inner: B, failures: usize) -> Self {
+        Self {
+            inner,
+            failures: AtomicUsize::new(failures),
+        }
+    }
+
+    fn fail_now(&self) -> bool {
+        self.failures
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |left| {
+                left.checked_sub(1)
+            })
+            .is_ok()
+    }
+}
+
+impl<B: EphemerisBackend> EphemerisBackend for FailingFirstReads<B> {
+    fn metadata(&self) -> BackendMetadata {
+        self.inner.metadata()
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        self.inner.supports_body(body)
+    }
+
+    fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        if self.fail_now() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::NumericalFailure,
+                "injected failure",
+            ));
+        }
+        self.inner.position(req)
+    }
+
+    fn position_without_motion(
+        &self,
+        req: &EphemerisRequest,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        if self.fail_now() {
+            return Err(EphemerisError::new(
+                EphemerisErrorKind::NumericalFailure,
+                "injected failure",
+            ));
+        }
         self.inner.position_without_motion(req)
     }
 }

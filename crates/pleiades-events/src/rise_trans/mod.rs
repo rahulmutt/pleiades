@@ -20,6 +20,7 @@ use scan::{
     Limits,
 };
 use track::BodyTrack;
+pub(crate) use track::PlaceCache;
 
 /// The instants the scanner may sample: the ephemeris window.
 const WINDOW: Limits = Limits {
@@ -331,7 +332,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// a body that has one, `None` for a target read at every instant.
     fn track(&self, target: &RiseSetTarget) -> Option<BodyTrack<'_, B>> {
         match target {
-            RiseSetTarget::Body(body) => BodyTrack::new(&self.backend, body),
+            RiseSetTarget::Body(body) => BodyTrack::new(&self.backend, &self.places, body),
             _ => None,
         }
     }

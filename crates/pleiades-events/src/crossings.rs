@@ -4,6 +4,7 @@ use crate::error::{
     before_window_start, past_window_end, EventError, WINDOW_END_JD, WINDOW_START_JD,
 };
 use crate::reference::{check_supported, ecliptic_in, CrossingReference};
+use crate::rise_trans::PlaceCache;
 use crate::root::{crossings_in_range, first_crossing_after, last_crossing_before, wrap180};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale, ZodiacMode};
@@ -54,12 +55,27 @@ pub struct Crossing {
 /// window.
 pub struct EventEngine<B> {
     pub(crate) backend: B,
+    /// Body samples shared by the rise/set and transit searches.
+    pub(crate) places: PlaceCache,
 }
 
 impl<B: EphemerisBackend> EventEngine<B> {
     /// Wraps a backend.
     pub fn new(backend: B) -> Self {
-        Self { backend }
+        Self {
+            backend,
+            places: PlaceCache::new(),
+        }
+    }
+
+    /// An engine whose sample cache holds at most `capacity` entries.
+    #[cfg(test)]
+    #[allow(dead_code)] // first used by the engine-level cache tests of a later task
+    pub(crate) fn with_place_cache_capacity(backend: B, capacity: usize) -> Self {
+        Self {
+            backend,
+            places: PlaceCache::with_capacity(capacity),
+        }
     }
 
     /// Step used to bracket crossings, scaled by body speed so no crossing is
