@@ -72,11 +72,7 @@ fn an_unshifted_row_passes_alone() {
 // the deflection near conjunction (≈2.8″ for δ Cnc).
 #[test]
 fn a_correction_off_by_a_ceiling_fails() {
-    for (mode, class) in [
-        ("TrueCitra", "uniform"),
-        ("TruePushya", "conjunction"),
-        ("GalacticEquatorTrue", "uniform"),
-    ] {
+    for (mode, class) in [("TrueCitra", "uniform"), ("TruePushya", "conjunction")] {
         let (csv, manifest) = one_row(mode, class, 1.0);
         assert!(
             matches!(
@@ -86,6 +82,44 @@ fn a_correction_off_by_a_ceiling_fails() {
             "{mode} {class}"
         );
     }
+}
+
+// Issue #226: a mode Swiss Ephemeris does not aberrate must get no correction
+// at all, not merely one under the ceiling; and an anchored mode must get one.
+#[test]
+fn a_disagreement_on_whether_a_mode_is_corrected_fails() {
+    for (mode, swiss_ephemeris_corrects) in [
+        ("GalacticEquatorTrue", true),
+        ("GalacticCenterMardyks", true),
+        ("TrueCitra", false),
+    ] {
+        let line = CORPUS_CSV
+            .lines()
+            .find(|l| l.starts_with(&format!("{mode},")))
+            .expect("row");
+        let mut fields: Vec<&str> = line.split(',').collect();
+        // A nonzero value well under the ceiling for an unaberrated mode, or
+        // an exact zero for an anchored one.
+        fields[3] = if swiss_ephemeris_corrects {
+            "0.001000"
+        } else {
+            "0.000000"
+        };
+        let csv = format!("{}\n", fields.join(","));
+        let manifest = format!("slice x rows=1 checksum={}", fnv1a64(&csv));
+        let error = validate_with_floor(&csv, &manifest, 1).expect_err(mode);
+        assert!(
+            matches!(
+                error,
+                AyanamsaApparentError::CorrectionPresence { swiss_ephemeris_corrects: got, .. }
+                    if got == swiss_ephemeris_corrects
+            ),
+            "{mode}: {error}"
+        );
+    }
+    // The unaberrated corpus rows themselves pass.
+    let (csv, manifest) = one_row("GalacticCenterMardyks", "uniform", 0.0);
+    validate_with_floor(&csv, &manifest, 1).expect("passes");
 }
 
 #[test]

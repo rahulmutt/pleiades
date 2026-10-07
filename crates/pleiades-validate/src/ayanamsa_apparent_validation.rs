@@ -9,7 +9,9 @@
 //! carry 60 rows spread over 1900–2100 and 50 rows within a day of ten
 //! conjunctions of the anchor star with the Sun, where light deflection
 //! peaks; five galactic-equator modes Swiss Ephemeris does not aberrate carry
-//! 10 rows each, held to a zero correction. See `ayanamsa_apparent_thresholds`
+//! 10 rows each, held to a zero correction: a corpus row of exactly zero
+//! requires pleiades to report no correction at all (`None`), and any other
+//! row requires one (issue #226). See `ayanamsa_apparent_thresholds`
 //! for the basis of the ceilings.
 
 use crate::ayanamsa_apparent_thresholds::{CONJUNCTION_CEILING_ARCSEC, UNIFORM_CEILING_ARCSEC};
@@ -85,6 +87,14 @@ pub enum AyanamsaApparentError {
         residual: f64,
         ceiling: f64,
     },
+    /// Swiss Ephemeris and pleiades disagree on whether the mode takes a
+    /// correction at all: a zero corpus row with a correction, or a nonzero
+    /// one without.
+    CorrectionPresence {
+        mode: String,
+        jd_tt: f64,
+        swiss_ephemeris_corrects: bool,
+    },
 }
 
 impl std::fmt::Display for AyanamsaApparentError {
@@ -114,6 +124,16 @@ impl std::fmt::Display for AyanamsaApparentError {
             } => write!(
                 f,
                 "{mode} {class} apparent-star correction ceiling exceeded at jd_tt={jd_tt}: residual {residual:.6}\" > ceiling {ceiling}\""
+            ),
+            Self::CorrectionPresence {
+                mode,
+                jd_tt,
+                swiss_ephemeris_corrects,
+            } => write!(
+                f,
+                "{mode} at jd_tt={jd_tt}: Swiss Ephemeris {} the apparent-star correction, pleiades {}",
+                if *swiss_ephemeris_corrects { "applies" } else { "does not apply" },
+                if *swiss_ephemeris_corrects { "does not" } else { "does" }
             ),
         }
     }
@@ -222,12 +242,24 @@ fn parse_manifest(manifest: &str) -> Result<(usize, u64), AyanamsaApparentError>
     ))
 }
 
-/// |pleiades − Swiss Ephemeris|, arcsec. An unanchored mode's correction is 0.
+/// |pleiades − Swiss Ephemeris|, arcsec. Swiss Ephemeris writes exactly zero
+/// for a mode it does not aberrate; pleiades must then report no correction
+/// (`None`), and must report one for every other row.
 fn residual_arcsec(row: &Row) -> Result<f64, AyanamsaApparentError> {
     let instant = Instant::new(JulianDay::from_days(row.jd_tt), TimeScale::Tt);
-    let ours = pleiades_core::apparent_star_ayanamsa_correction(&row.mode, instant)
-        .map_or(0.0, |angle| angle.degrees() * 3600.0);
-    Ok((ours - row.se_arcsec).abs())
+    let ours = pleiades_core::apparent_star_ayanamsa_correction(&row.mode, instant);
+    let swiss_ephemeris_corrects = row.se_arcsec != 0.0;
+    match ours {
+        Some(angle) if swiss_ephemeris_corrects => {
+            Ok((angle.degrees() * 3600.0 - row.se_arcsec).abs())
+        }
+        None if !swiss_ephemeris_corrects => Ok(0.0),
+        _ => Err(AyanamsaApparentError::CorrectionPresence {
+            mode: row.mode_name.clone(),
+            jd_tt: row.jd_tt,
+            swiss_ephemeris_corrects,
+        }),
+    }
 }
 
 fn validate(csv: &str, manifest: &str) -> Result<AyanamsaApparentReport, AyanamsaApparentError> {

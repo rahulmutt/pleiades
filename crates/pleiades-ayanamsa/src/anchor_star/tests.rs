@@ -106,11 +106,36 @@ fn mean_places_match_swiss_ephemeris_at_j2000() {
         let ayanamsa = crate::sidereal_offset(&primary, j2000).unwrap().degrees();
         let lon = (ayanamsa + anchor).rem_euclid(360.0);
         assert!((place.longitude_deg - lon).abs() < 1e-12, "{star:?}");
-        // The linear fit is within 0.11″ of Swiss Ephemeris everywhere.
+        // The linear fit is within 0.12″ of Swiss Ephemeris everywhere.
         assert!(
             ((place.latitude_deg - beta) * 3600.0).abs() < 0.11,
             "{star:?}"
         );
+    }
+}
+
+// Issue #226: the latitude's rate term, off J2000. Swiss Ephemeris
+// `swe_fixstar` (same flags as above) at 1900 and 2100, printed by
+// `tools/se-ayanamsa-reference anchor-places`, measured 2026-10-07.
+#[test]
+fn mean_place_latitudes_match_swiss_ephemeris_off_j2000() {
+    let cases = [
+        // (star, β at JD 2415020.5, β at JD 2488069.5), degrees
+        (AnchorStar::Spica, -2.046_980_611, -2.062_080_618),
+        (AnchorStar::ZetaPiscium, -0.215_952_235, -0.210_821_425),
+        (AnchorStar::DeltaCancri, 0.073_987_339, 0.080_268_140),
+        (AnchorStar::LambdaScorpii, -13.774_533_942, -13.802_374_841),
+        (AnchorStar::GalacticCenter, -5.594_472_070, -5.620_878_154),
+    ];
+    for (star, beta_1900, beta_2100) in cases {
+        for (jd, beta) in [(2_415_020.5, beta_1900), (2_488_069.5, beta_2100)] {
+            let place = anchor_star_mean_place(star, tt(jd)).expect("place");
+            assert!(
+                ((place.latitude_deg - beta) * 3600.0).abs() < 0.12,
+                "{star:?} {jd}: {} vs {beta}",
+                place.latitude_deg
+            );
+        }
     }
 }
 

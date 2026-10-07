@@ -7,7 +7,8 @@
 //! Ephemeris's own geometric `swe_fixstar` longitude equals that sum to
 //! 0.000000″ over 1900–2100 for all five stars (measured 2026-10-07). The
 //! latitude is a straight-line fit to `swe_fixstar` over 1900–2100, within
-//! 0.11″ of it everywhere.
+//! 0.12″ of it everywhere; the fit errs most at the window ends (0.112″ for
+//! ζ Psc at 2100, measured 2026-10-07, issue #226).
 
 use crate::sidereal_offset;
 use pleiades_types::{Ayanamsa, Instant};

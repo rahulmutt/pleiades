@@ -94,6 +94,84 @@ fn the_apparent_star_place_moves_placements_and_cusps_by_the_correction() {
     }
 }
 
+// Issue #226: Whole Sign and Equal (1=Aries) cusps are rebuilt from the
+// corrected ascendant on the sidereal sign boundaries (#180), so they do not
+// take the −correction shift; the ascendant does.
+#[test]
+fn sign_anchored_cusps_stay_on_sign_boundaries_under_the_apparent_star_place() {
+    let ayanamsa = Ayanamsa::TrueCitra;
+    let shift = -correction_deg(&ayanamsa, JD);
+    for system in [HouseSystem::WholeSign, HouseSystem::EqualAries] {
+        let houses = |place| {
+            chart(&request(ayanamsa.clone(), place).with_house_system(system.clone()))
+                .houses
+                .expect("houses")
+        };
+        let (mean, apparent) = (
+            houses(SiderealStarPlace::Mean),
+            houses(SiderealStarPlace::Apparent),
+        );
+        let (asc_mean, asc_apparent) = (
+            mean.angles.ascendant.degrees(),
+            apparent.angles.ascendant.degrees(),
+        );
+        assert!(
+            (wrap(asc_apparent - asc_mean) - shift).abs() < 1e-9,
+            "{system:?}"
+        );
+        // The correction must not carry the ascendant into another sign, or
+        // Whole Sign's cusps would legitimately move by 30°.
+        assert_eq!(
+            (asc_mean / 30.0).floor(),
+            (asc_apparent / 30.0).floor(),
+            "{system:?}: the test epoch's ascendant sits on a sign boundary"
+        );
+        for (cm, ca) in mean.cusps.iter().zip(&apparent.cusps) {
+            let degrees = ca.degrees();
+            let off_boundary = degrees - 30.0 * (degrees / 30.0).round();
+            assert!(off_boundary.abs() < 1e-9, "{system:?} {degrees}");
+            assert!(wrap(degrees - cm.degrees()).abs() < 1e-9, "{system:?}");
+        }
+    }
+}
+
+// Issue #226: the non-angle `ascmc` points take the correction like the angles
+// (spec amendment 5); ARMC is a right ascension and does not.
+#[test]
+fn non_angle_ascmc_points_move_by_the_correction() {
+    let ayanamsa = Ayanamsa::TrueCitra;
+    let shift = -correction_deg(&ayanamsa, JD);
+    let mean = chart(&request(ayanamsa.clone(), SiderealStarPlace::Mean));
+    let apparent = chart(&request(ayanamsa.clone(), SiderealStarPlace::Apparent));
+    let (pm, pa) = (mean.asc_mc().unwrap(), apparent.asc_mc().unwrap());
+    for (name, m, a) in [
+        ("vertex", pm.vertex, pa.vertex),
+        ("antivertex", pm.antivertex, pa.antivertex),
+        (
+            "equatorial ascendant",
+            pm.equatorial_ascendant,
+            pa.equatorial_ascendant,
+        ),
+        (
+            "coascendant (Koch)",
+            pm.coascendant_koch,
+            pa.coascendant_koch,
+        ),
+        (
+            "coascendant (Munkasey)",
+            pm.coascendant_munkasey,
+            pa.coascendant_munkasey,
+        ),
+        ("polar ascendant", pm.polar_ascendant, pa.polar_ascendant),
+    ] {
+        assert!(
+            (wrap(a.degrees() - m.degrees()) - shift).abs() < 1e-9,
+            "{name}"
+        );
+    }
+    assert_eq!(pm.armc, pa.armc);
+}
+
 // The speed takes the correction's rate, through the chart's own central
 // difference over ±HALF_SPAN_DAYS (spec amendment 8).
 #[test]

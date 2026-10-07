@@ -44,3 +44,43 @@ fn polar_projection_differs_from_longitude_off_the_ecliptic() {
     let p = polar_projection_deg(240.0, -5.6, 23.44);
     assert!((p - 240.0).abs() > 0.5, "{p}");
 }
+
+// Issue #226: Swiss Ephemeris's own projection of the Galactic Center (the
+// Mula/Wilhelm mode, `swi_armc_to_mc` of its right ascension, read as the
+// mode-36 geometric ayanamsa + 246.6666666667°) from its geometric place and
+// mean obliquity, all printed by `tools/se-ayanamsa-reference anchor-places`
+// (libswisseph-sys 0.1.2, Moshier), measured 2026-10-07.
+#[test]
+fn polar_projection_matches_swiss_ephemeris_for_the_galactic_center() {
+    let cases = [
+        // (jd_tt, λ, β, ε, SE projection), degrees
+        (
+            2_415_020.5,
+            265.455_181_800,
+            -5.594_472_070,
+            23.452_288_880,
+            265.253_721_638,
+        ),
+        (
+            2_451_545.0,
+            266.851_709_361,
+            -5.607_686_222,
+            23.439_279_444,
+            266.711_811_317,
+        ),
+        (
+            2_488_069.5,
+            268.248_861_704,
+            -5.620_878_154,
+            23.426_269_916,
+            268.170_875_215,
+        ),
+    ];
+    for (jd, lambda, beta, eps, expected) in cases {
+        let got = polar_projection_deg(lambda, beta, eps);
+        assert!(
+            ((got - expected) * 3600.0).abs() < 1e-3,
+            "{jd}: {got} vs {expected}"
+        );
+    }
+}
