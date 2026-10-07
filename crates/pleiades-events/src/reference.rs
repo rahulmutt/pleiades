@@ -16,10 +16,13 @@ use crate::ephemeris::{
 };
 use crate::error::EventError;
 use crate::state_vector::spherical_rates;
-use pleiades_apparent::nutation::nutation;
-use pleiades_ayanamsa::sidereal_offset;
+use pleiades_apparent::nutation::{mean_obliquity_degrees, nutation};
+use pleiades_apparent::{apparent_star_place, polar_projection_deg};
+use pleiades_ayanamsa::{anchor_star_mean_place, sidereal_offset, star_anchor, AnchorProjection};
 use pleiades_backend::EphemerisBackend;
-use pleiades_types::{Ayanamsa, CelestialBody, Instant, JulianDay, Motion, TimeScale, ZodiacMode};
+use pleiades_types::{
+    Ayanamsa, CelestialBody, Instant, JulianDay, Motion, SiderealStarPlace, TimeScale, ZodiacMode,
+};
 
 /// `(longitude_deg, latitude_deg, distance_au)`. The distance is `None` only
 /// for a lunar orbit point the backend serves as a direction (issue #118).
@@ -55,14 +58,16 @@ fn with_distance((lon, lat, dist): (f64, f64, f64)) -> EclipticTriple {
 /// subtracts the ayanamsa from the backend's J2000 longitude and differs by
 /// the precession since J2000 (issue #164, item (b)).
 ///
-/// The mean ayanamsa is used in every frame. For the star-anchored ayanamsa
-/// classes (`TrueStar` and `Galactic`) Swiss Ephemeris's apparent sidereal
-/// positions additionally fold the anchoring star's annual aberration (up to
-/// about 20″) into the ayanamsa, so they differ from pleiades by that amount in
-/// the apparent frame. True Citra and Galactic Center were measured; the other
-/// ayanamsas in those classes follow from the same mechanism and were not. Such
-/// an offset moves a crossing time by about 8 minutes for the Sun and by hours
-/// for a slow planet such as Saturn, more near a station.
+/// The mean ayanamsa is used by default. For the star-anchored ayanamsa
+/// classes (`TrueStar` and `Galactic`), Swiss Ephemeris's apparent sidereal
+/// positions additionally fold the anchoring star's light deflection and
+/// annual aberration (up to about 22″) into the ayanamsa.
+/// [`with_star_place`](Self::with_star_place)`(`[`SiderealStarPlace::Apparent`]`)`
+/// reproduces that for the nine star-anchored modes in the apparent frame, to
+/// within the measured residual; it does not apply to the galactic-equator
+/// modes or Mardyks, which Swiss Ephemeris does not aberrate. Such an offset
+/// moves a crossing time by about 8 minutes for the Sun and by hours for a
+/// slow planet such as Saturn, more near a station.
 ///
 /// The heliocentric frame follows the same rule (issue #106): its place is on
 /// the true equinox of date, so nutation in longitude comes off before the
@@ -76,6 +81,10 @@ pub struct CrossingReference {
     pub frame: CrossingFrame,
     /// The zodiac longitudes are read in.
     pub zodiac: ZodiacMode,
+    /// Which place of a star-anchored ayanamsa's anchor star the zodiac is read
+    /// from; see [`CrossingReference::with_star_place`]. `Mean` by default.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub star_place: SiderealStarPlace,
 }
 
 impl CrossingReference {
@@ -84,6 +93,7 @@ impl CrossingReference {
         Self {
             frame,
             zodiac: ZodiacMode::Tropical,
+            star_place: SiderealStarPlace::Mean,
         }
     }
 
@@ -92,7 +102,20 @@ impl CrossingReference {
         Self {
             frame,
             zodiac: ZodiacMode::Sidereal { ayanamsa },
+            star_place: SiderealStarPlace::Mean,
         }
+    }
+
+    /// This reference with its anchor-star place set. `Apparent` reads a
+    /// star-anchored ayanamsa from its anchor star's apparent place in
+    /// [`CrossingFrame::GeocentricApparentOfDate`], as Swiss Ephemeris's
+    /// default `SEFLG_SIDEREAL` does, for every body including the lunar
+    /// points; the mean-of-date and heliocentric frames, which use geometric
+    /// flags in Swiss Ephemeris, keep the mean ayanamsa.
+    #[must_use]
+    pub fn with_star_place(mut self, star_place: SiderealStarPlace) -> Self {
+        self.star_place = star_place;
+        self
     }
 }
 
@@ -131,6 +154,30 @@ fn ayanamsa_deg(ayanamsa: &Ayanamsa, julian_day: f64) -> Result<f64, EventError>
             "ayanamsa {ayanamsa} has a non-finite sidereal offset"
         )))
     }
+}
+
+/// The apparent-star correction to `ayanamsa` at `julian_day`, degrees:
+/// `pleiades_core::apparent_star_ayanamsa_correction`, which
+/// `tests/star_place.rs` holds this equal to. Zero for an unanchored ayanamsa.
+fn apparent_star_correction_deg(ayanamsa: &Ayanamsa, julian_day: f64) -> f64 {
+    let instant = Instant::new(JulianDay::from_days(julian_day), TimeScale::Tt);
+    let Some(anchor) = star_anchor(ayanamsa) else {
+        return 0.0;
+    };
+    let Some(mean) = anchor_star_mean_place(anchor.star, instant) else {
+        return 0.0;
+    };
+    let (lambda, beta) = apparent_star_place(mean.longitude_deg, mean.latitude_deg, julian_day);
+    let degrees = match anchor.projection {
+        AnchorProjection::EclipticLongitude => lambda - mean.longitude_deg,
+        AnchorProjection::PolarRightAscension => {
+            let eps = mean_obliquity_degrees(julian_day);
+            polar_projection_deg(lambda, beta, eps)
+                - polar_projection_deg(mean.longitude_deg, mean.latitude_deg, eps)
+        }
+        _ => return 0.0,
+    };
+    (degrees + 540.0).rem_euclid(360.0) - 180.0
 }
 
 /// The zodiac of data serialized before the `zodiac` field existed: tropical.
@@ -193,7 +240,13 @@ fn in_zodiac(
         }
         CrossingFrame::GeocentricMeanOfDate => 0.0,
     };
-    let shift = nutation_deg + ayanamsa_deg(ayanamsa, julian_day)?;
+    let star = match (reference.frame, reference.star_place) {
+        (CrossingFrame::GeocentricApparentOfDate, SiderealStarPlace::Apparent) => {
+            apparent_star_correction_deg(ayanamsa, julian_day)
+        }
+        _ => 0.0,
+    };
+    let shift = nutation_deg + ayanamsa_deg(ayanamsa, julian_day)? + star;
     Ok(((lon - shift).rem_euclid(360.0), lat, dist))
 }
 

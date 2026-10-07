@@ -150,6 +150,7 @@ pub use occult::{
     OccultationType,
 };
 pub use pheno::PhenoData;
+pub use pleiades_types::SiderealStarPlace;
 pub use position::EclipticPosition;
 pub use reference::CrossingReference;
 pub use rise_trans::{DiscMode, RiseSet, RiseSetEvent, RiseSetOptions, RiseSetTarget};
