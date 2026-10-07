@@ -72,8 +72,12 @@ Crossings, stations, aspects, occultations and the rest are untouched.
 - Add `root::refine_itp(f, lo, f_lo, hi, f_hi)`, the ITP method (Oliveira &
   Takahashi, 2020, ACM TOMS 47(1)), with `κ₁ = 0.2 / (hi − lo)`, `κ₂ = 2` and
   `n₀ = 1`. Its worst case is at most `⌈log₂((hi−lo)/2ε)⌉ + n₀` evaluations,
-  so it is never worse than bisection by more than one evaluation. For a
-  smooth residual it converges superlinearly.
+  so in exact arithmetic it is never worse than bisection by more than one
+  evaluation. In floating point, a bracket whose width is within rounding of
+  a power of two times the tolerance can cost one more; the projection aims a
+  hair inside the bound (an ε margin of 1/1024) so Julian-day rounding does
+  not do so on ordinary brackets. For a smooth residual it converges
+  superlinearly.
 - It keeps `bisect`'s contract exactly:
   - it returns the *later* end of the final bracket;
   - that bracket is no wider than `REFINE_TOLERANCE_DAYS`;

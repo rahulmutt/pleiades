@@ -134,6 +134,25 @@ fn step_and_cubic_residuals_cost_at_most_one_more_than_bisection() {
 }
 
 #[test]
+fn asymmetric_steps_cost_at_most_one_more_than_bisection_at_every_root_position() {
+    // Rounding at Julian-day magnitude must not push the final bracket a
+    // fraction of an ulp past the tolerance and cost a second extra step.
+    for (a, b) in [(1e-6, 1.0), (1.0, 1e-6), (1e-12, 1e3), (1e3, 1e-12)] {
+        for k in 0..1000_u32 {
+            let root = T0 + (f64::from(k) + 0.5) / 1000.0 * HOUR;
+            let g = move |t: f64| if t < root { -a } else { b };
+            let (got, calls) = counted(&itp, &g, T0, T0 + HOUR);
+            let (_, bisect_calls) = counted(&bisection, &g, T0, T0 + HOUR);
+            assert_settled(&g, true, got);
+            assert!(
+                calls <= bisect_calls + 1,
+                "a={a}, b={b}, k={k}: {calls} against bisection's {bisect_calls}"
+            );
+        }
+    }
+}
+
+#[test]
 fn a_root_at_the_earlier_end_settles_within_a_tolerance_of_it() {
     // `f(lo) == 0` counts as the pre-crossing sign, as in `bisect`.
     let g = |t: f64| t - T0;
@@ -168,6 +187,7 @@ fn itp_and_bisection_agree_to_the_tolerance() {
         let g = move |t: f64| (std::f64::consts::TAU * (t - root)).sin();
         let (a, _) = counted(&itp, &g, T0, T0 + HOUR);
         let (b, _) = counted(&bisection, &g, T0, T0 + HOUR);
+        assert_settled(&g, true, a);
         assert!(
             (a - b).abs() <= TOL,
             "root {k}: {} s apart",

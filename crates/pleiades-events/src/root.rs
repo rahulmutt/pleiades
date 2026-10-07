@@ -57,6 +57,14 @@ const ITP_KAPPA1_SCALE: f64 = 0.2;
 /// count in the worst case.
 const ITP_N0: f64 = 1.0;
 
+/// How far inside the ITP bound the projection aims, as a fraction of `ε`.
+/// The projection places a step exactly on `mid ∓ radius`, which leaves the
+/// span exactly on the bound `ε·2^(n_max−k)`; rounding at Julian-day
+/// magnitude (an ulp is about 5e-10 days near 2.46e6) could then leave the
+/// final bracket a fraction of an ulp wider than the tolerance and cost an
+/// extra evaluation. Aiming a hair inside absorbs that rounding.
+const ITP_EPSILON_MARGIN: f64 = 1.0 / 1024.0;
+
 /// Refines a sign change of `f` across `[lo, hi]` with the ITP method
 /// (interpolate, truncate, project: Oliveira & Takahashi, "An Enhancement of
 /// the Bisection Method Average Performance Preserving Minmax Optimality",
@@ -68,8 +76,10 @@ const ITP_N0: f64 = 1.0;
 /// instant is settled. A regula-falsi step aimed at the root lands close to
 /// it on a smooth residual, so a rise or set settles in a few evaluations
 /// where bisection takes thirteen from an hour. The projection keeps every
-/// step within the bisection worst case, so no residual costs more than
-/// `ITP_N0` evaluations beyond bisection's count (issue #204).
+/// step within the bisection worst case: in exact arithmetic no residual
+/// needs more than `ITP_N0` evaluations beyond bisection's count. In floating
+/// point, a bracket whose width is within rounding of a power of two times
+/// the tolerance can cost one more (issue #204).
 pub(crate) fn refine_itp<F>(
     f: &mut F,
     mut lo: f64,
@@ -84,7 +94,7 @@ where
     if width <= REFINE_TOLERANCE_DAYS {
         return Ok(hi);
     }
-    let epsilon = 0.5 * REFINE_TOLERANCE_DAYS;
+    let epsilon = 0.5 * REFINE_TOLERANCE_DAYS * (1.0 - ITP_EPSILON_MARGIN);
     let kappa1 = ITP_KAPPA1_SCALE / width;
     let n_max = (width / REFINE_TOLERANCE_DAYS).log2().ceil() + ITP_N0;
     let mut step = 0.0_f64;
@@ -94,7 +104,9 @@ where
         let radius = (epsilon * (n_max - step).exp2() - 0.5 * span).max(0.0);
         let delta = kappa1 * span * span;
         // Interpolate: the regula-falsi point. The ends carry opposite sign
-        // classes, so `f_lo != f_hi`.
+        // classes, so `f_lo != f_hi`. An overflowing or NaN `falsi` (an
+        // infinite residual, say) is absorbed by the finite, in-bracket guard
+        // on `x` below.
         let falsi = (hi * f_lo - lo * f_hi) / (f_lo - f_hi);
         // Truncate: step `delta` past it towards the midpoint.
         let towards_mid = (mid - falsi).signum();
