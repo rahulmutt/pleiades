@@ -65,7 +65,9 @@ pub struct Crossing {
 /// What the engine remembers never changes an answer. A remembered place is
 /// the one a fresh engine would read at the same instant, and it does not
 /// depend on the observer, the atmosphere or the options. The memory is
-/// bounded, and the engine can be shared between threads.
+/// bounded, and the engine can be shared between threads. Every lookup takes
+/// the cache's lock, so for heavy parallel use, with many threads searching at
+/// once, one engine per worker thread avoids contention. Sharing stays correct.
 pub struct EventEngine<B> {
     pub(crate) backend: B,
     /// Body samples shared by the rise/set and transit searches.

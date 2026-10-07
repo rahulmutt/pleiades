@@ -2,7 +2,7 @@
 //! few lattice instants and interpolated between them (issue #204).
 //!
 //! A search evaluates its residual some twenty to thirty times: the hourly
-//! grid out to the event, then the bisection. Reading the ephemeris for each
+//! grid out to the event, then the refinement. Reading the ephemeris for each
 //! evaluation was 96 % of a search's cost. The body's geocentric apparent
 //! place is smooth on the scale of hours, so a cubic through four samples
 //! reproduces it far inside the search's own tolerance: a search then costs

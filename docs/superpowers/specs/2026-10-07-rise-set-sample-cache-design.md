@@ -95,8 +95,18 @@ Crossings, stations, aspects, occultations and the rest are untouched.
 ### Accepted consequence
 
 Rise, set and transit instants move by less than `REFINE_TOLERANCE_DAYS`
-(0.5 s). `validate-rise-trans` figures may change in their last printed digits,
-but its ceilings do not. The PR reports the before and after figures.
+(0.5 s), and the `validate-rise-trans` ceilings are unchanged. Measured,
+before → after:
+
+- Tier 1: 1.812″ → 1.812″
+- rise/set: 3.259 s → 3.497 s (ceiling 5.0 s)
+- grazing: 111.209 s → 110.995 s
+- transit: 0.383 s → 0.403 s
+- returned transit past the meridian: 4.065″ → 2.006″
+
+Bisection's and ITP's settled ends both lie within 0.5 s after each crossing,
+but at different points, so the worst residual against Swiss Ephemeris can move
+by up to that much.
 
 ### Commit order
 

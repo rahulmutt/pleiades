@@ -1,4 +1,5 @@
-//! Generic time-domain root-finder: bracket by stepping, refine by bisection.
+//! Generic time-domain root-finder: bracket by stepping, refine by bisection
+//! (`bisect`) or by ITP (`refine_itp`).
 //! Mirrors the eclipse `syzygy` scanner but takes an arbitrary target function.
 
 // Items here are pub(crate) for upcoming crossing-engine tasks; silence
@@ -7,7 +8,8 @@
 
 use crate::error::EventError;
 
-/// Bisection tolerance: 0.5 second of time, in days. The widest the final
+/// Refinement tolerance, shared by `bisect` and `refine_itp`: 0.5 second of
+/// time, in days. The widest the final
 /// bracket may be, and so the most a returned instant can trail its crossing.
 pub(crate) const REFINE_TOLERANCE_DAYS: f64 = 0.5 / 86_400.0;
 
