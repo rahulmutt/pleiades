@@ -268,6 +268,10 @@ fn a_native_sidereal_backend_serves_the_mean_star_place_and_unanchored_ayanamsas
     for request in [
         native_sidereal_request(Ayanamsa::TrueCitra, SiderealStarPlace::Mean),
         native_sidereal_request(Ayanamsa::Lahiri, SiderealStarPlace::Apparent),
+        // Issue #224: a mean chart never applies the star-place correction,
+        // so the option is a no-op there and nothing mixes two zodiacs.
+        native_sidereal_request(Ayanamsa::TrueCitra, SiderealStarPlace::Apparent)
+            .with_apparentness(Apparentness::Mean),
     ] {
         let snapshot = engine.chart(&request).expect("chart succeeds");
         assert_eq!(snapshot.placements.len(), 1, "{request}");

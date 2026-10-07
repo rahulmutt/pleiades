@@ -344,9 +344,11 @@ impl ChartRequest {
     ///
     /// A backend that serves the sidereal zodiac natively returns placements on
     /// its own ayanamsa, and a body request has no field to forward the star
-    /// place, so [`SiderealStarPlace::Apparent`] with a star-anchored ayanamsa
-    /// fails with [`EphemerisErrorKind::UnsupportedZodiacMode`] there rather
-    /// than giving corrected cusps beside uncorrected placements.
+    /// place, so an apparent chart with [`SiderealStarPlace::Apparent`] and a
+    /// star-anchored ayanamsa fails with
+    /// [`EphemerisErrorKind::UnsupportedZodiacMode`] there rather than giving
+    /// corrected cusps beside uncorrected placements. A mean chart never
+    /// applies the correction, so the option is a no-op there and passes.
     pub fn validate_against_metadata(
         &self,
         metadata: &BackendMetadata,
@@ -359,6 +361,7 @@ impl ChartRequest {
             && metadata.capabilities.native_sidereal;
         if let ZodiacMode::Sidereal { ayanamsa } = &self.zodiac_mode {
             if native_sidereal
+                && self.apparentness == Apparentness::Apparent
                 && self.sidereal_star_place == SiderealStarPlace::Apparent
                 && star_anchor(ayanamsa).is_some()
             {
