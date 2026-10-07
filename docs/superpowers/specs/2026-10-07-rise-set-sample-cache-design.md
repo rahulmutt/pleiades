@@ -106,7 +106,7 @@ commit.
   computed on one reused engine and on a fresh engine per day, are equal bit
   for bit (`f64::to_bits` on every instant).
 - **Read counts** (`CountingBackend`, in `rise_trans/cost_tests.rs`):
-  - a cold bracket on one engine: at most 6 Sun reads (15.6 today);
+  - a cold bracket on one engine: at most 7 Sun reads (15.6 today);
   - a 30-day sweep on one engine: at most 3 Sun reads per day on average;
   - the existing per-search and moonrise bounds stay.
 - **Cache unit tests** (`rise_trans/track/tests.rs`):
