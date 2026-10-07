@@ -153,4 +153,4 @@ pub use pheno::PhenoData;
 pub use position::EclipticPosition;
 pub use reference::CrossingReference;
 pub use rise_trans::{DiscMode, RiseSet, RiseSetEvent, RiseSetOptions, RiseSetTarget};
-pub use stations::{Station, StationKind};
+pub use stations::{Station, StationKind, StationOptions, MIN_STATION_STEP_DAYS};
