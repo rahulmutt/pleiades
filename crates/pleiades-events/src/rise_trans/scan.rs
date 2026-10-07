@@ -1,7 +1,7 @@
 //! Directed-crossing scanner for the observer-local events (rise, set, and
 //! meridian transit): a coarse time grid anchored at the query instant, with
 //! culmination insertion, crossing direction read from the bracket signs, and
-//! bisection to the shared `root::REFINE_TOLERANCE_DAYS`.
+//! ITP (`root::refine_itp`) refinement to the shared `root::REFINE_TOLERANCE_DAYS`.
 //!
 //! Why not `root::first_crossing_after` and friends: those are generic
 //! "any sign change" scanners tuned for wrapped longitude residuals, and the
@@ -9,7 +9,7 @@
 //! could not slip between two samples. That made every rise/set search
 //! linear in the distance to the event at ~30 samples per hour (issue #70).
 //! Their backward twin also walks a window-anchored grid, so whether an event
-//! within the bisection tolerance of the query instant counts as before it
+//! within the refinement tolerance of the query instant counts as before it
 //! is decided by comparing two independently refined roots. Here every walk
 //! is anchored at the query instant and that question is settled by the
 //! residual's sign there (issues #80, #81; see [`walk`]).
@@ -40,7 +40,7 @@
 //! extremum (the culmination search never runs).
 
 use crate::error::EventError;
-use crate::root::bisect;
+use crate::root::refine_itp;
 use std::ops::ControlFlow;
 
 /// A culmination whose parabola-estimated residual lies within this many
@@ -294,10 +294,10 @@ fn graze_brackets(
 ///
 /// Guards inform culmination detection only. A bracket is refined only if it
 /// lies on the walk's side of the anchor and starts before the far end, so a
-/// crossing behind the anchor costs no bisection and is never reported.
+/// crossing behind the anchor costs no refinement and is never reported.
 /// Which side of the anchor a crossing falls on is thus decided by the
 /// residual's sign AT the anchor, exactly, not by comparing a refined root
-/// against it: together with `root::bisect` returning the settled end of its
+/// against it: together with `root::refine_itp` returning the settled end of its
 /// bracket, that is what lets a search anchored at a returned instant step
 /// past the event it describes (issue #80).
 ///
@@ -374,7 +374,7 @@ where
         if ascending(&earlier, &later) != want_ascending || !searchable(&earlier, &later) {
             return Ok(false);
         }
-        let root = bisect(f, earlier.jd, earlier.f, later.jd)?;
+        let root = refine_itp(f, earlier.jd, earlier.f, later.jd, later.f)?;
         if !in_range(root) {
             return Ok(false);
         }
@@ -581,7 +581,7 @@ where
 /// residual already carries its post-crossing sign there. Its grid is
 /// anchored at `hi_jd`, not `lo_jd`, so it brackets different intervals from
 /// [`directed_crossings_in_range`]; the two agree on the root to within the
-/// bisection tolerance, not bit-for-bit.
+/// refinement tolerance, not bit-for-bit.
 ///
 /// Fails with `OutOfWindow` when `limits` begin after `lo_jd` and no root
 /// lies after them.

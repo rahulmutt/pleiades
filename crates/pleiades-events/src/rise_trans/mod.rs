@@ -35,7 +35,7 @@ const WINDOW: Limits = Limits {
 /// estimate of each culmination honest, which hourly sampling of a
 /// once-per-day sinusoid does comfortably (see `scan::GRAZE_MARGIN_DEG`).
 /// Search cost is therefore ~1 residual evaluation per hour scanned plus one
-/// bisection per candidate event, instead of ~30 per hour at the former
+/// ITP refinement per candidate event, instead of ~30 per hour at the former
 /// 2-minute step (issue #70).
 const RISE_SET_STEP_DAYS: f64 = 1.0 / 24.0;
 
@@ -497,7 +497,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// backward from `before` and stops at the first event found, so its
     /// cost does not depend on how far back the event is within the span.
     /// The result agrees with `rise_sets_in_range(before − span, before)
-    /// .last()` to within the bisection tolerance.
+    /// .last()` to within the refinement tolerance.
     pub fn previous_rise_set(
         &self,
         target: RiseSetTarget,
