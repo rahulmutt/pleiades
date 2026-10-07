@@ -3749,6 +3749,8 @@ fn equatorial_is_identical_tropical_vs_sidereal() {
 }
 
 const JD_1900: f64 = 2_415_020.5;
+/// First instant of the packaged data window (as in `bit_identity_tests`).
+const PACKAGED_FIRST_JD: f64 = 2_415_020.5;
 
 fn foreign(
     drop_ecliptic: bool,
@@ -3843,8 +3845,13 @@ fn sidereal_mean_chart_equatorial_equals_the_tropical_one() {
 
 #[test]
 fn mean_fallback_in_an_apparent_chart_is_j2000() {
-    // The packaged planets have no usable apparent reduction at this instant,
-    // so an apparent chart falls back to their mean place (issue #170).
+    // JD_1900 is the packaged window's first instant. A planet's
+    // light-time-retarded epoch falls before it, so the apparent reduction
+    // errs and the chart falls back to the mean place (issue #170).
+    assert_eq!(
+        JD_1900, PACKAGED_FIRST_JD,
+        "the premise is the window start"
+    );
     let snap = foreign(false, false)
         .chart(
             &ChartRequest::new(tt(JD_1900))
@@ -3865,6 +3872,39 @@ fn mean_fallback_in_an_apparent_chart_is_j2000() {
     )
     .unwrap();
     assert!((eq.declination.degrees() - want.declination.degrees()).abs() < 1e-9);
+}
+
+// Issue #210: ElpBackend's own channel is RA/Dec of date; a mean chart
+// replaces it with the J2000 rotation of ELP's J2000 ecliptic.
+#[test]
+fn mean_chart_with_elp_reports_j2000_not_the_of_date_channel() {
+    use pleiades_backend::EphemerisRequest;
+    let elp = pleiades_elp::ElpBackend::new();
+    let direct = elp
+        .position(&EphemerisRequest::new(CelestialBody::Moon, tt(JD_1900)))
+        .unwrap();
+    let want = direct.ecliptic.unwrap().to_j2000_equatorial();
+    let of_date = direct.equatorial.unwrap();
+    let snap = ChartEngine::new(elp)
+        .chart(
+            &ChartRequest::new(tt(JD_1900))
+                .with_bodies(vec![CelestialBody::Moon])
+                .with_apparentness(Apparentness::Mean),
+        )
+        .unwrap();
+    let got = snap
+        .placement_for(&CelestialBody::Moon)
+        .unwrap()
+        .position
+        .equatorial
+        .expect("equatorial");
+    assert!((got.right_ascension.degrees() - want.right_ascension.degrees()).abs() < 1e-9);
+    assert!((got.declination.degrees() - want.declination.degrees()).abs() < 1e-9);
+    let d_ra = (got.right_ascension.degrees() - of_date.right_ascension.degrees()).abs() * 3600.0;
+    assert!(
+        d_ra > 1000.0,
+        "RA differs from the of-date channel by {d_ra}″"
+    );
 }
 
 #[test]

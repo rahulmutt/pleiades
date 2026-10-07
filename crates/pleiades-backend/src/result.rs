@@ -61,8 +61,10 @@ pub struct EphemerisResult {
     /// equinox (their J2000 ecliptic rotated by
     /// [`OBLIQUITY_J2000_DEG`](pleiades_types::OBLIQUITY_J2000_DEG)), except
     /// `ElpBackend`, whose channel is right ascension and declination of
-    /// date. A chart does not pass this channel through; it computes a mean
-    /// placement's J2000 coordinates itself (issue #210).
+    /// date. A chart computes a mean placement's J2000 coordinates itself
+    /// when the backend gives both an ecliptic and an equatorial channel and
+    /// does not serve the sidereal zodiac natively; otherwise the backend's
+    /// own channel, or none, is reported (issue #210).
     pub equatorial: Option<EquatorialCoordinates>,
     /// Apparent motion when available.
     pub motion: Option<Motion>,

@@ -342,9 +342,11 @@ impl Instant {
     /// Returns the mean obliquity of the ecliptic for this instant.
     ///
     /// The value uses the shared cubic approximation currently used throughout
-    /// the workspace for precession-era obliquity values; the backends' J2000 equatorial channel uses OBLIQUITY_J2000_DEG instead. It is expressed
-    /// as a typed angle so callers can pass it directly into coordinate
-    /// conversion helpers.
+    /// the workspace for precession-era obliquity values. The backends'
+    /// J2000 equatorial channel does not use it; it rotates by
+    /// [`OBLIQUITY_J2000_DEG`](crate::OBLIQUITY_J2000_DEG) instead. It is
+    /// expressed as a typed angle so callers can pass it directly into
+    /// coordinate conversion helpers.
     pub fn mean_obliquity(self) -> Angle {
         let t = (self.julian_day.days() - 2_451_545.0) / 36_525.0;
         Angle::from_degrees(

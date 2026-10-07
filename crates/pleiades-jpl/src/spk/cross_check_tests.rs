@@ -141,18 +141,14 @@ fn spk_equatorial_channel_is_the_kernel_icrf_direction() {
             .unwrap()
             .equatorial
             .expect("equatorial");
-        // 1e-6 arcsec in degrees, with headroom for two rotations' round-off.
-        let tol = 1e-9 / 3600.0 * 1e3;
+        // 1e-9 arcsec in degrees; the measured residual is about 1.6e-11 arcsec
+        // (the round-off of two rotations).
+        let tol = 1e-9 / 3600.0;
         let (dra, ddec) = (
             (eq.right_ascension.degrees() - want_ra).abs(),
             (eq.declination.degrees() - want_dec).abs(),
         );
-        eprintln!(
-            "JD {jd} dRA {} arcsec dDec {} arcsec",
-            dra * 3600.0,
-            ddec * 3600.0
-        );
-        assert!(dra < tol, "JD {jd} RA");
-        assert!(ddec < tol, "JD {jd} Dec");
+        assert!(dra < tol, "JD {jd} RA residual {} arcsec", dra * 3600.0);
+        assert!(ddec < tol, "JD {jd} Dec residual {} arcsec", ddec * 3600.0);
     }
 }

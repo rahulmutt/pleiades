@@ -132,7 +132,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// };
     /// use pleiades_core::{ChartEngine, ChartRequest};
     /// use pleiades_types::{
-    ///     Angle, CelestialBody, CoordinateFrame, EclipticCoordinates, HouseSystem, Instant,
+    ///     CelestialBody, CoordinateFrame, EclipticCoordinates, HouseSystem, Instant,
     ///     JulianDay, Latitude, Longitude, ObserverLocation, TimeScale, ZodiacSign,
     /// };
     ///
@@ -175,7 +175,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     ///             Some(1.0),
     ///         );
     ///         result.ecliptic = Some(ecliptic);
-    ///         result.equatorial = Some(ecliptic.to_equatorial(Angle::from_degrees(23.4)));
+    ///         result.equatorial = Some(ecliptic.to_j2000_equatorial());
     ///         result.motion = Some(pleiades_types::Motion::new(Some(1.0), None, None));
     ///         result.quality = QualityAnnotation::Exact;
     ///         Ok(result)

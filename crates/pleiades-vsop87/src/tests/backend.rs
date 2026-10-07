@@ -1200,7 +1200,8 @@ fn vsop87_claims_every_body_constrained() {
 
 // Issue #210: the equatorial channel is the J2000 ecliptic rotated by the
 // J2000 obliquity. The old channel (rotated by the obliquity of date) was
-// off by RA +5.4″, Dec −44.8″ for Mars at 1900-01-01 (measured 2026-10-06).
+// off by ΔRA·cosδ +5.4″ (ΔRA 5.846″), ΔDec −44.8″ for Mars at 1900-01-01
+// (measured 2026-10-06; the issue's figures are great-circle arcs).
 #[test]
 fn equatorial_channel_is_j2000_away_from_j2000() {
     use pleiades_backend::{EphemerisBackend, EphemerisRequest};
@@ -1217,13 +1218,18 @@ fn equatorial_channel_is_j2000_away_from_j2000() {
     let old = ecliptic.to_equatorial(instant.mean_obliquity());
     let d_ra = (old.right_ascension.degrees() - j2000.right_ascension.degrees()) * 3600.0;
     let d_dec = (old.declination.degrees() - j2000.declination.degrees()) * 3600.0;
-    // The issue's Dec of -44.8" pins the measured size. The derivative formula
-    // is the independent reference for both components (the issue's 5.4" RA
-    // came from a slightly different measurement).
-    assert!((d_dec - -44.8).abs() < 0.15, "Dec {d_dec}″");
     let (alpha, delta) = (
         j2000.right_ascension.degrees().to_radians(),
         j2000.declination.degrees().to_radians(),
+    );
+    // The issue's figures pin the measured size: its RA is the great-circle
+    // arc ΔRA·cosδ, its Dec the arc ΔDec. The first-order derivative formula
+    // below is the independent reference for both components.
+    assert!((d_dec - -44.8).abs() < 0.15, "Dec {d_dec}″");
+    assert!(
+        (d_ra * delta.cos() - 5.4).abs() < 0.1,
+        "RA·cosδ {}″",
+        d_ra * delta.cos()
     );
     let (x, y, z) = (
         delta.cos() * alpha.cos(),

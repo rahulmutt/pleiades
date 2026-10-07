@@ -561,11 +561,12 @@ impl ChartRequest {
     /// in the tropical zodiac, and on the mean equinox of date in a sidereal
     /// one (see [`ChartRequest::with_zodiac_mode`]). The equatorial
     /// coordinates of a mean placement are J2000 right ascension and
-    /// declination in every zodiac: the chart rotates the backend's J2000
-    /// ecliptic by the J2000 obliquity itself, whatever frame the backend's
-    /// own equatorial channel is in (issue #210), so a sidereal mean
-    /// placement has an ecliptic place on the equinox of date beside J2000
-    /// equatorial coordinates. House cusps and angles are on the equinox of
+    /// declination in every zodiac: when the backend gives both an ecliptic
+    /// and an equatorial channel and does not serve the sidereal zodiac
+    /// natively, the chart rotates the backend's J2000 ecliptic by the J2000
+    /// obliquity itself; otherwise the backend's own channel, or none, is
+    /// reported (issue #210). A sidereal mean placement thus has an ecliptic
+    /// place on the equinox of date beside J2000 equatorial coordinates. House cusps and angles are on the equinox of
     /// date in every chart.
     pub fn with_apparentness(mut self, apparentness: Apparentness) -> Self {
         self.apparentness = apparentness;
