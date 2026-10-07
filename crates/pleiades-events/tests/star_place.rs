@@ -41,17 +41,22 @@ fn a_reference_defaults_to_the_mean_star_place() {
     );
 }
 
-// The events twin of the correction equals core's (spec amendment 10).
+// The events twin of the correction equals core's (spec amendment 10), at
+// ten days inside both ends of the 1900-2100 window and across True Revati's 0°/360° seam (issue #226).
 #[test]
 fn the_apparent_frame_moves_by_core_s_correction() {
-    for ayanamsa in [
+    for (ayanamsa, jd) in [
         Ayanamsa::TrueCitra,
         Ayanamsa::TruePushya,
+        Ayanamsa::TrueRevati,
         Ayanamsa::GalacticCenterMulaWilhelm,
-    ] {
+    ]
+    .into_iter()
+    .flat_map(|ayanamsa| [JD, 2_415_030.5, 2_488_059.5].map(|jd| (ayanamsa.clone(), jd)))
+    {
         let correction = apparent_star_ayanamsa_correction(
             &ayanamsa,
-            Instant::new(JulianDay::from_days(JD), TimeScale::Tt),
+            Instant::new(JulianDay::from_days(jd), TimeScale::Tt),
         )
         .unwrap()
         .degrees();
@@ -64,16 +69,16 @@ fn the_apparent_frame_moves_by_core_s_correction() {
             let mean = lon(
                 body.clone(),
                 reference(geo, ayanamsa.clone(), SiderealStarPlace::Mean),
-                JD,
+                jd,
             );
             let app = lon(
                 body.clone(),
                 reference(geo, ayanamsa.clone(), SiderealStarPlace::Apparent),
-                JD,
+                jd,
             );
             assert!(
                 (wrap(app - mean) + correction).abs() < 1e-12,
-                "{ayanamsa:?} {body:?}"
+                "{ayanamsa:?} {jd} {body:?}"
             );
         }
     }
