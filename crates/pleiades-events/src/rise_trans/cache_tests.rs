@@ -94,17 +94,17 @@ fn interleaved_sun_and_moon_searches_match_fresh_engines() {
     }
 }
 
-fn sunrise_near_the_end(engine: &EventEngine<Composite>, at_jd: f64) -> String {
-    format!(
-        "{:?}",
-        engine.next_rise_set(
-            RiseSetTarget::Body(CelestialBody::Sun),
-            RiseSetEvent::Rise,
-            chennai(),
-            Atmosphere::default(),
-            RiseSetOptions::default(),
-            tt(at_jd),
-        )
+fn sunrise_near_the_end(
+    engine: &EventEngine<Composite>,
+    at_jd: f64,
+) -> Result<Option<RiseSet>, EventError> {
+    engine.next_rise_set(
+        RiseSetTarget::Body(CelestialBody::Sun),
+        RiseSetEvent::Rise,
+        chennai(),
+        Atmosphere::default(),
+        RiseSetOptions::default(),
+        tt(at_jd),
     )
 }
 
@@ -114,12 +114,23 @@ fn a_search_at_the_windows_end_answers_the_same_on_a_reused_engine() {
     // in the cache; asked again on the same engine, each answers as a fresh
     // engine does, whether that is an event or `OutOfWindow`.
     let reused = fresh();
+    let (mut events, mut out_of_window) = (0, 0);
     for offset in [3.0, 1.0, 0.6, 0.3, 0.1] {
         let jd = WINDOW_END_JD - offset;
         let first = sunrise_near_the_end(&reused, jd);
-        assert_eq!(sunrise_near_the_end(&reused, jd), first, "offset {offset}");
-        assert_eq!(sunrise_near_the_end(&fresh(), jd), first, "offset {offset}");
+        match &first {
+            Ok(Some(_)) => events += 1,
+            Err(EventError::OutOfWindow { .. }) => out_of_window += 1,
+            _ => {}
+        }
+        let first = format!("{first:?}");
+        let again = format!("{:?}", sunrise_near_the_end(&reused, jd));
+        let fresh_answer = format!("{:?}", sunrise_near_the_end(&fresh(), jd));
+        assert_eq!(again, first, "offset {offset}");
+        assert_eq!(fresh_answer, first, "offset {offset}");
     }
+    assert!(events > 0, "no offset produced an event");
+    assert!(out_of_window > 0, "no offset produced OutOfWindow");
 }
 
 #[test]

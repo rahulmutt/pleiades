@@ -124,12 +124,8 @@ fn a_transit_search_reads_the_sun_a_few_times() {
     );
 }
 
-/// One engine's three searches of a daily bracket share their samples: the
-/// walks run from the previous sunrise's guard sample (lattice index 0, so
-/// its stencil starts at index -1) to the next sunrise's guard sample (index
-/// 3, whose stencil ends at index 5). That is seven 12-hour lattice samples,
-/// each read once. Before the shared cache each
-/// search read its own, about 15 in all.
+/// One engine's three searches of a daily bracket share their samples, so
+/// each lattice sample is read once.
 #[test]
 fn a_daily_sunrise_bracket_on_one_engine_reads_each_sample_once() {
     let engine = engine();
@@ -141,6 +137,11 @@ fn a_daily_sunrise_bracket_on_one_engine_reads_each_sample_once() {
     );
 }
 
+/// The bracket's walks run from the previous sunrise's guard sample (lattice
+/// index 0, so its stencil starts at index -1) to the next sunrise's guard
+/// sample (index 3, whose stencil ends at index 5). That is seven 12-hour
+/// lattice samples, each read once, against about 15 before the shared
+/// cache.
 const MAX_SUN_READS_PER_BRACKET: usize = 7;
 
 /// A sweep of daily brackets on one engine, as an electional search makes,
