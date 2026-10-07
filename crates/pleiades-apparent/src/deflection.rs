@@ -1,7 +1,7 @@
 //! Gravitational deflection of starlight by the Sun, as Swiss Ephemeris
 //! computes it (`sweph.c` `swi_deflect_light`, Explanatory Supplement p. 136)
 //! for a source at infinity, with the Sun's position from the Meeus theory.
-//! Inside the solar disc the Sun's mass is tapered by [`meff`](meff::meff)
+//! Inside the solar disc the Sun's mass is tapered by `meff`
 //! so the deflection stays finite, as Swiss Ephemeris does.
 
 use crate::aberration::{sun_radius_vector_au_of_date, sun_true_longitude_of_date_deg};
