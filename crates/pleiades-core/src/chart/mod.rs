@@ -36,6 +36,7 @@ mod sidereal_mean_tests;
 mod sidereal_tests;
 mod signs;
 mod snapshot;
+mod star_place;
 
 #[cfg(test)]
 mod test_support;
@@ -54,6 +55,7 @@ pub use request::{ChartRequest, CivilChartRequest};
 pub use sidereal::sidereal_longitude;
 pub use signs::SignSummary;
 pub use snapshot::ChartSnapshot;
+pub use star_place::apparent_star_ayanamsa_correction;
 
 use pleiades_apparent::{
     apparent_apsis_position, apparent_equatorial_of_date, apparent_position, apparent_sun_position,
