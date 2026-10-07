@@ -611,3 +611,50 @@ pub(super) fn packaged_first_covered_jd(body: &CelestialBody) -> f64 {
         .reduce(f64::min)
         .unwrap_or_else(|| panic!("the packaged artifact has no {body:?} segment"))
 }
+
+/// A Sun-only backend that advertises `native_sidereal`: it serves a sidereal
+/// request itself, so the chart layer applies no ayanamsa to its placements.
+pub(super) struct NativeSiderealChartBackend;
+
+impl EphemerisBackend for NativeSiderealChartBackend {
+    fn metadata(&self) -> BackendMetadata {
+        BackendMetadata {
+            id: BackendId::new("native-sidereal-chart"),
+            version: "0.1.0".to_string(),
+            family: BackendFamily::Algorithmic,
+            provenance: BackendProvenance::new("native sidereal chart backend"),
+            nominal_range: pleiades_types::TimeRange::new(None, None),
+            supported_time_scales: vec![TimeScale::Tt],
+            body_claims: vec![CelestialBody::Sun.into()],
+            supported_frames: vec![pleiades_types::CoordinateFrame::Ecliptic],
+            capabilities: BackendCapabilities {
+                native_sidereal: true,
+                ..BackendCapabilities::default()
+            },
+            accuracy: AccuracyClass::Approximate,
+            deterministic: true,
+            offline: true,
+        }
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        matches!(body, CelestialBody::Sun)
+    }
+
+    fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        let mut result = EphemerisResult::new(
+            BackendId::new("native-sidereal-chart"),
+            request.body.clone(),
+            request.instant,
+            request.frame,
+            request.zodiac_mode.clone(),
+            request.apparent,
+        );
+        result.ecliptic = Some(EclipticCoordinates::new(
+            Longitude::from_degrees(15.0),
+            Latitude::from_degrees(0.0),
+            Some(1.0),
+        ));
+        Ok(result)
+    }
+}

@@ -1,6 +1,6 @@
 [package]
 name = "pleiades-apparent"
-description = "Apparent-place corrections for the pleiades astrology workspace: light-time, precession-to-date, annual aberration, and nutation-in-longitude with typed provenance."
+description = "Apparent-place corrections for the pleiades astrology workspace: light-time, precession-to-date, annual aberration, gravitational light deflection, and nutation-in-longitude with typed provenance."
 version = "0.7.1"
 edition.workspace = true
 license.workspace = true

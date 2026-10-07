@@ -1,1 +1,1 @@
-slice sidereal-position file=sidereal-position.csv role=sidereal-position rows=2680 checksum=7990488173647017278
+slice sidereal-position file=sidereal-position.csv role=sidereal-position rows=3082 checksum=3846045768385886291

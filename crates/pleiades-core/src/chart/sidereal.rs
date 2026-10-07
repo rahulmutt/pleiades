@@ -2,7 +2,9 @@ use pleiades_apparent::motion::{apparent_motion, Correction, CorrectionSample, H
 use pleiades_apparent::precess_ecliptic_j2000_to_date;
 use pleiades_ayanamsa::sidereal_offset;
 use pleiades_backend::{EphemerisError, EphemerisErrorKind};
-use pleiades_types::{EclipticCoordinates, Instant, Latitude, Longitude, Motion, ZodiacMode};
+use pleiades_types::{
+    EclipticCoordinates, Instant, Latitude, Longitude, Motion, SiderealStarPlace, ZodiacMode,
+};
 
 /// Converts a tropical longitude into the requested zodiac mode.
 ///
@@ -101,19 +103,34 @@ pub(super) fn ayanamsa_rate_deg_per_day(
 /// ayanamsa is subtracted and nutation does not move a body through a
 /// sidereal zodiac. This is the Swiss Ephemeris `SEFLG_SIDEREAL` convention
 /// and the one `pleiades-events` reads crossings in (issue #120). Tropical
-/// mode returns the input unchanged.
+/// mode returns the input unchanged. Under `SiderealStarPlace::Apparent` a
+/// star-anchored ayanamsa is read from its anchor star's apparent place
+/// (issue #164 (c)).
 pub(super) fn sidereal_longitude_of_true_equinox(
     longitude: Longitude,
     nutation_longitude_arcsec: f64,
     instant: Instant,
     zodiac_mode: &ZodiacMode,
+    star_place: SiderealStarPlace,
 ) -> Result<Longitude, EphemerisError> {
     if matches!(zodiac_mode, ZodiacMode::Tropical) {
         return Ok(longitude);
     }
     let mean_equinox =
         Longitude::from_degrees(longitude.degrees() - nutation_longitude_arcsec / 3600.0);
-    sidereal_longitude(mean_equinox, instant, zodiac_mode)
+    let sidereal = sidereal_longitude(mean_equinox, instant, zodiac_mode)?;
+    let correction = match (star_place, zodiac_mode) {
+        (SiderealStarPlace::Apparent, ZodiacMode::Sidereal { ayanamsa }) => {
+            super::star_place::apparent_star_ayanamsa_correction(ayanamsa, instant)
+                .map_or(0.0, |angle| angle.degrees())
+        }
+        _ => 0.0,
+    };
+    // The mean star place returns the mean-ayanamsa longitude itself, bit for bit.
+    if correction == 0.0 {
+        return Ok(sidereal);
+    }
+    Ok(Longitude::from_degrees(sidereal.degrees() - correction))
 }
 
 /// The mean J2000 place `j2000` on the mean ecliptic and equinox of date

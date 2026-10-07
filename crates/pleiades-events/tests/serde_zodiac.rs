@@ -4,7 +4,9 @@
 #![cfg(feature = "serde")]
 
 use pleiades_data::packaged_backend;
-use pleiades_events::{Crossing, CrossingFrame, CrossingReference, EclipticPosition, EventEngine};
+use pleiades_events::{
+    Crossing, CrossingFrame, CrossingReference, EclipticPosition, EventEngine, SiderealStarPlace,
+};
 use pleiades_types::{
     Ayanamsa, CelestialBody, Instant, JulianDay, Longitude, TimeScale, ZodiacMode,
 };
@@ -74,4 +76,18 @@ fn sidereal_values_round_trip() {
     let json = serde_json::to_value(position(sidereal())).unwrap();
     let back: EclipticPosition = serde_json::from_value(json).unwrap();
     assert_eq!(back.zodiac, expected);
+}
+
+#[test]
+fn a_reference_without_a_star_place_deserializes_as_mean() {
+    // Serialize a reference, drop the new key, and read it back.
+    let r = CrossingReference::sidereal(APPARENT, Ayanamsa::TrueCitra);
+    let mut value = serde_json::to_value(&r).unwrap();
+    value
+        .as_object_mut()
+        .unwrap()
+        .remove("star_place")
+        .expect("star_place key present when serialized");
+    let back: CrossingReference = serde_json::from_value(value).unwrap();
+    assert_eq!(back.star_place, SiderealStarPlace::Mean);
 }

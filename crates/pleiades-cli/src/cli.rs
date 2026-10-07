@@ -809,6 +809,9 @@ pub(crate) fn render_cli(args: &[&str]) -> Result<String, String> {
         Some("validate-sidereal-position") | Some("sidereal-position-gate") => {
             validate_render_cli(args)
         }
+        Some("validate-ayanamsa-apparent") | Some("ayanamsa-apparent-gate") => {
+            validate_render_cli(args)
+        }
         Some("validate-stations") | Some("stations-gate") => validate_render_cli(args),
         Some("validate-aspects") | Some("aspects-gate") => validate_render_cli(args),
         Some("eclipses") => validate_render_cli(args),

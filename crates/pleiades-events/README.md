@@ -43,12 +43,28 @@ trial instant of the search. The heliocentric frame takes a sidereal zodiac by
 the same rule (Swiss Ephemeris `SEFLG_HELCTR | SEFLG_TRUEPOS | SEFLG_SIDEREAL`).
 An ayanamsa without offset data is an error, never a silent tropical result. For
 the star-anchored ayanamsa classes (`TrueStar` and `Galactic`) the mean
-ayanamsa is used in every frame, whereas Swiss Ephemeris's apparent sidereal
-positions add the anchoring star's annual aberration (up to about 20″) to the
-ayanamsa. That is about 8 minutes of crossing time for the Sun and hours for a
-slow planet such as Saturn, more near a station. True Citra and Galactic Center
-were measured; the other ayanamsas in those classes follow from the same
-mechanism and were not.
+ayanamsa is used by default in every frame, whereas Swiss Ephemeris's apparent
+sidereal positions read the anchoring star at its apparent place. That moves the
+ayanamsa (measured against Swiss Ephemeris every 7.3 days over 1900–2100,
+maximum in arcseconds; mostly annual aberration, plus light deflection):
+
+| Ayanamsa (SE mode) | Total | Aberration | Deflection |
+|---|---|---|---|
+| True Citra (27) | 20.685 | 20.583 | 0.114 |
+| True Revati (28) | 21.541 | 20.547 | 1.091 |
+| True Pushya, True Sheoran (29, 39) | 22.676 | 20.812 | 2.768 |
+| True Mula (35) | 21.448 | 21.448 | 0.018 |
+| Galactic Center, Rgilbrand, Cochrane (17, 30, 40) | 20.949 | 20.932 | 0.043 |
+| Galactic Center Mula/Wilhelm (36) | 21.880 | 21.862 | 0.046 |
+
+Nine Swiss Ephemeris modes (ten catalog entries) are affected. The four
+galactic-equator modes and Galactic Center Mardyks are not: Swiss Ephemeris does
+not aberrate them. The difference is about 8 minutes of crossing time for the
+Sun and hours for a slow planet such as Saturn, more near a station.
+`CrossingReference::with_star_place(SiderealStarPlace::Apparent)` (and
+`--star-place apparent` on the CLI) reads the anchor star's apparent place in a
+`GeocentricApparentOfDate` search and removes the difference; the default
+`Mean` is unchanged.
 Mean-of-date and sidereal crossings, the heliocentric sidereal ones included,
 are gated by `validate-crossings`.
 

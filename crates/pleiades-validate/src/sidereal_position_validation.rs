@@ -9,12 +9,22 @@
 //! ephemeris difference plus the ayanamsa gate's residual for the class. A
 //! chart that subtracted the ayanamsa from a J2000 longitude, as charts did
 //! before #164, is off by the precession since J2000: 83′ at the first epoch.
+//!
+//! Rows whose 7th column is `apparent` (issue #164 (c)) come from Swiss
+//! Ephemeris' default `SEFLG_SIDEREAL | SEFLG_SPEED`: the apparent place, with
+//! a star-anchored ayanamsa read from the anchor star's apparent place. They
+//! are checked against an apparent chart with
+//! [`SiderealStarPlace::Apparent`], which holds the composition of the
+//! apparent place and the apparent-star ayanamsa end to end.
 //! See `sidereal_position_thresholds` for the basis of the ceilings.
 
-use crate::sidereal_position_thresholds::{Ceilings, MOON_CEILINGS, PLANET_CEILINGS, SUN_CEILINGS};
+use crate::sidereal_position_thresholds::{
+    Ceilings, APPARENT_MOON_CEILINGS, APPARENT_PLANET_CEILINGS, APPARENT_SUN_CEILINGS,
+    MOON_CEILINGS, PLANET_CEILINGS, SUN_CEILINGS,
+};
 use pleiades_apparent::fnv1a64;
-use pleiades_core::{ChartEngine, ChartRequest};
-use pleiades_data::packaged_backend;
+use pleiades_core::{ChartEngine, ChartRequest, SiderealStarPlace};
+use pleiades_data::{packaged_backend, PackagedDataBackend};
 use pleiades_types::{
     Apparentness, Ayanamsa, CelestialBody, Instant, JulianDay, TimeScale, ZodiacMode,
 };
@@ -32,7 +42,7 @@ const MANIFEST: &str = include_str!(concat!(
 /// committed corpus' size: the checksum and row count only tie the corpus to
 /// its manifest, and a corpus regenerated with a body or an ayanamsa dropped,
 /// manifest and all, must still fail.
-const MIN_ROWS_VALIDATED: usize = 2680;
+const MIN_ROWS_VALIDATED: usize = 3082;
 
 #[derive(Clone, Debug)]
 struct Row {
@@ -44,6 +54,9 @@ struct Row {
     lon_deg: f64,
     lat_deg: f64,
     lon_speed: f64,
+    /// A Swiss Ephemeris default (`SEFLG_SIDEREAL`) apparent row rather than a
+    /// geometric mean one.
+    apparent: bool,
 }
 
 #[derive(Debug)]
@@ -141,6 +154,10 @@ pub struct SiderealPositionReport {
     pub moon_maxima: SiderealMaxima,
     /// Mercury–Pluto.
     pub planet_maxima: SiderealMaxima,
+    pub apparent_sun_maxima: SiderealMaxima,
+    pub apparent_moon_maxima: SiderealMaxima,
+    /// Mars.
+    pub apparent_planet_maxima: SiderealMaxima,
     summary_line: String,
 }
 
@@ -185,12 +202,21 @@ fn parse_corpus(csv: &str) -> Result<Vec<Row>, SiderealPositionError> {
             continue;
         }
         let fields: Vec<&str> = line.split(',').collect();
-        if fields.len() != 6 {
-            return Err(malformed(format!(
-                "expected 6 fields, got {} in {line}",
-                fields.len()
-            )));
-        }
+        let apparent = match fields.len() {
+            6 => false,
+            7 if fields[6] == "apparent" => true,
+            7 => {
+                return Err(malformed(format!(
+                    "7th field must be `apparent`, got {} in {line}",
+                    fields[6]
+                )))
+            }
+            n => {
+                return Err(malformed(format!(
+                    "expected 6 or 7 fields, got {n} in {line}"
+                )))
+            }
+        };
         let num = |i: usize| -> Result<f64, SiderealPositionError> {
             fields[i]
                 .parse::<f64>()
@@ -211,6 +237,7 @@ fn parse_corpus(csv: &str) -> Result<Vec<Row>, SiderealPositionError> {
             lon_deg: num(3)?,
             lat_deg: num(4)?,
             lon_speed: num(5)?,
+            apparent,
         });
     }
     Ok(rows)
@@ -247,6 +274,56 @@ fn wrap_deg(got_deg: f64, want_deg: f64) -> f64 {
     (got_deg - want_deg + 180.0).rem_euclid(360.0) - 180.0
 }
 
+/// The chart's sidereal longitude and latitude (deg) and longitude speed
+/// (deg/day) of `row`'s body: a mean chart for a mean row, an apparent chart
+/// reading the ayanamsa from the anchor star's apparent place for an
+/// apparent row.
+fn chart_place(
+    engine: &ChartEngine<PackagedDataBackend>,
+    row: &Row,
+) -> Result<(f64, f64, f64), SiderealPositionError> {
+    let failed = |reason: String| SiderealPositionError::CalculationFailed {
+        ayanamsa: row.ayanamsa_name,
+        body: row.body_name,
+        jd_tt: row.jd_tt,
+        reason,
+    };
+    // The corpus epoch is TT; the chart reads the Julian day as TDB. The
+    // two differ by under 2 ms, far below every ceiling here.
+    let instant = Instant::new(JulianDay::from_days(row.jd_tt), TimeScale::Tdb);
+    let zodiac_mode = ZodiacMode::Sidereal {
+        ayanamsa: row.ayanamsa.clone(),
+    };
+    let request = ChartRequest::new(instant).with_bodies(vec![row.body.clone()]);
+    let request = if row.apparent {
+        request
+            .with_apparentness(Apparentness::Apparent)
+            .with_zodiac_mode(zodiac_mode)
+            .with_sidereal_star_place(SiderealStarPlace::Apparent)
+    } else {
+        request
+            .with_apparentness(Apparentness::Mean)
+            .with_zodiac_mode(zodiac_mode)
+    };
+    let chart = engine.chart(&request).map_err(|e| failed(e.to_string()))?;
+    let position = &chart
+        .placement_for(&row.body)
+        .ok_or_else(|| failed("body not placed".into()))?
+        .position;
+    let ecliptic = position
+        .ecliptic
+        .ok_or_else(|| failed("no ecliptic coordinates".into()))?;
+    let lon_speed = position
+        .motion
+        .and_then(|motion| motion.longitude_deg_per_day)
+        .ok_or_else(|| failed("no longitude speed".into()))?;
+    Ok((
+        ecliptic.longitude.degrees(),
+        ecliptic.latitude.degrees(),
+        lon_speed,
+    ))
+}
+
 fn validate(csv: &str, manifest: &str) -> Result<SiderealPositionReport, SiderealPositionError> {
     let (manifest_rows, manifest_checksum) = parse_manifest(manifest)?;
     let got_checksum = fnv1a64(csv);
@@ -268,43 +345,21 @@ fn validate(csv: &str, manifest: &str) -> Result<SiderealPositionReport, Siderea
     let mut sun_maxima = SiderealMaxima::default();
     let mut moon_maxima = SiderealMaxima::default();
     let mut planet_maxima = SiderealMaxima::default();
+    let mut apparent_sun_maxima = SiderealMaxima::default();
+    let mut apparent_moon_maxima = SiderealMaxima::default();
+    let mut apparent_planet_maxima = SiderealMaxima::default();
     let mut validated = 0usize;
+    let mut validated_apparent = 0usize;
 
     for row in &rows {
-        let failed = |reason: String| SiderealPositionError::CalculationFailed {
-            ayanamsa: row.ayanamsa_name,
-            body: row.body_name,
-            jd_tt: row.jd_tt,
-            reason,
-        };
-        // The corpus epoch is TT; the chart reads the Julian day as TDB. The
-        // two differ by under 2 ms, far below every ceiling here.
-        let instant = Instant::new(JulianDay::from_days(row.jd_tt), TimeScale::Tdb);
-        let request = ChartRequest::new(instant)
-            .with_bodies(vec![row.body.clone()])
-            .with_apparentness(Apparentness::Mean)
-            .with_zodiac_mode(ZodiacMode::Sidereal {
-                ayanamsa: row.ayanamsa.clone(),
-            });
-        let chart = engine.chart(&request).map_err(|e| failed(e.to_string()))?;
-        let position = &chart
-            .placement_for(&row.body)
-            .ok_or_else(|| failed("body not placed".into()))?
-            .position;
-        let ecliptic = position
-            .ecliptic
-            .ok_or_else(|| failed("no ecliptic coordinates".into()))?;
-        let got_lon_speed = position
-            .motion
-            .and_then(|motion| motion.longitude_deg_per_day)
-            .ok_or_else(|| failed("no longitude speed".into()))?;
-        let got_lon = ecliptic.longitude.degrees();
-        let got_lat = ecliptic.latitude.degrees();
-
-        let (ceilings, maxima): (Ceilings, &mut SiderealMaxima) = match row.body {
-            CelestialBody::Sun => (SUN_CEILINGS, &mut sun_maxima),
-            CelestialBody::Moon => (MOON_CEILINGS, &mut moon_maxima),
-            _ => (PLANET_CEILINGS, &mut planet_maxima),
+        let (got_lon, got_lat, got_lon_speed) = chart_place(&engine, row)?;
+        let (ceilings, maxima): (Ceilings, &mut SiderealMaxima) = match (row.apparent, &row.body) {
+            (false, CelestialBody::Sun) => (SUN_CEILINGS, &mut sun_maxima),
+            (false, CelestialBody::Moon) => (MOON_CEILINGS, &mut moon_maxima),
+            (false, _) => (PLANET_CEILINGS, &mut planet_maxima),
+            (true, CelestialBody::Sun) => (APPARENT_SUN_CEILINGS, &mut apparent_sun_maxima),
+            (true, CelestialBody::Moon) => (APPARENT_MOON_CEILINGS, &mut apparent_moon_maxima),
+            (true, _) => (APPARENT_PLANET_CEILINGS, &mut apparent_planet_maxima),
         };
         let checks = [
             (
@@ -348,6 +403,7 @@ fn validate(csv: &str, manifest: &str) -> Result<SiderealPositionReport, Siderea
         maxima.lat_arcsec = maxima.lat_arcsec.max(checks[1].3);
         maxima.lon_speed_arcsec_per_day = maxima.lon_speed_arcsec_per_day.max(checks[2].3);
         validated += 1;
+        validated_apparent += usize::from(row.apparent);
     }
     let class = |m: &SiderealMaxima| {
         format!(
@@ -355,19 +411,28 @@ fn validate(csv: &str, manifest: &str) -> Result<SiderealPositionReport, Siderea
             m.lon_arcsec, m.lat_arcsec, m.lon_speed_arcsec_per_day
         )
     };
+    let validated_mean = validated - validated_apparent;
     let summary_line = format!(
-        "Sidereal-position gate: {validated} mean sidereal chart placements validated vs Swiss Ephemeris \
+        "Sidereal-position gate: {validated_mean} mean and {validated_apparent} apparent sidereal chart \
+         placements validated vs Swiss Ephemeris; mean vs \
          SEFLG_SIDEREAL|SEFLG_TRUEPOS|SEFLG_NOABERR|SEFLG_NOGDEFL|SEFLG_SPEED, \
-         Sun max {}; Moon max {}; Mercury-Pluto max {}",
+         Sun max {}; Moon max {}; Mercury-Pluto max {}; apparent vs SEFLG_SIDEREAL|SEFLG_SPEED \
+         (apparent-star ayanamsa), Sun max {}; Moon max {}; Mars max {}",
         class(&sun_maxima),
         class(&moon_maxima),
         class(&planet_maxima),
+        class(&apparent_sun_maxima),
+        class(&apparent_moon_maxima),
+        class(&apparent_planet_maxima),
     );
     Ok(SiderealPositionReport {
         rows_validated: validated,
         sun_maxima,
         moon_maxima,
         planet_maxima,
+        apparent_sun_maxima,
+        apparent_moon_maxima,
+        apparent_planet_maxima,
         summary_line,
     })
 }

@@ -29,6 +29,37 @@ impl fmt::Display for ZodiacMode {
     }
 }
 
+/// Which place of a sidereal ayanamsa's anchor star the ayanamsa is read
+/// from (issue #164 (c)).
+///
+/// `Mean`, the default, is the anchor star's mean (geometric) place: the
+/// ayanamsa pleiades has always used, in every frame. `Apparent` adds the
+/// anchor star's light deflection and annual aberration, as Swiss Ephemeris
+/// does under its default `SEFLG_SIDEREAL` with apparent flags. It changes
+/// only the star-anchored ayanamsas (True Citra and Chitra, Revati, Pushya,
+/// Mula, Sheoran, and the Galactic Center modes other than Mardyks), by up to
+/// about 22″, and only for apparent places; a mean place and every other
+/// ayanamsa keep the mean ayanamsa.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum SiderealStarPlace {
+    /// The anchor star's mean place: the mean ayanamsa.
+    #[default]
+    Mean,
+    /// The anchor star's apparent place: Swiss Ephemeris default parity.
+    Apparent,
+}
+
+impl fmt::Display for SiderealStarPlace {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Mean => "mean",
+            Self::Apparent => "apparent",
+        })
+    }
+}
+
 /// One of the twelve zodiac signs.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]

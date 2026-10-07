@@ -17,6 +17,12 @@
 //! that the sidereal longitude is the mean-equinox longitude minus the mean
 //! ayanamsa.
 //!
+//! After those rows come apparent rows (issue #164 (c)), marked by a 7th
+//! column `apparent`: the Sun, the Moon and Mars under True Citra and
+//! Galactic Center from `swe_calc(jd_tt, body, SEFLG_MOSEPH | SEFLG_SIDEREAL
+//! | SEFLG_SPEED)`, Swiss Ephemeris' default, whose star-anchored ayanamsa
+//! is read from the anchor star's apparent place.
+//!
 //! Ayanamsas: one per `pleiades-ayanamsa` computation class, the four the
 //! crossings corpus uses. Grid: every 1087 days from 1901-01-01, 67 epochs
 //! across the packaged 1900–2100 window; the step shares no period with the
@@ -158,6 +164,25 @@ fn main() {
                 check_decomposition(jd, body, name, ayanamsa, state[0]);
                 println!(
                     "{jd:.1},{ayanamsa},{name},{:.9},{:.9},{:.12}",
+                    state[0], state[1], state[3]
+                );
+            }
+            jd += STEP_DAYS;
+        }
+    }
+    // Apparent rows (issue #164 (c)): Swiss Ephemeris's default SEFLG_SIDEREAL,
+    // whose ayanamsa is read from the anchor star's apparent place. The 7th
+    // column marks them.
+    println!("# Apparent rows: iflag=SEFLG_MOSEPH|SEFLG_SIDEREAL|SEFLG_SPEED (apparent place, nutation-free; star-anchored ayanamsa from the anchor star's apparent place). 7th column = apparent.");
+    let apparent = SEFLG_MOSEPH | SEFLG_SIDEREAL | SEFLG_SPEED;
+    for (ayanamsa, sid_mode) in [("TrueCitra", 27), ("GalacticCenter", 17)] {
+        unsafe { swe_set_sid_mode(sid_mode, 0.0, 0.0) };
+        let mut jd = JD_FIRST_TT;
+        while jd < JD_END_TT {
+            for (body, name) in [(0, "Sun"), (1, "Moon"), (4, "Mars")] {
+                let state = se_state(jd, body, name, apparent);
+                println!(
+                    "{jd:.1},{ayanamsa},{name},{:.9},{:.9},{:.12},apparent",
                     state[0], state[1], state[3]
                 );
             }

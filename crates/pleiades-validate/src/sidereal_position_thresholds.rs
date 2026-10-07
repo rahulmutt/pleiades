@@ -35,6 +35,30 @@
 //! +0.50″ to +0.64″, alike under all four ayanamsas, so it is the
 //! ephemeris and not an ayanamsa. The Sun's is +0.123″ under Lahiri and
 //! within ±0.022″ under the other three.
+//!
+//! # Apparent rows (issue #164 (c))
+//!
+//! The 402 apparent rows (the Sun, the Moon and Mars under True Citra and
+//! Galactic Center, the same 67 epochs) compare an apparent chart that reads
+//! the ayanamsa from the anchor star's apparent place with Swiss Ephemeris'
+//! default `SEFLG_SIDEREAL | SEFLG_SPEED`. Both sides drop nutation from the
+//! sidereal place, as for the mean rows, so the residual is again the
+//! ephemeris difference plus the apparent-star ayanamsa gate's residual.
+//! Measured 2026-10-07 over all 402 rows; the ceilings follow the same
+//! rounding rules as above.
+//!
+//! - Sun: longitude 0.334″ (True Citra, JD 2416472.5), latitude 0.059″
+//!   (JD 2459952.5), speed 0.0145″/day (JD 2421907.5), at the mean Sun's
+//!   level.
+//! - Moon: longitude 2.125″ and latitude 2.454″ at the mean Moon's worst
+//!   epoch, JD 2425168.5 (True Citra); speed 1.2924″/day the same epoch
+//!   under Galactic Center.
+//! - Mars: longitude 0.797″ (Galactic Center, JD 2481692.5), latitude
+//!   0.188″ (True Citra, JD 2429516.5), speed 0.0225″/day (True Citra,
+//!   JD 2476257.5).
+//!
+//! A chart that read these with the mean ayanamsa would be off by the
+//! anchor star's aberration and deflection, up to about 20″.
 
 /// Per-channel ceilings for one body class.
 #[derive(Clone, Copy, Debug)]
@@ -61,4 +85,25 @@ pub(crate) const PLANET_CEILINGS: Ceilings = Ceilings {
     lon_arcsec: 4.0,                 // measured max 2.360"
     lat_arcsec: 1.0,                 // measured max 0.595"
     lon_speed_arcsec_per_day: 0.054, // measured max 0.0384"/day
+};
+
+/// Apparent rows (issue #164 (c)), the Sun.
+pub(crate) const APPARENT_SUN_CEILINGS: Ceilings = Ceilings {
+    lon_arcsec: 1.0,                 // measured max 0.334"
+    lat_arcsec: 1.0,                 // measured max 0.059"
+    lon_speed_arcsec_per_day: 0.021, // measured max 0.0145"/day
+};
+
+/// Apparent rows, the Moon.
+pub(crate) const APPARENT_MOON_CEILINGS: Ceilings = Ceilings {
+    lon_arcsec: 3.0,               // measured max 2.125"
+    lat_arcsec: 4.0,               // measured max 2.454"
+    lon_speed_arcsec_per_day: 1.9, // measured max 1.2924"/day
+};
+
+/// Apparent rows, Mars.
+pub(crate) const APPARENT_PLANET_CEILINGS: Ceilings = Ceilings {
+    lon_arcsec: 2.0,                 // measured max 0.797"
+    lat_arcsec: 1.0,                 // measured max 0.188"
+    lon_speed_arcsec_per_day: 0.032, // measured max 0.0225"/day
 };

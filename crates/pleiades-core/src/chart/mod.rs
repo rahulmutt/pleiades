@@ -36,6 +36,9 @@ mod sidereal_mean_tests;
 mod sidereal_tests;
 mod signs;
 mod snapshot;
+mod star_place;
+#[cfg(test)]
+mod star_place_tests;
 
 #[cfg(test)]
 mod test_support;
@@ -54,6 +57,7 @@ pub use request::{ChartRequest, CivilChartRequest};
 pub use sidereal::sidereal_longitude;
 pub use signs::SignSummary;
 pub use snapshot::ChartSnapshot;
+pub use star_place::apparent_star_ayanamsa_correction;
 
 use pleiades_apparent::{
     apparent_apsis_position, apparent_equatorial_of_date, apparent_position, apparent_sun_position,
@@ -65,7 +69,8 @@ use pleiades_backend::{
 };
 use pleiades_houses::{calculate_houses, house_for_longitude, sign_anchored_cusps, HouseRequest};
 use pleiades_types::{
-    CelestialBody, CoordinateFrame, Instant, JulianDay, Motion, ObserverLocation, ZodiacMode,
+    CelestialBody, CoordinateFrame, Instant, JulianDay, Motion, ObserverLocation,
+    SiderealStarPlace, ZodiacMode,
 };
 
 use errors::map_house_error;
@@ -327,12 +332,21 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                             ))
                         })?
                         .delta_psi_arcsec;
+                // Swiss Ephemeris passes the chart's flags to the ayanamsa: an apparent
+                // chart's cusps read the anchor star's apparent place, a mean chart's its
+                // mean place (spec amendment 5).
+                let star_place = if matches!(request.apparentness, Apparentness::Apparent) {
+                    request.sidereal_star_place
+                } else {
+                    SiderealStarPlace::Mean
+                };
                 let to_sidereal = |longitude| {
                     sidereal::sidereal_longitude_of_true_equinox(
                         longitude,
                         delta_psi_arcsec,
                         request.instant,
                         &request.zodiac_mode,
+                        star_place,
                     )
                 };
                 let angles = &mut snapshot.angles;
@@ -529,6 +543,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                                     &backend_zodiac_mode,
                                     &request.body_observer,
                                     chart_sidereal_mode,
+                                    request.sidereal_star_place,
                                 );
                             }
                             Some(outcome.provenance)
@@ -659,6 +674,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                             provenance.nutation_longitude_arcsec,
                             request.instant,
                             &request.zodiac_mode,
+                            request.sidereal_star_place,
                         )?;
                     }
                 }
@@ -697,6 +713,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
             body_observer: request.body_observer.clone(),
             zodiac_mode: request.zodiac_mode.clone(),
             apparentness: request.apparentness,
+            sidereal_star_place: request.sidereal_star_place,
             houses,
             placements,
         })
@@ -776,6 +793,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         zodiac_mode: &ZodiacMode,
         body_observer: &Option<ObserverLocation>,
         chart_sidereal_mode: Option<&ZodiacMode>,
+        star_place: SiderealStarPlace,
     ) -> Result<CorrectionSample, EphemerisError> {
         // The mean place the backend's speed describes: the same query the
         // chart's position batch makes. It also answers the apparent
@@ -797,6 +815,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 apparent.provenance.nutation_longitude_arcsec,
                 sun.instant,
                 sidereal_mode,
+                star_place,
             )?;
         }
         Ok(CorrectionSample {
@@ -814,6 +833,9 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// range) the difference is one-sided. With neither neighbour the apparent
     /// speed is unknown and `None` is returned: the mean speed would describe a
     /// different place from the one the placement reports.
+    // Each argument is a distinct input of the chart's speed difference; the
+    // sidereal mode and star place mirror `correction_sample`'s.
+    #[allow(clippy::too_many_arguments)]
     fn apparent_motion(
         &self,
         mean: Motion,
@@ -822,6 +844,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
         zodiac_mode: &ZodiacMode,
         body_observer: &Option<ObserverLocation>,
         chart_sidereal_mode: Option<&ZodiacMode>,
+        star_place: SiderealStarPlace,
     ) -> Option<Motion> {
         let sample = |sun: &Option<SunSample>| {
             self.correction_sample(
@@ -830,6 +853,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 zodiac_mode,
                 body_observer,
                 chart_sidereal_mode,
+                star_place,
             )
             .ok()
         };

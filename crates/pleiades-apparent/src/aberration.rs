@@ -90,5 +90,21 @@ pub fn sun_true_longitude_of_date_deg(jd: f64) -> f64 {
     (l0 + c).rem_euclid(360.0)
 }
 
+/// The Sun's distance from the Earth, AU, via the same Meeus low-precision
+/// theory (Astronomical Algorithms 25.5): `R = 1.000001018 (1 − e²) / (1 + e cos ν)`
+/// with ν the true anomaly. Accurate to about 1e-5 AU, which is all the
+/// light-deflection scale (∝ 1/R) needs. `jd` is the TT/TDB Julian Day.
+pub fn sun_radius_vector_au_of_date(jd: f64) -> f64 {
+    let t = (jd - 2_451_545.0) / 36_525.0;
+    let m_deg = 357.529_11 + 35_999.050_29 * t - 0.000_153_7 * t * t;
+    let m = m_deg.to_radians();
+    let c = (1.914_602 - 0.004_817 * t - 0.000_014 * t * t) * m.sin()
+        + (0.019_993 - 0.000_101 * t) * (2.0 * m).sin()
+        + 0.000_289 * (3.0 * m).sin();
+    let (e, _) = earth_orbit_elements(t);
+    let nu = (m_deg + c).to_radians();
+    1.000_001_018 * (1.0 - e * e) / (1.0 + e * nu.cos())
+}
+
 #[cfg(test)]
 mod tests;

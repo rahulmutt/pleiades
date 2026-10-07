@@ -17,6 +17,8 @@ mod apparent_validation;
 mod artifact;
 mod aspects_thresholds;
 mod aspects_validation;
+mod ayanamsa_apparent_thresholds;
+mod ayanamsa_apparent_validation;
 mod ayanamsa_validation;
 mod chart_benchmark;
 mod claims;
@@ -217,6 +219,9 @@ pub use artifact::{
 };
 pub use aspects_validation::{
     validate_aspects_corpus, validate_aspects_corpus_subset, AspectsError, AspectsReport,
+};
+pub use ayanamsa_apparent_validation::{
+    validate_ayanamsa_apparent_corpus, AyanamsaApparentError, AyanamsaApparentReport,
 };
 pub use ayanamsa_validation::{
     validate_ayanamsa_corpus, AyanamsaCorpusError, AyanamsaCorpusReport,

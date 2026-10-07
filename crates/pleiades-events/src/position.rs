@@ -11,7 +11,7 @@
 //! | geocentric mean of date | backend mean J2000 place and its motion | precessed to the mean equinox of date |
 //! | heliocentric | planet minus Sun in J2000, rates from Cartesian velocities | true equinox of date |
 //! | either geocentric frame, lunar orbit point | backend mean J2000 direction and its motion | precessed, plus Δψ in the apparent frame; no light-time, no aberration |
-//! | any frame, sidereal zodiac | as the frame | the frame's place − Δψ (apparent and heliocentric) − mean ayanamsa |
+//! | any frame, sidereal zodiac | as the frame | the frame's place − Δψ (apparent and heliocentric) − mean ayanamsa (or, with the apparent star place option, the anchor star’s apparent place) |
 //!
 //! The heliocentric place is geometric — no light-time, no aberration — in the
 //! true ecliptic and equinox of date, i.e. Swiss Ephemeris

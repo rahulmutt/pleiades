@@ -7,7 +7,8 @@
 //! order, each with its civil time and its TDB Julian day.
 
 use pleiades_core::{
-    Angle, Ayanamsa, CelestialBody, CivilDateTime, CivilTimeError, Instant, JulianDay, TimeScale,
+    Angle, Ayanamsa, CelestialBody, CivilDateTime, CivilTimeError, Instant, JulianDay,
+    SiderealStarPlace, TimeScale,
 };
 use pleiades_events::{
     AspectEvent, CrossingFrame, CrossingReference, EventEngine, EventError, Station, StationKind,
@@ -16,11 +17,11 @@ use pleiades_events::{
 use pleiades_time::{tdb_from_ut1_civil, tdb_from_utc_civil, CivilConversion};
 
 use crate::commands::chart::{default_chart_backend, parse_civil};
-use crate::parse::{parse_ayanamsa, parse_body, parse_f64};
+use crate::parse::{parse_ayanamsa, parse_body, parse_f64, parse_star_place};
 
-const STATIONS_USAGE: &str = "Usage:\n  stations --body <name> [--body <name> ...] (--from <instant> --to <instant> | (--next|--previous) --at <instant>) [--frame geo|mean|helio] [--ayanamsa <name>]";
-const ASPECTS_USAGE: &str = "Usage:\n  aspects --pair <first>,<second> [--pair ...] --angle <degrees> [--angle ...] (--from <instant> --to <instant> | (--next|--previous) --at <instant>) [--frame geo|mean|helio] [--ayanamsa <name>]";
-const SHARED_HELP: &str = "  <instant> is a TDB Julian day (2451545.0) or a civil datetime YYYY-MM-DDTHH:MM:SS,\n  read as UTC from 1972 on and as UT1 before.\n  --from/--to list every event in the range; --next/--previous with --at give one event\n  per body (stations) or per pair and angle (aspects).\n  --frame is geo (apparent geocentric, the default), mean (mean geocentric of date) or helio.\n  --ayanamsa reads longitudes in a sidereal zodiac.\n  Each line gives the event's civil time (UTC from 1972, UT1 before), its TDB Julian day,\n  and the event.";
+const STATIONS_USAGE: &str = "Usage:\n  stations --body <name> [--body <name> ...] (--from <instant> --to <instant> | (--next|--previous) --at <instant>) [--frame geo|mean|helio] [--ayanamsa <name>] [--star-place mean|apparent]";
+const ASPECTS_USAGE: &str = "Usage:\n  aspects --pair <first>,<second> [--pair ...] --angle <degrees> [--angle ...] (--from <instant> --to <instant> | (--next|--previous) --at <instant>) [--frame geo|mean|helio] [--ayanamsa <name>] [--star-place mean|apparent]";
+const SHARED_HELP: &str = "  <instant> is a TDB Julian day (2451545.0) or a civil datetime YYYY-MM-DDTHH:MM:SS,\n  read as UTC from 1972 on and as UT1 before.\n  --from/--to list every event in the range; --next/--previous with --at give one event\n  per body (stations) or per pair and angle (aspects).\n  --frame is geo (apparent geocentric, the default), mean (mean geocentric of date) or helio.\n  --ayanamsa reads longitudes in a sidereal zodiac.\n  --star-place apparent reads a star-anchored ayanamsa from its anchor star's apparent place (Swiss Ephemeris default).\n  Each line gives the event's civil time (UTC from 1972, UT1 before), its TDB Julian day,\n  and the event.";
 
 /// Which events a command searches for.
 enum Search {
@@ -39,6 +40,7 @@ struct SharedArgs {
     previous: bool,
     frame: Option<CrossingFrame>,
     ayanamsa: Option<Ayanamsa>,
+    star_place: Option<SiderealStarPlace>,
 }
 
 impl SharedArgs {
@@ -61,12 +63,28 @@ impl SharedArgs {
                     .ok_or_else(|| "missing value for --ayanamsa".to_string())?;
                 self.ayanamsa = Some(parse_ayanamsa(value)?);
             }
+            "--star-place" => self.star_place = Some(parse_star_place(rest.next())?),
             _ => return Ok(false),
         }
         Ok(true)
     }
 
     fn search(&self) -> Result<Search, String> {
+        if self.star_place.is_some() && self.ayanamsa.is_none() {
+            return Err("--star-place requires --ayanamsa".to_string());
+        }
+        // Only the apparent geocentric frame reads the anchor star's apparent
+        // place; the mean-of-date and heliocentric frames keep the mean ayanamsa.
+        if self.star_place == Some(SiderealStarPlace::Apparent)
+            && self
+                .frame
+                .is_some_and(|frame| frame != CrossingFrame::GeocentricApparentOfDate)
+        {
+            return Err(
+                "--star-place apparent requires the apparent geocentric frame (drop --frame mean/helio)"
+                    .to_string(),
+            );
+        }
         let directed = self.next || self.previous;
         if directed && (self.from.is_some() || self.to.is_some()) {
             return Err("--next/--previous cannot be combined with --from/--to".to_string());
@@ -99,7 +117,8 @@ impl SharedArgs {
             .frame
             .unwrap_or(CrossingFrame::GeocentricApparentOfDate);
         match &self.ayanamsa {
-            Some(ayanamsa) => CrossingReference::sidereal(frame, ayanamsa.clone()),
+            Some(ayanamsa) => CrossingReference::sidereal(frame, ayanamsa.clone())
+                .with_star_place(self.star_place.unwrap_or_default()),
             None => CrossingReference::tropical(frame),
         }
     }
@@ -212,8 +231,15 @@ fn render(
     none: &str,
 ) -> String {
     let reference = shared.reference();
+    let star_place = if shared.star_place == Some(SiderealStarPlace::Apparent)
+        && reference.frame == CrossingFrame::GeocentricApparentOfDate
+    {
+        ", apparent star place"
+    } else {
+        ""
+    };
     let mut out = format!(
-        "{title} ({}; {} zodiac)\n",
+        "{title} ({}; {} zodiac{star_place})\n",
         frame_label(reference.frame),
         reference.zodiac
     );

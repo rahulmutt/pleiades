@@ -100,11 +100,11 @@ pub use api_stability::{
     current_api_stability_profile, ApiStabilityProfile, ApiStabilityProfileValidationError,
 };
 pub use chart::{
-    default_chart_bodies, sidereal_longitude, validate_aspect_definitions, AspectDefinition,
-    AspectDefinitionValidationError, AspectKind, AspectMatch, AspectSummary,
-    AspectSummaryValidationError, BodyPlacement, ChartRequest, ChartSnapshot, CivilChartRequest,
-    HouseSummary, MotionSummary, MotionSummaryValidationError, ObserverPolicy, ObserverSummary,
-    SignSummary,
+    apparent_star_ayanamsa_correction, default_chart_bodies, sidereal_longitude,
+    validate_aspect_definitions, AspectDefinition, AspectDefinitionValidationError, AspectKind,
+    AspectMatch, AspectSummary, AspectSummaryValidationError, BodyPlacement, ChartRequest,
+    ChartSnapshot, CivilChartRequest, HouseSummary, MotionSummary, MotionSummaryValidationError,
+    ObserverPolicy, ObserverSummary, SignSummary,
 };
 pub use compatibility::{
     current_compatibility_profile, validate_custom_definition_labels, CompatibilityProfile,
@@ -137,9 +137,9 @@ pub use pleiades_time::{
 pub use pleiades_types::{
     Angle, Ayanamsa, CelestialBody, CelestialBodyClass, CoordinateFrame, CustomAyanamsa,
     CustomBodyId, CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates, HouseSystem,
-    Instant, JulianDay, Latitude, Longitude, Motion, MotionDirection, ObserverLocation, TimeRange,
-    TimeRangeValidationError, TimeScale, TimeScaleConversion, TimeScaleConversionError, ZodiacMode,
-    ZodiacSign, SECONDS_PER_DAY,
+    Instant, JulianDay, Latitude, Longitude, Motion, MotionDirection, ObserverLocation,
+    SiderealStarPlace, TimeRange, TimeRangeValidationError, TimeScale, TimeScaleConversion,
+    TimeScaleConversionError, ZodiacMode, ZodiacSign, SECONDS_PER_DAY,
 };
 pub use release_profiles::{
     current_release_profile_identifiers, ReleaseProfileIdentifiers,

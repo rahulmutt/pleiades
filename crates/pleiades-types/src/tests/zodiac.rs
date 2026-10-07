@@ -90,3 +90,10 @@ fn zodiac_signs_cover_every_thirty_degree_band() {
         ZodiacSign::Gemini
     );
 }
+
+#[test]
+fn sidereal_star_place_defaults_to_mean_and_displays_lowercase() {
+    assert_eq!(SiderealStarPlace::default(), SiderealStarPlace::Mean);
+    assert_eq!(SiderealStarPlace::Mean.to_string(), "mean");
+    assert_eq!(SiderealStarPlace::Apparent.to_string(), "apparent");
+}

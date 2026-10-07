@@ -565,3 +565,20 @@ fn help_text_mentions_validate_sidereal_position() {
     assert!(help.contains("validate-sidereal-position"));
     assert!(help.contains("sidereal-position-gate"));
 }
+
+#[test]
+fn validate_ayanamsa_apparent_and_alias_report_the_summary() {
+    let report = crate::validate_ayanamsa_apparent_corpus().expect("gate passes");
+    for command in ["validate-ayanamsa-apparent", "ayanamsa-apparent-gate"] {
+        let out = render_cli(&[command]).expect("gate passes via the CLI");
+        assert_eq!(out, report.summary_line(), "{command}");
+    }
+    assert!(render_cli(&["validate-ayanamsa-apparent", "extra"]).is_err());
+}
+
+#[test]
+fn help_text_mentions_validate_ayanamsa_apparent() {
+    let help = render_cli(&["help"]).expect("help command should render");
+    assert!(help.contains("validate-ayanamsa-apparent"));
+    assert!(help.contains("ayanamsa-apparent-gate"));
+}
