@@ -1,7 +1,7 @@
 [package]
 name = "pleiades-vsop87"
 description = "Pure-Rust VSOP87B planetary position backend with generated coefficient tables and a Meeus Table 37.A Pluto path, for the pleiades astrology workspace."
-version = "0.6.0"
+version = "0.6.1"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true

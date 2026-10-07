@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.9.0] - 2026-10-07
+
+### Breaking Changes
+
+- Swiss Ephemeris default parity for star-anchored ayanamsas ([#164](https://github.com/rahulmutt/pleiades/pull/164)) ([#222](https://github.com/rahulmutt/pleiades/pull/222)) ([37eacf4](https://github.com/rahulmutt/pleiades/commit/37eacf45600f62314c6a0df6ebc746723899dbfc))
+
+### Fixed
+
+- Replace the snapshot rows that are not Horizons positions; serve the Moon only at a row ([#200](https://github.com/rahulmutt/pleiades/pull/200)) ([#205](https://github.com/rahulmutt/pleiades/pull/205)) ([6ce4f37](https://github.com/rahulmutt/pleiades/commit/6ce4f37e16dfa07c0e2ab79f3bf1e04616bc5cd4))
+- Search rise, set and transit up to the window's ends; report a search the window cuts short ([#203](https://github.com/rahulmutt/pleiades/pull/203)) ([#207](https://github.com/rahulmutt/pleiades/pull/207)) ([5e72ffb](https://github.com/rahulmutt/pleiades/commit/5e72ffbabc1cbdabb49fec1674ae1ee80e0ce275))
+- Refuse non-finite instants; correct the snapshot notes and summaries; document ELP's equatorial frame (#201, #171) ([#211](https://github.com/rahulmutt/pleiades/pull/211)) ([0eea1bf](https://github.com/rahulmutt/pleiades/commit/0eea1bf23a00dedaf25e9bc4d559cbb9ecbc60e4))
+- Search crossings, stations, aspects and occultations up to the window's ends; report a search the window cuts short ([#208](https://github.com/rahulmutt/pleiades/pull/208)) ([#212](https://github.com/rahulmutt/pleiades/pull/212)) ([5b23b1f](https://github.com/rahulmutt/pleiades/commit/5b23b1f9c1ed806793a8985ec34585854834a455))
+- Put the equatorial channel and mean charts on J2000 ([#210](https://github.com/rahulmutt/pleiades/pull/210)) ([#217](https://github.com/rahulmutt/pleiades/pull/217)) ([215bc61](https://github.com/rahulmutt/pleiades/commit/215bc61e33dd82dd7b78150ead28f11e98df5681))
+- Let a mean chart pass the native-sidereal star-place guard ([#224](https://github.com/rahulmutt/pleiades/pull/224)) ([#227](https://github.com/rahulmutt/pleiades/pull/227)) ([40676fb](https://github.com/rahulmutt/pleiades/commit/40676fbe5661d1d3d595b6e6bd9e8a4887d40ebe))
+- Name the apparent star place only where it applies ([#225](https://github.com/rahulmutt/pleiades/pull/225)) ([#228](https://github.com/rahulmutt/pleiades/pull/228)) ([4835ee8](https://github.com/rahulmutt/pleiades/commit/4835ee8187a514526e0995de3a6cd0d1632f5620))
+
+### Performance
+
+- Read a rise/set search's body at a few lattice instants and interpolate between them ([#204](https://github.com/rahulmutt/pleiades/pull/204)) ([#209](https://github.com/rahulmutt/pleiades/pull/209)) ([a5bbc84](https://github.com/rahulmutt/pleiades/commit/a5bbc842f845f740a54a8d58a6760ec26034527c))
+
 ## [0.8.2] - 2026-10-06
 
 ### Fixed
