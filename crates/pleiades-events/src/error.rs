@@ -124,6 +124,18 @@ pub enum EventError {
         /// Human-readable explanation.
         detail: String,
     },
+    /// A station search's scan step is not finite, is shorter than
+    /// [`MIN_STATION_STEP_DAYS`](crate::MIN_STATION_STEP_DAYS), or is longer
+    /// than the body's default step, which a coarser scan could only lose
+    /// stations from.
+    InvalidStationStep {
+        /// Human-readable label of the body (e.g. `"true node"`).
+        body_label: &'static str,
+        /// The step that was asked for, in days.
+        step_days: f64,
+        /// The body's default step, the longest one accepted, in days.
+        max_step_days: f64,
+    },
 }
 
 impl fmt::Display for EventError {
@@ -178,6 +190,16 @@ impl fmt::Display for EventError {
                 "backend reported no finite longitude speed for {body_label} at JD {julian_day}"
             ),
             EventError::InvalidAspect { detail } => write!(f, "invalid aspect: {detail}"),
+            EventError::InvalidStationStep {
+                body_label,
+                step_days,
+                max_step_days,
+            } => write!(
+                f,
+                "invalid station step {step_days} day for {body_label}: it must be finite and \
+                 between {} and {max_step_days} day",
+                crate::MIN_STATION_STEP_DAYS
+            ),
         }
     }
 }

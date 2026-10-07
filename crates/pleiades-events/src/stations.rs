@@ -47,6 +47,57 @@ pub struct Station {
     pub zodiac: ZodiacMode,
 }
 
+/// The shortest scan step a station search accepts: one minute, in days.
+///
+/// It keeps a mistyped step from turning a search into hundreds of millions of
+/// backend reads; no body's speed has two sign changes a minute apart.
+pub const MIN_STATION_STEP_DAYS: f64 = 1.0 / 1440.0;
+
+/// Options for a station search (issue #167 (a)).
+///
+/// The default reproduces [`EventEngine::stations_in_range`],
+/// [`EventEngine::next_station`] and [`EventEngine::previous_station`]
+/// exactly.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[non_exhaustive]
+pub struct StationOptions {
+    /// The scan step, in days, or `None` for the body's default step (0.25
+    /// day for the Moon and the lunar points, 1 day for the Sun, Mercury and
+    /// Venus, 2 days otherwise).
+    ///
+    /// Two stations closer together than the step are not reported, so a
+    /// finer step finds the short direct spells of the true node and the
+    /// osculating apsides that the default step misses, at a proportional
+    /// cost in backend reads. It must be finite, at least
+    /// [`MIN_STATION_STEP_DAYS`] and at most the body's default step;
+    /// otherwise the search returns [`EventError::InvalidStationStep`].
+    pub step_days: Option<f64>,
+}
+
+impl StationOptions {
+    /// These options with the scan step set to `step_days`.
+    #[must_use]
+    pub fn with_step_days(mut self, step_days: f64) -> Self {
+        self.step_days = Some(step_days);
+        self
+    }
+
+    /// The step a search for `body` scans with, or the error naming why the
+    /// requested one is refused.
+    fn step_for(&self, body: &CelestialBody) -> Result<f64, EventError> {
+        let max_step_days = step_days(body);
+        match self.step_days {
+            None => Ok(max_step_days),
+            Some(step) if (MIN_STATION_STEP_DAYS..=max_step_days).contains(&step) => Ok(step),
+            Some(step) => Err(EventError::InvalidStationStep {
+                body_label: body_label(body),
+                step_days: step,
+                max_step_days,
+            }),
+        }
+    }
+}
+
 /// Step used to bracket stations: well under the shortest interval between
 /// two stations of the body. Mercury's shortest retrograde is about 19 days;
 /// the lunar points' speeds oscillate within a month.
@@ -197,7 +248,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// closer together than the step are not reported. That happens only
     /// for the osculating lunar points: the true node's speed touches zero
     /// about every two weeks, and whether a touch crosses zero for a few
-    /// hours depends on the ephemeris. On the packaged backend the node's
+    /// hours depends on the ephemeris. To find those short spells, pass a
+    /// finer step to [`EventEngine::stations_in_range_with`]: over the two
+    /// years from J2000 the packaged true node has 102 stations at the
+    /// default step and 108 at 0.02 day. On the packaged backend the node's
     /// speed is within 0.71″/day of the derivative of the node formed from
     /// the exact DE440 Moon (2017–2027), and its peaks in #108's short
     /// direct spells match Swiss Ephemeris within 0.1″/day.
@@ -228,13 +282,58 @@ impl<B: EphemerisBackend> EventEngine<B> {
         start: Instant,
         end: Instant,
     ) -> Result<Vec<Station>, EventError> {
+        self.stations_in_range_with(body, reference, start, end, StationOptions::default())
+    }
+
+    /// [`EventEngine::stations_in_range`] with [`StationOptions`], such as a
+    /// finer scan step.
+    ///
+    /// ```
+    /// use pleiades_data::packaged_backend;
+    /// use pleiades_events::{CrossingFrame, EventEngine, StationOptions};
+    /// use pleiades_types::{CelestialBody, Instant, JulianDay, TimeScale};
+    ///
+    /// // A 0.02-day step also finds the true node's direct spell of about
+    /// // 3.7 hours on 1 April 2001, shorter than the default 0.25-day step.
+    /// let engine = EventEngine::new(packaged_backend());
+    /// let tdb = |jd| Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+    /// let (start, end) = (tdb(2_451_998.0), tdb(2_452_003.0));
+    /// let frame = CrossingFrame::GeocentricApparentOfDate;
+    /// let default = engine
+    ///     .stations_in_range(CelestialBody::TrueNode, frame, start, end)
+    ///     .unwrap();
+    /// let fine = engine
+    ///     .stations_in_range_with(
+    ///         CelestialBody::TrueNode,
+    ///         frame,
+    ///         start,
+    ///         end,
+    ///         StationOptions::default().with_step_days(0.02),
+    ///     )
+    ///     .unwrap();
+    /// assert!(fine.len() > default.len());
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Those of [`EventEngine::stations_in_range`], and
+    /// [`EventError::InvalidStationStep`] when the step is refused, for
+    /// every body including one answered without a scan.
+    pub fn stations_in_range_with(
+        &self,
+        body: CelestialBody,
+        reference: impl Into<CrossingReference>,
+        start: Instant,
+        end: Instant,
+        options: StationOptions,
+    ) -> Result<Vec<Station>, EventError> {
         let reference = reference.into();
         let start_jd = start.julian_day.days();
         let end_jd = end.julian_day.days();
         self.check_window(start_jd)?;
         self.check_window(end_jd)?;
         check_supported(&body, &reference, start_jd, "stations are")?;
-        let step = step_days(&body);
+        let step = options.step_for(&body)?;
         if never_stations(&body, reference.frame) {
             // The one sample an empty range gets, for the same backend errors.
             probe_never_stationing(&self.backend, &body, &reference, start_jd)?;
@@ -293,11 +392,30 @@ impl<B: EphemerisBackend> EventEngine<B> {
         reference: impl Into<CrossingReference>,
         after: Instant,
     ) -> Result<Option<Station>, EventError> {
+        self.next_station_with(body, reference, after, StationOptions::default())
+    }
+
+    /// [`EventEngine::next_station`] with [`StationOptions`], such as a finer
+    /// scan step. When the search reaches the window's end without a
+    /// station, the [`EventError::OutOfWindow`] instant is one step, as
+    /// chosen, past it.
+    ///
+    /// # Errors
+    ///
+    /// Those of [`EventEngine::next_station`], and
+    /// [`EventError::InvalidStationStep`] when the step is refused.
+    pub fn next_station_with(
+        &self,
+        body: CelestialBody,
+        reference: impl Into<CrossingReference>,
+        after: Instant,
+        options: StationOptions,
+    ) -> Result<Option<Station>, EventError> {
         let reference = reference.into();
         let after_jd = after.julian_day.days();
         self.check_window(after_jd)?;
         check_supported(&body, &reference, after_jd, "stations are")?;
-        let step = step_days(&body);
+        let step = options.step_for(&body)?;
         if never_stations(&body, reference.frame) {
             probe_never_stationing(&self.backend, &body, &reference, after_jd)?;
             return Ok(None);
@@ -366,11 +484,30 @@ impl<B: EphemerisBackend> EventEngine<B> {
         reference: impl Into<CrossingReference>,
         before: Instant,
     ) -> Result<Option<Station>, EventError> {
+        self.previous_station_with(body, reference, before, StationOptions::default())
+    }
+
+    /// [`EventEngine::previous_station`] with [`StationOptions`], such as a
+    /// finer scan step. When the search reaches the window's start without a
+    /// station, the [`EventError::OutOfWindow`] instant is one step, as
+    /// chosen, before it.
+    ///
+    /// # Errors
+    ///
+    /// Those of [`EventEngine::previous_station`], and
+    /// [`EventError::InvalidStationStep`] when the step is refused.
+    pub fn previous_station_with(
+        &self,
+        body: CelestialBody,
+        reference: impl Into<CrossingReference>,
+        before: Instant,
+        options: StationOptions,
+    ) -> Result<Option<Station>, EventError> {
         let reference = reference.into();
         let before_jd = before.julian_day.days();
         self.check_window(before_jd)?;
         check_supported(&body, &reference, before_jd, "stations are")?;
-        let step = step_days(&body);
+        let step = options.step_for(&body)?;
         if never_stations(&body, reference.frame) {
             probe_never_stationing(&self.backend, &body, &reference, before_jd)?;
             return Ok(None);

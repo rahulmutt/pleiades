@@ -121,7 +121,16 @@ than the step are not reported. That happens only for the osculating lunar
 points. The true node is retrograde on average and its speed touches zero
 about every two weeks; whether a touch crosses zero for a few hours depends on
 the ephemeris, so the gate compares only true-node stations at least 3 days
-from their neighbours. Stations of fictitious bodies and the osculating
+from their neighbours.
+
+To see those short spells, pass a finer step through `StationOptions` to
+`stations_in_range_with`, `next_station_with` or `previous_station_with`:
+`StationOptions::default().with_step_days(0.02)`. Over the two years from
+J2000 the packaged true node has 102 stations at the default step and 108 at
+0.02 day. The step must be finite, at least one minute
+(`MIN_STATION_STEP_DAYS`) and at most the body's default step; any other is
+`EventError::InvalidStationStep`. The search costs one speed read per step,
+so a finer step costs proportionally more. Stations of fictitious bodies and the osculating
 apogee are found but not gated. An asteroid's stations cannot be searched
 offline: the backend chain serves asteroids only at sparse sample rows and the
 search returns its out-of-range error (issue #201).
