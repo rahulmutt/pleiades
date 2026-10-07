@@ -53,6 +53,19 @@ pub struct Crossing {
 /// Finds ephemeris events (longitude crossings today; rise/set/transit and
 /// horizontal coordinates in sibling modules) over the packaged 1900–2100 TDB
 /// window.
+///
+/// # Reuse one engine across a sweep
+///
+/// An engine remembers the body places its rise, set and transit searches
+/// have read, and later searches reuse them: the three searches of a daily
+/// sunrise bracket share their samples, and a sweep of daily brackets on one
+/// engine reads only the samples each new day adds. Build one engine for a
+/// sweep and pass it by reference, rather than one per search.
+///
+/// What the engine remembers never changes an answer. A remembered place is
+/// the one a fresh engine would read at the same instant, and it does not
+/// depend on the observer, the atmosphere or the options. The memory is
+/// bounded, and the engine can be shared between threads.
 pub struct EventEngine<B> {
     pub(crate) backend: B,
     /// Body samples shared by the rise/set and transit searches.
@@ -70,7 +83,6 @@ impl<B: EphemerisBackend> EventEngine<B> {
 
     /// An engine whose sample cache holds at most `capacity` entries.
     #[cfg(test)]
-    #[allow(dead_code)] // first used by the engine-level cache tests of a later task
     pub(crate) fn with_place_cache_capacity(backend: B, capacity: usize) -> Self {
         Self {
             backend,

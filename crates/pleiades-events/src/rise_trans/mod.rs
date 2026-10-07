@@ -747,3 +747,6 @@ mod window_edge_tests;
 
 #[cfg(test)]
 mod cost_tests;
+
+#[cfg(test)]
+mod cache_tests;

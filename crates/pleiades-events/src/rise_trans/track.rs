@@ -68,8 +68,8 @@ fn lattice_step_days(body: &CelestialBody) -> Option<f64> {
 }
 
 /// Most samples a [`PlaceCache`] holds before it starts over: about eleven
-/// years of the Sun on its 12-hour lattice, or two of the Moon on its 6-hour
-/// one, in well under a megabyte.
+/// years of the Sun on its 12-hour lattice, or about five and a half years of
+/// the Moon on its 6-hour one, in well under a megabyte.
 const PLACE_CACHE_CAPACITY: usize = 8192;
 
 /// The lattice samples an engine has read, shared by all of its rise/set

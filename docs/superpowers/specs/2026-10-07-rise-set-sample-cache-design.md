@@ -49,7 +49,7 @@ From starfold's reply, 2026-10-07:
   written by a single `insert` of a complete value, so the table is
   consistent at any panic point.
 - Bound: `PLACE_CACHE_CAPACITY = 8192` entries, about 11 years of Sun at 12 h
-  or about 2 years of Moon at 6 h, and well under 1 MB. When an insert would
+  or about five and a half years of Moon at 6 h, and well under 1 MB. When an insert would
   exceed it, the table is cleared first. Clearing affects speed only.
 
 ### Why hidden state is acceptable here

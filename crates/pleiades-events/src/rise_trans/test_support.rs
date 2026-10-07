@@ -2,19 +2,86 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use pleiades_apparent::Atmosphere;
 use pleiades_backend::{
     BackendMetadata, CompositeBackend, EphemerisBackend, EphemerisError, EphemerisErrorKind,
     EphemerisRequest, EphemerisResult,
 };
 use pleiades_elp::ElpBackend;
-use pleiades_types::CelestialBody;
+use pleiades_types::{
+    CelestialBody, Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale,
+};
 use pleiades_vsop87::Vsop87Backend;
+
+use crate::crossings::EventEngine;
+use crate::rise_trans::{RiseSetEvent, RiseSetOptions, RiseSetTarget};
 
 /// The artifact-free composite the rise/set issues were reported on.
 pub(crate) type Composite = CompositeBackend<ElpBackend, Vsop87Backend>;
 
 pub(crate) fn composite() -> Composite {
     CompositeBackend::new(ElpBackend::new(), Vsop87Backend::new())
+}
+
+/// 2025-06-01 06:00 TT, the cost tests' query instant.
+pub(crate) const BRACKET_QUERY_JD: f64 = 2_460_827.75;
+
+/// Issue #204's observer.
+pub(crate) fn chennai() -> ObserverLocation {
+    ObserverLocation::new(
+        Latitude::from_degrees(13.08),
+        Longitude::from_degrees(80.27),
+        Some(0.0),
+    )
+}
+
+pub(crate) fn tt(jd: f64) -> Instant {
+    Instant::new(JulianDay::from_days(jd), TimeScale::Tt)
+}
+
+/// The daily bracket of issue #204, the sunrise at or before `at_jd`, the
+/// sunset after it and the sunrise after that, as the bits of their
+/// Julian days, so callers can compare brackets bit for bit.
+pub(crate) fn sun_bracket<B: EphemerisBackend>(engine: &EventEngine<B>, at_jd: f64) -> [u64; 3] {
+    let sun = || RiseSetTarget::Body(CelestialBody::Sun);
+    let atmos = Atmosphere::default();
+    let rise = engine
+        .previous_rise_set(
+            sun(),
+            RiseSetEvent::Rise,
+            chennai(),
+            atmos,
+            RiseSetOptions::default(),
+            tt(at_jd),
+        )
+        .expect("engine ok")
+        .expect("a sunrise")
+        .instant;
+    let set = engine
+        .next_rise_set(
+            sun(),
+            RiseSetEvent::Set,
+            chennai(),
+            atmos,
+            RiseSetOptions::default(),
+            rise,
+        )
+        .expect("engine ok")
+        .expect("a sunset")
+        .instant;
+    let next = engine
+        .next_rise_set(
+            sun(),
+            RiseSetEvent::Rise,
+            chennai(),
+            atmos,
+            RiseSetOptions::default(),
+            set,
+        )
+        .expect("engine ok")
+        .expect("a sunrise")
+        .instant;
+    [rise, set, next].map(|instant| instant.julian_day.days().to_bits())
 }
 
 /// A backend that counts the reads made of it.
