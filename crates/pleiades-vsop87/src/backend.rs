@@ -288,8 +288,8 @@ impl Vsop87Backend {
         EclipticCoordinates::new(longitude, latitude, Some(Self::distance_au(coords)))
     }
 
-    fn to_equatorial(coords: HeliocentricCoordinates, instant: Instant) -> EquatorialCoordinates {
-        Self::to_ecliptic(coords).to_equatorial(instant.mean_obliquity())
+    fn to_equatorial(coords: HeliocentricCoordinates) -> EquatorialCoordinates {
+        Self::to_ecliptic(coords).to_j2000_equatorial()
     }
 
     pub(crate) fn motion(body: CelestialBody, days: f64, pluto_path: PlutoPath) -> Option<Motion> {
@@ -388,7 +388,7 @@ impl Vsop87Backend {
             },
         };
         result.ecliptic = Some(Self::to_ecliptic(geocentric));
-        result.equatorial = Some(Self::to_equatorial(geocentric, req.instant));
+        result.equatorial = Some(Self::to_equatorial(geocentric));
         if with_motion {
             result.motion = Self::motion(req.body.clone(), days, pluto_path);
         }

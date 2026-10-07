@@ -82,7 +82,7 @@ impl PackagedDataBackend {
     }
 
     /// Assembles a derived lunar point (osculating or mean apsis or node) into a
-    /// backend result: J2000 ecliptic from `eval`, mean-obliquity equatorial,
+    /// backend result: J2000 ecliptic from `eval`, J2000 equatorial (`to_j2000_equatorial`),
     /// extrapolated central-difference motion, `Interpolated` quality.
     fn derived_point_position(
         &self,
@@ -90,7 +90,7 @@ impl PackagedDataBackend {
         eval: &dyn Fn(Instant) -> Result<EclipticCoordinates, EphemerisError>,
     ) -> Result<EphemerisResult, EphemerisError> {
         let ecliptic = eval(req.instant)?;
-        let equatorial = ecliptic.to_equatorial(req.instant.mean_obliquity());
+        let equatorial = ecliptic.to_j2000_equatorial();
         let motion = self.derived_point_motion(req.instant, eval)?;
 
         let mut result = EphemerisResult::new(
@@ -504,7 +504,7 @@ impl EphemerisBackend for PackagedDataBackend {
             .artifact
             .lookup_ecliptic(&req.body, lookup_instant)
             .map_err(map_artifact_error)?;
-        let equatorial = ecliptic.to_equatorial(req.instant.mean_obliquity());
+        let equatorial = ecliptic.to_j2000_equatorial();
         let motion = self
             .artifact
             .lookup_motion(&req.body, lookup_instant)
