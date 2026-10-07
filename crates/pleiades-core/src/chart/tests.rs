@@ -3749,8 +3749,6 @@ fn equatorial_is_identical_tropical_vs_sidereal() {
 }
 
 const JD_1900: f64 = 2_415_020.5;
-/// First instant of the packaged data window (as in `bit_identity_tests`).
-const PACKAGED_FIRST_JD: f64 = 2_415_020.5;
 
 fn foreign(
     drop_ecliptic: bool,
@@ -3849,8 +3847,9 @@ fn mean_fallback_in_an_apparent_chart_is_j2000() {
     // light-time-retarded epoch falls before it, so the apparent reduction
     // errs and the chart falls back to the mean place (issue #170).
     assert_eq!(
-        JD_1900, PACKAGED_FIRST_JD,
-        "the premise is the window start"
+        JD_1900,
+        packaged_first_covered_jd(&CelestialBody::Mars),
+        "the premise is the packaged window start for Mars"
     );
     let snap = foreign(false, false)
         .chart(
