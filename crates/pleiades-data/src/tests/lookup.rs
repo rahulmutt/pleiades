@@ -47,7 +47,7 @@ fn equatorial_frame_requests_return_derived_coordinates() {
     let result = backend
         .position(&request)
         .expect("packaged equatorial request should succeed");
-    let expected = coordinates(reference).to_equatorial(reference.epoch.mean_obliquity());
+    let expected = coordinates(reference).to_j2000_equatorial();
 
     assert_eq!(result.frame, CoordinateFrame::Equatorial);
     let actual_ecliptic = result
@@ -1290,10 +1290,10 @@ fn packaged_backend_serves_osculating_true_node() {
     );
     assert_eq!(node.backend_id.as_str(), PACKAGE_NAME);
 
-    // Equatorial is the mean-obliquity transform of the ecliptic channel, like every
+    // Equatorial is the J2000 rotation of the ecliptic channel, like every
     // other packaged body.
     let eq = node.equatorial.expect("equatorial present");
-    let expected_eq = ecl.to_equatorial(instant.mean_obliquity());
+    let expected_eq = ecl.to_j2000_equatorial();
     assert!((eq.right_ascension.degrees() - expected_eq.right_ascension.degrees()).abs() < 1e-9);
     assert!((eq.declination.degrees() - expected_eq.declination.degrees()).abs() < 1e-9);
 
@@ -1708,4 +1708,33 @@ fn the_backend_does_not_serve_the_constrained_asteroid() {
             .map(|claim| claim.tier),
         Some(BodyClaimTier::ReleaseGrade)
     );
+}
+
+// Issue #210: off J2000 the packaged equatorial channel is the J2000
+// rotation, not the obliquity-of-date one.
+#[test]
+fn packaged_equatorial_channel_is_j2000_away_from_j2000() {
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest};
+    let instant = Instant::new(JulianDay::from_days(2_415_020.5), TimeScale::Tt);
+    let backend = PackagedDataBackend::new();
+    for body in [
+        CelestialBody::Sun,
+        CelestialBody::Mars,
+        CelestialBody::MeanNode,
+    ] {
+        let result = backend
+            .position(&EphemerisRequest::new(body.clone(), instant))
+            .unwrap();
+        let ecliptic = result.ecliptic.expect("ecliptic");
+        let equatorial = result.equatorial.expect("equatorial");
+        let j2000 = ecliptic.to_j2000_equatorial();
+        assert!(
+            (equatorial.declination.degrees() - j2000.declination.degrees()).abs() < 1e-12,
+            "{body:?}"
+        );
+        assert!(
+            (equatorial.right_ascension.degrees() - j2000.right_ascension.degrees()).abs() < 1e-12,
+            "{body:?}"
+        );
+    }
 }

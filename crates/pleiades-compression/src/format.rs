@@ -355,7 +355,7 @@ impl ArtifactProfile {
     /// Returns the current packaged-artifact profile shorthand: ecliptic longitude,
     /// latitude, and distance are stored directly; ecliptic coordinates are
     /// reconstructed from those channels; equatorial coordinates are derived from
-    /// the stored ecliptic coordinates and mean-obliquity policy; and motion/speed
+    /// the stored ecliptic coordinates and J2000 mean-obliquity policy; and motion/speed
     /// is `Motion = Derived` (`SpeedPolicy::FittedDerivative`), not unsupported.
     pub fn ecliptic_longitude_latitude_distance() -> Self {
         Self::ecliptic_longitude_latitude_distance_with_derived_equatorial()

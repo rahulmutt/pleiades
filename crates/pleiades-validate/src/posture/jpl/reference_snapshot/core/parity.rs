@@ -45,7 +45,7 @@ pub(crate) fn reference_snapshot_equatorial_parity_summary_line(
     s: &ReferenceSnapshotEquatorialParitySummary,
 ) -> String {
     format!(
-        "JPL reference snapshot equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
+        "JPL reference snapshot equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); bodies: {}; J2000 mean-obliquity transform against the checked-in ecliptic fixture",
         s.row_count,
         s.body_count,
         s.epoch_count,
@@ -211,7 +211,7 @@ mod tests {
         assert_eq!(
             reference_snapshot_equatorial_parity_summary_line(&summary),
             format!(
-                "JPL reference snapshot equatorial parity: 273 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; mean-obliquity transform against the checked-in ecliptic fixture",
+                "JPL reference snapshot equatorial parity: 273 rows across 16 bodies and 23 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); bodies: {}; J2000 mean-obliquity transform against the checked-in ecliptic fixture",
                 format_bodies(pleiades_jpl::reference_bodies())
             )
         );

@@ -625,7 +625,7 @@ fn batch_query_preserves_independent_holdout_order_and_equatorial_values() {
         let expected_equatorial = batch_result
             .ecliptic
             .expect("equatorial requests should still populate ecliptic coordinates")
-            .to_equatorial(batch_result.instant.mean_obliquity());
+            .to_j2000_equatorial();
         let equatorial = batch_result
             .equatorial
             .expect("equatorial coordinates should be present for the hold-out rows");

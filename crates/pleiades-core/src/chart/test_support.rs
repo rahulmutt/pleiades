@@ -514,3 +514,84 @@ impl EphemerisBackend for ConstrainedOnlyChartBackend {
         Ok(result)
     }
 }
+
+/// Wraps a backend and replaces any equatorial channel it returns with a
+/// sentinel (RA 1°, Dec 2°), as a backend whose channel is in another frame
+/// would (ELP's is of date). Optionally drops the ecliptic channel, or
+/// advertises native sidereal support. Overrides the batch and no-motion paths
+/// too, so every chart path sees the sentinel.
+///
+/// When `native_sidereal` is set, every request is forwarded to the inner
+/// backend with the zodiac mode reset to tropical: the inner backend is not
+/// natively sidereal and would refuse the sidereal request the chart sends a
+/// natively sidereal backend.
+pub(super) struct ForeignEquatorialBackend<B> {
+    pub(super) inner: B,
+    pub(super) drop_ecliptic: bool,
+    pub(super) native_sidereal: bool,
+}
+
+pub(super) fn sentinel_equatorial() -> pleiades_types::EquatorialCoordinates {
+    pleiades_types::EquatorialCoordinates::new(
+        pleiades_types::Angle::from_degrees(1.0),
+        Latitude::from_degrees(2.0),
+        Some(1.0),
+    )
+}
+
+impl<B: EphemerisBackend> ForeignEquatorialBackend<B> {
+    fn rewrite(&self, mut result: EphemerisResult) -> EphemerisResult {
+        if result.equatorial.is_some() {
+            result.equatorial = Some(sentinel_equatorial());
+        }
+        if self.drop_ecliptic {
+            result.ecliptic = None;
+        }
+        result
+    }
+
+    fn forwarded(&self, request: &EphemerisRequest) -> EphemerisRequest {
+        let mut request = request.clone();
+        if self.native_sidereal {
+            request.zodiac_mode = pleiades_types::ZodiacMode::Tropical;
+        }
+        request
+    }
+}
+
+impl<B: EphemerisBackend> EphemerisBackend for ForeignEquatorialBackend<B> {
+    fn metadata(&self) -> BackendMetadata {
+        let mut metadata = self.inner.metadata();
+        metadata.capabilities.native_sidereal = self.native_sidereal;
+        metadata
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        self.inner.supports_body(body)
+    }
+
+    fn position(&self, request: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        self.inner
+            .position(&self.forwarded(request))
+            .map(|r| self.rewrite(r))
+    }
+
+    fn position_without_motion(
+        &self,
+        request: &EphemerisRequest,
+    ) -> Result<EphemerisResult, EphemerisError> {
+        self.inner
+            .position_without_motion(&self.forwarded(request))
+            .map(|r| self.rewrite(r))
+    }
+
+    fn positions(
+        &self,
+        requests: &[EphemerisRequest],
+    ) -> Result<Vec<EphemerisResult>, EphemerisError> {
+        let forwarded: Vec<_> = requests.iter().map(|r| self.forwarded(r)).collect();
+        self.inner
+            .positions(&forwarded)
+            .map(|rs| rs.into_iter().map(|r| self.rewrite(r)).collect())
+    }
+}

@@ -284,7 +284,7 @@ pub fn validate_source_specifications(
 /// Returns the structured frame-treatment summary for VSOP87-backed results.
 pub const fn frame_treatment_summary_details() -> FrameTreatmentSummary {
     FrameTreatmentSummary::new(
-        "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform",
+        "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a J2000 mean-obliquity transform",
     )
 }
 

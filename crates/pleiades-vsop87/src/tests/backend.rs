@@ -527,7 +527,7 @@ fn batch_query_preserves_equatorial_frame_and_values() {
             sample.max_distance_delta_au,
         );
 
-        let expected = ecliptic.to_equatorial(result.instant.mean_obliquity());
+        let expected = ecliptic.to_j2000_equatorial();
         let equatorial = result
             .equatorial
             .as_ref()
@@ -581,7 +581,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_reference_epoch() {
             .expect("distance should exist")
             .is_finite());
 
-        let expected = ecliptic.to_equatorial(result.instant.mean_obliquity());
+        let expected = ecliptic.to_j2000_equatorial();
         let equatorial = result
             .equatorial
             .as_ref()
@@ -635,7 +635,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_ecliptic_reference_
             .expect("distance should exist")
             .is_finite());
 
-        let expected = ecliptic.to_equatorial(result.instant.mean_obliquity());
+        let expected = ecliptic.to_j2000_equatorial();
         let equatorial = result
             .equatorial
             .as_ref()
@@ -689,7 +689,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch() {
             .expect("distance should exist")
             .is_finite());
 
-        let expected = ecliptic.to_equatorial(result.instant.mean_obliquity());
+        let expected = ecliptic.to_j2000_equatorial();
         let equatorial = result
             .equatorial
             .as_ref()
@@ -743,7 +743,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_
             .expect("distance should exist")
             .is_finite());
 
-        let expected = ecliptic.to_equatorial(result.instant.mean_obliquity());
+        let expected = ecliptic.to_j2000_equatorial();
         let equatorial = result
             .equatorial
             .as_ref()
@@ -837,7 +837,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_
             .expect("distance should exist")
             .is_finite());
 
-        let expected = ecliptic.to_equatorial(result.instant.mean_obliquity());
+        let expected = ecliptic.to_j2000_equatorial();
         let equatorial = result
             .equatorial
             .as_ref()
@@ -896,7 +896,7 @@ fn batch_query_preserves_mixed_frame_requests_and_values() {
             sample.max_distance_delta_au,
         );
 
-        let expected = ecliptic.to_equatorial(result.instant.mean_obliquity());
+        let expected = ecliptic.to_j2000_equatorial();
         let equatorial = result
             .equatorial
             .as_ref()
@@ -1196,4 +1196,56 @@ fn vsop87_claims_every_body_constrained() {
         Some(BodyClaimTier::Constrained)
     );
     assert!(meta.release_grade_bodies().is_empty());
+}
+
+// Issue #210: the equatorial channel is the J2000 ecliptic rotated by the
+// J2000 obliquity. The old channel (rotated by the obliquity of date) was
+// off by ΔRA·cosδ +5.4″ (ΔRA 5.846″), ΔDec −44.8″ for Mars at 1900-01-01
+// (measured 2026-10-06; the issue's figures are great-circle arcs).
+#[test]
+fn equatorial_channel_is_j2000_away_from_j2000() {
+    use pleiades_backend::{EphemerisBackend, EphemerisRequest};
+    use pleiades_types::{CelestialBody, Instant, JulianDay, TimeScale};
+    let instant = Instant::new(JulianDay::from_days(2_415_020.5), TimeScale::Tt);
+    let result = Vsop87Backend::new()
+        .position(&EphemerisRequest::new(CelestialBody::Mars, instant))
+        .unwrap();
+    let ecliptic = result.ecliptic.expect("ecliptic");
+    let equatorial = result.equatorial.expect("equatorial");
+    let j2000 = ecliptic.to_j2000_equatorial();
+    assert!((equatorial.right_ascension.degrees() - j2000.right_ascension.degrees()).abs() < 1e-12);
+    assert!((equatorial.declination.degrees() - j2000.declination.degrees()).abs() < 1e-12);
+    let old = ecliptic.to_equatorial(instant.mean_obliquity());
+    let d_ra = (old.right_ascension.degrees() - j2000.right_ascension.degrees()) * 3600.0;
+    let d_dec = (old.declination.degrees() - j2000.declination.degrees()) * 3600.0;
+    let (alpha, delta) = (
+        j2000.right_ascension.degrees().to_radians(),
+        j2000.declination.degrees().to_radians(),
+    );
+    // The issue's figures pin the measured size: its RA is the great-circle
+    // arc ΔRA·cosδ, its Dec the arc ΔDec. The first-order derivative formula
+    // below is the independent reference for both components.
+    assert!((d_dec - -44.8).abs() < 0.15, "Dec {d_dec}″");
+    assert!(
+        (d_ra * delta.cos() - 5.4).abs() < 0.1,
+        "RA·cosδ {}″",
+        d_ra * delta.cos()
+    );
+    let (x, y, z) = (
+        delta.cos() * alpha.cos(),
+        delta.cos() * alpha.sin(),
+        delta.sin(),
+    );
+    // Rotating by eps about the x axis: dy/deps = -z, dz/deps = y.
+    let d_eps = (instant.mean_obliquity().degrees() - pleiades_types::OBLIQUITY_J2000_DEG) * 3600.0;
+    let expected_d_ra = -x * z / (x * x + y * y) * d_eps;
+    let expected_d_dec = y / delta.cos() * d_eps;
+    assert!(
+        (d_ra - expected_d_ra).abs() < 0.05,
+        "RA {d_ra}″ vs {expected_d_ra}″"
+    );
+    assert!(
+        (d_dec - expected_d_dec).abs() < 0.05,
+        "Dec {d_dec}″ vs {expected_d_dec}″"
+    );
 }

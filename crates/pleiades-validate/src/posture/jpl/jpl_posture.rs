@@ -1309,7 +1309,7 @@ mod tests {
         assert_eq!(summary.to_string(), summary.summary_line());
         assert_eq!(
             summary.summary_line(),
-            "checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"
+            "checked-in ecliptic snapshot; equatorial coordinates are derived with a J2000 mean-obliquity transform"
         );
         assert_eq!(
             pleiades_jpl::frame_treatment_summary(),

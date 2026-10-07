@@ -178,7 +178,7 @@ impl EphemerisBackend for JplSnapshotBackend {
             version: "0.1.0".to_string(),
             family: BackendFamily::ReferenceData,
             provenance: BackendProvenance {
-                summary: "NASA/JPL Horizons DE441 geocentric fixture with exact epoch lookup, cubic interpolation on four-sample windows spanning at most 5 days, the Moon at exact rows only, and mean-obliquity equatorial output"
+                summary: "NASA/JPL Horizons DE441 geocentric fixture with exact epoch lookup, cubic interpolation on four-sample windows spanning at most 5 days, the Moon at exact rows only, and J2000 mean-obliquity equatorial output"
                     .to_string(),
                 data_sources: vec![
                     "NASA/JPL Horizons API vector tables (DE441)".to_string(),
@@ -267,7 +267,7 @@ impl EphemerisBackend for JplSnapshotBackend {
         );
         let ecliptic = resolved.entry.ecliptic();
         result.ecliptic = Some(ecliptic);
-        result.equatorial = Some(ecliptic.to_equatorial(req.instant.mean_obliquity()));
+        result.equatorial = Some(ecliptic.to_j2000_equatorial());
         result.motion = None::<Motion>;
         result.quality = resolved.quality;
         Ok(result)
@@ -338,7 +338,7 @@ impl EphemerisBackend for SnapshotCorpusBackend {
         );
         let ecliptic = resolved.entry.ecliptic();
         result.ecliptic = Some(ecliptic);
-        result.equatorial = Some(ecliptic.to_equatorial(req.instant.mean_obliquity()));
+        result.equatorial = Some(ecliptic.to_j2000_equatorial());
         result.motion = None::<Motion>;
         result.quality = resolved.quality;
         Ok(result)
@@ -1880,7 +1880,7 @@ pub(crate) fn reference_asteroid_equatorial_evidence_list(
                     ReferenceAsteroidEquatorialEvidence {
                         body: sample.body.clone(),
                         epoch: sample.epoch,
-                        equatorial: ecliptic.to_equatorial(sample.epoch.mean_obliquity()),
+                        equatorial: ecliptic.to_j2000_equatorial(),
                     }
                 })
                 .collect()

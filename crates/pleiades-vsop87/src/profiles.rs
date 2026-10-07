@@ -316,7 +316,7 @@ pub(crate) fn body_catalog_entries() -> &'static [Vsop87BodyCatalogEntry] {
         let solar_reduction = "geocentric solar reduction from Earth coefficients";
         let planetary_reduction = "geocentric planetary reduction against Earth coefficients";
         let transform_note =
-            "J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform";
+            "J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a J2000 mean-obliquity transform";
 
         let source_profile = |body: CelestialBody,
                               kind: Vsop87BodySourceKind,

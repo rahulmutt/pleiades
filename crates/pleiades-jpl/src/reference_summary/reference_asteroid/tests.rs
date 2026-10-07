@@ -118,7 +118,7 @@ fn reference_asteroid_equatorial_evidence_summary_validation_rejects_transform_d
         summary.validate(),
         Err(
             ReferenceAsteroidEquatorialEvidenceSummaryValidationError::TransformNoteMismatch {
-                expected: "mean-obliquity equatorial transform",
+                expected: "J2000 mean-obliquity equatorial transform",
                 found: "broken transform",
             }
         )
@@ -244,7 +244,7 @@ fn reference_asteroid_requests_preserve_the_exact_j2000_slice() {
         let equatorial = result
             .equatorial
             .expect("selected asteroid batch rows should include equatorial coordinates");
-        let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
+        let expected_equatorial = ecliptic.to_j2000_equatorial();
         assert_eq!(equatorial, expected_equatorial);
     }
 }
@@ -291,9 +291,6 @@ fn reference_asteroid_batch_parity_requests_preserve_the_selected_j2000_slice() 
         let equatorial = result
             .equatorial
             .expect("selected asteroid batch rows should include equatorial coordinates");
-        assert_eq!(
-            equatorial,
-            ecliptic.to_equatorial(result.instant.mean_obliquity())
-        );
+        assert_eq!(equatorial, ecliptic.to_j2000_equatorial());
     }
 }

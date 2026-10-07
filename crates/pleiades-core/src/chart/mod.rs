@@ -132,7 +132,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     /// };
     /// use pleiades_core::{ChartEngine, ChartRequest};
     /// use pleiades_types::{
-    ///     Angle, CelestialBody, CoordinateFrame, EclipticCoordinates, HouseSystem, Instant,
+    ///     CelestialBody, CoordinateFrame, EclipticCoordinates, HouseSystem, Instant,
     ///     JulianDay, Latitude, Longitude, ObserverLocation, TimeScale, ZodiacSign,
     /// };
     ///
@@ -175,7 +175,7 @@ impl<B: EphemerisBackend> ChartEngine<B> {
     ///             Some(1.0),
     ///         );
     ///         result.ecliptic = Some(ecliptic);
-    ///         result.equatorial = Some(ecliptic.to_equatorial(Angle::from_degrees(23.4)));
+    ///         result.equatorial = Some(ecliptic.to_j2000_equatorial());
     ///         result.motion = Some(pleiades_types::Motion::new(Some(1.0), None, None));
     ///         result.quality = QualityAnnotation::Exact;
     ///         Ok(result)
@@ -460,6 +460,17 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 // the apparent reduction's first backend query at this instant is
                 // the same request, so this answers it (issue #128).
                 let batch_mean = position.ecliptic;
+                // A mean placement's equatorial coordinates are the J2000
+                // rotation of the backend's J2000 ecliptic, whatever frame the
+                // backend's own channel is in (ELP's is of date; issue #210).
+                // A successful apparent reduction below replaces them with
+                // RA/Dec of date. A natively sidereal backend's ecliptic is
+                // sidereal, so its channel is left as it is.
+                if !native_sidereal && position.equatorial.is_some() {
+                    if let Some(ecliptic) = position.ecliptic {
+                        position.equatorial = Some(ecliptic.to_j2000_equatorial());
+                    }
+                }
                 let sign = if matches!(request.zodiac_mode, ZodiacMode::Sidereal { .. })
                     && !native_sidereal
                 {
@@ -619,9 +630,8 @@ impl<B: EphemerisBackend> ChartEngine<B> {
                 // Derive the apparent equatorial of date from the final tropical
                 // apparent ecliptic (geocentric or topocentric), BEFORE the
                 // sidereal longitude shift so RA/Dec stay ayanamsa-independent.
-                // Mean-fallback rows (apparent.is_none()) keep the backend's
-                // mean-obliquity equatorial. Degrade gracefully if nutation is
-                // unavailable for this instant.
+                // Mean-fallback rows (apparent.is_none()), and rows whose
+                // nutation is unavailable, keep the J2000 RA/Dec set above.
                 if apparent.is_some() {
                     if let Some(ecliptic) = position.ecliptic.as_ref() {
                         let jd_tt = request.instant.julian_day.days();

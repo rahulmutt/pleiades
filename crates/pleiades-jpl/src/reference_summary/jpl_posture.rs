@@ -592,7 +592,7 @@ pub fn jpl_snapshot_batch_error_taxonomy_summary(
 /// Returns the structured JPL snapshot frame-treatment summary.
 pub const fn frame_treatment_summary_details() -> FrameTreatmentSummary {
     FrameTreatmentSummary::new(
-        "checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform",
+        "checked-in ecliptic snapshot; equatorial coordinates are derived with a J2000 mean-obliquity transform",
     )
 }
 

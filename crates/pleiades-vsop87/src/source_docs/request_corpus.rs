@@ -385,7 +385,7 @@ pub fn source_backed_body_j2000_ecliptic_request_corpus() -> Vec<EphemerisReques
 /// Returns the supported-body J2000 request corpus used by the VSOP87 batch-parity evidence.
 ///
 /// The requests preserve the supported-body order, use the shared J2000 TDB
-/// instant, and keep the mean-obliquity equatorial frame so validation and
+/// instant, and keep the J2000 mean-obliquity equatorial frame so validation and
 /// reproducibility tooling can reuse the exact canonical batch slice without
 /// reconstructing it from the summary metadata.
 pub fn supported_body_j2000_equatorial_batch_parity_requests() -> Vec<EphemerisRequest> {
@@ -483,7 +483,7 @@ pub fn supported_body_j2000_request_corpus() -> Vec<EphemerisRequest> {
 /// Returns the supported-body J1900 request corpus used by the VSOP87 supported-body batch evidence.
 ///
 /// The requests preserve the supported-body order, use the shared J1900 TDB
-/// instant, and keep the mean-obliquity equatorial frame so validation and
+/// instant, and keep the J2000 mean-obliquity equatorial frame so validation and
 /// reproducibility tooling can reuse the exact supported-body batch slice without
 /// reconstructing it from the sample metadata.
 pub fn supported_body_j1900_equatorial_batch_parity_requests() -> Vec<EphemerisRequest> {

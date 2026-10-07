@@ -18,7 +18,7 @@
 //!
 //! The packaged artifact stores J2000 ecliptic coordinates directly,
 //! reconstructs equatorial coordinates from the stored channels and
-//! mean-obliquity transform when requested, and adds residual correction
+//! J2000 mean-obliquity transform when requested, and adds residual correction
 //! channels on high-curvature spans when they improve the fit. A
 //! maintainer-facing regeneration helper can rebuild the checked-in fixture
 //! from the bundled JPL reference snapshot without introducing any native

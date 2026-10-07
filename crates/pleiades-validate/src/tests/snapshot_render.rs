@@ -805,7 +805,7 @@ fn reference_asteroid_equatorial_evidence_summary_command_renders_the_equatorial
     let rendered = render_cli(&["reference-asteroid-equatorial-evidence-summary"])
         .expect("reference asteroid equatorial evidence summary should render");
     assert!(rendered.contains("Selected asteroid equatorial evidence:"));
-    assert!(rendered.contains("mean-obliquity equatorial transform"));
+    assert!(rendered.contains("J2000 mean-obliquity equatorial transform"));
     assert_eq!(
         rendered,
         reference_asteroid_equatorial_evidence_summary_for_report()
@@ -1865,7 +1865,7 @@ fn source_corpus_summary_aliases_render_the_same_report() {
         ));
     assert!(rendered.contains("body-class coverage=major bodies:"));
     assert!(rendered.contains(
-            "at the backend boundary equatorial output is derived via mean-obliquity transforms when supported"
+            "at the backend boundary equatorial output is derived via J2000 mean-obliquity transforms when supported (the ELP lunar backend gives right ascension and declination of date)"
         ));
     assert!(rendered.contains("corpus shape=Production generation corpus shape:"));
     assert!(rendered

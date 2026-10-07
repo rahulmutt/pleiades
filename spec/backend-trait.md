@@ -75,6 +75,8 @@ The canonical backend contract is for raw astronomical outputs. High-level APIs 
 - quality/uncertainty annotation
 - enough metadata to let higher layers apply deterministic zodiac and house logic without backend-specific special cases
 
+The `equatorial` channel's frame is part of each backend's documented contract. First-party backends give the J2000 mean equator and equinox (the J2000 ecliptic rotated by the J2000 mean obliquity), except the ELP lunar backend, which gives right ascension and declination of date. For a mean placement, chart assembly computes J2000 right ascension and declination itself when the backend gives both an ecliptic and an equatorial channel and does not serve the sidereal zodiac natively; otherwise the backend's own channel, or none, is reported (#210).
+
 ## Metadata Model
 
 `BackendMetadata` should declare:

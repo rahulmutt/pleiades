@@ -1484,7 +1484,7 @@ fn frame_treatment_summary_has_a_displayable_summary_line() {
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(
         summary.summary_line(),
-        "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
+        "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a J2000 mean-obliquity transform"
     );
     assert_eq!(frame_treatment_summary(), summary.summary_line());
     assert!(summary.summary_line().contains("mean-obliquity transform"));

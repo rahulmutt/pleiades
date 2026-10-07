@@ -330,7 +330,7 @@ fn cli_report_summary_lists_the_summary_command() {
     }));
     assert!(validation_report_summary.contains("Zodiac policy:"));
     assert!(validation_report_summary.contains(
-            "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.7.31, api-stability=pleiades-api-stability/0.3.0"
+            "Release profile identifiers: v1 compatibility=pleiades-compatibility-profile/0.7.32, api-stability=pleiades-api-stability/0.3.0"
         ));
     assert!(validation_report_summary
         .contains("lookup epoch policy=TT-grid retag without relativistic correction"));
@@ -898,7 +898,7 @@ fn backend_matrix_summary_command_renders_the_summary() {
             "source-backed breakdown: 8 generated binary bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file bodies (none), 0 truncated slice bodies (none)"
         ));
     assert!(rendered.contains(
-            "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform"
+            "VSOP87 frame treatment: J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a J2000 mean-obliquity transform"
         ));
     assert!(rendered.contains("VSOP87 canonical J2000 batch parity:"));
     assert!(rendered.contains("VSOP87 supported-body J2000 ecliptic batch parity:"));
@@ -1021,7 +1021,7 @@ fn backend_matrix_summary_command_renders_the_summary() {
             line == "Apparentness policy: backends remain mean-only and J2000 at the backend boundary; apparent place of date (chart layer, default): light-time + precession-to-date + annual aberration + nutation-in-longitude, every body the backend serves, whatever its claim tier; gravitational light-deflection omitted"
         }));
     assert!(rendered.lines().any(|line| {
-            line == "Request policy: time-scale=direct backend requests accept TT/TDB; civil UTC/UT1 inputs convert via the pleiades-time crate or caller-supplied offsets; the ephemeris backends carry no internal Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; chart-layer topocentric body positions are supported as an opt-in correction (diurnal parallax + diurnal aberration); native-backend topocentric remains unsupported; apparentness=backends remain mean-only and J2000 at the backend boundary; apparent place of date (chart layer, default): light-time + precession-to-date + annual aberration + nutation-in-longitude, every body the backend serves, whatever its claim tier; gravitational light-deflection omitted; frame=ecliptic body positions are the default request shape; at the backend boundary equatorial output is derived via mean-obliquity transforms when supported, while the chart layer reports apparent equatorial of date (true obliquity = mean obliquity + nutation-in-obliquity) for every apparent placement; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
+            line == "Request policy: time-scale=direct backend requests accept TT/TDB; civil UTC/UT1 inputs convert via the pleiades-time crate or caller-supplied offsets; the ephemeris backends carry no internal Delta T or UTC convenience model; observer=chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; chart-layer topocentric body positions are supported as an opt-in correction (diurnal parallax + diurnal aberration); native-backend topocentric remains unsupported; apparentness=backends remain mean-only and J2000 at the backend boundary; apparent place of date (chart layer, default): light-time + precession-to-date + annual aberration + nutation-in-longitude, every body the backend serves, whatever its claim tier; gravitational light-deflection omitted; frame=ecliptic body positions are the default request shape; at the backend boundary equatorial output is derived via J2000 mean-obliquity transforms when supported (the ELP lunar backend gives right ascension and declination of date), while the chart layer reports apparent equatorial of date (true obliquity = mean obliquity + nutation-in-obliquity) for every apparent placement; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"
         }));
     assert_eq!(
         crate::render::text::validated_request_policy_summary_for_report()

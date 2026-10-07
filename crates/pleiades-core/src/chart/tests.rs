@@ -3748,34 +3748,239 @@ fn equatorial_is_identical_tropical_vs_sidereal() {
     );
 }
 
-#[test]
-fn mean_fallback_keeps_backend_equatorial() {
-    // A mean-mode chart does not run the apparent path; equatorial stays the
-    // backend's mean-obliquity transform (Some, but NOT of-date-recomputed).
+const JD_1900: f64 = 2_415_020.5;
+/// First instant of the packaged data window (as in `bit_identity_tests`).
+const PACKAGED_FIRST_JD: f64 = 2_415_020.5;
+
+fn foreign(
+    drop_ecliptic: bool,
+    native_sidereal: bool,
+) -> ChartEngine<ForeignEquatorialBackend<pleiades_data::PackagedDataBackend>> {
+    ChartEngine::new(ForeignEquatorialBackend {
+        inner: pleiades_data::PackagedDataBackend::new(),
+        drop_ecliptic,
+        native_sidereal,
+    })
+}
+
+fn tt(jd: f64) -> Instant {
+    Instant::new(pleiades_types::JulianDay::from_days(jd), TimeScale::Tt)
+}
+
+fn assert_j2000_of_backend_ecliptic(engine_jd: f64, p: &BodyPlacement) {
+    // The reference is the backend's own J2000 ecliptic, read directly.
     use pleiades_backend::EphemerisRequest;
-    use pleiades_data::PackagedDataBackend;
-    let backend = PackagedDataBackend::new();
-    let inst = Instant::new(
-        pleiades_types::JulianDay::from_days(2_451_545.0),
-        TimeScale::Tt,
-    );
-    let direct = backend
-        .position(&EphemerisRequest::new(CelestialBody::Sun, inst))
+    let direct = pleiades_data::PackagedDataBackend::new()
+        .position(&EphemerisRequest::new(p.body.clone(), tt(engine_jd)))
         .unwrap();
-    let engine = ChartEngine::new(PackagedDataBackend::new());
-    let snap = engine
+    let want = direct.ecliptic.unwrap().to_j2000_equatorial();
+    let got = p.position.equatorial.expect("equatorial");
+    assert!(
+        (got.right_ascension.degrees() - want.right_ascension.degrees()).abs() < 1e-9,
+        "{:?}",
+        p.body
+    );
+    assert!(
+        (got.declination.degrees() - want.declination.degrees()).abs() < 1e-9,
+        "{:?}",
+        p.body
+    );
+}
+
+// Issue #210: whatever frame the backend's own channel is in, a mean
+// placement reports the J2000 rotation of the backend's J2000 ecliptic.
+#[test]
+fn mean_chart_equatorial_is_j2000_whatever_the_backend_channel() {
+    let snap = foreign(false, false)
         .chart(
-            &ChartRequest::new(inst)
+            &ChartRequest::new(tt(JD_1900))
+                .with_bodies(vec![CelestialBody::Sun, CelestialBody::Mars])
+                .with_apparentness(Apparentness::Mean),
+        )
+        .unwrap();
+    for body in [CelestialBody::Sun, CelestialBody::Mars] {
+        assert_j2000_of_backend_ecliptic(JD_1900, snap.placement_for(&body).unwrap());
+    }
+}
+
+#[test]
+fn sidereal_mean_chart_equatorial_equals_the_tropical_one() {
+    let request = |zodiac| {
+        ChartRequest::new(tt(JD_1900))
+            .with_bodies(vec![CelestialBody::Sun, CelestialBody::Mars])
+            .with_apparentness(Apparentness::Mean)
+            .with_zodiac_mode(zodiac)
+    };
+    let engine = foreign(false, false);
+    let tropical = engine.chart(&request(ZodiacMode::Tropical)).unwrap();
+    let sidereal = engine
+        .chart(&request(ZodiacMode::Sidereal {
+            ayanamsa: crate::Ayanamsa::Lahiri,
+        }))
+        .unwrap();
+    for body in [CelestialBody::Sun, CelestialBody::Mars] {
+        let a = tropical
+            .placement_for(&body)
+            .unwrap()
+            .position
+            .equatorial
+            .unwrap();
+        let b = sidereal
+            .placement_for(&body)
+            .unwrap()
+            .position
+            .equatorial
+            .unwrap();
+        assert!(
+            (a.right_ascension.degrees() - b.right_ascension.degrees()).abs() < 1e-12,
+            "{body:?}"
+        );
+        assert!(
+            (a.declination.degrees() - b.declination.degrees()).abs() < 1e-12,
+            "{body:?}"
+        );
+        assert_j2000_of_backend_ecliptic(JD_1900, sidereal.placement_for(&body).unwrap());
+    }
+}
+
+#[test]
+fn mean_fallback_in_an_apparent_chart_is_j2000() {
+    // JD_1900 is the packaged window's first instant. A planet's
+    // light-time-retarded epoch falls before it, so the apparent reduction
+    // errs and the chart falls back to the mean place (issue #170).
+    assert_eq!(
+        JD_1900, PACKAGED_FIRST_JD,
+        "the premise is the window start"
+    );
+    let snap = foreign(false, false)
+        .chart(
+            &ChartRequest::new(tt(JD_1900))
+                .with_bodies(vec![CelestialBody::Sun, CelestialBody::Mars])
+                .with_apparentness(Apparentness::Apparent),
+        )
+        .unwrap();
+    let mars = snap.placement_for(&CelestialBody::Mars).unwrap();
+    assert!(mars.apparent.is_none(), "the planet must fall back to mean");
+    assert_j2000_of_backend_ecliptic(JD_1900, mars);
+    // The apparent Sun is still RA/Dec of date, not the sentinel or J2000.
+    let sun = snap.placement_for(&CelestialBody::Sun).unwrap();
+    assert!(sun.apparent.is_some());
+    let eq = sun.position.equatorial.unwrap();
+    let want = pleiades_apparent::apparent_equatorial_of_date(
+        *sun.position.ecliptic.as_ref().unwrap(),
+        JD_1900,
+    )
+    .unwrap();
+    assert!((eq.declination.degrees() - want.declination.degrees()).abs() < 1e-9);
+}
+
+// Issue #210: ElpBackend's own channel is RA/Dec of date; a mean chart
+// replaces it with the J2000 rotation of ELP's J2000 ecliptic.
+#[test]
+fn mean_chart_with_elp_reports_j2000_not_the_of_date_channel() {
+    use pleiades_backend::EphemerisRequest;
+    let elp = pleiades_elp::ElpBackend::new();
+    let direct = elp
+        .position(&EphemerisRequest::new(CelestialBody::Moon, tt(JD_1900)))
+        .unwrap();
+    let want = direct.ecliptic.unwrap().to_j2000_equatorial();
+    let of_date = direct.equatorial.unwrap();
+    let snap = ChartEngine::new(elp)
+        .chart(
+            &ChartRequest::new(tt(JD_1900))
+                .with_bodies(vec![CelestialBody::Moon])
+                .with_apparentness(Apparentness::Mean),
+        )
+        .unwrap();
+    let got = snap
+        .placement_for(&CelestialBody::Moon)
+        .unwrap()
+        .position
+        .equatorial
+        .expect("equatorial");
+    assert!((got.right_ascension.degrees() - want.right_ascension.degrees()).abs() < 1e-9);
+    assert!((got.declination.degrees() - want.declination.degrees()).abs() < 1e-9);
+    let d_ra = (got.right_ascension.degrees() - of_date.right_ascension.degrees()).abs() * 3600.0;
+    assert!(
+        d_ra > 1000.0,
+        "RA differs from the of-date channel by {d_ra}″"
+    );
+}
+
+#[test]
+fn native_sidereal_backend_keeps_its_equatorial_channel() {
+    // Its ecliptic is sidereal, so the chart must not rotate it.
+    let snap = foreign(false, true)
+        .chart(
+            &ChartRequest::new(tt(JD_1900))
+                .with_bodies(vec![CelestialBody::Sun])
+                .with_apparentness(Apparentness::Mean)
+                .with_zodiac_mode(ZodiacMode::Sidereal {
+                    ayanamsa: crate::Ayanamsa::Lahiri,
+                }),
+        )
+        .unwrap();
+    let eq = snap
+        .placement_for(&CelestialBody::Sun)
+        .unwrap()
+        .position
+        .equatorial
+        .unwrap();
+    assert_eq!(eq, sentinel_equatorial());
+}
+
+#[test]
+fn equatorial_without_ecliptic_is_kept() {
+    // A mean tropical chart needs no ecliptic, so the backend's own channel
+    // is all there is to report.
+    let snap = foreign(true, false)
+        .chart(
+            &ChartRequest::new(tt(JD_1900))
+                .with_bodies(vec![CelestialBody::Sun])
+                .with_apparentness(Apparentness::Mean),
+        )
+        .unwrap();
+    let eq = snap
+        .placement_for(&CelestialBody::Sun)
+        .unwrap()
+        .position
+        .equatorial
+        .unwrap();
+    assert_eq!(eq, sentinel_equatorial());
+}
+
+#[test]
+fn a_backend_without_equatorial_still_gives_none() {
+    // ToyChartBackend never fills the equatorial channel.
+    let snap = ChartEngine::new(ToyChartBackend)
+        .chart(
+            &ChartRequest::new(tt(2_451_545.0))
+                .with_bodies(vec![CelestialBody::Sun])
+                .with_apparentness(Apparentness::Mean),
+        )
+        .unwrap();
+    assert!(snap
+        .placement_for(&CelestialBody::Sun)
+        .unwrap()
+        .position
+        .equatorial
+        .is_none());
+}
+
+#[test]
+fn mean_chart_equatorial_is_the_j2000_rotation() {
+    // A mean-mode chart does not run the apparent path; equatorial is the
+    // J2000 rotation of the backend's J2000 ecliptic (issue #210).
+    let snap = ChartEngine::new(pleiades_data::PackagedDataBackend::new())
+        .chart(
+            &ChartRequest::new(tt(JD_1900))
                 .with_bodies(vec![CelestialBody::Sun])
                 .with_apparentness(Apparentness::Mean),
         )
         .unwrap();
     let p = snap.placement_for(&CelestialBody::Sun).unwrap();
     assert!(p.apparent.is_none(), "mean mode → no apparent provenance");
-    let eq = p.position.equatorial.unwrap();
-    let backend_eq = direct.equatorial.unwrap();
-    assert!((eq.right_ascension.degrees() - backend_eq.right_ascension.degrees()).abs() < 1e-9);
-    assert!((eq.declination.degrees() - backend_eq.declination.degrees()).abs() < 1e-9);
+    assert_j2000_of_backend_ecliptic(JD_1900, p);
 }
 
 #[test]

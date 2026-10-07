@@ -297,7 +297,7 @@ mod tests {
             .expect("reference asteroid equatorial evidence summary should validate");
         assert_eq!(
             reference_asteroid_equatorial_evidence_summary_line(&summary),
-            "Selected asteroid equatorial evidence: 6 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) using a mean-obliquity equatorial transform"
+            "Selected asteroid equatorial evidence: 6 exact J2000 samples at JD 2451545.0 (TDB) (Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis) using a J2000 mean-obliquity equatorial transform"
         );
         assert_eq!(
             reference_asteroid_equatorial_evidence_summary_for_report(),
@@ -315,7 +315,7 @@ mod tests {
             summary.validate(),
             Err(
                 pleiades_jpl::ReferenceAsteroidEquatorialEvidenceSummaryValidationError::TransformNoteMismatch {
-                    expected: "mean-obliquity equatorial transform",
+                    expected: "J2000 mean-obliquity equatorial transform",
                     found: "broken transform",
                 }
             )

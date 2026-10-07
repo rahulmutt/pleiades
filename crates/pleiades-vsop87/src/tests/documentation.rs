@@ -265,7 +265,7 @@ fn source_specification_validation_rejects_transform_note_drift() {
             body: body.clone(),
             field: "transform_note",
             expected:
-                "J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform",
+                "J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a J2000 mean-obliquity transform",
             found:
                 "J2000 equatorial inputs; equatorial coordinates are derived with a mean-obliquity transform",
         }
@@ -273,7 +273,7 @@ fn source_specification_validation_rejects_transform_note_drift() {
     assert_eq!(
         error.to_string(),
         format!(
-            "the VSOP87 source specification for {body} has `transform_note` = `J2000 equatorial inputs; equatorial coordinates are derived with a mean-obliquity transform`, but expected `J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform`"
+            "the VSOP87 source specification for {body} has `transform_note` = `J2000 equatorial inputs; equatorial coordinates are derived with a mean-obliquity transform`, but expected `J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a J2000 mean-obliquity transform`"
         )
     );
 }
@@ -793,7 +793,7 @@ fn source_specification_summary_rejects_drifted_metadata() {
         units: "degrees and astronomical units",
         reduction: "geocentric solar reduction from Earth coefficients",
         transform_note:
-            "J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a mean-obliquity transform",
+            "J2000 ecliptic/equinox inputs; equatorial coordinates are derived with a J2000 mean-obliquity transform",
         truncation_policy: "generated binary coefficient table derived from vendored full source file",
         date_range: "full public source file; J2000 canonical reference sample",
     };

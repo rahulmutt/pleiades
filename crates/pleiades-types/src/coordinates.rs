@@ -52,6 +52,17 @@ impl EclipticCoordinates {
         )
     }
 
+    /// Rotates a place on the J2000 ecliptic and equinox to the J2000 mean
+    /// equator and equinox, by the J2000 mean obliquity
+    /// [`OBLIQUITY_J2000_DEG`](crate::OBLIQUITY_J2000_DEG).
+    ///
+    /// This is the frame of the first-party backends' equatorial channel
+    /// (issue #210). Rotating a J2000 place by an obliquity of date instead
+    /// mixes two frames.
+    pub fn to_j2000_equatorial(self) -> EquatorialCoordinates {
+        self.to_equatorial(Angle::from_degrees(crate::OBLIQUITY_J2000_DEG))
+    }
+
     /// Validates that the sample is finite and physically sensible for frame conversions.
     pub fn validate(&self) -> Result<(), CoordinateValidationError> {
         validate_finite_coordinate_value("ecliptic", "longitude", self.longitude.degrees())?;
