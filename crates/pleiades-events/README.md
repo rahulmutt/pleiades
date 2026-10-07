@@ -172,7 +172,11 @@ there, so two ranges that share an end hold each event exactly once.
 
 A pair that approaches an angle and turns back before reaching it has no
 event in a range; a `next_aspect` or `previous_aspect` search that reaches the
-window's end without one is `EventError::OutOfWindow`. A sidereal zodiac
+window's end without one is `EventError::OutOfWindow`. Seen from the Earth,
+Mercury stays within 28.5° of the Sun, Venus within 48.5°, and the two within
+77° of each other (the widest measured over the window are 27.79°, 47.26° and
+73.74°); a search for one of these pairs at a wider angle answers at once
+instead of scanning the window. A sidereal zodiac
 changes the reported longitudes, not the instants: the ayanamsa cancels in
 the separation.
 
