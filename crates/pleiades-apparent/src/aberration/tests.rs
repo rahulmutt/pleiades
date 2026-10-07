@@ -195,3 +195,11 @@ fn meeus_sun_is_normalized() {
         assert!((0.0..360.0).contains(&lon), "{jd}: {lon}");
     }
 }
+
+// Meeus, Astronomical Algorithms, example 25.a: 1992 October 13.0 TD,
+// R = 0.99766 AU.
+#[test]
+fn sun_radius_vector_matches_meeus_example_25a() {
+    let r = super::sun_radius_vector_au_of_date(2_448_908.5);
+    assert!((r - 0.99766).abs() < 2e-5, "{r}");
+}

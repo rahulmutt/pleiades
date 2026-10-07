@@ -96,7 +96,17 @@ pub use sidereal::{
 
 pub mod aberration;
 
-pub use aberration::{sun_true_longitude_of_date_deg, AberrationOffset};
+pub use aberration::{
+    sun_radius_vector_au_of_date, sun_true_longitude_of_date_deg, AberrationOffset,
+};
+
+pub mod deflection;
+
+pub use deflection::{gravitational_deflection, DeflectionOffset};
+
+pub mod star;
+
+pub use star::{apparent_star_place, polar_projection_deg};
 
 pub mod lighttime;
 
