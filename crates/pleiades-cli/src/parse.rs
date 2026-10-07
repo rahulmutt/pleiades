@@ -2,8 +2,16 @@
 
 use pleiades_core::{
     resolve_ayanamsa, resolve_house_system, Angle, Ayanamsa, CelestialBody, CustomAyanamsa,
-    CustomBodyId, HouseSystem, JulianDay,
+    CustomBodyId, HouseSystem, JulianDay, SiderealStarPlace,
 };
+
+pub(crate) fn parse_star_place(value: Option<&str>) -> Result<SiderealStarPlace, String> {
+    match value {
+        Some("mean") => Ok(SiderealStarPlace::Mean),
+        Some("apparent") => Ok(SiderealStarPlace::Apparent),
+        other => Err(format!("--star-place must be mean|apparent, got {other:?}")),
+    }
+}
 
 pub(crate) fn parse_rounds(args: &[&str], default: usize) -> Result<usize, String> {
     let mut rounds = default;

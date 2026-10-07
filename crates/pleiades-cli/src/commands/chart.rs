@@ -5,7 +5,7 @@ use core::time::Duration;
 use pleiades_core::{
     default_chart_bodies, Apparentness, CelestialBody, ChartEngine, ChartRequest, CivilDateTime,
     CompositeBackend, HouseSystem, Instant, JulianDay, Latitude, Longitude, ObserverLocation,
-    RoutingBackend, TimeScale, ZodiacMode,
+    RoutingBackend, SiderealStarPlace, TimeScale, ZodiacMode,
 };
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
@@ -17,6 +17,7 @@ use pleiades_vsop87::Vsop87Backend;
 use crate::help::shared_request_policy_help_block;
 use crate::parse::{
     parse_ayanamsa, parse_body, parse_f64, parse_house_system, parse_seconds, parse_signed_seconds,
+    parse_star_place,
 };
 use crate::render::render_error;
 
@@ -254,6 +255,7 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut lon: Option<f64> = None;
     let mut elevation: Option<f64> = None;
     let mut topocentric = false;
+    let mut star_place: Option<SiderealStarPlace> = None;
     let mut bodies: Vec<CelestialBody> = Vec::new();
     let mut zodiac_mode = ZodiacMode::Tropical;
     let mut time_scale = TimeScale::Tt;
@@ -449,6 +451,7 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
                     ayanamsa: parse_ayanamsa(label)?,
                 };
             }
+            "--star-place" => star_place = Some(parse_star_place(iter.next())?),
             "--house-system" => {
                 let label = iter
                     .next()
@@ -476,7 +479,7 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
                     .validated_chart_help_clause()
                     .map_err(render_error)?;
                 return Ok(format!(
-                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg> [--elevation <m>]] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>|--tdb-from-utc-offset-seconds <seconds>|--tdb-from-ut1-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--civil <YYYY-MM-DDTHH:MM:SS>] [--civil-scale utc|ut1] [--civil-target tt|tdb] [--mean (diagnostic: raw J2000)|--apparent (default)] [--topocentric] [--ayanamsa <name>] [--house-system <name>] [--body <name> ...]\n\nApparent place of date is the default for every body the backend chain serves, whatever its claim tier (a body served without a distance keeps its mean place); per-body provenance lines are appended to the output. Use --mean for raw J2000 diagnostic output. --topocentric applies diurnal parallax + diurnal aberration for the --lat/--lon/--elevation observer; requires apparent mode. Ayanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. {}\n\n{}\n",
+                    "{}\n\nUsage:\n  chart [--jd <julian-day>] [--lat <deg> --lon <deg> [--elevation <m>]] [--tt|--tdb|--utc|--ut1] [--tt-offset-seconds <seconds>|--tt-from-utc-offset-seconds <seconds>|--tt-from-ut1-offset-seconds <seconds>] [--tdb-offset-seconds <seconds>|--tdb-from-utc-offset-seconds <seconds>|--tdb-from-ut1-offset-seconds <seconds>] [--tdb-from-tt-offset-seconds <seconds>] [--tt-from-tdb-offset-seconds <seconds>] [--civil <YYYY-MM-DDTHH:MM:SS>] [--civil-scale utc|ut1] [--civil-target tt|tdb] [--mean (diagnostic: raw J2000)|--apparent (default)] [--topocentric] [--ayanamsa <name>] [--star-place mean|apparent] [--house-system <name>] [--body <name> ...]\n\nApparent place of date is the default for every body the backend chain serves, whatever its claim tier (a body served without a distance keeps its mean place); per-body provenance lines are appended to the output. Use --mean for raw J2000 diagnostic output. --topocentric applies diurnal parallax + diurnal aberration for the --lat/--lon/--elevation observer; requires apparent mode. --star-place apparent reads a star-anchored ayanamsa (True Citra, Revati, Pushya, Mula, Sheoran, Galactic Center) from its anchor star's apparent place, as Swiss Ephemeris's default SEFLG_SIDEREAL does. Ayanamsa names may be built-in entries or custom definitions in the form custom:<name>|<epoch-jd>|<offset-degrees> (or custom-definition:<name>|<epoch-jd>|<offset-degrees>). Body names may be built-in bodies such as Sun or Moon, or custom identifiers in the form catalog:designation. {}\n\n{}\n",
                     crate::cli::banner(),
                     chart_help_clause,
                     shared_request_policy_help_block()
@@ -502,6 +505,9 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
         );
     }
 
+    if star_place.is_some() && !matches!(zodiac_mode, ZodiacMode::Sidereal { .. }) {
+        return Err("--star-place requires --ayanamsa".to_string());
+    }
     if topocentric && apparentness == Apparentness::Mean {
         return Err("topocentric positions require apparent place; remove --mean".to_string());
     }
@@ -550,7 +556,8 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
     let mut request = ChartRequest::new(instant)
         .with_bodies(bodies)
         .with_zodiac_mode(zodiac_mode)
-        .with_apparentness(apparentness);
+        .with_apparentness(apparentness)
+        .with_sidereal_star_place(star_place.unwrap_or_default());
     if let Some(observer) = observer {
         request = request.with_observer(observer);
     }

@@ -52,6 +52,47 @@ fn chart_includes_a_fictitious_body() {
 }
 
 #[test]
+fn chart_command_reads_an_apparent_star_place() {
+    let base = [
+        "--jd",
+        "2460000.5",
+        "--ayanamsa",
+        "True Citra",
+        "--body",
+        "Sun",
+    ];
+    let mean = render_chart(&base).expect("mean");
+    let mut args = base.to_vec();
+    args.extend(["--star-place", "apparent"]);
+    let apparent = render_chart(&args).expect("apparent");
+    assert_ne!(mean, apparent);
+    assert!(
+        apparent.contains("Sidereal star place: apparent"),
+        "{apparent}"
+    );
+}
+
+#[test]
+fn chart_command_rejects_a_star_place_without_an_ayanamsa() {
+    let err = render_chart(&["--jd", "2460000.5", "--star-place", "apparent"]).unwrap_err();
+    assert!(err.contains("--star-place requires --ayanamsa"), "{err}");
+}
+
+#[test]
+fn chart_command_rejects_an_unknown_star_place() {
+    let err = render_chart(&[
+        "--jd",
+        "2460000.5",
+        "--ayanamsa",
+        "True Citra",
+        "--star-place",
+        "true",
+    ])
+    .unwrap_err();
+    assert!(err.contains("--star-place must be mean|apparent"), "{err}");
+}
+
+#[test]
 fn chart_command_accepts_explicit_apparent_flag() {
     // Apparent is now the default and explicit --apparent is supported; the
     // old "reject apparent until supported" contract is gone.

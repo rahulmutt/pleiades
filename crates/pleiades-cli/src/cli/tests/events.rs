@@ -473,3 +473,51 @@ fn notes_come_after_the_event_lines() {
     assert!(lines[0].contains("Sun–Moon 60°"), "{rendered}");
     assert!(lines[1].starts_with("Sun–Mercury 60°: none"), "{rendered}");
 }
+
+#[test]
+fn stations_accept_an_apparent_star_place() {
+    let out = run(&[
+        "stations",
+        "--body",
+        "Mercury",
+        "--next",
+        "--at",
+        J2000,
+        "--ayanamsa",
+        "True Citra",
+        "--star-place",
+        "apparent",
+    ]);
+    assert!(out.contains("apparent star place"), "{out}");
+    assert!(error(&[
+        "stations",
+        "--body",
+        "Mercury",
+        "--next",
+        "--at",
+        J2000,
+        "--star-place",
+        "apparent"
+    ])
+    .contains("--star-place requires --ayanamsa"));
+}
+
+#[test]
+fn aspects_reject_a_star_place_without_an_ayanamsa() {
+    let message = error(&[
+        "aspects",
+        "--pair",
+        "Sun,Mars",
+        "--angle",
+        "90",
+        "--next",
+        "--at",
+        J2000,
+        "--star-place",
+        "apparent",
+    ]);
+    assert!(
+        message.contains("--star-place requires --ayanamsa"),
+        "{message}"
+    );
+}

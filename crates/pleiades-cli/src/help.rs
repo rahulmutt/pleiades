@@ -80,6 +80,8 @@ Commands:
     --civil-target tt|tdb  The target terrestrial time scale (default: tt); output reports conversion provenance and quality
     --elevation <m>      Observer elevation above sea level in metres (used with --lat/--lon)
     --topocentric        Apply diurnal parallax + diurnal aberration for the --lat/--lon/--elevation observer; requires apparent mode
+    --ayanamsa <name>    Read longitudes in a sidereal zodiac
+    --star-place mean|apparent  With --ayanamsa, read a star-anchored ayanamsa from its anchor star's mean (default) or apparent place
     --mean               Force mean positions for backend queries
     --apparent           Force apparent positions for backend queries
     --body <name>        Use a built-in body or a custom catalog:designation identifier
