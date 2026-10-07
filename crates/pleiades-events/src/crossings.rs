@@ -4,6 +4,7 @@ use crate::error::{
     before_window_start, past_window_end, EventError, WINDOW_END_JD, WINDOW_START_JD,
 };
 use crate::reference::{check_supported, ecliptic_in, CrossingReference};
+use crate::rise_trans::PlaceCache;
 use crate::root::{crossings_in_range, first_crossing_after, last_crossing_before, wrap180};
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{CelestialBody, Instant, JulianDay, Longitude, TimeScale, ZodiacMode};
@@ -52,14 +53,43 @@ pub struct Crossing {
 /// Finds ephemeris events (longitude crossings today; rise/set/transit and
 /// horizontal coordinates in sibling modules) over the packaged 1900–2100 TDB
 /// window.
+///
+/// # Reuse one engine across a sweep
+///
+/// An engine remembers the body places its rise, set and transit searches
+/// have read, and later searches reuse them: the three searches of a daily
+/// sunrise bracket share their samples, and a sweep of daily brackets on one
+/// engine reads only the samples each new day adds. Build one engine for a
+/// sweep and pass it by reference, rather than one per search.
+///
+/// What the engine remembers never changes an answer. A remembered place is
+/// the one a fresh engine would read at the same instant, and it does not
+/// depend on the observer, the atmosphere or the options. The memory is
+/// bounded, and the engine can be shared between threads. Every lookup takes
+/// the cache's lock, so for heavy parallel use, with many threads searching at
+/// once, one engine per worker thread avoids contention. Sharing stays correct.
 pub struct EventEngine<B> {
     pub(crate) backend: B,
+    /// Body samples shared by the rise/set and transit searches.
+    pub(crate) places: PlaceCache,
 }
 
 impl<B: EphemerisBackend> EventEngine<B> {
     /// Wraps a backend.
     pub fn new(backend: B) -> Self {
-        Self { backend }
+        Self {
+            backend,
+            places: PlaceCache::new(),
+        }
+    }
+
+    /// An engine whose sample cache holds at most `capacity` entries.
+    #[cfg(test)]
+    pub(crate) fn with_place_cache_capacity(backend: B, capacity: usize) -> Self {
+        Self {
+            backend,
+            places: PlaceCache::with_capacity(capacity),
+        }
     }
 
     /// Step used to bracket crossings, scaled by body speed so no crossing is

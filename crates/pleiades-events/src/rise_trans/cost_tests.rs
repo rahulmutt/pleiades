@@ -5,27 +5,14 @@
 //! Fixture: the issue's own, the Sun at Chennai over
 //! `CompositeBackend<ElpBackend, Vsop87Backend>` with default options.
 
-use super::test_support::{composite, Composite, CountingBackend};
+use super::test_support::{
+    chennai, composite, sun_bracket, tt, Composite, CountingBackend, BRACKET_QUERY_JD,
+};
 use super::*;
 use pleiades_types::CelestialBody;
 
-/// 2025-06-01 06:00 TT.
-const QUERY_JD: f64 = 2_460_827.75;
-
-fn chennai() -> ObserverLocation {
-    ObserverLocation::new(
-        Latitude::from_degrees(13.08),
-        Longitude::from_degrees(80.27),
-        Some(0.0),
-    )
-}
-
 fn engine() -> EventEngine<CountingBackend<Composite>> {
     EventEngine::new(CountingBackend::new(composite()))
-}
-
-fn tt(jd: f64) -> Instant {
-    Instant::new(JulianDay::from_days(jd), TimeScale::Tt)
 }
 
 fn search(
@@ -70,7 +57,7 @@ fn a_daily_sunrise_bracket_reads_the_sun_a_few_times() {
         CelestialBody::Sun,
         RiseSetEvent::Rise,
         false,
-        tt(QUERY_JD),
+        tt(BRACKET_QUERY_JD),
     );
     let previous_rise_reads = engine.backend.take_reads();
     let set = search(&engine, CelestialBody::Sun, RiseSetEvent::Set, true, rise);
@@ -105,7 +92,7 @@ fn a_moonrise_search_reads_the_moon_at_its_lattice_samples_only() {
         CelestialBody::Moon,
         RiseSetEvent::Rise,
         true,
-        tt(QUERY_JD),
+        tt(BRACKET_QUERY_JD),
     );
     let reads = engine.backend.take_reads();
     assert!(
@@ -128,7 +115,7 @@ fn a_transit_search_reads_the_sun_a_few_times() {
         CelestialBody::Sun,
         RiseSetEvent::UpperTransit,
         true,
-        tt(QUERY_JD),
+        tt(BRACKET_QUERY_JD),
     );
     let reads = engine.backend.take_reads();
     assert!(
@@ -136,3 +123,41 @@ fn a_transit_search_reads_the_sun_a_few_times() {
         "{reads} reads of the Sun"
     );
 }
+
+/// One engine's three searches of a daily bracket share their samples, so
+/// each lattice sample is read once.
+#[test]
+fn a_daily_sunrise_bracket_on_one_engine_reads_each_sample_once() {
+    let engine = engine();
+    sun_bracket(&engine, BRACKET_QUERY_JD);
+    let reads = engine.backend.take_reads();
+    assert!(
+        reads <= MAX_SUN_READS_PER_BRACKET,
+        "{reads} reads of the Sun for one bracket"
+    );
+}
+
+/// The bracket's walks run from the previous sunrise's guard sample (lattice
+/// index 0, so its stencil starts at index -1) to the next sunrise's guard
+/// sample (index 3, whose stencil ends at index 5). That is seven 12-hour
+/// lattice samples, each read once, against about 15 before the shared
+/// cache.
+const MAX_SUN_READS_PER_BRACKET: usize = 7;
+
+/// A sweep of daily brackets on one engine, as an electional search makes,
+/// reads only the samples each new day adds: two on a 12-hour lattice.
+#[test]
+fn a_sweep_of_daily_brackets_on_one_engine_reads_about_two_samples_a_day() {
+    let engine = engine();
+    for day in 0..SWEEP_DAYS {
+        sun_bracket(&engine, BRACKET_QUERY_JD + f64::from(day));
+    }
+    let reads = engine.backend.take_reads();
+    assert!(
+        reads <= MAX_SUN_READS_PER_SWEPT_DAY * SWEEP_DAYS as usize,
+        "{reads} reads of the Sun over {SWEEP_DAYS} days"
+    );
+}
+
+const SWEEP_DAYS: u32 = 30;
+const MAX_SUN_READS_PER_SWEPT_DAY: usize = 3;
