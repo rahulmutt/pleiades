@@ -355,30 +355,8 @@ fn parse_corpus(csv: &str) -> Result<Vec<Series>, StationsError> {
 }
 
 fn parse_manifest(manifest: &str) -> Result<(usize, u64), StationsError> {
-    let malformed = |what: String| StationsError::MalformedManifest(what);
-    let line = manifest
-        .lines()
-        .find(|l| l.trim_start().starts_with("slice"))
-        .ok_or_else(|| malformed("no slice line".into()))?;
-    let mut rows = None;
-    let mut checksum = None;
-    for tok in line.split_whitespace() {
-        if let Some(v) = tok.strip_prefix("rows=") {
-            rows = Some(
-                v.parse::<usize>()
-                    .map_err(|e| malformed(format!("rows: {e}")))?,
-            );
-        } else if let Some(v) = tok.strip_prefix("checksum=") {
-            checksum = Some(
-                v.parse::<u64>()
-                    .map_err(|e| malformed(format!("checksum: {e}")))?,
-            );
-        }
-    }
-    Ok((
-        rows.ok_or_else(|| malformed("rows= missing".into()))?,
-        checksum.ok_or_else(|| malformed("checksum= missing".into()))?,
-    ))
+    crate::corpus_manifest::slice_entry(manifest)
+        .map_err(|e| StationsError::MalformedManifest(e.to_string()))
 }
 
 /// What one series' comparison measured.

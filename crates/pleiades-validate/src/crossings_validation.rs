@@ -110,30 +110,8 @@ fn wrap180_deg(mut d: f64) -> f64 {
 }
 
 fn parse_manifest() -> Result<(usize, u64), CrossingsCorpusError> {
-    let mut rows = None;
-    let mut checksum = None;
-    for line in MANIFEST.lines() {
-        let line = line.trim();
-        if let Some(v) = line.strip_prefix("rows:") {
-            rows = Some(
-                v.trim()
-                    .parse::<usize>()
-                    .map_err(|e| CrossingsCorpusError::Manifest(format!("rows: {e}")))?,
-            );
-        }
-        for tok in line.split_whitespace() {
-            if let Some(v) = tok.strip_prefix("checksum=") {
-                checksum = Some(
-                    v.parse::<u64>()
-                        .map_err(|e| CrossingsCorpusError::Manifest(format!("checksum: {e}")))?,
-                );
-            }
-        }
-    }
-    Ok((
-        rows.ok_or_else(|| CrossingsCorpusError::Manifest("rows: missing".into()))?,
-        checksum.ok_or_else(|| CrossingsCorpusError::Manifest("checksum= missing".into()))?,
-    ))
+    crate::corpus_manifest::labelled_entry(MANIFEST)
+        .map_err(|e| CrossingsCorpusError::Manifest(e.to_string()))
 }
 
 // Measured group maxima for the mean-of-date and sidereal rows (329-row corpus,

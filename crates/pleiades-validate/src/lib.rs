@@ -25,6 +25,7 @@ mod claims;
 mod comparison;
 mod compatibility;
 mod corpus;
+mod corpus_manifest;
 pub mod crossings_validation;
 mod eclipse_local_thresholds;
 pub mod eclipse_local_validation;

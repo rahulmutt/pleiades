@@ -158,39 +158,12 @@ pub(crate) struct AyanamsaManifest {
 }
 
 pub(crate) fn parse_manifest(text: &str) -> Result<AyanamsaManifest, AyanamsaCorpusError> {
-    let mut rows = None;
-    let mut checksum = None;
-    for line in text.lines() {
-        let t = line.trim();
-        if t.starts_with("slice ") {
-            for tok in t.split_whitespace() {
-                if let Some(v) = tok.strip_prefix("rows=") {
-                    rows = Some(
-                        v.parse()
-                            .map_err(|_| AyanamsaCorpusError::MalformedManifest {
-                                reason: format!("rows value {v:?} is not a valid usize"),
-                            })?,
-                    );
-                } else if let Some(v) = tok.strip_prefix("checksum=") {
-                    checksum =
-                        Some(
-                            v.parse()
-                                .map_err(|_| AyanamsaCorpusError::MalformedManifest {
-                                    reason: format!("checksum value {v:?} is not a valid u64"),
-                                })?,
-                        );
-                }
-            }
+    let (rows, checksum) = crate::corpus_manifest::slice_entry(text).map_err(|e| {
+        AyanamsaCorpusError::MalformedManifest {
+            reason: e.to_string(),
         }
-    }
-    Ok(AyanamsaManifest {
-        rows: rows.ok_or(AyanamsaCorpusError::MalformedManifest {
-            reason: "rows= not found".into(),
-        })?,
-        checksum: checksum.ok_or(AyanamsaCorpusError::MalformedManifest {
-            reason: "checksum= not found".into(),
-        })?,
-    })
+    })?;
+    Ok(AyanamsaManifest { rows, checksum })
 }
 
 fn mode_for_code(code: &str) -> Option<Ayanamsa> {

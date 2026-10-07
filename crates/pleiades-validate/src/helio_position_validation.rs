@@ -212,30 +212,8 @@ fn parse_corpus(csv: &str) -> Result<Vec<Row>, HelioPositionError> {
 }
 
 fn parse_manifest(manifest: &str) -> Result<(usize, u64), HelioPositionError> {
-    let line = manifest
-        .lines()
-        .find(|l| l.trim_start().starts_with("slice"))
-        .ok_or_else(|| HelioPositionError::MalformedManifest("no slice line".into()))?;
-    let mut rows = None;
-    let mut checksum = None;
-    for tok in line.split_whitespace() {
-        if let Some(v) = tok.strip_prefix("rows=") {
-            rows = Some(
-                v.parse::<usize>()
-                    .map_err(|e| HelioPositionError::MalformedManifest(format!("rows: {e}")))?,
-            );
-        } else if let Some(v) = tok.strip_prefix("checksum=") {
-            checksum =
-                Some(v.parse::<u64>().map_err(|e| {
-                    HelioPositionError::MalformedManifest(format!("checksum: {e}"))
-                })?);
-        }
-    }
-    Ok((
-        rows.ok_or_else(|| HelioPositionError::MalformedManifest("rows= missing".into()))?,
-        checksum
-            .ok_or_else(|| HelioPositionError::MalformedManifest("checksum= missing".into()))?,
-    ))
+    crate::corpus_manifest::slice_entry(manifest)
+        .map_err(|e| HelioPositionError::MalformedManifest(e.to_string()))
 }
 
 fn wrap_deg(got_deg: f64, want_deg: f64) -> f64 {

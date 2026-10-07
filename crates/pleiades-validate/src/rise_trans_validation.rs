@@ -289,46 +289,8 @@ fn azimuth_diff_deg(a: f64, b: f64) -> f64 {
 }
 
 fn parse_manifest() -> Result<BTreeMap<String, (usize, u64)>, RiseTransError> {
-    let mut map = BTreeMap::new();
-    for line in MANIFEST.lines() {
-        let line = line.trim();
-        let Some(rest) = line.strip_prefix("file:") else {
-            continue;
-        };
-        let toks: Vec<&str> = rest.split_whitespace().collect();
-        if toks.len() < 3 {
-            return Err(RiseTransError::Manifest(format!(
-                "malformed file line: {line}"
-            )));
-        }
-        let name = toks[0].to_string();
-        let mut rows = None;
-        let mut checksum = None;
-        for tok in &toks[1..] {
-            if let Some(v) = tok.strip_prefix("rows=") {
-                rows = Some(
-                    v.parse::<usize>()
-                        .map_err(|e| RiseTransError::Manifest(format!("rows: {e}")))?,
-                );
-            } else if let Some(v) = tok.strip_prefix("checksum=") {
-                checksum = Some(
-                    v.parse::<u64>()
-                        .map_err(|e| RiseTransError::Manifest(format!("checksum: {e}")))?,
-                );
-            }
-        }
-        let rows =
-            rows.ok_or_else(|| RiseTransError::Manifest(format!("rows= missing: {line}")))?;
-        let checksum = checksum
-            .ok_or_else(|| RiseTransError::Manifest(format!("checksum= missing: {line}")))?;
-        map.insert(name, (rows, checksum));
-    }
-    if map.is_empty() {
-        return Err(RiseTransError::Manifest(
-            "no `file:` lines found in manifest".to_string(),
-        ));
-    }
-    Ok(map)
+    crate::corpus_manifest::file_entries(MANIFEST)
+        .map_err(|e| RiseTransError::Manifest(e.to_string()))
 }
 
 fn check_checksum(
