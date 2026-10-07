@@ -52,7 +52,7 @@ pub use time::{
     OBLIQUITY_J2000_DEG, SECONDS_PER_DAY,
 };
 pub use time_range::{TimeRange, TimeRangeValidationError};
-pub use zodiac::{ZodiacMode, ZodiacSign};
+pub use zodiac::{SiderealStarPlace, ZodiacMode, ZodiacSign};
 
 #[cfg(test)]
 mod tests;

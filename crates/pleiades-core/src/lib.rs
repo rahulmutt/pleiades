@@ -137,9 +137,9 @@ pub use pleiades_time::{
 pub use pleiades_types::{
     Angle, Ayanamsa, CelestialBody, CelestialBodyClass, CoordinateFrame, CustomAyanamsa,
     CustomBodyId, CustomHouseSystem, EclipticCoordinates, EquatorialCoordinates, HouseSystem,
-    Instant, JulianDay, Latitude, Longitude, Motion, MotionDirection, ObserverLocation, TimeRange,
-    TimeRangeValidationError, TimeScale, TimeScaleConversion, TimeScaleConversionError, ZodiacMode,
-    ZodiacSign, SECONDS_PER_DAY,
+    Instant, JulianDay, Latitude, Longitude, Motion, MotionDirection, ObserverLocation,
+    SiderealStarPlace, TimeRange, TimeRangeValidationError, TimeScale, TimeScaleConversion,
+    TimeScaleConversionError, ZodiacMode, ZodiacSign, SECONDS_PER_DAY,
 };
 pub use release_profiles::{
     current_release_profile_identifiers, ReleaseProfileIdentifiers,
