@@ -13,6 +13,7 @@ use pleiades_types::{
 };
 use pleiades_vsop87::Vsop87Backend;
 
+use crate::chart::test_support::packaged_first_covered_jd;
 use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 
 /// Value the checksum had on `main` at 91b13290d, before FU-25's second round,
@@ -29,11 +30,6 @@ use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 /// reason in the commit message. The value hashes `libm` output and is pinned
 /// on Linux CI; another platform's libm may differ in the last bit.
 const CHART_CHECKSUM: u64 = 0x6a34_9467_513a_e85b;
-
-/// First instant the packaged artifact covers for Mars and the Moon, found by
-/// bisecting `OutOfRangeInstant` on `position`. `nominal_range.start`
-/// (JD 2378498.5) is wider than the packed coverage, so it cannot be used.
-const PACKAGED_MARS_FIRST_JD: f64 = 2_415_020.5;
 
 fn eleven_bodies() -> Vec<CelestialBody> {
     vec![
@@ -130,7 +126,13 @@ fn apparent_chart_outputs_are_pinned() {
     // (+0.05 day, past Mars's retardation) the place is apparent while the
     // earlier speed neighbour is still out of range, so the speed is
     // one-sided.
-    let start_jd = PACKAGED_MARS_FIRST_JD + 0.05;
+    let first_jd = packaged_first_covered_jd(&CelestialBody::Mars);
+    assert_eq!(
+        packaged_first_covered_jd(&CelestialBody::Moon),
+        first_jd,
+        "Mars and the Moon must share the packaged window start"
+    );
+    let start_jd = first_jd + 0.05;
     let outside = packaged_backend().position(&EphemerisRequest::new(
         CelestialBody::Mars,
         tt(start_jd - 0.5),
@@ -141,7 +143,7 @@ fn apparent_chart_outputs_are_pinned() {
     );
     for (label, jd) in [
         ("packaged window start", start_jd),
-        ("packaged first covered instant", PACKAGED_MARS_FIRST_JD),
+        ("packaged first covered instant", first_jd),
     ] {
         let request = ChartRequest::new(tt(jd))
             .with_bodies(vec![CelestialBody::Mars, CelestialBody::Moon])

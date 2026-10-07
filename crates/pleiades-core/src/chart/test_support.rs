@@ -595,3 +595,19 @@ impl<B: EphemerisBackend> EphemerisBackend for ForeignEquatorialBackend<B> {
             .map(|rs| rs.into_iter().map(|r| self.rewrite(r)).collect())
     }
 }
+
+/// First Julian day the packaged artifact's segments cover for `body`, read
+/// from the artifact itself. The backend's `nominal_range` starts earlier
+/// than the packed coverage, so it cannot stand in for this (issue #218).
+pub(super) fn packaged_first_covered_jd(body: &CelestialBody) -> f64 {
+    pleiades_data::packaged_artifact()
+        .bodies
+        .iter()
+        .find(|artifact| &artifact.body == body)
+        .unwrap_or_else(|| panic!("the packaged artifact carries no {body:?}"))
+        .segments
+        .iter()
+        .map(|segment| segment.start.julian_day.days())
+        .reduce(f64::min)
+        .unwrap_or_else(|| panic!("the packaged artifact has no {body:?} segment"))
+}
