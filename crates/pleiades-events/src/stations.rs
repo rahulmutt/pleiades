@@ -128,6 +128,25 @@ fn longitude_speed<B: EphemerisBackend>(
     checked_speed(motion.longitude_deg_per_day, body, julian_day)
 }
 
+/// The one read a search for a body that [never stations](never_stations)
+/// makes before answering, so that it fails as a scanning search would.
+///
+/// `OutOfWindow` is not an error here: the instant itself has passed the
+/// window check, and only a light-time read within a light-time of the
+/// window's first instant can leave it, where the answer is still known to
+/// be "no station" (issue #213).
+fn probe_never_stationing<B: EphemerisBackend>(
+    backend: &B,
+    body: &CelestialBody,
+    reference: &CrossingReference,
+    julian_day: f64,
+) -> Result<(), EventError> {
+    match longitude_speed(backend, body, reference, julian_day) {
+        Ok(_) | Err(EventError::OutOfWindow { .. }) => Ok(()),
+        Err(err) => Err(err),
+    }
+}
+
 impl<B: EphemerisBackend> EventEngine<B> {
     fn station_at(
         &self,
@@ -168,7 +187,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// The scan runs to both ends of the range. An apparent place of a body
     /// other than the Sun is read a light-time earlier, so a range starting
     /// within a light-time of the window's first instant is
-    /// [`EventError::OutOfWindow`].
+    /// [`EventError::OutOfWindow`] — except for a body answered without a
+    /// scan, which returns its empty list there too.
     ///
     /// # Accuracy
     ///
@@ -216,8 +236,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
         check_supported(&body, &reference, start_jd, "stations are")?;
         let step = step_days(&body);
         if never_stations(&body, reference.frame) {
-            // The one sample an empty range gets, for the same errors.
-            longitude_speed(&self.backend, &body, &reference, start_jd)?;
+            // The one sample an empty range gets, for the same backend errors.
+            probe_never_stationing(&self.backend, &body, &reference, start_jd)?;
             return Ok(Vec::new());
         }
         let roots = crossings_in_range(
@@ -241,7 +261,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// search then returns the following station, not the same one.
     ///
     /// The Sun, the Moon, the mean lunar points and, in the heliocentric
-    /// frame, the planets never station and return `None` at once. Any other
+    /// frame, the planets never station and return `None` at once, anywhere
+    /// in the window (including its first light-time). Any other
     /// body is searched to the end of the 1900–2100 window; when the window
     /// ends first (an asteroid in the heliocentric frame that happens never to
     /// station, say), the result is [`EventError::OutOfWindow`] naming the
@@ -278,7 +299,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         check_supported(&body, &reference, after_jd, "stations are")?;
         let step = step_days(&body);
         if never_stations(&body, reference.frame) {
-            longitude_speed(&self.backend, &body, &reference, after_jd)?;
+            probe_never_stationing(&self.backend, &body, &reference, after_jd)?;
             return Ok(None);
         }
         let root = first_crossing_after(
@@ -310,7 +331,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// back by a second.
     ///
     /// The Sun, the Moon, the mean lunar points and, in the heliocentric
-    /// frame, the planets never station and return `None` at once. Any other
+    /// frame, the planets never station and return `None` at once, anywhere
+    /// in the window (including its first light-time). Any other
     /// body is searched to the start of the 1900–2100 window; when the window
     /// starts first (a body that happens never to station, say), the result is
     /// [`EventError::OutOfWindow`] naming the instant one step before it.
@@ -350,7 +372,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         check_supported(&body, &reference, before_jd, "stations are")?;
         let step = step_days(&body);
         if never_stations(&body, reference.frame) {
-            longitude_speed(&self.backend, &body, &reference, before_jd)?;
+            probe_never_stationing(&self.backend, &body, &reference, before_jd)?;
             return Ok(None);
         }
         let root = last_crossing_before(

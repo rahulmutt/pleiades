@@ -49,6 +49,11 @@ for such a body, where the old one-step clamp quietly started later. The Sun,
 the lunar points and the mean-of-date and heliocentric frames are read from
 the first instant on.
 
+A body that never stations is the exception (#213): its station searches
+read it once, for the backend's errors, and an `OutOfWindow` from that read
+does not hide the known answer, so they return `Ok(None)` or an empty list
+anywhere in the window, as decision 3 promises.
+
 ## Design
 
 ### Crossings, stations, occultations

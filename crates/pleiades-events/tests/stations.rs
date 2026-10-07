@@ -305,6 +305,31 @@ fn a_body_that_never_stations_is_answered_without_scanning_the_window() {
     assert!(elapsed.as_secs_f64() < 5.0, "took {elapsed:?}");
 }
 
+// Issue #213. The one read a body that never stations gets is a light-time
+// before its instant in the apparent frame; at the window's first instant
+// that read falls outside the window, yet the answer is known.
+#[test]
+fn a_body_that_never_stations_has_no_station_at_the_window_start() {
+    let engine = EventEngine::new(packaged_backend());
+    let start = tdb(WINDOW_START_JD);
+    assert!(matches!(
+        engine.position_at(CelestialBody::Moon, GEO, start),
+        Err(EventError::OutOfWindow { .. })
+    ));
+    assert_eq!(
+        engine.next_station(CelestialBody::Moon, GEO, start),
+        Ok(None)
+    );
+    assert_eq!(
+        engine.previous_station(CelestialBody::Moon, GEO, start),
+        Ok(None)
+    );
+    assert_eq!(
+        engine.stations_in_range(CelestialBody::Moon, GEO, start, tdb(WINDOW_START_JD + 1.0)),
+        Ok(Vec::new())
+    );
+}
+
 // The true node is retrograde on average and turns briefly direct about
 // every two weeks.
 #[test]
