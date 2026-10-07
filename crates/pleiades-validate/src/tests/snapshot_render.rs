@@ -1865,7 +1865,7 @@ fn source_corpus_summary_aliases_render_the_same_report() {
         ));
     assert!(rendered.contains("body-class coverage=major bodies:"));
     assert!(rendered.contains(
-            "at the backend boundary equatorial output is derived via J2000 mean-obliquity transforms when supported"
+            "at the backend boundary equatorial output is derived via J2000 mean-obliquity transforms when supported (the ELP lunar backend gives right ascension and declination of date)"
         ));
     assert!(rendered.contains("corpus shape=Production generation corpus shape:"));
     assert!(rendered

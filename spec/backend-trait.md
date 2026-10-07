@@ -55,11 +55,6 @@ The exact API may evolve, but the semantics above are normative: one-request/one
 - instant/time scale
 - observer location for topocentric calculations
 - desired coordinate frame
-- The `equatorial` channel's frame is part of each backend's documented
-  contract. First-party backends give the J2000 mean equator and equinox
-  (the J2000 ecliptic rotated by the J2000 mean obliquity), except the ELP
-  lunar backend, which gives right ascension and declination of date. Chart
-  assembly does not pass the channel through for mean placements (#210).
 - flags for apparent vs mean values where meaningful
 
 The canonical backend contract is for raw astronomical outputs. High-level APIs may accept tropical/sidereal preferences and ayanamsa choices, but sidereal conversion should normally happen in the domain layer from tropical coordinates plus the selected ayanamsa. If a backend offers native sidereal output anyway, capability metadata must make that distinction explicit.
@@ -79,6 +74,8 @@ The canonical backend contract is for raw astronomical outputs. High-level APIs 
 - source backend id
 - quality/uncertainty annotation
 - enough metadata to let higher layers apply deterministic zodiac and house logic without backend-specific special cases
+
+The `equatorial` channel's frame is part of each backend's documented contract. First-party backends give the J2000 mean equator and equinox (the J2000 ecliptic rotated by the J2000 mean obliquity), except the ELP lunar backend, which gives right ascension and declination of date. Chart assembly does not pass the channel through for mean placements (#210).
 
 ## Metadata Model
 
