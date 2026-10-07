@@ -239,6 +239,83 @@ If the plan outgrows one reviewable diff, it splits into (1) the measurements,
 the anchors, the correction and the new gate, and (2) the opt-in on core,
 events and CLI with the end-to-end rows.
 
+## Amendments (Planning task 1, measured 2026-10-07)
+
+Measured with throwaway probes against Swiss Ephemeris 2.10.03 (libswisseph-sys
+0.1.2, Moshier) and read from its source (`sweph.c` `swi_get_ayanamsa_ex`,
+`swi_deflect_light`, `meff`; `swehouse.c`). They replace the corresponding
+parts of the design above.
+
+1. **Anchors are five stars, not ten per-mode rows.** Swiss Ephemeris
+   hard-codes each star-anchored mode as a star plus a sidereal longitude:
+   Spica 180° (True Citra), ζ Psc 359.8333333333° (True Revati), δ Cnc 106°
+   (True Pushya) and 103.49264221625° (True Sheoran), λ Sco 240° (True Mula),
+   Sgr A* 240° (Galactic Center), 270° (Cochrane) and 210 + 90 × 0.3819660113°
+   (Rgilbrand). A star's mean place of date is therefore its **primary**
+   mode's mean ayanamsa plus that mode's anchor; SE's own geometric
+   `swe_fixstar` longitude equals that sum to 0.000000″ for all five stars over
+   1900–2100. `pleiades-ayanamsa` holds `AnchorStar` (five stars), each mode's
+   `StarAnchor { star, projection }`, and the star's mean place.
+2. **Latitude has a linear term.** The stars' latitudes move 18–100″ over
+   1900–2100. A line `β = b0 + b1·T` (T in Julian centuries from J2000) fits
+   SE within 0.11″ for every star, which is negligible even for δ Cnc's
+   deflection; a constant would not be (δ Cnc passes 278″ from the ecliptic).
+   Fitted values: Spica −2.054501717°, −0.007550067°/cy; ζ Psc −0.213417908°,
+   +0.002565390°/cy; δ Cnc +0.077157475°, +0.003140560°/cy; λ Sco
+   −13.788460720°, −0.013920718°/cy; Sgr A* −5.607682523°, −0.013203301°/cy.
+3. **Galactic Center (Mula/Wilhelm) is projected.** SE takes Sgr A*'s right
+   ascension, projects it onto the ecliptic with `swi_armc_to_mc` and the mean
+   obliquity, and subtracts 246.6666666667°. Its correction is the projected
+   apparent place minus the projected mean place
+   (`AnchorProjection::PolarRightAscension`); every other mode's is the
+   longitude difference (`AnchorProjection::EclipticLongitude`).
+4. **Deflection follows `swi_deflect_light`.** The vector formula
+   `u + g1/(1 + u·e) · (e − (u·e) u)` with `g1 = 2GM☉·meff/(c²·AU·r)`, `e` the
+   Sun-to-Earth unit vector and `r` the Sun's distance, tapered inside the
+   solar disc by SE's 101-row effective-mass table `meff` (Stix's solar
+   model), keyed on `sin(elongation) / (959.63″ / r)`. Deflection is applied
+   before aberration, as in SE. The Meeus Sun gains its radius vector (Meeus
+   25.5) for `r`.
+5. **House cusps take the correction.** `swe_houses_ex` passes the caller's
+   flags to `swe_get_ayanamsa_ex`; a plain `SEFLG_SIDEREAL` cusp uses the
+   apparent ayanamsa including nutation (residual ≤ 0.002″ over 1900–2100).
+   So in an apparent chart with `SiderealStarPlace::Apparent`, cusps, angles
+   and `ascmc` points take the same correction as placements. A mean chart's
+   cusps do not.
+6. **Lunar points take the correction.** Under plain `SEFLG_SIDEREAL` Swiss
+   Ephemeris applies the apparent ayanamsa to every body, including the mean
+   and true node and the mean and osculating apogee (residual 0.000″): the
+   star place follows the request's flags, not the body's physics. Every
+   placement of an apparent chart therefore takes the correction except a
+   mean-fallback placement, and every body in `GeocentricApparentOfDate`
+   events.
+7. **`SiderealStarPlace` lives in `pleiades-types`**, beside `ZodiacMode`.
+   `pleiades-ayanamsa` has no serde support and `CrossingReference` derives
+   serde; a new enum in the type crate is additive. `pleiades-core` and
+   `pleiades-events` re-export it.
+8. **Speeds need no analytic derivative.** Both crates already difference the
+   corrected place centrally (`correction_sample` in core, `sampled_place` in
+   events), so the correction's rate enters every speed automatically.
+9. **Semver.** `ChartRequest` and `ChartSnapshot` are not `#[non_exhaustive]`,
+   so their new `sidereal_star_place` field is a breaking change to
+   `pleiades-core` (decided 2026-10-07: accept it, as `topocentric` was added,
+   and commit it as `feat(core)!:` so release-plz cuts a new minor).
+   `CrossingReference` is already `#[non_exhaustive]`; its new field is
+   additive, with `serde(default)` so older serialized references read as
+   `Mean`.
+10. **One composition, held equal across crates.** `pleiades-core` exposes
+    `apparent_star_ayanamsa_correction(&Ayanamsa, Instant) -> Option<Angle>`.
+    `pleiades-events` cannot depend on `pleiades-core`, so it keeps a private
+    twin; a cross-crate test in `pleiades-events/tests/reference.rs` holds the
+    two equal.
+11. **Prototype accuracy** (Meeus 23.2 aberration, the deflection above,
+    Meeus Sun), maximum |SE − model| over 1900–2100 every 0.731 day: True Citra
+    0.012″, True Mula 0.012″, Galactic Center 0.011″, Galactic Center
+    (Mula/Wilhelm) 0.012″, True Revati 0.056″, True Pushya 0.496″. The last is
+    δ Cnc passing behind the solar disc, where the Meeus Sun's ~0.01° error is
+    large against the star's 278″ closest approach; that row class gets the
+    measured ceiling the design allows.
+
 ## Out of scope
 
 - Changing the default convention.
