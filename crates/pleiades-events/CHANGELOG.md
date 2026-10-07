@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.8.0] - 2026-10-07
+
+### Breaking Changes
+
+- Swiss Ephemeris default parity for star-anchored ayanamsas ([#164](https://github.com/rahulmutt/pleiades/pull/164)) ([#222](https://github.com/rahulmutt/pleiades/pull/222)) ([37eacf4](https://github.com/rahulmutt/pleiades/commit/37eacf45600f62314c6a0df6ebc746723899dbfc))
+
+### Added
+
+- Let a station search take a finer scan step ([#167](https://github.com/rahulmutt/pleiades/pull/167)) ([#221](https://github.com/rahulmutt/pleiades/pull/221)) ([9fdb340](https://github.com/rahulmutt/pleiades/commit/9fdb34017c2ecc8e4b804a696851cb3c1b0e80b8))
+
+### Fixed
+
+- Search rise, set and transit up to the window's ends; report a search the window cuts short ([#203](https://github.com/rahulmutt/pleiades/pull/203)) ([#207](https://github.com/rahulmutt/pleiades/pull/207)) ([5e72ffb](https://github.com/rahulmutt/pleiades/commit/5e72ffbabc1cbdabb49fec1674ae1ee80e0ce275))
+- Refuse non-finite instants; correct the snapshot notes and summaries; document ELP's equatorial frame (#201, #171) ([#211](https://github.com/rahulmutt/pleiades/pull/211)) ([0eea1bf](https://github.com/rahulmutt/pleiades/commit/0eea1bf23a00dedaf25e9bc4d559cbb9ecbc60e4))
+- Search crossings, stations, aspects and occultations up to the window's ends; report a search the window cuts short ([#208](https://github.com/rahulmutt/pleiades/pull/208)) ([#212](https://github.com/rahulmutt/pleiades/pull/212)) ([5b23b1f](https://github.com/rahulmutt/pleiades/commit/5b23b1f9c1ed806793a8985ec34585854834a455))
+- Answer a station search for a body that never stations at the window's start ([#213](https://github.com/rahulmutt/pleiades/pull/213)) ([#215](https://github.com/rahulmutt/pleiades/pull/215)) ([13595e3](https://github.com/rahulmutt/pleiades/commit/13595e335a597dad647d8095ef8573d578c8165d))
+
+### Performance
+
+- Read a rise/set search's body at a few lattice instants and interpolate between them ([#204](https://github.com/rahulmutt/pleiades/pull/204)) ([#209](https://github.com/rahulmutt/pleiades/pull/209)) ([a5bbc84](https://github.com/rahulmutt/pleiades/commit/a5bbc842f845f740a54a8d58a6760ec26034527c))
+- Share rise/set samples across an engine's searches and refine with ITP ([#204](https://github.com/rahulmutt/pleiades/pull/204)) ([#220](https://github.com/rahulmutt/pleiades/pull/220)) ([49abca1](https://github.com/rahulmutt/pleiades/commit/49abca11489a0ed0e7ca9bae719f6d639c45055a))
+
 ## [0.7.3] - 2026-10-06
 
 ### Added
