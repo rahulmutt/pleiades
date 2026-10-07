@@ -110,6 +110,7 @@ fn chart_snapshot_without_observer_renders_geocentric_policy_line() {
         body_observer: None,
         zodiac_mode: ZodiacMode::Tropical,
         apparentness: Apparentness::Mean,
+        sidereal_star_place: SiderealStarPlace::Mean,
         houses: None,
         placements: vec![],
     };
@@ -140,6 +141,7 @@ fn chart_snapshot_exposes_dominant_sign_and_house_summaries() {
         body_observer: None,
         zodiac_mode: ZodiacMode::Tropical,
         apparentness: Apparentness::Apparent,
+        sidereal_star_place: SiderealStarPlace::Mean,
         houses: None,
         placements: vec![
             BodyPlacement {
@@ -814,6 +816,7 @@ fn chart_snapshot_observer_summary_matches_the_rendered_policy_line() {
         body_observer: None,
         zodiac_mode: ZodiacMode::Tropical,
         apparentness: Apparentness::Mean,
+        sidereal_star_place: SiderealStarPlace::Mean,
         houses: None,
         placements: Vec::new(),
     };
@@ -852,6 +855,7 @@ fn chart_snapshot_validated_body_observer_label_returns_the_rendered_label() {
         )),
         zodiac_mode: ZodiacMode::Tropical,
         apparentness: Apparentness::Mean,
+        sidereal_star_place: SiderealStarPlace::Mean,
         houses: None,
         placements: Vec::new(),
     };
@@ -878,6 +882,7 @@ fn chart_snapshot_validated_summary_line_rejects_invalid_observer_locations() {
         body_observer: None,
         zodiac_mode: ZodiacMode::Tropical,
         apparentness: Apparentness::Mean,
+        sidereal_star_place: SiderealStarPlace::Mean,
         houses: None,
         placements: Vec::new(),
     };
@@ -907,6 +912,7 @@ fn chart_snapshot_validate_rejects_house_assignments_without_house_snapshot() {
         body_observer: None,
         zodiac_mode: ZodiacMode::Tropical,
         apparentness: Apparentness::Mean,
+        sidereal_star_place: SiderealStarPlace::Mean,
         houses: None,
         placements: vec![BodyPlacement {
             body: CelestialBody::Sun,
@@ -970,6 +976,7 @@ fn chart_snapshot_validate_rejects_out_of_range_house_assignments() {
         body_observer: None,
         zodiac_mode: ZodiacMode::Tropical,
         apparentness: Apparentness::Mean,
+        sidereal_star_place: SiderealStarPlace::Mean,
         houses: Some(houses),
         placements: vec![BodyPlacement {
             body: CelestialBody::Sun,
@@ -1030,6 +1037,7 @@ fn chart_snapshot_validate_rejects_house_snapshots_without_observers() {
         body_observer: None,
         zodiac_mode: ZodiacMode::Tropical,
         apparentness: Apparentness::Mean,
+        sidereal_star_place: SiderealStarPlace::Mean,
         houses: Some(houses),
         placements: Vec::new(),
     };
@@ -1095,6 +1103,7 @@ fn chart_snapshot_validate_rejects_invalid_body_placements() {
         body_observer: None,
         zodiac_mode: ZodiacMode::Tropical,
         apparentness: Apparentness::Mean,
+        sidereal_star_place: SiderealStarPlace::Mean,
         houses: None,
         placements: vec![BodyPlacement {
             body: CelestialBody::Sun,
@@ -2512,6 +2521,7 @@ fn chart_snapshot_supports_body_lookup_and_retrograde_summary() {
         body_observer: None,
         zodiac_mode: ZodiacMode::Tropical,
         apparentness: Apparentness::Apparent,
+        sidereal_star_place: SiderealStarPlace::Mean,
         houses: None,
         placements: vec![
             BodyPlacement {
@@ -2827,6 +2837,7 @@ fn chart_snapshot_exposes_major_aspects_and_angular_separation() {
         body_observer: None,
         zodiac_mode: ZodiacMode::Tropical,
         apparentness: Apparentness::Apparent,
+        sidereal_star_place: SiderealStarPlace::Mean,
         houses: None,
         placements: vec![
             BodyPlacement {
@@ -2905,6 +2916,7 @@ fn chart_snapshot_renders_custom_body_identifiers() {
         body_observer: None,
         zodiac_mode: ZodiacMode::Tropical,
         apparentness: Apparentness::Apparent,
+        sidereal_star_place: SiderealStarPlace::Mean,
         houses: None,
         placements: vec![BodyPlacement {
             body: custom_body,

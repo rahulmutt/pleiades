@@ -6,8 +6,8 @@ use pleiades_backend::{
 };
 use pleiades_houses::{resolve_house_system, HouseRequest};
 use pleiades_types::{
-    CelestialBody, CoordinateFrame, HouseSystem, Instant, ObserverLocation, TimeScale,
-    TimeScaleConversion, TimeScaleConversionError, ZodiacMode,
+    CelestialBody, CoordinateFrame, HouseSystem, Instant, ObserverLocation, SiderealStarPlace,
+    TimeScale, TimeScaleConversion, TimeScaleConversionError, ZodiacMode,
 };
 
 use super::errors::{map_custom_definition_error, map_house_error, map_observer_location_error};
@@ -70,6 +70,9 @@ pub struct ChartRequest {
     /// parallax + diurnal aberration) using `observer`. Requires `observer` to be
     /// set, apparent mode, and bodies with a known geocentric distance.
     pub topocentric: bool,
+    /// Which place of a star-anchored ayanamsa's anchor star the sidereal
+    /// zodiac is read from; see [`ChartRequest::with_sidereal_star_place`].
+    pub sidereal_star_place: SiderealStarPlace,
     /// Optional house-system request.
     pub house_system: Option<HouseSystem>,
 }
@@ -85,6 +88,7 @@ impl ChartRequest {
             zodiac_mode: ZodiacMode::Tropical,
             apparentness: Apparentness::Apparent,
             topocentric: false,
+            sidereal_star_place: SiderealStarPlace::Mean,
             house_system: None,
         }
     }
@@ -554,6 +558,44 @@ impl ChartRequest {
         self
     }
 
+    /// Sets which place of the ayanamsa's anchor star a sidereal chart uses.
+    ///
+    /// `Mean`, the default, keeps the mean ayanamsa in every placement.
+    /// `Apparent` reads a star-anchored ayanamsa (True Citra and Chitra,
+    /// Revati, Pushya, Mula, Sheoran, and the Galactic Center modes other than
+    /// Mardyks) from its anchor star's apparent place, adding the star's light
+    /// deflection and annual aberration (up to about 22″,
+    /// [`apparent_star_ayanamsa_correction`](crate::apparent_star_ayanamsa_correction)),
+    /// as Swiss Ephemeris does under its default `SEFLG_SIDEREAL`. It applies
+    /// to every apparent placement, lunar points included, and to the house
+    /// cusps and angles of an apparent chart; a mean chart, a mean-fallback
+    /// placement, the tropical zodiac and every other ayanamsa are unchanged.
+    ///
+    /// ```
+    /// use pleiades_core::{ChartEngine, ChartRequest, SiderealStarPlace};
+    /// use pleiades_data::packaged_backend;
+    /// use pleiades_types::{Ayanamsa, CelestialBody, Instant, JulianDay, TimeScale, ZodiacMode};
+    ///
+    /// let instant = Instant::new(JulianDay::from_days(2_460_000.5), TimeScale::Tt);
+    /// let request = |place| {
+    ///     ChartRequest::new(instant)
+    ///         .with_bodies(vec![CelestialBody::Sun])
+    ///         .with_zodiac_mode(ZodiacMode::Sidereal { ayanamsa: Ayanamsa::TrueCitra })
+    ///         .with_sidereal_star_place(place)
+    /// };
+    /// let engine = ChartEngine::new(packaged_backend());
+    /// let lon = |place| {
+    ///     engine.chart(&request(place)).unwrap().placements[0].position.ecliptic.unwrap().longitude.degrees()
+    /// };
+    /// // Swiss Ephemeris's correction for True Citra at this instant is +13.65″.
+    /// let shift = (lon(SiderealStarPlace::Apparent) - lon(SiderealStarPlace::Mean)) * 3600.0;
+    /// assert!((shift + 13.65).abs() < 0.06, "{shift}");
+    /// ```
+    pub fn with_sidereal_star_place(mut self, sidereal_star_place: SiderealStarPlace) -> Self {
+        self.sidereal_star_place = sidereal_star_place;
+        self
+    }
+
     /// Sets the preferred apparentness.
     ///
     /// `Apparent`, the default, is the apparent place on the true equinox of
@@ -696,7 +738,7 @@ impl ChartRequest {
             .as_ref()
             .map_or_else(|| "none".to_string(), render_house_system_label);
 
-        format!(
+        let mut summary = format!(
             "instant={} ({}); bodies={}; zodiac={}; apparentness={}; {}; house system={}",
             self.instant.julian_day,
             self.instant.scale,
@@ -705,7 +747,13 @@ impl ChartRequest {
             self.apparentness,
             self.observer_summary(),
             house_system,
-        )
+        );
+        if matches!(self.zodiac_mode, ZodiacMode::Sidereal { .. })
+            && self.sidereal_star_place == SiderealStarPlace::Apparent
+        {
+            summary.push_str("; sidereal star place=apparent");
+        }
+        summary
     }
 
     /// Returns a compact one-line summary after validating the observer summary.

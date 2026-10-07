@@ -3,7 +3,7 @@ use core::fmt;
 use pleiades_backend::Apparentness;
 use pleiades_houses::HouseError;
 use pleiades_types::{
-    Angle, CelestialBody, Instant, MotionDirection, ObserverLocation, ZodiacMode,
+    Angle, CelestialBody, Instant, MotionDirection, ObserverLocation, SiderealStarPlace, ZodiacMode,
 };
 
 use super::aspects::{
@@ -32,7 +32,7 @@ use pleiades_houses::HouseSnapshot;
 /// # Example
 ///
 /// ```
-/// use pleiades_core::{Apparentness, BackendId, ChartSnapshot};
+/// use pleiades_core::{Apparentness, BackendId, ChartSnapshot, SiderealStarPlace};
 /// use pleiades_types::{Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale, ZodiacMode};
 ///
 /// let snapshot = ChartSnapshot {
@@ -46,6 +46,7 @@ use pleiades_houses::HouseSnapshot;
 ///     body_observer: None,
 ///     zodiac_mode: ZodiacMode::Tropical,
 ///     apparentness: Apparentness::Mean,
+///     sidereal_star_place: SiderealStarPlace::Mean,
 ///     houses: None,
 ///     placements: Vec::new(),
 /// };
@@ -72,6 +73,9 @@ pub struct ChartSnapshot {
     /// keeps its mean place under an `Apparent` request: see
     /// [`Self::apparentness_applied`].
     pub apparentness: Apparentness,
+    /// The anchor-star place the chart's sidereal zodiac was read from
+    /// ([`ChartRequest::with_sidereal_star_place`](crate::ChartRequest::with_sidereal_star_place)).
+    pub sidereal_star_place: SiderealStarPlace,
     /// Optional house snapshot.
     pub houses: Option<HouseSnapshot>,
     /// Ordered body placements.
@@ -209,7 +213,7 @@ impl ChartSnapshot {
     /// # Example
     ///
     /// ```
-    /// use pleiades_core::{Apparentness, BackendId, ChartSnapshot};
+    /// use pleiades_core::{Apparentness, BackendId, ChartSnapshot, SiderealStarPlace};
     /// use pleiades_types::{Instant, JulianDay, Latitude, Longitude, TimeScale, ZodiacMode};
     ///
     /// let snapshot = ChartSnapshot {
@@ -223,6 +227,7 @@ impl ChartSnapshot {
     ///     )),
     ///     zodiac_mode: ZodiacMode::Tropical,
     ///     apparentness: Apparentness::Mean,
+    ///     sidereal_star_place: SiderealStarPlace::Mean,
     ///     houses: None,
     ///     placements: Vec::new(),
     /// };
@@ -312,7 +317,7 @@ impl ChartSnapshot {
     /// # Example
     ///
     /// ```
-    /// use pleiades_core::{Apparentness, BackendId, ChartSnapshot};
+    /// use pleiades_core::{Apparentness, BackendId, ChartSnapshot, SiderealStarPlace};
     /// use pleiades_types::{Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale, ZodiacMode};
     ///
     /// let snapshot = ChartSnapshot {
@@ -326,6 +331,7 @@ impl ChartSnapshot {
     ///     )),
     ///     zodiac_mode: ZodiacMode::Tropical,
     ///     apparentness: Apparentness::Mean,
+    ///     sidereal_star_place: SiderealStarPlace::Mean,
     ///     houses: None,
     ///     placements: Vec::new(),
     /// };
@@ -361,7 +367,7 @@ impl ChartSnapshot {
     /// # Example
     ///
     /// ```
-    /// use pleiades_core::{Apparentness, BackendId, ChartSnapshot};
+    /// use pleiades_core::{Apparentness, BackendId, ChartSnapshot, SiderealStarPlace};
     /// use pleiades_types::{Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale, ZodiacMode};
     ///
     /// let snapshot = ChartSnapshot {
@@ -379,6 +385,7 @@ impl ChartSnapshot {
     ///     )),
     ///     zodiac_mode: ZodiacMode::Tropical,
     ///     apparentness: Apparentness::Mean,
+    ///     sidereal_star_place: SiderealStarPlace::Mean,
     ///     houses: None,
     ///     placements: Vec::new(),
     /// };
@@ -419,7 +426,7 @@ impl ChartSnapshot {
     /// # Example
     ///
     /// ```
-    /// use pleiades_core::{Apparentness, BackendId, ChartSnapshot};
+    /// use pleiades_core::{Apparentness, BackendId, ChartSnapshot, SiderealStarPlace};
     /// use pleiades_types::{Instant, JulianDay, TimeScale, ZodiacMode};
     ///
     /// let snapshot = ChartSnapshot {
@@ -429,6 +436,7 @@ impl ChartSnapshot {
     ///     body_observer: None,
     ///     zodiac_mode: ZodiacMode::Tropical,
     ///     apparentness: Apparentness::Apparent,
+    ///     sidereal_star_place: SiderealStarPlace::Mean,
     ///     houses: None,
     ///     placements: Vec::new(),
     /// };
@@ -511,7 +519,7 @@ impl ChartSnapshot {
     ///
     /// ```
     /// use pleiades_backend::{Apparentness, BackendId, EphemerisResult};
-    /// use pleiades_core::{BodyPlacement, ChartSnapshot};
+    /// use pleiades_core::{BodyPlacement, ChartSnapshot, SiderealStarPlace};
     /// use pleiades_types::{CelestialBody, CoordinateFrame, Instant, JulianDay, TimeScale, ZodiacMode, ZodiacSign};
     ///
     /// let instant = Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tt);
@@ -531,6 +539,7 @@ impl ChartSnapshot {
     ///     body_observer: None,
     ///     zodiac_mode: ZodiacMode::Tropical,
     ///     apparentness: Apparentness::Mean,
+    ///     sidereal_star_place: SiderealStarPlace::Mean,
     ///     houses: None,
     ///     placements: vec![BodyPlacement {
     ///         body: CelestialBody::Sun,
@@ -783,6 +792,14 @@ impl fmt::Display for ChartSnapshot {
             )?;
         }
         writeln!(f, "Zodiac mode: {}", self.zodiac_mode)?;
+        if matches!(self.zodiac_mode, ZodiacMode::Sidereal { .. })
+            && self.sidereal_star_place == SiderealStarPlace::Apparent
+        {
+            writeln!(
+                f,
+                "Sidereal star place: apparent (anchor star's light deflection and annual aberration)"
+            )?;
+        }
         writeln!(f, "Apparentness: {}", self.apparentness_label())?;
         if let Some(houses) = &self.houses {
             let house_name = crate::house_system_descriptor(&houses.system)
