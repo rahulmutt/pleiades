@@ -427,7 +427,7 @@ fn batch_query_preserves_reference_snapshot_order_and_equatorial_values() {
             .expect("reference snapshot entries should include ecliptic coordinates");
         assert_eq!(ecliptic, entry.ecliptic());
 
-        let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
+        let expected_equatorial = ecliptic.to_j2000_equatorial();
         let equatorial = result
             .equatorial
             .expect("equatorial coordinates should be present for equatorial batch requests");
@@ -462,7 +462,7 @@ fn batch_query_preserves_mixed_frame_requests_and_values() {
             .expect("reference snapshot entries should include ecliptic coordinates");
         assert_eq!(ecliptic, entry.ecliptic());
 
-        let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
+        let expected_equatorial = ecliptic.to_j2000_equatorial();
         let equatorial = result
             .equatorial
             .expect("equatorial coordinates should be present for mixed frame batch requests");
@@ -798,7 +798,7 @@ fn j2000_equatorial_request_is_supported() {
     let ecliptic = result
         .ecliptic
         .expect("equatorial requests should still populate ecliptic coordinates");
-    let expected = ecliptic.to_equatorial(request.instant.mean_obliquity());
+    let expected = ecliptic.to_j2000_equatorial();
     let equatorial = result
         .equatorial
         .expect("equatorial coordinates should be present");

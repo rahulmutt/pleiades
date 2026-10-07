@@ -730,7 +730,7 @@ pub fn validate_reference_asteroid_equatorial_evidence(
             Latitude::from_degrees(exact_sample.latitude_deg),
             Some(exact_sample.distance_au),
         );
-        let expected_equatorial = exact_ecliptic.to_equatorial(exact_sample.epoch.mean_obliquity());
+        let expected_equatorial = exact_ecliptic.to_j2000_equatorial();
         let actual_equatorial = &sample.equatorial;
 
         if (actual_equatorial.right_ascension.degrees()

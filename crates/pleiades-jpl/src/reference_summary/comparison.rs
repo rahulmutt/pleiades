@@ -773,7 +773,7 @@ pub fn comparison_snapshot_batch_parity_summary() -> Option<ComparisonSnapshotBa
         }
 
         if request.frame == CoordinateFrame::Equatorial {
-            let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
+            let expected_equatorial = ecliptic.to_j2000_equatorial();
             let equatorial = result
                 .equatorial
                 .as_ref()

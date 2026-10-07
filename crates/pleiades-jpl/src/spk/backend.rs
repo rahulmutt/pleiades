@@ -215,7 +215,7 @@ impl EphemerisBackend for SpkBackend {
             req.apparent,
         );
         result.ecliptic = Some(ecliptic);
-        result.equatorial = Some(ecliptic.to_equatorial(req.instant.mean_obliquity()));
+        result.equatorial = Some(ecliptic.to_j2000_equatorial());
         result.motion = None::<Motion>;
         result.quality = QualityAnnotation::Exact;
         Ok(result)

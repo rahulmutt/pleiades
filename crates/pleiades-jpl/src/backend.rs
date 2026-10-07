@@ -267,7 +267,7 @@ impl EphemerisBackend for JplSnapshotBackend {
         );
         let ecliptic = resolved.entry.ecliptic();
         result.ecliptic = Some(ecliptic);
-        result.equatorial = Some(ecliptic.to_equatorial(req.instant.mean_obliquity()));
+        result.equatorial = Some(ecliptic.to_j2000_equatorial());
         result.motion = None::<Motion>;
         result.quality = resolved.quality;
         Ok(result)
@@ -338,7 +338,7 @@ impl EphemerisBackend for SnapshotCorpusBackend {
         );
         let ecliptic = resolved.entry.ecliptic();
         result.ecliptic = Some(ecliptic);
-        result.equatorial = Some(ecliptic.to_equatorial(req.instant.mean_obliquity()));
+        result.equatorial = Some(ecliptic.to_j2000_equatorial());
         result.motion = None::<Motion>;
         result.quality = resolved.quality;
         Ok(result)
@@ -1880,7 +1880,7 @@ pub(crate) fn reference_asteroid_equatorial_evidence_list(
                     ReferenceAsteroidEquatorialEvidence {
                         body: sample.body.clone(),
                         epoch: sample.epoch,
-                        equatorial: ecliptic.to_equatorial(sample.epoch.mean_obliquity()),
+                        equatorial: ecliptic.to_j2000_equatorial(),
                     }
                 })
                 .collect()

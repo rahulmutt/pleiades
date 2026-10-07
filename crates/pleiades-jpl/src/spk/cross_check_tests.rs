@@ -112,3 +112,47 @@ fn spk_reduction_is_j2000_frame_at_non_j2000_epoch() {
         (ec.latitude.degrees() - of_date_lat).abs() * 3600.0
     );
 }
+
+// Issue #210: the SPK equatorial channel is the kernel's own ICRF direction.
+// The ε₀ rotation to the ecliptic and back must cancel at every epoch.
+#[test]
+fn spk_equatorial_channel_is_the_kernel_icrf_direction() {
+    let body_icrf = [1.2e8, -3.4e7, 5.6e6]; // km, ICRF
+    let blob = build_daf(&[
+        const_seg(10, 0, body_icrf),
+        const_seg(399, 3, [0.0, 0.0, 0.0]),
+        const_seg(3, 0, [0.0, 0.0, 0.0]),
+    ]);
+    let backend = SpkBackend::builder()
+        .add_kernel_bytes(blob, "x")
+        .unwrap()
+        .build();
+    let (x, y, z) = (body_icrf[0], body_icrf[1], body_icrf[2]);
+    let r = (x * x + y * y + z * z).sqrt();
+    let want_ra = y.atan2(x).to_degrees().rem_euclid(360.0);
+    let want_dec = (z / r).asin().to_degrees();
+    for jd in [2_415_020.5, 2_451_545.0, 2_488_069.5] {
+        let inst = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
+        let eq = backend
+            .position(&pleiades_backend::EphemerisRequest::new(
+                CelestialBody::Sun,
+                inst,
+            ))
+            .unwrap()
+            .equatorial
+            .expect("equatorial");
+        // 1e-6 arcsec in degrees, with headroom for two rotations' round-off.
+        let tol = 1e-9 / 3600.0 * 1e3;
+        let (dra, ddec) = (
+            (eq.right_ascension.degrees() - want_ra).abs(),
+            (eq.declination.degrees() - want_dec).abs(),
+        );
+        eprintln!(
+            "JD {jd} dRA {} arcsec dDec {} arcsec",
+            dra * 3600.0,
+            ddec * 3600.0
+        );
+        assert!(dra < tol, "JD {jd} RA");
+        assert!(ddec < tol, "JD {jd} Dec");
+    }
+}

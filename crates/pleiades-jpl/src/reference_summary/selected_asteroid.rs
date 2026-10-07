@@ -2083,8 +2083,7 @@ impl SelectedAsteroidBatchParitySummary {
                     continue;
                 }
             };
-            parity_preserved &=
-                equatorial == ecliptic.to_equatorial(result.instant.mean_obliquity());
+            parity_preserved &= equatorial == ecliptic.to_j2000_equatorial();
         }
 
         if self.parity_preserved != parity_preserved {
@@ -2131,7 +2130,7 @@ pub(crate) fn selected_asteroid_batch_parity_summary_details(
             parity_preserved = false;
             continue;
         };
-        parity_preserved &= equatorial == ecliptic.to_equatorial(result.instant.mean_obliquity());
+        parity_preserved &= equatorial == ecliptic.to_j2000_equatorial();
     }
 
     let first = requests.first()?;

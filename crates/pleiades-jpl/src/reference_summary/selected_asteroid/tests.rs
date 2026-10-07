@@ -143,7 +143,7 @@ fn selected_asteroid_source_requests_preserve_the_source_slice() {
             .expect("selected asteroid source rows should include ecliptic coordinates");
         assert_eq!(ecliptic, entry.ecliptic());
 
-        let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
+        let expected_equatorial = ecliptic.to_j2000_equatorial();
         let equatorial = result
             .equatorial
             .expect("selected asteroid source rows should include equatorial coordinates");
@@ -191,7 +191,7 @@ fn selected_asteroid_source_batch_parity_requests_preserve_the_source_slice() {
             .expect("selected asteroid source rows should include ecliptic coordinates");
         assert_eq!(ecliptic, entry.ecliptic());
 
-        let expected_equatorial = ecliptic.to_equatorial(result.instant.mean_obliquity());
+        let expected_equatorial = ecliptic.to_j2000_equatorial();
         let equatorial = result
             .equatorial
             .expect("selected asteroid source rows should include equatorial coordinates");
