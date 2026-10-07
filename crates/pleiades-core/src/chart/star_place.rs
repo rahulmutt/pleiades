@@ -3,7 +3,8 @@
 use pleiades_apparent::nutation::mean_obliquity_degrees;
 use pleiades_apparent::{apparent_star_place, polar_projection_deg};
 use pleiades_ayanamsa::{anchor_star_mean_place, star_anchor, AnchorProjection};
-use pleiades_types::{Angle, Ayanamsa, Instant};
+use pleiades_backend::Apparentness;
+use pleiades_types::{Angle, Ayanamsa, Instant, SiderealStarPlace, ZodiacMode};
 
 fn wrap180(degrees: f64) -> f64 {
     (degrees + 540.0).rem_euclid(360.0) - 180.0
@@ -46,6 +47,21 @@ pub fn apparent_star_ayanamsa_correction(ayanamsa: &Ayanamsa, instant: Instant) 
         _ => return None,
     };
     Some(Angle::from_degrees(degrees))
+}
+
+/// Whether a chart with these settings reads its sidereal zodiac from the
+/// anchor star's apparent place: an apparent chart, in a sidereal zodiac whose
+/// ayanamsa has a star anchor, asking for [`SiderealStarPlace::Apparent`]. A
+/// mean chart and every other ayanamsa keep the mean ayanamsa (spec
+/// amendments 5 and 6), so the output names the apparent star place only here.
+pub(crate) fn apparent_star_place_applies(
+    zodiac_mode: &ZodiacMode,
+    apparentness: Apparentness,
+    star_place: SiderealStarPlace,
+) -> bool {
+    matches!(apparentness, Apparentness::Apparent)
+        && star_place == SiderealStarPlace::Apparent
+        && matches!(zodiac_mode, ZodiacMode::Sidereal { ayanamsa } if star_anchor(ayanamsa).is_some())
 }
 
 #[cfg(test)]

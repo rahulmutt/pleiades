@@ -73,6 +73,18 @@ impl SharedArgs {
         if self.star_place.is_some() && self.ayanamsa.is_none() {
             return Err("--star-place requires --ayanamsa".to_string());
         }
+        // Only the apparent geocentric frame reads the anchor star's apparent
+        // place; the mean-of-date and heliocentric frames keep the mean ayanamsa.
+        if self.star_place == Some(SiderealStarPlace::Apparent)
+            && self
+                .frame
+                .is_some_and(|frame| frame != CrossingFrame::GeocentricApparentOfDate)
+        {
+            return Err(
+                "--star-place apparent requires the apparent geocentric frame (drop --frame mean/helio)"
+                    .to_string(),
+            );
+        }
         let directed = self.next || self.previous;
         if directed && (self.from.is_some() || self.to.is_some()) {
             return Err("--next/--previous cannot be combined with --from/--to".to_string());
@@ -219,7 +231,9 @@ fn render(
     none: &str,
 ) -> String {
     let reference = shared.reference();
-    let star_place = if shared.star_place == Some(SiderealStarPlace::Apparent) {
+    let star_place = if shared.star_place == Some(SiderealStarPlace::Apparent)
+        && reference.frame == CrossingFrame::GeocentricApparentOfDate
+    {
         ", apparent star place"
     } else {
         ""

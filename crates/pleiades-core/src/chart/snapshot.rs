@@ -792,9 +792,11 @@ impl fmt::Display for ChartSnapshot {
             )?;
         }
         writeln!(f, "Zodiac mode: {}", self.zodiac_mode)?;
-        if matches!(self.zodiac_mode, ZodiacMode::Sidereal { .. })
-            && self.sidereal_star_place == SiderealStarPlace::Apparent
-        {
+        if super::star_place::apparent_star_place_applies(
+            &self.zodiac_mode,
+            self.apparentness,
+            self.sidereal_star_place,
+        ) {
             writeln!(
                 f,
                 "Sidereal star place: apparent (anchor star's light deflection and annual aberration)"

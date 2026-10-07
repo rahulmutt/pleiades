@@ -503,6 +503,71 @@ fn stations_accept_an_apparent_star_place() {
 }
 
 #[test]
+fn event_commands_reject_an_apparent_star_place_outside_the_apparent_geocentric_frame() {
+    for frame in ["mean", "helio"] {
+        for command in [
+            &["stations", "--body", "Mercury"][..],
+            &["aspects", "--pair", "Sun,Mars", "--angle", "90"][..],
+        ] {
+            let mut args = command.to_vec();
+            args.extend([
+                "--next",
+                "--at",
+                J2000,
+                "--frame",
+                frame,
+                "--ayanamsa",
+                "True Citra",
+                "--star-place",
+                "apparent",
+            ]);
+            let message = error(&args);
+            assert!(
+                message.contains(
+                    "--star-place apparent requires the apparent geocentric frame (drop --frame mean/helio)"
+                ),
+                "{frame} {command:?}: {message}"
+            );
+        }
+    }
+    // The mean star place stays fine in every frame, and its header names none.
+    let out = run(&[
+        "stations",
+        "--body",
+        "Mercury",
+        "--next",
+        "--at",
+        J2000,
+        "--frame",
+        "helio",
+        "--ayanamsa",
+        "True Citra",
+        "--star-place",
+        "mean",
+    ]);
+    assert!(!out.contains("star place"), "{out}");
+}
+
+#[test]
+fn stations_name_the_apparent_star_place_in_the_explicit_geocentric_frame() {
+    let out = run(&[
+        "stations",
+        "--body",
+        "Mercury",
+        "--next",
+        "--at",
+        J2000,
+        "--frame",
+        "geo",
+        "--ayanamsa",
+        "True Citra",
+        "--star-place",
+        "apparent",
+    ]);
+    assert!(out.contains(", apparent star place)"), "{out}");
+}
+
+#[test]
 fn aspects_reject_a_star_place_without_an_ayanamsa() {
     let message = error(&[
         "aspects",

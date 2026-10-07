@@ -79,6 +79,37 @@ fn chart_command_rejects_a_star_place_without_an_ayanamsa() {
 }
 
 #[test]
+fn chart_command_rejects_an_apparent_star_place_in_a_mean_chart() {
+    let base = ["--jd", "2460000.5", "--ayanamsa", "True Citra", "--mean"];
+    let mut args = base.to_vec();
+    args.extend(["--star-place", "apparent"]);
+    let err = render_chart(&args).unwrap_err();
+    assert_eq!(
+        err,
+        "--star-place apparent requires an apparent chart (drop --mean)"
+    );
+    let mut args = base.to_vec();
+    args.extend(["--star-place", "mean"]);
+    render_chart(&args).expect("--star-place mean with --mean is fine");
+}
+
+#[test]
+fn chart_command_does_not_announce_an_apparent_star_place_for_an_unanchored_ayanamsa() {
+    let rendered = render_chart(&[
+        "--jd",
+        "2460000.5",
+        "--ayanamsa",
+        "Lahiri",
+        "--star-place",
+        "apparent",
+        "--body",
+        "Sun",
+    ])
+    .expect("chart");
+    assert!(!rendered.contains("Sidereal star place"), "{rendered}");
+}
+
+#[test]
 fn chart_command_rejects_an_unknown_star_place() {
     let err = render_chart(&[
         "--jd",

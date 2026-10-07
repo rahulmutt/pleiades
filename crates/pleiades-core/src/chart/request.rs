@@ -772,9 +772,11 @@ impl ChartRequest {
             self.observer_summary(),
             house_system,
         );
-        if matches!(self.zodiac_mode, ZodiacMode::Sidereal { .. })
-            && self.sidereal_star_place == SiderealStarPlace::Apparent
-        {
+        if super::star_place::apparent_star_place_applies(
+            &self.zodiac_mode,
+            self.apparentness,
+            self.sidereal_star_place,
+        ) {
             summary.push_str("; sidereal star place=apparent");
         }
         summary

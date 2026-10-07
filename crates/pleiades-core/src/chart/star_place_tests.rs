@@ -199,6 +199,34 @@ fn display_names_the_apparent_star_place_only_when_it_applies() {
         apparent.contains("Sidereal star place: apparent"),
         "{apparent}"
     );
+    // Neither a mean chart nor an unanchored ayanamsa applies the correction,
+    // so neither announces it.
+    let mean_chart = chart(
+        &request(Ayanamsa::TrueCitra, SiderealStarPlace::Apparent)
+            .with_apparentness(Apparentness::Mean),
+    )
+    .to_string();
+    assert!(!mean_chart.contains("Sidereal star place"), "{mean_chart}");
+    let unanchored = chart(&request(Ayanamsa::Lahiri, SiderealStarPlace::Apparent)).to_string();
+    assert!(!unanchored.contains("Sidereal star place"), "{unanchored}");
+}
+
+#[test]
+fn the_request_summary_names_the_apparent_star_place_only_when_it_applies() {
+    let suffix = "sidereal star place=apparent";
+    let applies = request(Ayanamsa::TrueCitra, SiderealStarPlace::Apparent);
+    assert!(applies.summary_line().contains(suffix));
+    assert!(!request(Ayanamsa::TrueCitra, SiderealStarPlace::Mean)
+        .summary_line()
+        .contains(suffix));
+    assert!(!applies
+        .clone()
+        .with_apparentness(Apparentness::Mean)
+        .summary_line()
+        .contains(suffix));
+    assert!(!request(Ayanamsa::Lahiri, SiderealStarPlace::Apparent)
+        .summary_line()
+        .contains(suffix));
 }
 
 fn native_sidereal_request(ayanamsa: Ayanamsa, star_place: SiderealStarPlace) -> ChartRequest {
@@ -243,5 +271,6 @@ fn a_native_sidereal_backend_serves_the_mean_star_place_and_unanchored_ayanamsas
     ] {
         let snapshot = engine.chart(&request).expect("chart succeeds");
         assert_eq!(snapshot.placements.len(), 1, "{request}");
+        assert!(!snapshot.to_string().contains("Sidereal star place"));
     }
 }

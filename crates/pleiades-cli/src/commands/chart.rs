@@ -508,6 +508,9 @@ pub(crate) fn render_chart(args: &[&str]) -> Result<String, String> {
     if star_place.is_some() && !matches!(zodiac_mode, ZodiacMode::Sidereal { .. }) {
         return Err("--star-place requires --ayanamsa".to_string());
     }
+    if star_place == Some(SiderealStarPlace::Apparent) && apparentness == Apparentness::Mean {
+        return Err("--star-place apparent requires an apparent chart (drop --mean)".to_string());
+    }
     if topocentric && apparentness == Apparentness::Mean {
         return Err("topocentric positions require apparent place; remove --mean".to_string());
     }
