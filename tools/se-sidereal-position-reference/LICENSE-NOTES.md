@@ -9,8 +9,9 @@ stays pure-Rust (no `-sys`/FFI), which the `workspace-audit` gate enforces.
 Its sole purpose is to link Swiss Ephemeris (via `swisseph` / `libswisseph-sys`)
 to **generate a geometric sidereal position reference corpus** (longitude,
 latitude and longitude speed of the Sun, the Moon and Mercury–Pluto in four
-sidereal zodiacs) used to validate the mean sidereal charts of the pure-Rust
-`pleiades-core` chart layer. It runs the Moshier ephemeris (`SEFLG_MOSEPH`), so
+sidereal zodiacs, plus apparent rows for the Sun, the Moon and Mars in two
+star-anchored zodiacs) used to validate the mean and apparent sidereal charts
+of the pure-Rust `pleiades-core` chart layer. It runs the Moshier ephemeris (`SEFLG_MOSEPH`), so
 no Swiss Ephemeris data files are bundled or distributed.
 
 ## Swiss Ephemeris licensing
