@@ -7,8 +7,8 @@
 //! order, each with its civil time and its TDB Julian day.
 
 use pleiades_core::{
-    Angle, Ayanamsa, CelestialBody, CivilDateTime, CivilTimeError, Instant, JulianDay,
-    SiderealStarPlace, TimeScale,
+    apparent_star_ayanamsa_correction, Angle, Ayanamsa, CelestialBody, CivilDateTime,
+    CivilTimeError, Instant, JulianDay, SiderealStarPlace, TimeScale,
 };
 use pleiades_events::{
     AspectEvent, CrossingFrame, CrossingReference, EventEngine, EventError, Station, StationKind,
@@ -21,13 +21,23 @@ use crate::parse::{parse_ayanamsa, parse_body, parse_f64, parse_star_place};
 
 const STATIONS_USAGE: &str = "Usage:\n  stations --body <name> [--body <name> ...] (--from <instant> --to <instant> | (--next|--previous) --at <instant>) [--frame geo|mean|helio] [--ayanamsa <name>] [--star-place mean|apparent]";
 const ASPECTS_USAGE: &str = "Usage:\n  aspects --pair <first>,<second> [--pair ...] --angle <degrees> [--angle ...] (--from <instant> --to <instant> | (--next|--previous) --at <instant>) [--frame geo|mean|helio] [--ayanamsa <name>] [--star-place mean|apparent]";
-const SHARED_HELP: &str = "  <instant> is a TDB Julian day (2451545.0) or a civil datetime YYYY-MM-DDTHH:MM:SS,\n  read as UTC from 1972 on and as UT1 before.\n  --from/--to list every event in the range; --next/--previous with --at give one event\n  per body (stations) or per pair and angle (aspects).\n  --frame is geo (apparent geocentric, the default), mean (mean geocentric of date) or helio.\n  --ayanamsa reads longitudes in a sidereal zodiac.\n  --star-place apparent reads a star-anchored ayanamsa from its anchor star's apparent place (Swiss Ephemeris default).\n  Each line gives the event's civil time (UTC from 1972, UT1 before), its TDB Julian day,\n  and the event.";
+const SHARED_HELP: &str = "  <instant> is a TDB Julian day (2451545.0) or a civil datetime YYYY-MM-DDTHH:MM:SS,\n  read as UTC from 1972 on and as UT1 before.\n  --from/--to list every event in the range; --next/--previous with --at give one event\n  per body (stations) or per pair and angle (aspects).\n  --frame is geo (apparent geocentric, the default), mean (mean geocentric of date) or helio.\n  --ayanamsa reads longitudes in a sidereal zodiac.\n  --star-place apparent reads a star-anchored ayanamsa (True Citra/True Chitra, True Revati, True Pushya, True Mula, True Sheoran, and the Galactic Center modes other than Mardyks)\n  from its anchor star's apparent place (Swiss Ephemeris default); Galactic Center (Mardyks), the galactic-equator modes and every other ayanamsa are unaffected.\n  Each line gives the event's civil time (UTC from 1972, UT1 before), its TDB Julian day,\n  and the event.";
 
 /// Which events a command searches for.
 enum Search {
     Range { from: Instant, to: Instant },
     Next(Instant),
     Previous(Instant),
+}
+
+impl Search {
+    /// The instant the search starts from.
+    fn start(&self) -> Instant {
+        match self {
+            Self::Range { from, .. } => *from,
+            Self::Next(at) | Self::Previous(at) => *at,
+        }
+    }
 }
 
 /// The flags both event commands share.
@@ -223,9 +233,14 @@ fn aspect_line(event: &AspectEvent) -> Result<Line, String> {
 
 /// The header line, then the events in time order, then a note for each search
 /// the window cut short; a line saying there are none when there is neither.
+///
+/// The header names the apparent star place only where it changes the zodiac:
+/// the apparent geocentric frame and an ayanamsa with a star anchor, as the
+/// chart output does (issue #225).
 fn render(
     title: &str,
     shared: &SharedArgs,
+    search: &Search,
     mut lines: Vec<Line>,
     notes: &[String],
     none: &str,
@@ -233,7 +248,9 @@ fn render(
     let reference = shared.reference();
     let star_place = if shared.star_place == Some(SiderealStarPlace::Apparent)
         && reference.frame == CrossingFrame::GeocentricApparentOfDate
-    {
+        && shared.ayanamsa.as_ref().is_some_and(|ayanamsa| {
+            apparent_star_ayanamsa_correction(ayanamsa, search.start()).is_some()
+        }) {
         ", apparent star place"
     } else {
         ""
@@ -383,6 +400,7 @@ pub(crate) fn render_stations(args: &[&str]) -> Result<String, String> {
     Ok(render(
         "Stations",
         &shared,
+        &search,
         lines,
         &notes,
         "no stations found",
@@ -465,6 +483,7 @@ pub(crate) fn render_aspects(args: &[&str]) -> Result<String, String> {
     Ok(render(
         "Aspects",
         &shared,
+        &search,
         lines,
         &notes,
         "no aspects found",

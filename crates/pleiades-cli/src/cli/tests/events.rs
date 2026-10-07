@@ -567,6 +567,31 @@ fn stations_name_the_apparent_star_place_in_the_explicit_geocentric_frame() {
     assert!(out.contains(", apparent star place)"), "{out}");
 }
 
+// Issue #225: an ayanamsa with no star anchor takes no correction, so the
+// header does not claim one, as the chart output does not.
+#[test]
+fn event_headers_omit_the_apparent_star_place_for_an_unanchored_ayanamsa() {
+    for ayanamsa in ["Lahiri", "Galactic Center (Mardyks)"] {
+        for command in [
+            &["stations", "--body", "Mercury"][..],
+            &["aspects", "--pair", "Sun,Mars", "--angle", "90"][..],
+        ] {
+            let mut args = command.to_vec();
+            args.extend([
+                "--next",
+                "--at",
+                J2000,
+                "--ayanamsa",
+                ayanamsa,
+                "--star-place",
+                "apparent",
+            ]);
+            let out = run(&args);
+            assert!(!out.contains("star place"), "{ayanamsa} {command:?}: {out}");
+        }
+    }
+}
+
 #[test]
 fn aspects_reject_a_star_place_without_an_ayanamsa() {
     let message = error(&[
