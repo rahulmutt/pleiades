@@ -1,6 +1,7 @@
 //! White-box checks of the aspect finder's pure pieces.
 
-use super::{finite_longitude, levels_for, search_step};
+use super::{finite_longitude, levels_for, search_step, separation_bound};
+use crate::crossings::CrossingFrame;
 use crate::error::EventError;
 use pleiades_types::{Angle, CelestialBody};
 
@@ -66,6 +67,34 @@ fn a_non_finite_longitude_is_missing_coordinates() {
                 julian_day: 2_451_545.0,
             }),
             "{degrees}"
+        );
+    }
+}
+
+#[test]
+fn only_inner_planet_pairs_in_geocentric_frames_are_bounded() {
+    use CelestialBody::{Ceres, Jupiter, Mars, Mercury, Moon, Sun, Venus};
+    for frame in [
+        CrossingFrame::GeocentricApparentOfDate,
+        CrossingFrame::GeocentricMeanOfDate,
+    ] {
+        for (first, second, bound) in [
+            (Sun, Mercury, 28.5),
+            (Sun, Venus, 48.5),
+            (Mercury, Venus, 77.0),
+        ] {
+            assert_eq!(separation_bound(&first, &second, frame), Some(bound));
+            assert_eq!(separation_bound(&second, &first, frame), Some(bound));
+        }
+        for (first, second) in [(Sun, Mars), (Sun, Moon), (Mercury, Jupiter), (Ceres, Sun)] {
+            assert_eq!(separation_bound(&first, &second, frame), None);
+        }
+    }
+    // Seen from the Sun, the inner planets reach every separation.
+    for (first, second) in [(Mercury, Venus), (Venus, Mercury)] {
+        assert_eq!(
+            separation_bound(&first, &second, CrossingFrame::Heliocentric),
+            None
         );
     }
 }

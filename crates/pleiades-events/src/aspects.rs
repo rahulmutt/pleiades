@@ -77,6 +77,39 @@ fn search_step(first: &CelestialBody, second: &CelestialBody) -> f64 {
     step_days(first).min(step_days(second))
 }
 
+/// An upper bound on the unsigned separation of `first` and `second` in
+/// `frame`, for the pairs that cannot reach every angle (issue #168 (g)).
+/// An angle above it is answered without scanning the window.
+///
+/// Seen from the Earth, Mercury and Venus never get far from the Sun: their
+/// greatest elongations stay under about 27.8 and 47.8 degrees, so the two
+/// are never more than about 75.6 degrees apart. Measured over the window
+/// (`bounded_pairs_stay_well_inside_their_bound_all_window`), the widest
+/// separations are 27.79, 47.26 and 73.74 degrees; each bound leaves at least
+/// half a degree above its measurement. The bound holds in either geocentric
+/// frame and any zodiac, since an ayanamsa comes off both longitudes.
+///
+/// Every other pair returns `None` and is scanned, including the
+/// heliocentric frame, where the inner planets reach every separation, and
+/// asteroids and fictitious bodies, whose packaged data is not trusted for
+/// such a claim (issue #158).
+fn separation_bound(
+    first: &CelestialBody,
+    second: &CelestialBody,
+    frame: CrossingFrame,
+) -> Option<f64> {
+    use CelestialBody::{Mercury, Sun, Venus};
+    if frame == CrossingFrame::Heliocentric {
+        return None;
+    }
+    match (first, second) {
+        (Sun, Mercury) | (Mercury, Sun) => Some(28.5),
+        (Sun, Venus) | (Venus, Sun) => Some(48.5),
+        (Mercury, Venus) | (Venus, Mercury) => Some(77.0),
+        _ => None,
+    }
+}
+
 /// A finite longitude, or [`EventError::MissingCoordinates`]. A NaN must not
 /// reach the sign tests, where it would read as "no event".
 fn finite_longitude(
@@ -124,6 +157,9 @@ const WINDOW: Window = (WINDOW_START_JD, WINDOW_END_JD);
 struct Search {
     levels: Vec<f64>,
     step: f64,
+    /// The pair never reaches the angle ([`separation_bound`]): the finders
+    /// answer after one read instead of scanning.
+    unreachable: bool,
 }
 
 impl<B: EphemerisBackend> EventEngine<B> {
@@ -150,7 +186,17 @@ impl<B: EphemerisBackend> EventEngine<B> {
         check_supported(first, reference, instants_jd[0], "aspects are")?;
         check_supported(second, reference, instants_jd[0], "aspects are")?;
         let step = search_step(first, second);
-        Ok(Search { levels, step })
+        let unreachable = separation_bound(first, second, reference.frame)
+            .is_some_and(|bound| angle.degrees() > bound);
+        if unreachable {
+            // The one read an empty range gets, for the same backend errors.
+            separation(&self.backend, first, second, reference, instants_jd[0])?;
+        }
+        Ok(Search {
+            levels,
+            step,
+            unreachable,
+        })
     }
 
     fn aspect_at(
@@ -197,7 +243,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// including on an instant this engine returned.
     ///
     /// A pair that approaches the angle and turns back before reaching it
-    /// returns no event; that is not an error. An empty or inverted range
+    /// returns no event; that is not an error. Seen from the Earth, Mercury
+    /// stays within 28.5 degrees of the Sun, Venus within 48.5 degrees, and
+    /// the two within 77 degrees of each other; an angle beyond the pair's
+    /// bound returns an empty list without scanning the range. An empty or inverted range
     /// returns an empty list, but the scan still samples both bodies at its
     /// start, so a body the backend cannot serve still returns its error.
     ///
@@ -250,6 +299,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let start_jd = start.julian_day.days();
         let end_jd = end.julian_day.days();
         let search = self.aspect_search(&first, &second, angle, &reference, [start_jd, end_jd])?;
+        if search.unreachable {
+            return Ok(Vec::new());
+        }
         let roots = level_crossings_in_range(
             |jd| separation(&self.backend, &first, &second, &reference, jd),
             &search.levels,
@@ -276,9 +328,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// When the window ends before the next event, the result is
     /// [`EventError::OutOfWindow`] naming the instant one step past the window's end.
     /// That includes a pair that never reaches the angle (the Sun and Mercury
-    /// at 60 degrees), which is searched to the end of the window first: the
-    /// engine does not know which pairs can reach which angles. This search
-    /// never returns `Ok(None)`.
+    /// at 60 degrees). Seen from the Earth, the Sun, Mercury and Venus stay
+    /// within a bounded separation of each other, so an angle beyond it is
+    /// answered at once; any other pair is searched to the end of the window
+    /// first. This search never returns `Ok(None)`.
     ///
     /// The meaning of `angle`, the accuracy, the limits and the errors are
     /// those of [`EventEngine::aspects_in_range`].
@@ -318,6 +371,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let after_jd = after.julian_day.days();
         let search =
             self.aspect_search(&first, &second, angle, &reference, [after_jd, after_jd])?;
+        if search.unreachable {
+            return Err(past_window_end(search.step));
+        }
         let root = first_level_crossing_after(
             |jd| separation(&self.backend, &first, &second, &reference, jd),
             &search.levels,
@@ -353,13 +409,15 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// When the window starts before the previous event, the result is
     /// [`EventError::OutOfWindow`] naming the instant one step before the window's start.
     /// That includes a pair that never reaches the angle (the Sun and Mercury
-    /// at 60 degrees), which is searched to the start of the window first: the
-    /// engine does not know which pairs can reach which angles. This search
-    /// never returns `Ok(None)`.
+    /// at 60 degrees). Seen from the Earth, the Sun, Mercury and Venus stay
+    /// within a bounded separation of each other, so an angle beyond it is
+    /// answered at once; any other pair is searched to the start of the
+    /// window first. This search never returns `Ok(None)`.
     ///
     /// When the search reaches the window's first light-time in the apparent
     /// frame, for a body other than the Sun, the error comes from that read
-    /// and names its instant instead.
+    /// and names its instant instead. A pair answered at once never reaches
+    /// it.
     ///
     /// The meaning of `angle`, the accuracy, the limits and the errors are
     /// those of [`EventEngine::aspects_in_range`].
@@ -397,6 +455,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let before_jd = before.julian_day.days();
         let search =
             self.aspect_search(&first, &second, angle, &reference, [before_jd, before_jd])?;
+        if search.unreachable {
+            return Err(before_window_start(search.step));
+        }
         let root = last_level_crossing_before(
             |jd| separation(&self.backend, &first, &second, &reference, jd),
             &search.levels,

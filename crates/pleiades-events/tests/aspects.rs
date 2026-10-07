@@ -11,6 +11,7 @@ use pleiades_types::{Angle, Ayanamsa, CelestialBody, Instant, JulianDay, TimeSca
 
 const GEO: CrossingFrame = CrossingFrame::GeocentricApparentOfDate;
 const HELIO: CrossingFrame = CrossingFrame::Heliocentric;
+const MEAN: CrossingFrame = CrossingFrame::GeocentricMeanOfDate;
 const J2000: f64 = 2_451_545.0;
 /// Two seconds, in days: four times the bisection tolerance.
 const TWO_SECONDS: f64 = 2.0 / 86_400.0;
@@ -847,4 +848,164 @@ fn an_aspect_event_round_trips_through_serde() {
     let json = serde_json::to_string(&found[0]).expect("serialize");
     let back: AspectEvent = serde_json::from_str(&json).expect("deserialize");
     assert_eq!(back, found[0]);
+}
+
+// Issue #168 (g). The measurement behind the engine's separation bounds
+// (`aspects::separation_bound`): no bounded pair comes within half a degree
+// of its bound anywhere in the window. Measured 2026-10-07: Sun–Mercury
+// 27.79, Sun–Venus 47.26, Mercury–Venus 73.74 degrees. Sampled every 2 days;
+// near the greatest separation a 1-day offset costs under 0.05 degree, so
+// the half-degree margin covers what the grid misses. A sidereal zodiac
+// takes the same ayanamsa off both longitudes, so it gives the apparent
+// figures exactly and is not sampled again.
+#[test]
+#[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
+fn bounded_pairs_stay_well_inside_their_bound_all_window() {
+    let engine = EventEngine::new(packaged_backend());
+    for (first, second, bound) in BOUNDED_PAIRS {
+        for frame in [GEO, MEAN] {
+            let mut widest: f64 = 0.0;
+            let mut jd = WINDOW_START_JD + 1.0;
+            while jd < WINDOW_END_JD {
+                let lon = |body: &CelestialBody| {
+                    engine
+                        .longitude_at(body.clone(), frame, tdb(jd))
+                        .unwrap()
+                        .degrees()
+                };
+                let apart = (lon(&first) - lon(&second)).rem_euclid(360.0);
+                widest = widest.max(apart.min(360.0 - apart));
+                jd += 2.0;
+            }
+            assert!(
+                widest < bound - 0.5,
+                "{first:?}-{second:?} {frame:?}: {widest} vs bound {bound}"
+            );
+        }
+    }
+}
+
+/// The pairs the engine bounds, with the bound it uses.
+const BOUNDED_PAIRS: [(CelestialBody, CelestialBody, f64); 3] = [
+    (CelestialBody::Sun, CelestialBody::Mercury, 28.5),
+    (CelestialBody::Sun, CelestialBody::Venus, 48.5),
+    (CelestialBody::Mercury, CelestialBody::Venus, 77.0),
+];
+
+#[test]
+fn an_unreachable_angle_is_answered_without_scanning_the_window() {
+    let engine = EventEngine::new(packaged_backend());
+    let lahiri = CrossingReference::sidereal(GEO, Ayanamsa::Lahiri);
+    let first = tdb(WINDOW_START_JD + 1.0);
+    let last = tdb(WINDOW_END_JD - 1.0);
+    let past_end = Err(EventError::OutOfWindow {
+        julian_day: WINDOW_END_JD + 1.0,
+    });
+    let before_start = Err(EventError::OutOfWindow {
+        julian_day: WINDOW_START_JD - 1.0,
+    });
+    let angle = Angle::from_degrees;
+    let started = std::time::Instant::now();
+    assert_eq!(
+        engine.aspects_in_range(
+            CelestialBody::Sun,
+            CelestialBody::Mercury,
+            angle(60.0),
+            GEO,
+            first,
+            last
+        ),
+        Ok(Vec::new())
+    );
+    assert_eq!(
+        engine.next_aspect(
+            CelestialBody::Venus,
+            CelestialBody::Sun,
+            angle(90.0),
+            MEAN,
+            first
+        ),
+        past_end
+    );
+    assert_eq!(
+        engine.next_aspect(
+            CelestialBody::Mercury,
+            CelestialBody::Venus,
+            angle(180.0),
+            lahiri.clone(),
+            first
+        ),
+        past_end
+    );
+    // In the apparent frame too: the answer no longer depends on where the
+    // backward walk would have met the window's first light-time.
+    assert_eq!(
+        engine.previous_aspect(
+            CelestialBody::Venus,
+            CelestialBody::Mercury,
+            angle(120.0),
+            GEO,
+            last
+        ),
+        before_start
+    );
+    assert_eq!(
+        engine.previous_aspect(
+            CelestialBody::Sun,
+            CelestialBody::Venus,
+            angle(48.6),
+            lahiri,
+            last
+        ),
+        before_start
+    );
+    // A scan of the whole window is 73,000 one-day steps; the ceiling is
+    // generous against a loaded CI runner.
+    let elapsed = started.elapsed();
+    assert!(elapsed.as_secs_f64() < 5.0, "took {elapsed:?}");
+}
+
+#[test]
+fn an_angle_just_inside_the_bound_is_still_found() {
+    // Mercury's greatest elongations run from 18 to 28 degrees and Venus's
+    // reach 45 to 47; both are reached within a few years of J2000.
+    let mercury = aspects(
+        CelestialBody::Sun,
+        CelestialBody::Mercury,
+        27.0,
+        GEO,
+        J2000,
+        J2000 + 1826.0,
+    );
+    assert!(!mercury.is_empty());
+    assert_exact(&mercury, 27.0);
+    let venus = aspects(
+        CelestialBody::Venus,
+        CelestialBody::Sun,
+        45.0,
+        GEO,
+        J2000,
+        J2000 + 1826.0,
+    );
+    assert!(!venus.is_empty());
+    assert_exact(&venus, 45.0);
+}
+
+#[test]
+fn an_unreachable_angle_still_reports_a_backend_error() {
+    // The one read a bounded search makes keeps the scan's errors: the
+    // apparent Mercury cannot be read a light-time before the window's
+    // first instant.
+    let at_start = EventEngine::new(packaged_backend()).aspects_in_range(
+        CelestialBody::Sun,
+        CelestialBody::Mercury,
+        Angle::from_degrees(60.0),
+        GEO,
+        tdb(WINDOW_START_JD),
+        tdb(WINDOW_START_JD + 30.0),
+    );
+    assert!(
+        matches!(at_start, Err(EventError::OutOfWindow { .. })),
+        "{at_start:?}"
+    );
 }
