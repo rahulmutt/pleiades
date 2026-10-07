@@ -311,7 +311,7 @@ impl CompressedArtifact {
     ///
     /// This keeps the artifact format focused on the stored channels while still allowing
     /// the runtime to reconstruct a derived coordinate family when the caller supplies the
-    /// geometric obliquity used for the mean-obliquity frame rotation. The artifact profile
+    /// geometric obliquity used for the mean-obliquity frame rotation (the packaged backend passes the J2000 obliquity). The artifact profile
     /// must advertise `EquatorialCoordinates` as a derived output before this helper will
     /// serve the result.
     pub fn lookup_equatorial(

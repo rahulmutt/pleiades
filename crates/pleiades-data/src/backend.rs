@@ -545,7 +545,7 @@ mod coupling_fixture_tests {
         let expected: &[&str] = &[
             "Packaged body set: 11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)",
             "Packaged request policy: geocentric-only; frames=Ecliptic, Equatorial; time scales=TT, TDB; zodiac modes=Tropical; apparentness=Mean; topocentric observer=false; lookup epoch policy=TT-grid retag without relativistic correction; TDB lookup epochs are re-tagged onto the TT grid without applying a relativistic correction",
-            "checked-in compressed artifact stores J2000 ecliptic coordinates directly; equatorial coordinates are reconstructed from the stored channels and mean-obliquity transform",
+            "checked-in compressed artifact stores J2000 ecliptic coordinates directly; equatorial coordinates are reconstructed from the stored channels and J2000 mean-obliquity transform",
             "Quantized linear segments stored in pleiades-compression artifact format; body-indexed segment tables support random access by body and lookup time across the advertised range; ecliptic and equatorial coordinates are reconstructed at runtime from stored channels; apparent, topocentric, and sidereal outputs remain unsupported; motion/speed is derived from fitted segment derivatives",
             "packaged artifact access: checked-in fixture only; explicit artifact-path loading disabled",
         ];

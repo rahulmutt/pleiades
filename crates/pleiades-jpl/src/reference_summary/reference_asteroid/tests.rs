@@ -118,7 +118,7 @@ fn reference_asteroid_equatorial_evidence_summary_validation_rejects_transform_d
         summary.validate(),
         Err(
             ReferenceAsteroidEquatorialEvidenceSummaryValidationError::TransformNoteMismatch {
-                expected: "mean-obliquity equatorial transform",
+                expected: "J2000 mean-obliquity equatorial transform",
                 found: "broken transform",
             }
         )

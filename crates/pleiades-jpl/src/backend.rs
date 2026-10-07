@@ -178,7 +178,7 @@ impl EphemerisBackend for JplSnapshotBackend {
             version: "0.1.0".to_string(),
             family: BackendFamily::ReferenceData,
             provenance: BackendProvenance {
-                summary: "NASA/JPL Horizons DE441 geocentric fixture with exact epoch lookup, cubic interpolation on four-sample windows spanning at most 5 days, the Moon at exact rows only, and mean-obliquity equatorial output"
+                summary: "NASA/JPL Horizons DE441 geocentric fixture with exact epoch lookup, cubic interpolation on four-sample windows spanning at most 5 days, the Moon at exact rows only, and J2000 mean-obliquity equatorial output"
                     .to_string(),
                 data_sources: vec![
                     "NASA/JPL Horizons API vector tables (DE441)".to_string(),

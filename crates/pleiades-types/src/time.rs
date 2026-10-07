@@ -342,7 +342,7 @@ impl Instant {
     /// Returns the mean obliquity of the ecliptic for this instant.
     ///
     /// The value uses the shared cubic approximation currently used throughout
-    /// the workspace for mean-obliquity equatorial transforms. It is expressed
+    /// the workspace for precession-era obliquity values; the backends' J2000 equatorial channel uses OBLIQUITY_J2000_DEG instead. It is expressed
     /// as a typed angle so callers can pass it directly into coordinate
     /// conversion helpers.
     pub fn mean_obliquity(self) -> Angle {

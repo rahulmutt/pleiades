@@ -365,10 +365,10 @@ impl ReferenceAsteroidEquatorialEvidenceSummary {
                 },
             );
         }
-        if self.transform_note != "mean-obliquity equatorial transform" {
+        if self.transform_note != "J2000 mean-obliquity equatorial transform" {
             return Err(
                 ReferenceAsteroidEquatorialEvidenceSummaryValidationError::TransformNoteMismatch {
-                    expected: "mean-obliquity equatorial transform",
+                    expected: "J2000 mean-obliquity equatorial transform",
                     found: self.transform_note,
                 },
             );
@@ -399,7 +399,7 @@ pub(crate) fn reference_asteroid_equatorial_evidence_summary_details(
             sample_count: evidence.len(),
             sample_bodies: reference_asteroids().to_vec(),
             epoch: first.epoch,
-            transform_note: "mean-obliquity equatorial transform",
+            transform_note: "J2000 mean-obliquity equatorial transform",
         })
 }
 
@@ -504,7 +504,7 @@ impl fmt::Display for ReferenceAsteroidEvidenceValidationError {
 }
 
 /// Validation errors for the equatorial asteroid evidence corpus diverging
-/// from the derived mean-obliquity transform.
+/// from the derived J2000 mean-obliquity transform.
 ///
 /// Promoted to `pub` (Slice D Task 7) so validate's relocated
 /// `reference_asteroid_equatorial_evidence_summary_for_report` copy can call
@@ -579,15 +579,15 @@ impl fmt::Display for ReferenceAsteroidEquatorialEvidenceValidationError {
             ),
             Self::RightAscensionMismatch { index, body } => write!(
                 f,
-                "equatorial asteroid evidence right ascension diverges from the derived mean-obliquity transform at index {index} for body {body}"
+                "equatorial asteroid evidence right ascension diverges from the derived J2000 mean-obliquity transform at index {index} for body {body}"
             ),
             Self::DeclinationMismatch { index, body } => write!(
                 f,
-                "equatorial asteroid evidence declination diverges from the derived mean-obliquity transform at index {index} for body {body}"
+                "equatorial asteroid evidence declination diverges from the derived J2000 mean-obliquity transform at index {index} for body {body}"
             ),
             Self::DistanceMismatch { index, body } => write!(
                 f,
-                "equatorial asteroid evidence distance diverges from the derived mean-obliquity transform at index {index} for body {body}"
+                "equatorial asteroid evidence distance diverges from the derived J2000 mean-obliquity transform at index {index} for body {body}"
             ),
         }
     }
@@ -670,7 +670,7 @@ pub fn validate_reference_asteroid_evidence(
 }
 
 /// Validates the equatorial asteroid evidence corpus against the derived
-/// mean-obliquity transform of the exact evidence corpus. Promoted to `pub`
+/// J2000 mean-obliquity transform of the exact evidence corpus. Promoted to `pub`
 /// (Slice D Task 7) so validate's relocated
 /// `reference_asteroid_equatorial_evidence_summary_for_report` copy can call
 /// this validation gate instead of reproducing it.

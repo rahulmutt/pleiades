@@ -56,7 +56,13 @@ pub struct EphemerisResult {
     pub apparent: Apparentness,
     /// Ecliptic coordinates when available.
     pub ecliptic: Option<EclipticCoordinates>,
-    /// Equatorial coordinates when available.
+    /// Equatorial coordinates when available, in the frame the backend
+    /// documents. The first-party backends give the J2000 mean equator and
+    /// equinox (their J2000 ecliptic rotated by
+    /// [`OBLIQUITY_J2000_DEG`](pleiades_types::OBLIQUITY_J2000_DEG)), except
+    /// `ElpBackend`, whose channel is right ascension and declination of
+    /// date. A chart does not pass this channel through; it computes a mean
+    /// placement's J2000 coordinates itself (issue #210).
     pub equatorial: Option<EquatorialCoordinates>,
     /// Apparent motion when available.
     pub motion: Option<Motion>,

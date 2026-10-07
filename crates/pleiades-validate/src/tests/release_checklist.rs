@@ -476,7 +476,7 @@ fn release_summary_command_renders_the_quick_overview() {
     assert!(rendered.contains("Observer policy: chart houses use observer locations; chart body observers stay separate; body requests stay geocentric; geocentric-only backends reject observer-bearing requests with UnsupportedObserver; malformed observer coordinates remain InvalidObserver; chart-layer topocentric body positions are supported as an opt-in correction (diurnal parallax + diurnal aberration); native-backend topocentric remains unsupported"));
     assert!(rendered.contains("Apparentness policy: backends remain mean-only and J2000 at the backend boundary; apparent place of date (chart layer, default): light-time + precession-to-date + annual aberration + nutation-in-longitude, every body the backend serves, whatever its claim tier; gravitational light-deflection omitted"));
     assert!(rendered.contains("Native sidereal policy: native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
-    assert!(rendered.contains("Frame policy: ecliptic body positions are the default request shape; at the backend boundary equatorial output is derived via mean-obliquity transforms when supported, while the chart layer reports apparent equatorial of date (true obliquity = mean obliquity + nutation-in-obliquity) for every apparent placement; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
+    assert!(rendered.contains("Frame policy: ecliptic body positions are the default request shape; at the backend boundary equatorial output is derived via J2000 mean-obliquity transforms when supported, while the chart layer reports apparent equatorial of date (true obliquity = mean obliquity + nutation-in-obliquity) for every apparent placement; supported equatorial precision is bounded by the shared mean-obliquity frame round-trip envelope; native sidereal backend output remains unsupported unless a backend explicitly advertises it"));
     assert_eq!(
         render_cli(&["time-scale-policy"]).expect("time-scale policy alias should render"),
         render_time_scale_policy_summary_text()
@@ -699,7 +699,7 @@ fn release_summary_command_renders_the_quick_overview() {
             &rendered,
             "JPL batch error taxonomy: supported body Ceres; unsupported body Mean Node -> UnsupportedBody; out-of-range Ceres -> OutOfRangeInstant",
         );
-    assert!(rendered.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a mean-obliquity transform"));
+    assert!(rendered.contains("JPL frame treatment: checked-in ecliptic snapshot; equatorial coordinates are derived with a J2000 mean-obliquity transform"));
     assert!(rendered.contains("Reference snapshot coverage:"));
     assert!(rendered.contains("Selected asteroid evidence:"));
     assert!(rendered.contains("Selected asteroid batch parity:"));

@@ -10,7 +10,7 @@
 //! the instant and span at most five days, and serves the Moon at exact rows
 //! only; any other instant is refused (issues #158, #200). The checked-in
 //! ecliptic fixture can also be rotated into a
-//! mean-obliquity equatorial frame for chart requests that prefer equatorial
+//! J2000 mean-obliquity equatorial frame for chart requests that prefer equatorial
 //! output. This intentionally small derivative format proves the pure-Rust
 //! reader/interpolator path before larger public JPL-derived corpora are added.
 //!

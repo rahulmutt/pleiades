@@ -216,7 +216,7 @@ pub(crate) fn independent_holdout_snapshot_equatorial_parity_summary_summary_lin
     s: &IndependentHoldoutSnapshotEquatorialParitySummary,
 ) -> String {
     format!(
-        "JPL independent hold-out equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); mean-obliquity transform against the checked-in ecliptic fixture",
+        "JPL independent hold-out equatorial parity: {} rows across {} bodies and {} epochs ({}..{}); J2000 mean-obliquity transform against the checked-in ecliptic fixture",
         s.row_count,
         s.body_count,
         s.epoch_count,
@@ -773,7 +773,7 @@ mod tests {
         assert_eq!(summary.latest_epoch.julian_day.days(), 2_634_167.0);
         assert_eq!(
             independent_holdout_snapshot_equatorial_parity_summary_summary_line(&summary),
-            "JPL independent hold-out equatorial parity: 64 rows across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); mean-obliquity transform against the checked-in ecliptic fixture"
+            "JPL independent hold-out equatorial parity: 64 rows across 16 bodies and 12 epochs (JD 2378498.5 (TDB)..JD 2634167.0 (TDB)); J2000 mean-obliquity transform against the checked-in ecliptic fixture"
         );
         assert_eq!(summary.validate(), Ok(()));
         assert_eq!(
