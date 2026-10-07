@@ -23,6 +23,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod anchor_star;
 mod catalog;
 mod fitted_offset;
 mod galactic;
@@ -37,6 +38,11 @@ mod truestar;
 // offset model from a single source (no duplicated precession/anchor data).
 pub use precession::{general_precession_longitude_arcsec, precession_delta_degrees};
 pub use se_anchors::{se_anchor, SeAnchor, IN_SCOPE_ANCHORS};
+
+// Re-export anchor star types and functions at the crate root.
+pub use anchor_star::{
+    anchor_star_mean_place, star_anchor, AnchorProjection, AnchorStar, AnchorStarPlace, StarAnchor,
+};
 
 // Re-export model types at the crate root to preserve the public API surface.
 pub use model::{
