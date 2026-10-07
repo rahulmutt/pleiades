@@ -49,6 +49,84 @@ where
     Ok(hi)
 }
 
+/// `κ₁` of the ITP method as a fraction of the initial bracket's width
+/// (Oliveira & Takahashi 2020 recommend 0.2 / (b − a)).
+const ITP_KAPPA1_SCALE: f64 = 0.2;
+
+/// `n₀` of the ITP method: the evaluations it may spend beyond bisection's
+/// count in the worst case.
+const ITP_N0: f64 = 1.0;
+
+/// Refines a sign change of `f` across `[lo, hi]` with the ITP method
+/// (interpolate, truncate, project: Oliveira & Takahashi, "An Enhancement of
+/// the Bisection Method Average Performance Preserving Minmax Optimality",
+/// ACM Trans. Math. Softw. 47(1), 2020), with `κ₂ = 2`.
+///
+/// The contract is [`bisect`]'s: the LATER end of a final bracket no wider
+/// than [`REFINE_TOLERANCE_DAYS`] is returned, and an evaluation at or
+/// below zero moves the end that is at or below zero, so the returned
+/// instant is settled. A regula-falsi step aimed at the root lands close to
+/// it on a smooth residual, so a rise or set settles in a few evaluations
+/// where bisection takes thirteen from an hour. The projection keeps every
+/// step within the bisection worst case, so no residual costs more than
+/// `ITP_N0` evaluations beyond bisection's count (issue #204).
+pub(crate) fn refine_itp<F>(
+    f: &mut F,
+    mut lo: f64,
+    mut f_lo: f64,
+    mut hi: f64,
+    mut f_hi: f64,
+) -> Result<f64, EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    let width = hi - lo;
+    if width <= REFINE_TOLERANCE_DAYS {
+        return Ok(hi);
+    }
+    let epsilon = 0.5 * REFINE_TOLERANCE_DAYS;
+    let kappa1 = ITP_KAPPA1_SCALE / width;
+    let n_max = (width / REFINE_TOLERANCE_DAYS).log2().ceil() + ITP_N0;
+    let mut step = 0.0_f64;
+    while (hi - lo) > REFINE_TOLERANCE_DAYS {
+        let mid = 0.5 * (lo + hi);
+        let span = hi - lo;
+        let radius = (epsilon * (n_max - step).exp2() - 0.5 * span).max(0.0);
+        let delta = kappa1 * span * span;
+        // Interpolate: the regula-falsi point. The ends carry opposite sign
+        // classes, so `f_lo != f_hi`.
+        let falsi = (hi * f_lo - lo * f_hi) / (f_lo - f_hi);
+        // Truncate: step `delta` past it towards the midpoint.
+        let towards_mid = (mid - falsi).signum();
+        let truncated = if delta <= (mid - falsi).abs() {
+            falsi + towards_mid * delta
+        } else {
+            mid
+        };
+        // Project: stay within `radius` of the midpoint.
+        let projected = if (truncated - mid).abs() <= radius {
+            truncated
+        } else {
+            mid - towards_mid * radius
+        };
+        let x = if projected.is_finite() && projected > lo && projected < hi {
+            projected
+        } else {
+            mid
+        };
+        let f_x = f(x)?;
+        if (f_lo <= 0.0) == (f_x <= 0.0) {
+            lo = x;
+            f_lo = f_x;
+        } else {
+            hi = x;
+            f_hi = f_x;
+        }
+        step += 1.0;
+    }
+    Ok(hi)
+}
+
 /// Whether `f` crosses zero between two samples: a sign change whose jump is
 /// small enough to be a zero-crossing and not the ±180 wrap seam.
 fn brackets_crossing(f_earlier: f64, f_later: f64) -> bool {
@@ -485,6 +563,9 @@ where
 
 #[cfg(test)]
 mod level_tests;
+
+#[cfg(test)]
+mod refine_tests;
 
 #[cfg(test)]
 mod tests {
