@@ -15,7 +15,7 @@ not restated here.
 | Apparent place (of-date ecliptic) | [`pleiades-core`](https://docs.rs/pleiades-core) | `validate-apparent` | sub-arcsecond |
 | Apparent equatorial (RA/Dec) | [`pleiades-core`](https://docs.rs/pleiades-core) | `validate-equatorial` | sub-arcsecond |
 | Sidereal chart (mean equinox of date, less the ayanamsa; mean, and apparent with the apparent-star ayanamsa) | [`pleiades-core`](https://docs.rs/pleiades-core) | `validate-sidereal-position` | arcsecond-class against Swiss Ephemeris |
-| Apparent-star ayanamsa (issue #164) | [`pleiades-core`](https://docs.rs/pleiades-core) | `validate-ayanamsa-apparent` | 0.1″-class against Swiss Ephemeris; δ Cnc near the Sun 0.49″ |
+| Apparent-star ayanamsa (issue #164) | [`pleiades-core`](https://docs.rs/pleiades-core) | `validate-ayanamsa-apparent` | 0.011″ against Swiss Ephemeris; δ Cnc near the Sun 0.49″ |
 | Civil time conversion | [`pleiades-time`](https://docs.rs/pleiades-time) | (unit/property) | leap-second-exact |
 | Topocentric correction | [`pleiades-core`](https://docs.rs/pleiades-core) | `validate-topocentric` | opt-in correction |
 | Backend frame consistency (J2000) | [`pleiades-core`](https://docs.rs/pleiades-core) | `release-gate` | invariant gate |

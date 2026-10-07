@@ -46,6 +46,8 @@ If enums are used for built-in catalogs, they should be `#[non_exhaustive]` or w
 
 Configuration objects should be immutable-friendly and serializable when the optional serde feature is enabled.
 
+A convention option that matches another library's output (for example `SiderealStarPlace::Apparent`, Swiss Ephemeris's default sidereal convention) defaults to the existing behaviour, so adding it never changes a result a caller did not ask to change.
+
 ## Error Handling
 
 The API must make it easy to distinguish:
