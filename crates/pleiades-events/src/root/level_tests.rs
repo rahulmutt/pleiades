@@ -450,6 +450,65 @@ fn a_clamped_look_around_sample_splits_the_step_beside_a_limit() {
     assert!((near_end[1] - (T0 + 28.7)).abs() < 1e-4, "{near_end:?}");
 }
 
+// Issue #214. The range [T0 + 21, T0 + 29], step 2, ends on a grid point one
+// day short of the window's end, so the look-around past it (T0 + 31) is
+// clamped to T0 + 30 and its step is uneven. Samples at T0 + 25, T0 + 27 and
+// T0 + 29 rise monotonically; only T0 + 27, T0 + 29 and the clamped T0 + 30
+// show the turning point at T0 + 28.7. The lowest sample, at T0 + 19, is
+// about −94, so `wrap180` adds no roots.
+const UNEVEN_END: (f64, f64) = (T0 + 21.0, T0 + 29.0);
+const UNEVEN_END_TURN: f64 = T0 + 28.7;
+
+/// The near-start case of
+/// `a_clamped_look_around_sample_splits_the_step_beside_a_limit`: the
+/// look-around before T0 + 1 is clamped to T0 and shows the turn at T0 + 2.
+const CLAMPED_START: (f64, f64) = (T0 + 1.0, T0 + 20.0);
+const CLAMPED_START_TURN: f64 = T0 + 2.0;
+
+#[test]
+fn an_uneven_last_step_with_a_clamped_look_around_splits_its_turning_point() {
+    let window = (T0, T0 + 30.0);
+    let (lo, hi) = UNEVEN_END;
+    let roots = level_crossings_in_range(
+        fenced(dome(UNEVEN_END_TURN, 0.2), window),
+        &[0.0],
+        lo,
+        hi,
+        2.0,
+        window,
+    )
+    .unwrap();
+    assert_eq!(roots.len(), 2, "{roots:?}");
+    assert!((roots[0] - (T0 + 28.5)).abs() < 1e-4, "{roots:?}");
+    assert!((roots[1] - (T0 + 28.9)).abs() < 1e-4, "{roots:?}");
+}
+
+#[test]
+fn first_and_last_level_crossings_split_a_pair_beside_each_limit() {
+    let window = (T0, T0 + 30.0);
+    // A pair of crossings 0.2 d either side of the turn at `turn`.
+    let first = |turn: f64, (lo, hi): (f64, f64)| {
+        let d = fenced(dome(turn, 0.2), window);
+        first_level_crossing_after(d, &[0.0], lo, hi, 2.0, window)
+            .unwrap()
+            .expect("the first of the pair")
+    };
+    let last = |turn: f64, (lo, hi): (f64, f64)| {
+        let d = fenced(dome(turn, 0.2), window);
+        last_level_crossing_before(d, &[0.0], lo, hi, 2.0, window)
+            .unwrap()
+            .expect("the last of the pair")
+    };
+    for (got, want) in [
+        (first(CLAMPED_START_TURN, CLAMPED_START), T0 + 1.8),
+        (last(CLAMPED_START_TURN, CLAMPED_START), T0 + 2.2),
+        (first(UNEVEN_END_TURN, UNEVEN_END), T0 + 28.5),
+        (last(UNEVEN_END_TURN, UNEVEN_END), T0 + 28.9),
+    ] {
+        assert!((got - want).abs() < 1e-4, "got {got}, want {want}");
+    }
+}
+
 #[test]
 fn a_turning_point_in_the_step_at_a_limit_is_the_documented_blind_spot() {
     // The range starts AT the window's start: no sample exists before it,
