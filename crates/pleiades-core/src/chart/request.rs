@@ -1,6 +1,6 @@
 use core::{fmt, time::Duration};
 
-use pleiades_ayanamsa::resolve_ayanamsa;
+use pleiades_ayanamsa::{resolve_ayanamsa, star_anchor};
 use pleiades_backend::{
     Apparentness, BackendMetadata, EphemerisError, EphemerisErrorKind, EphemerisRequest,
 };
@@ -341,6 +341,12 @@ impl ChartRequest {
     /// each body request is checked against the backend's supported time scales,
     /// frames, apparentness mode, zodiac routing, and body coverage before the
     /// backend is asked to compute positions.
+    ///
+    /// A backend that serves the sidereal zodiac natively returns placements on
+    /// its own ayanamsa, and a body request has no field to forward the star
+    /// place, so [`SiderealStarPlace::Apparent`] with a star-anchored ayanamsa
+    /// fails with [`EphemerisErrorKind::UnsupportedZodiacMode`] there rather
+    /// than giving corrected cusps beside uncorrected placements.
     pub fn validate_against_metadata(
         &self,
         metadata: &BackendMetadata,
@@ -349,9 +355,24 @@ impl ChartRequest {
         self.validate_observer_location()?;
         self.validate_house_observer_policy()?;
 
-        let backend_zodiac_mode = if matches!(self.zodiac_mode, ZodiacMode::Sidereal { .. })
-            && metadata.capabilities.native_sidereal
-        {
+        let native_sidereal = matches!(self.zodiac_mode, ZodiacMode::Sidereal { .. })
+            && metadata.capabilities.native_sidereal;
+        if let ZodiacMode::Sidereal { ayanamsa } = &self.zodiac_mode {
+            if native_sidereal
+                && self.sidereal_star_place == SiderealStarPlace::Apparent
+                && star_anchor(ayanamsa).is_some()
+            {
+                return Err(EphemerisError::new(
+                    EphemerisErrorKind::UnsupportedZodiacMode,
+                    format!(
+                        "{} serves the sidereal zodiac natively and cannot read {} from its \
+                         anchor star's apparent place; use the mean star place",
+                        metadata.id, ayanamsa
+                    ),
+                ));
+            }
+        }
+        let backend_zodiac_mode = if native_sidereal {
             self.zodiac_mode.clone()
         } else {
             ZodiacMode::Tropical
@@ -570,6 +591,9 @@ impl ChartRequest {
     /// to every apparent placement, lunar points included, and to the house
     /// cusps and angles of an apparent chart; a mean chart, a mean-fallback
     /// placement, the tropical zodiac and every other ayanamsa are unchanged.
+    /// A backend that serves the sidereal zodiac natively cannot apply it, so
+    /// the chart fails with
+    /// [`EphemerisErrorKind::UnsupportedZodiacMode`] there.
     ///
     /// ```
     /// use pleiades_core::{ChartEngine, ChartRequest, SiderealStarPlace};

@@ -1,12 +1,12 @@
 use pleiades_apparent::motion::HALF_SPAN_DAYS;
-use pleiades_backend::Apparentness;
+use pleiades_backend::{Apparentness, EphemerisErrorKind};
 use pleiades_data::packaged_backend;
 use pleiades_types::{
     Ayanamsa, CelestialBody, HouseSystem, Instant, JulianDay, Latitude, Longitude,
     ObserverLocation, SiderealStarPlace, TimeScale, ZodiacMode,
 };
 
-use super::test_support::AbsurdDistanceReleaseGradeBackend;
+use super::test_support::{AbsurdDistanceReleaseGradeBackend, NativeSiderealChartBackend};
 use crate::apparent_star_ayanamsa_correction;
 use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 
@@ -199,4 +199,49 @@ fn display_names_the_apparent_star_place_only_when_it_applies() {
         apparent.contains("Sidereal star place: apparent"),
         "{apparent}"
     );
+}
+
+fn native_sidereal_request(ayanamsa: Ayanamsa, star_place: SiderealStarPlace) -> ChartRequest {
+    ChartRequest::new(instant())
+        .with_bodies(vec![CelestialBody::Sun])
+        .with_zodiac_mode(ZodiacMode::Sidereal { ayanamsa })
+        .with_observer(ObserverLocation::new(
+            Latitude::from_degrees(13.0827),
+            Longitude::from_degrees(80.2707),
+            None,
+        ))
+        .with_house_system(HouseSystem::Placidus)
+        .with_sidereal_star_place(star_place)
+}
+
+// Final review Important 1: a native-sidereal backend serves its placements on
+// its own (mean) ayanamsa while the chart layer would correct the cusps, so
+// the chart refuses rather than mixing the two zodiacs.
+#[test]
+fn a_native_sidereal_backend_refuses_the_apparent_star_place() {
+    let engine = ChartEngine::new(NativeSiderealChartBackend);
+    let error = engine
+        .chart(&native_sidereal_request(
+            Ayanamsa::TrueCitra,
+            SiderealStarPlace::Apparent,
+        ))
+        .expect_err("native sidereal + apparent star place must fail closed");
+    assert_eq!(error.kind, EphemerisErrorKind::UnsupportedZodiacMode);
+    assert!(error.message.contains("native-sidereal-chart"), "{error}");
+    assert!(
+        error.message.contains("anchor star's apparent place"),
+        "{error}"
+    );
+}
+
+#[test]
+fn a_native_sidereal_backend_serves_the_mean_star_place_and_unanchored_ayanamsas() {
+    let engine = ChartEngine::new(NativeSiderealChartBackend);
+    for request in [
+        native_sidereal_request(Ayanamsa::TrueCitra, SiderealStarPlace::Mean),
+        native_sidereal_request(Ayanamsa::Lahiri, SiderealStarPlace::Apparent),
+    ] {
+        let snapshot = engine.chart(&request).expect("chart succeeds");
+        assert_eq!(snapshot.placements.len(), 1, "{request}");
+    }
 }
