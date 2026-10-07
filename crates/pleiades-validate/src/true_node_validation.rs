@@ -201,30 +201,8 @@ fn parse_corpus() -> Result<Vec<TrueNodeRow>, TrueNodeCorpusError> {
 }
 
 fn parse_manifest_rows() -> Result<(usize, u64), TrueNodeCorpusError> {
-    let line = MANIFEST
-        .lines()
-        .find(|l| l.trim_start().starts_with("slice"))
-        .ok_or_else(|| TrueNodeCorpusError::MalformedManifest("no slice line".into()))?;
-    let mut rows = None;
-    let mut checksum = None;
-    for tok in line.split_whitespace() {
-        if let Some(v) = tok.strip_prefix("rows=") {
-            rows = Some(
-                v.parse::<usize>()
-                    .map_err(|e| TrueNodeCorpusError::MalformedManifest(format!("rows: {e}")))?,
-            );
-        } else if let Some(v) = tok.strip_prefix("checksum=") {
-            checksum =
-                Some(v.parse::<u64>().map_err(|e| {
-                    TrueNodeCorpusError::MalformedManifest(format!("checksum: {e}"))
-                })?);
-        }
-    }
-    Ok((
-        rows.ok_or_else(|| TrueNodeCorpusError::MalformedManifest("rows= missing".into()))?,
-        checksum
-            .ok_or_else(|| TrueNodeCorpusError::MalformedManifest("checksum= missing".into()))?,
-    ))
+    crate::corpus_manifest::slice_entry(MANIFEST)
+        .map_err(|e| TrueNodeCorpusError::MalformedManifest(e.to_string()))
 }
 
 fn wrap_arcsec(got_deg: f64, want_deg: f64) -> f64 {

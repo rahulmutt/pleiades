@@ -322,46 +322,8 @@ fn wrap180(d: f64) -> f64 {
 }
 
 fn parse_manifest() -> Result<BTreeMap<String, (usize, u64)>, NodApsError> {
-    let mut map = BTreeMap::new();
-    for line in MANIFEST.lines() {
-        let line = line.trim();
-        let Some(rest) = line.strip_prefix("file:") else {
-            continue;
-        };
-        let toks: Vec<&str> = rest.split_whitespace().collect();
-        if toks.len() < 3 {
-            return Err(NodApsError::Parse {
-                row: format!("malformed file line: {line}"),
-            });
-        }
-        let name = toks[0].to_string();
-        let mut rows = None;
-        let mut checksum = None;
-        for tok in &toks[1..] {
-            if let Some(v) = tok.strip_prefix("rows=") {
-                rows = Some(v.parse::<usize>().map_err(|e| NodApsError::Parse {
-                    row: format!("rows: {e}"),
-                })?);
-            } else if let Some(v) = tok.strip_prefix("checksum=") {
-                checksum = Some(v.parse::<u64>().map_err(|e| NodApsError::Parse {
-                    row: format!("checksum: {e}"),
-                })?);
-            }
-        }
-        let rows = rows.ok_or_else(|| NodApsError::Parse {
-            row: format!("rows= missing: {line}"),
-        })?;
-        let checksum = checksum.ok_or_else(|| NodApsError::Parse {
-            row: format!("checksum= missing: {line}"),
-        })?;
-        map.insert(name, (rows, checksum));
-    }
-    if map.is_empty() {
-        return Err(NodApsError::Parse {
-            row: "no `file:` lines found in manifest".to_string(),
-        });
-    }
-    Ok(map)
+    crate::corpus_manifest::file_entries(MANIFEST)
+        .map_err(|e| NodApsError::Parse { row: e.to_string() })
 }
 
 /// Looks up `file` in the manifest and compares `fnv1a64(csv)` against the

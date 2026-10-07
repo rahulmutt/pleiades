@@ -249,46 +249,8 @@ fn azimuth_sky_arcsec(eng_az_deg: f64, se_az_deg: f64, alt_deg: f64) -> f64 {
 }
 
 fn parse_manifest() -> Result<BTreeMap<String, (usize, u64)>, EclipseLocalError> {
-    let mut map = BTreeMap::new();
-    for line in MANIFEST.lines() {
-        let line = line.trim();
-        let Some(rest) = line.strip_prefix("file:") else {
-            continue;
-        };
-        let toks: Vec<&str> = rest.split_whitespace().collect();
-        if toks.len() < 3 {
-            return Err(EclipseLocalError::Manifest(format!(
-                "malformed file line: {line}"
-            )));
-        }
-        let name = toks[0].to_string();
-        let mut rows = None;
-        let mut checksum = None;
-        for tok in &toks[1..] {
-            if let Some(v) = tok.strip_prefix("rows=") {
-                rows = Some(
-                    v.parse::<usize>()
-                        .map_err(|e| EclipseLocalError::Manifest(format!("rows: {e}")))?,
-                );
-            } else if let Some(v) = tok.strip_prefix("checksum=") {
-                checksum = Some(
-                    v.parse::<u64>()
-                        .map_err(|e| EclipseLocalError::Manifest(format!("checksum: {e}")))?,
-                );
-            }
-        }
-        let rows =
-            rows.ok_or_else(|| EclipseLocalError::Manifest(format!("rows= missing: {line}")))?;
-        let checksum = checksum
-            .ok_or_else(|| EclipseLocalError::Manifest(format!("checksum= missing: {line}")))?;
-        map.insert(name, (rows, checksum));
-    }
-    if map.is_empty() {
-        return Err(EclipseLocalError::Manifest(
-            "no `file:` lines found in manifest".to_string(),
-        ));
-    }
-    Ok(map)
+    crate::corpus_manifest::file_entries(MANIFEST)
+        .map_err(|e| EclipseLocalError::Manifest(e.to_string()))
 }
 
 fn check_checksum(
