@@ -83,6 +83,113 @@ fn ecliptic_point_no_ecl_lat_forces_latitude_zero() {
     );
 }
 
+/// `no_ecl_lat` is SE's `SE_BIT_GEOCTR_NO_ECL_LAT`: a body is placed
+/// geocentrically (no diurnal parallax or aberration) with latitude 0, so its
+/// equatorial place is the geocentric apparent ecliptic place at latitude 0
+/// rotated by the true obliquity (issue #241).
+#[test]
+fn body_no_ecl_lat_is_geocentric_with_latitude_zero() {
+    use super::test_support::{chennai, composite};
+    let engine = EventEngine::new(composite());
+    let jd = 2_460_827.75;
+    let opts = RiseSetOptions {
+        no_ecl_lat: true,
+        ..RiseSetOptions::default()
+    };
+    for body in [CelestialBody::Sun, CelestialBody::Moon] {
+        let (ra, dec) = engine
+            .target_equatorial(
+                &RiseSetTarget::Body(body.clone()),
+                &chennai(),
+                &opts,
+                jd,
+                None,
+            )
+            .unwrap();
+        let (lon, _, _) =
+            geocentric_apparent_ecliptic(&engine.backend, body.clone(), "body", jd).unwrap();
+        let eps = true_obliquity_degrees(jd).unwrap();
+        let equ = EclipticCoordinates::new(
+            Longitude::from_degrees(lon),
+            Latitude::from_degrees(0.0),
+            None,
+        )
+        .to_equatorial(Angle::from_degrees(eps));
+        assert!(
+            (ra - equ.right_ascension.degrees()).abs() < 1e-9
+                && (dec - equ.declination.degrees()).abs() < 1e-9,
+            "{body:?}: ({ra}, {dec}) is not the geocentric place ({}, {})",
+            equ.right_ascension.degrees(),
+            equ.declination.degrees()
+        );
+    }
+}
+
+/// A Hindu moonrise is found on the geocentric place: at the returned
+/// instant the geocentric latitude-0 Moon centre has just reached the
+/// horizon, while the same place corrected for diurnal parallax still sits
+/// about one horizontal parallax (~57′) below it. Before issue #241 the
+/// search rooted the topocentric place instead.
+#[test]
+fn hindu_moonrise_roots_the_geocentric_place() {
+    use super::test_support::{chennai, composite, tt};
+    let engine = EventEngine::new(composite());
+    let observer = chennai();
+    let hindu = RiseSetOptions {
+        hindu: true,
+        ..RiseSetOptions::default()
+    };
+    let jd = engine
+        .next_rise_set(
+            RiseSetTarget::Body(CelestialBody::Moon),
+            RiseSetEvent::Rise,
+            observer.clone(),
+            Atmosphere::default(),
+            hindu,
+            tt(2_460_827.75),
+        )
+        .expect("engine ok")
+        .expect("a moonrise")
+        .instant
+        .julian_day
+        .days();
+    let eps = true_obliquity_degrees(jd).unwrap();
+    let lst = local_apparent_sidereal_deg(jd, observer.longitude).unwrap();
+    let (lon, _, dist) =
+        geocentric_apparent_ecliptic(&engine.backend, CelestialBody::Moon, "body", jd).unwrap();
+    let geocentric = EclipticCoordinates::new(
+        Longitude::from_degrees(lon),
+        Latitude::from_degrees(0.0),
+        Some(dist),
+    );
+    let topocentric = topocentric_position(geocentric, &observer, lst, eps)
+        .unwrap()
+        .ecliptic;
+    let altitude = |ecl: EclipticCoordinates| {
+        let equ = ecl.to_equatorial(Angle::from_degrees(eps));
+        let (phi, dec) = (
+            observer.latitude.degrees().to_radians(),
+            equ.declination.degrees().to_radians(),
+        );
+        let ha = (lst - equ.right_ascension.degrees()).to_radians();
+        (phi.sin() * dec.sin() + phi.cos() * dec.cos() * ha.cos())
+            .asin()
+            .to_degrees()
+    };
+    // Settled within 0.5 s after the crossing: the Moon climbs at most
+    // ~15″/s, so the geocentric centre is above the horizon by under 8″.
+    let geo_alt = altitude(geocentric);
+    assert!(
+        (0.0..8.0 / 3600.0).contains(&geo_alt),
+        "geocentric {geo_alt}°"
+    );
+    let topo_alt = altitude(topocentric);
+    assert!(
+        (-1.05..-0.85).contains(&topo_alt),
+        "topocentric {topo_alt}°"
+    );
+}
+
 #[test]
 fn standard_altitude_sun_upper_limb_is_about_negative_semidiameter() {
     use pleiades_backend::test_backend::LinearSunMoon;
