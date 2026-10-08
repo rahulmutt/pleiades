@@ -1,4 +1,5 @@
 use std::fmt;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use pleiades_backend::{
     Angle, CelestialBody, CustomBodyId, EclipticCoordinates, EphemerisBackend, EphemerisError,
@@ -427,21 +428,28 @@ pub(crate) fn map_artifact_error(error: pleiades_compression::CompressionError) 
 ///
 /// Scale exponents match the existing generation pipeline: Longitude=9, Latitude=9,
 /// DistanceAu=10 (see `regenerate.rs` segment_from_single_entry and threshold.rs).
+///
+/// # Errors
+///
+/// Returns why the segment could not be fit: an empty span, a sample the
+/// reference refuses or returns without an ecliptic position or distance, or a
+/// fit that is singular or not finite. The message does not name the body or
+/// span; [`fit_dense_body_artifact`] adds them.
 pub(crate) fn fit_segment_within_span(
     body: &CelestialBody,
     t0_jd: f64,
     t1_jd: f64,
     reference: &dyn EphemerisBackend,
-) -> Option<Segment> {
+) -> Result<Segment, String> {
     use crate::coverage::{fit_polynomial_lsq, fitting_degree, fitting_within_span_sample_count};
 
     let n = fitting_within_span_sample_count(body).max(fitting_degree(body) + 1);
     let span = t1_jd - t0_jd;
     if span <= 0.0 {
-        return None;
+        return Err(format!("empty span of {span} days"));
     }
     if n < 2 {
-        return None;
+        return Err(format!("{n} samples are too few to fit"));
     }
 
     let mut xs = Vec::with_capacity(n);
@@ -452,23 +460,21 @@ pub(crate) fn fit_segment_within_span(
         let frac = i as f64 / (n as f64 - 1.0);
         let jd = t0_jd + frac * span;
         let inst = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
-        let res = reference
-            .position(&EphemerisRequest::new(body.clone(), inst))
-            .ok()?;
-        let ec = res.ecliptic?;
+        let ec = sample_ecliptic(reference, body, inst)?;
         let ec = if body_uses_heliocentric_frame(body) {
-            let sun = reference
-                .position(&EphemerisRequest::new(CelestialBody::Sun, inst))
-                .ok()?
-                .ecliptic?;
-            pleiades_compression::heliocentric_from_geocentric(&ec, &sun)?
+            let sun = sample_ecliptic(reference, &CelestialBody::Sun, inst)?;
+            pleiades_compression::heliocentric_from_geocentric(&ec, &sun)
+                .ok_or_else(|| format!("heliocentric conversion failed at JD {jd} (TDB)"))?
         } else {
             ec
         };
         xs.push(frac);
         lon_deg.push(ec.longitude.degrees());
         lat.push(ec.latitude.degrees());
-        dist.push(ec.distance_au?);
+        dist.push(
+            ec.distance_au
+                .ok_or_else(|| format!("the reference gave no distance at JD {jd} (TDB)"))?,
+        );
     }
 
     // Unwrap longitude to a continuous series before fitting (reuse existing helper).
@@ -478,9 +484,13 @@ pub(crate) fn fit_segment_within_span(
     let to_samples =
         |ys: &[f64]| -> Vec<(f64, f64)> { xs.iter().copied().zip(ys.iter().copied()).collect() };
 
-    let lon_coeffs = fit_polynomial_lsq(&to_samples(&lon_unwrapped), degree)?;
-    let lat_coeffs = fit_polynomial_lsq(&to_samples(&lat), degree)?;
-    let dist_coeffs = fit_polynomial_lsq(&to_samples(&dist), degree)?;
+    let fit = |channel: &str, ys: &[f64]| {
+        fit_polynomial_lsq(&to_samples(ys), degree)
+            .ok_or_else(|| format!("the degree-{degree} {channel} fit is singular"))
+    };
+    let lon_coeffs = fit("longitude", &lon_unwrapped)?;
+    let lat_coeffs = fit("latitude", &lat)?;
+    let dist_coeffs = fit("distance", &dist)?;
 
     // Channels must be ordered by ChannelKind discriminant: Longitude=0, Latitude=1, DistanceAu=2.
     // Scale exponents match the existing generation pipeline (Longitude=9, Latitude=9, DistanceAu=10).
@@ -492,7 +502,7 @@ pub(crate) fn fit_segment_within_span(
 
     // Validate each channel's coefficients are finite (fail-closed).
     for channel in &channels {
-        channel.validate().ok()?;
+        channel.validate().map_err(|error| error.to_string())?;
     }
 
     // Segment boundaries are tagged Tt to match the packaged-lookup convention:
@@ -505,37 +515,59 @@ pub(crate) fn fit_segment_within_span(
         Instant::new(JulianDay::from_days(t1_jd), TimeScale::Tt),
         channels,
     );
-    Some(seg)
+    Ok(seg)
+}
+
+/// The geocentric ecliptic position of `body` at `instant`, or why `reference`
+/// cannot give one.
+fn sample_ecliptic(
+    reference: &dyn EphemerisBackend,
+    body: &CelestialBody,
+    instant: Instant,
+) -> Result<EclipticCoordinates, String> {
+    let jd = instant.julian_day.days();
+    reference
+        .position(&EphemerisRequest::new(body.clone(), instant))
+        .map_err(|error| format!("the reference refused {body} at JD {jd} (TDB): {error}"))?
+        .ecliptic
+        .ok_or_else(|| {
+            format!("the reference gave no ecliptic position for {body} at JD {jd} (TDB)")
+        })
 }
 
 /// Fits `body` densely from `reference` over `window`, one segment per
 /// [`fitting_segment_boundaries`] span, in the body's stored frame.
 ///
-/// # Panics
+/// Gives up before the next segment once `cancelled` is set, so one body's
+/// failure stops the other bodies' fits.
 ///
-/// When `reference` cannot serve `body` somewhere in `window`: regeneration
-/// is a maintainer step whose kernels must cover the whole window.
+/// # Errors
+///
+/// When `reference` cannot serve `body` somewhere in `window`, naming the body
+/// and the segment span that failed, or when `cancelled` is set.
 pub(crate) fn fit_dense_body_artifact(
     body: &CelestialBody,
     window: (f64, f64),
     reference: &dyn EphemerisBackend,
-) -> BodyArtifact {
+    cancelled: &AtomicBool,
+) -> Result<BodyArtifact, String> {
     use crate::coverage::fitting_segment_boundaries;
     let (start_jd, end_jd) = window;
-    let segments: Vec<Segment> = fitting_segment_boundaries(body, start_jd, end_jd)
-        .into_iter()
-        .map(|(t0, t1)| {
-            fit_segment_within_span(body, t0, t1, reference).unwrap_or_else(|| {
-                panic!("fit_segment_within_span failed for body {body} over [{t0}, {t1}]")
-            })
-        })
-        .collect();
+    let mut segments = Vec::new();
+    for (t0, t1) in fitting_segment_boundaries(body, start_jd, end_jd) {
+        if cancelled.load(Ordering::Relaxed) {
+            return Err(format!("the fit of {body} was cancelled"));
+        }
+        let segment = fit_segment_within_span(body, t0, t1, reference)
+            .map_err(|reason| format!("cannot fit {body} over JD [{t0}, {t1}]: {reason}"))?;
+        segments.push(segment);
+    }
     let frame = if body_uses_heliocentric_frame(body) {
         pleiades_compression::StoredFrame::Heliocentric
     } else {
         pleiades_compression::StoredFrame::Geocentric
     };
-    BodyArtifact::with_frame(body.clone(), segments, frame)
+    Ok(BodyArtifact::with_frame(body.clone(), segments, frame))
 }
 
 /// Core artifact builder parameterised by an explicit coverage window.
@@ -545,41 +577,49 @@ pub(crate) fn fit_dense_body_artifact(
 /// [`fitting_segment_boundaries`] + [`fit_segment_within_span`]. A tiny
 /// synthetic window lets the kernel-free unit tests run in milliseconds instead
 /// of the minutes a full 1900-2100 build takes.
+///
+/// # Errors
+///
+/// When `reference` cannot serve a packaged body somewhere in `window`. The
+/// first body to fail cancels the others, and its error is returned.
 pub(crate) fn build_packaged_artifact_from_reference_over(
     reference: &dyn EphemerisBackend,
     window: (f64, f64),
-) -> CompressedArtifact {
-    let mut body_artifacts: Vec<(usize, BodyArtifact)> = Vec::new();
+) -> Result<CompressedArtifact, String> {
+    let cancelled = AtomicBool::new(false);
+    let mut bodies = Vec::with_capacity(packaged_bodies().len());
+    let mut first_failure = None;
 
     std::thread::scope(|scope| {
+        let cancelled = &cancelled;
         let handles: Vec<_> = packaged_bodies()
             .iter()
-            .cloned()
-            .enumerate()
-            .map(|(body_index, body)| {
+            .map(|body| {
                 scope.spawn(move || {
-                    (
-                        body_index,
-                        fit_dense_body_artifact(&body, window, reference),
-                    )
+                    let fitted = fit_dense_body_artifact(body, window, reference, cancelled);
+                    // Only the failure that raises the flag is the cause; the
+                    // bodies it cancels fail with a cancellation message.
+                    let is_first_failure =
+                        fitted.is_err() && !cancelled.swap(true, Ordering::Relaxed);
+                    (fitted, is_first_failure)
                 })
             })
             .collect();
 
+        // Joined in packaged-body order, so `bodies` keeps that order.
         for handle in handles {
-            body_artifacts.push(
-                handle
-                    .join()
-                    .expect("packaged artifact body assembly should not panic"),
-            );
+            match handle.join() {
+                Ok((Ok(body_artifact), _)) => bodies.push(body_artifact),
+                Ok((Err(error), true)) => first_failure = Some(error),
+                Ok((Err(_), false)) => {}
+                Err(panic) => std::panic::resume_unwind(panic),
+            }
         }
     });
 
-    body_artifacts.sort_by_key(|(body_index, _)| *body_index);
-    let bodies: Vec<BodyArtifact> = body_artifacts
-        .into_iter()
-        .map(|(_, artifact)| artifact)
-        .collect();
+    if let Some(error) = first_failure {
+        return Err(error);
+    }
 
     let mut artifact = CompressedArtifact::new(
         ArtifactHeader::new(ARTIFACT_LABEL, packaged_artifact_source_text()),
@@ -587,16 +627,23 @@ pub(crate) fn build_packaged_artifact_from_reference_over(
     );
     artifact.checksum = artifact
         .checksum()
-        .expect("packaged artifact checksum should be reproducible");
+        .map_err(|error| format!("packaged artifact checksum: {error}"))?;
     artifact
         .validate()
-        .expect("packaged artifact should validate before encoding");
-    artifact
+        .map_err(|error| format!("packaged artifact validation: {error}"))?;
+    Ok(artifact)
 }
 
 /// Regenerates the packaged artifact from the de440 planetary kernel and the
 /// JPL `sb441-n373s` small-body kernel over an explicit coverage window.
 /// Every body, asteroids included, is fit densely across `window`.
+///
+/// # Errors
+///
+/// When a kernel fails to load, or when the kernels cannot serve a packaged
+/// body somewhere in `window` (for example an asteroid kernel without the
+/// packaged asteroids, or a window outside the kernels' coverage). The message
+/// names the body and the segment span that failed.
 pub fn regenerate_packaged_artifact_from_kernels_over(
     de_kernel: &str,
     asteroid_kernel: &str,
@@ -608,10 +655,7 @@ pub fn regenerate_packaged_artifact_from_kernels_over(
         .add_kernel(asteroid_kernel)
         .map_err(|error| error.message)?
         .build();
-    Ok(build_packaged_artifact_from_reference_over(
-        &backend,
-        window.as_tuple(),
-    ))
+    build_packaged_artifact_from_reference_over(&backend, window.as_tuple())
 }
 
 /// [`regenerate_packaged_artifact_from_kernels_over`] over the shipped default

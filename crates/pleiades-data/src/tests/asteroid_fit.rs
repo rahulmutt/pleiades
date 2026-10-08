@@ -58,14 +58,17 @@ fn asteroid_fit_error_and_size_against_the_kernel() {
         return;
     };
     let window = CoverageWindow::default().as_tuple();
-    let sun = fit_dense_body_artifact(&CelestialBody::Sun, window, &reference);
+    let not_cancelled = std::sync::atomic::AtomicBool::new(false);
+    let sun = fit_dense_body_artifact(&CelestialBody::Sun, window, &reference, &not_cancelled)
+        .expect("fit Sun");
     let sun_only_bytes = artifact_of(vec![sun.clone()])
         .encode()
         .expect("encode")
         .len();
     let mut total_added = 0_usize;
     for body in packaged_asteroids() {
-        let fitted = fit_dense_body_artifact(body, window, &reference);
+        let fitted = fit_dense_body_artifact(body, window, &reference, &not_cancelled)
+            .expect("fit asteroid");
         let segments = fitted.segments.len();
         let artifact = artifact_of(vec![sun.clone(), fitted]);
         let added = artifact.encode().expect("encode").len() - sun_only_bytes;
