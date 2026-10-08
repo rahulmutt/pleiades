@@ -93,22 +93,30 @@ The 11 bodies absent from `sb441-n373s` were promoted to Tier A in slice 3
 STOP_TIME=2100-02-01`). Each file is pinned by SHA-256 and committed provenance
 is in `crates/pleiades-jpl/src/spk/object_spk.rs` (`object_spk_manifest`).
 
+The pins were refreshed on 2026-10-08 (issue #201), when all 11 files were
+re-fetched with the same request to regenerate `asteroid_reference.csv` on the
+J2000 ecliptic frame. Horizons SPKs are not byte-reproducible by re-fetch: each
+file embeds its generation time, and Horizons serves the current orbit
+solution (the refresh moved Apollo by up to 81 km, Amor 45 km, Icarus 15 km,
+Toro 0.2 km; the other seven by under 1e-5 km). The pins identify the files
+the committed corpus rows were generated from.
+
 Verified coverage window for all 11: JD 2415020.5–2488069.5
 (actual segment span 2414989.5–2488100.5, 0 gaps).
 
 | Body | NAIF (7-digit) | SHA-256 | Class | Astrological usage |
 | --- | --- | --- | --- | --- |
-| 2060 Chiron | 2002060 | `8ee059d7ae4a63e4d568843f320034e8681236b07dd04bb8fe6a3d0a10c847e3` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) — the wounded healer |
-| 5145 Pholus | 2005145 | `d746b35eac636c827466c4a6ddba0495f2fbc93fb43cc1e1c769ab0e24d51468` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) |
-| 7066 Nessus | 2007066 | `6819f13ee0ebd1df54f1acfe1780d7a2c72cce53bfa1c6704f1b967160c9b0ae` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) |
-| 10199 Chariklo | 2010199 | `3ed8a859848728446649e579aad6a54fddac0a6d4402008c24afc70d508841a1` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) |
-| 8405 Asbolus | 2008405 | `3a751a602acf4fbc8ad07133008a4bac6afc6645a83a253ba54650fedce8c7e7` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) |
-| 1221 Amor | 2001221 | `a54eabd556edb738661cf2763502123ad92dc45c8acd81cbc5ade8a9ddf17fff` | MainBelt/NEA | asteroid astrology (Lang-Wescott; Demetra George) — love/compassion |
-| 1181 Lilith | 2001181 | `ca1fb954a11320721ac0491bca3e786bfc56e37f180ab35a1bab48f94ce05c2c` | MainBelt | Lang-Wescott — the catalogued numbered asteroid 1181, distinct from Black Moon Lilith |
-| 944 Hidalgo | 2000944 | `df68b48935a98b8505e9f6da2609a218043f8082a3933c13113b9692424d4150` | MainBelt | Lang-Wescott; Demetra George — advocacy/authority |
-| 1566 Icarus | 2001566 | `6b0cc6f7411d09919629847183893ad170300721b3aae18711f3158b1850ef69` | MainBelt/NEA | Lang-Wescott — recklessness/risk |
-| 1685 Toro | 2001685 | `492ad8aec40e908be8b0c8d5b04c2010aa3bc5bd2ccbafce1e2b2c554683edc8` | MainBelt/NEA | Lang-Wescott — force/power |
-| 1862 Apollo | 2001862 | `8d4fd8c093c5638538b78d7b8b8e3b22674cf72a413d7301dffaa0be0d7602dc` | MainBelt/NEA | asteroid astrology (Lang-Wescott; Demetra George) — ambition |
+| 2060 Chiron | 2002060 | `92eb11beda1a809a0bf89ef3591aaa5ea63da0330f8b72675e9d341ad9e82e82` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) — the wounded healer |
+| 5145 Pholus | 2005145 | `da3d5addaa0aac7d5b21564bbda20dd71d1904aeb87eedbd98454e9f10a921ae` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) |
+| 7066 Nessus | 2007066 | `048b4d3b9f37101d81d9a374ff52c1afd1db1bf11215a3acaa5ef1d0d7c084fb` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) |
+| 10199 Chariklo | 2010199 | `3f3a41d7bfd57f9d13ec4c9a2a0c02f2002f076374e6f2e881575fd0fe172931` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) |
+| 8405 Asbolus | 2008405 | `bce77731972233a0b71bdc7e7174040f879e992f774be2a63dd65d4cc4cf88be` | Centaur | centaur astrology (Reinhart; von Heeren/Koch) |
+| 1221 Amor | 2001221 | `039cd11324d48f0ddf0ef46090e8eea2207f765fb5d8f3797f6864f4d3d4d096` | MainBelt/NEA | asteroid astrology (Lang-Wescott; Demetra George) — love/compassion |
+| 1181 Lilith | 2001181 | `7c86c230a4a037c4a7292e982cc431b7506dfda9facf086c2c129e4d46fdf06c` | MainBelt | Lang-Wescott — the catalogued numbered asteroid 1181, distinct from Black Moon Lilith |
+| 944 Hidalgo | 2000944 | `40d6e5c13b182654a7c5dfd681133c0489c3ada6c1c5b5863b2ec6a1babdf575` | MainBelt | Lang-Wescott; Demetra George — advocacy/authority |
+| 1566 Icarus | 2001566 | `266fbb4eb5521c469866c5f28078c522a21f50e0af704dfaa85ac925191f12dc` | MainBelt/NEA | Lang-Wescott — recklessness/risk |
+| 1685 Toro | 2001685 | `2a4fc1d3550a5af57d36f1a9cdfa3b4cbbb93152ba0d5b9ee2fa537a743cfc61` | MainBelt/NEA | Lang-Wescott — force/power |
+| 1862 Apollo | 2001862 | `c3b9cb7a0da9ac97b31f16c9c48e3a94f9559cbe5cf30cf5b21de529769f55ad` | MainBelt/NEA | asteroid astrology (Lang-Wescott; Demetra George) — ambition |
 
 Regen recipe (all 36 Tier-A bodies, kernel + per-object SPKs):
 ```bash
