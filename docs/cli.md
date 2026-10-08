@@ -33,6 +33,17 @@ cargo run -q -p pleiades-cli -- utc-convenience-policy-summary
 cargo run -q -p pleiades-cli -- artifact-summary
 ```
 
+Regenerate the packaged artifact over a custom coverage window (maintainers; needs
+both kernels, which are not committed). `--asteroid-kernel` names the `sb441-n373s`
+small-body kernel that supplies Ceres, Pallas, Juno, Vesta and `asteroid:433-Eros`;
+the command refuses to run without it. `--start`/`--end` take a calendar year or a
+Julian Day with a decimal point and default to 1900-2100:
+
+```bash
+cargo run --release -q -p pleiades-cli -- generate-artifact de440.bsp \
+  --asteroid-kernel sb441-n373s.bsp --out artifact.bin --start 1900 --end 2100
+```
+
 Render a basic chart report:
 
 ```bash
@@ -61,7 +72,7 @@ Notes:
 - `--mean` reports the geometric place: on the J2000 equinox in the tropical zodiac, and on the mean equinox of date less the ayanamsa when `--ayanamsa` is given.
 - `chart` defaults to `JD 2451545.0` if `--jd` is omitted.
 - If no `--body` flags are given, the CLI uses the default chart body set from `pleiades-core`.
-- `--body` accepts built-in labels such as `Sun`, `Moon`, and `Ceres`, plus custom identifiers such as `asteroid:433-Eros`. Asteroids are served offline only at the sample epochs of a sparse JPL fixture (a handful of epochs such as J2000, and a cluster from 2001-01-01 to 2001-01-10, Apophis from 2001-01-06); any other date returns an out-of-range error that names `SpkBackend`, the kernel-backed way to compute them. At an isolated sample row (for Ceres, JD 2451545.0 or JD 2378498.5) a default (apparent) chart cannot reduce the asteroid to its place of date: it prints the J2000 mean place, the same longitude `--mean` gives, and counts the placement as not reduced (a one-body chart reports `Apparentness: Apparent (0 of 1 placements reduced)`). Both `stations` and `aspects` return that out-of-range error for an asteroid; `aspects` reports it wrapped in an apparent-place failure.
+- `--body` accepts built-in labels such as `Sun`, `Moon`, and `Ceres`, plus custom identifiers such as `asteroid:433-Eros`. Ceres, Pallas, Juno, Vesta and `asteroid:433-Eros` are served offline on every date in 1900-2100 by the packaged artifact (dense `sb441-n373s` fits); `asteroid:99942-Apophis` is served only at the sample epochs of a sparse JPL fixture (a cluster from 2001-01-06 to 2001-01-10), and any other date for it returns an out-of-range error that names `SpkBackend`, the kernel-backed way to compute other asteroids. `stations` and `aspects` search the five packaged asteroids but their results are not gated (issue #167 (d), #168 (f)); for Apophis they return the out-of-range error, which `aspects` reports wrapped in an apparent-place failure.
 - `--star-place mean|apparent` (with `--ayanamsa`) reads a star-anchored ayanamsa (True Citra/True Chitra, True Revati, True Pushya, True Mula, True Sheoran, and the Galactic Center modes other than Mardyks) from its anchor star's mean place (default) or apparent place, as Swiss Ephemeris's default sidereal convention does; Galactic Center (Mardyks), the galactic-equator modes and every other ayanamsa are unaffected, and the `stations`/`aspects` header names the apparent star place only for an anchored ayanamsa; the two differ by up to about 22″. Example: `--ayanamsa "True Citra" --star-place apparent`. A mean chart (`--mean`), a mean-fallback placement and the `stations`/`aspects` mean-of-date and heliocentric frames keep the mean ayanamsa, so `--star-place apparent` is rejected with `--mean` and with `--frame mean|helio`.
 - `--ayanamsa` accepts built-in names such as `Lahiri` and custom definitions such as `custom:True Balarama|2451545.0|12.5`.
 - Built-in civil-time conversion: use `--civil <YYYY-MM-DDTHH:MM:SS> [--civil-scale utc|ut1] [--civil-target tt|tdb]` to convert a calendar datetime to TT/TDB automatically (1900–2100, tiered quality). Alternatively, supply caller-chosen offsets via the `--tt-*` or `--tdb-*` flags. See [docs/time-observer-policy.md](time-observer-policy.md).

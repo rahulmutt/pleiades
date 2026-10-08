@@ -95,10 +95,11 @@ This keeps the artifact format smaller while still making result semantics expli
 Each body in the artifact carries a `StoredFrame` tag that controls how its
 stored ecliptic coordinates are interpreted at lookup time.
 
-### Heliocentric storage (planets Mercury–Pluto)
+### Heliocentric storage (planets Mercury–Pluto and the dense asteroids)
 
 The eight major planets (Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune,
-Pluto) are stored **heliocentrically**: their ecliptic longitude, latitude, and
+Pluto) and the five dense asteroids (Ceres, Pallas, Juno, Vesta and 433-Eros,
+fitted from the JPL `sb441-n373s` kernel) are stored **heliocentrically**: their ecliptic longitude, latitude, and
 distance channels represent the planet's position relative to the Sun, not the
 Earth.
 
@@ -120,9 +121,9 @@ Sun-geocentric channel are co-frame by construction: de440 provides both in the
 same ecliptic-of-date frame, the artifact fits them in that frame, and the
 runtime adds them in that frame.
 
-### Geocentric storage (Sun, Moon, Eros) — `StoredFrame::Geocentric`
+### Geocentric storage (Sun, Moon) — `StoredFrame::Geocentric`
 
-The Sun, Moon, and 433-Eros carry `StoredFrame::Geocentric`: their channels
+The Sun and Moon carry `StoredFrame::Geocentric`: their channels
 represent the body's position relative to the Earth directly.  No
 Sun-subtraction reconstruction is applied at lookup; the stored coordinates are
 returned as-is.
@@ -160,13 +161,15 @@ and measured against the de440-derived hold-out corpus.
 | Luminary | Sun, Moon | 1.0″ | 1.0″ | 50 km | 0.5 ″/day | 1×10⁻⁴ AU/day |
 | Inner planet | Mercury, Venus, Mars | 1.0″ | 1.0″ | 50 km | 0.5 ″/day | 1×10⁻⁴ AU/day |
 | Outer planet | Jupiter, Saturn, Uranus, Neptune, Pluto | 5.0″ | 5.0″ | 1,000 km | 0.05 ″/day | 1×10⁻⁴ AU/day |
-| Asteroid | Eros | 30″ | 30″ | 5,000,000 km | 120 ″/day | 1×10⁻² AU/day |
+| Asteroid (dense fit) | Ceres, Pallas, Juno, Vesta, Eros | 0.42″ (x cos lat) | 0.38″ | n/a | n/a | n/a |
 
-**Asteroid note:** Eros ceilings are a self-consistency target only: they compare the artifact
-with the 17 reference rows it was fitted to. No independent-truth gate is applied, and against the
-JPL `sb441-n373s` rows the fit is wrong by tens of degrees on almost every date. The packaged
-backend therefore does not serve Eros; the segments remain in the artifact until they are
-regenerated from dense data (issue #201).
+**Asteroid note:** the five asteroids are not checked against the hold-out corpus; their
+evidence is the blocking gate `packaged_asteroids_match_the_sb441_rows`
+(`crates/pleiades-data/src/tests/asteroid_gate.rs`), which compares the packaged backend with
+the 407 `sb441-n373s` rows per body of `crates/pleiades-jpl/data/corpus/asteroid_reference.csv`
+against `ASTEROID_CORPUS_CEILING` (measured maximum x 1.4, rounded up). Measured maxima:
+0.2938″ longitude (Juno) and 0.2646″ latitude (Ceres). They are excluded from the fit envelope.
+The slow claims audit also compares them with the looser per-class `accuracy_ceiling` (30″).
 
 **Size budget:** Encoded artifact ≤ 12,000,000 bytes (measured ~10.0 MB); enforced as a hard CI
 gate via `PACKAGED_BUDGETS.max_encoded_bytes`.

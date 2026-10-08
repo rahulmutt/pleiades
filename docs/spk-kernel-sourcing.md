@@ -70,6 +70,9 @@ Selected-asteroid coverage reads a JPL small-body perturber kernel,
   regeneration runs — no recipe edit is required.
 - Regenerate the committed slice with:
   `PLEIADES_DE_KERNEL=.kernels/de440.bsp PLEIADES_AST_KERNEL=.kernels/sb441-n373s.bsp PLEIADES_OBJECT_SPK_DIR=.kernels/objects cargo run -p pleiades-jpl --bin regenerate-asteroid-corpus`
+- Frame: rows are on the J2000 ecliptic, like the other de440-derived slices
+  (regenerated after the B1 reduction fix; earlier rows were ecliptic-of-date
+  and off by up to about 47″ in latitude).
 - Default asteroid window: 1900–2100 CE (the corpus samples only this window;
   the kernel covers the full DE441 interval).
 
