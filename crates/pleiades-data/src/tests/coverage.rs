@@ -2578,47 +2578,6 @@ fn packaged_body_coverage_summary_validated_summary_line_rejects_body_drift() {
     );
 }
 
-/// Shared synthetic ephemeris backend for kernel-free unit tests.
-///
-/// Longitude advances 1 deg/day, latitude has a small sinusoidal wobble, and
-/// distance stays near 1 AU. All values are smooth analytic functions, making
-/// them easy to fit exactly with a degree-8 polynomial over small spans.
-struct Synthetic;
-
-impl pleiades_backend::EphemerisBackend for Synthetic {
-    fn metadata(&self) -> pleiades_backend::BackendMetadata {
-        unimplemented!()
-    }
-
-    fn supports_body(&self, _body: pleiades_backend::CelestialBody) -> bool {
-        true
-    }
-
-    fn position(
-        &self,
-        req: &pleiades_backend::EphemerisRequest,
-    ) -> Result<pleiades_backend::EphemerisResult, pleiades_backend::EphemerisError> {
-        let jd = req.instant.julian_day.days();
-        let lon = (jd * 1.0).rem_euclid(360.0);
-        let lat = 0.1 * (jd / 50.0).sin();
-        let dist = 1.0 + 0.01 * (jd / 80.0).cos();
-        let mut r = pleiades_backend::EphemerisResult::new(
-            pleiades_backend::BackendId::new("synthetic"),
-            req.body.clone(),
-            req.instant,
-            req.frame,
-            req.zodiac_mode.clone(),
-            req.apparent,
-        );
-        r.ecliptic = Some(pleiades_backend::EclipticCoordinates::new(
-            pleiades_backend::Longitude::from_degrees(lon),
-            pleiades_backend::Latitude::from_degrees(lat),
-            Some(dist),
-        ));
-        Ok(r)
-    }
-}
-
 #[test]
 fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
     use pleiades_compression::{ArtifactHeader, BodyArtifact};
@@ -2728,7 +2687,8 @@ fn build_from_reference_produces_all_bodies_with_spanning_segments() {
     let base_window = (2_451_545.0, 2_451_545.0 + 200.0);
 
     let artifact =
-        crate::regenerate::build_packaged_artifact_from_reference_over(&Synthetic, base_window);
+        crate::regenerate::build_packaged_artifact_from_reference_over(&Synthetic, base_window)
+            .expect("the synthetic reference covers every body");
 
     for body in crate::packaged_bodies() {
         let ba = artifact
@@ -2763,11 +2723,13 @@ fn default_window_artifact_matches_explicit_default_over() {
     let a = crate::regenerate::build_packaged_artifact_from_reference_over(
         &reference,
         window.as_tuple(),
-    );
+    )
+    .expect("build a");
     let b = crate::regenerate::build_packaged_artifact_from_reference_over(
         &reference,
         (2_451_545.0, 2_451_545.0 + 40.0),
-    );
+    )
+    .expect("build b");
     assert_eq!(a.encode().unwrap(), b.encode().unwrap());
 }
 

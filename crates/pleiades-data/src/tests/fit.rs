@@ -295,3 +295,52 @@ fn planet_segment_is_fit_in_heliocentric_frame() {
         &CelestialBody::Moon
     ));
 }
+
+// ---------------------------------------------------------------------------
+// Regeneration with a reference that does not cover the window (#235)
+// ---------------------------------------------------------------------------
+
+const UNCOVERED_WINDOW: (f64, f64) = (2_451_545.0, 2_451_545.0 + 40.0);
+
+fn reference_refusing_ceres_halfway() -> SyntheticRefusing {
+    SyntheticRefusing {
+        refused: CelestialBody::Ceres,
+        refused_from_jd: UNCOVERED_WINDOW.0 + 20.0,
+    }
+}
+
+#[test]
+fn dense_fit_reports_the_body_and_span_a_reference_cannot_serve() {
+    let error = crate::regenerate::fit_dense_body_artifact(
+        &CelestialBody::Ceres,
+        UNCOVERED_WINDOW,
+        &reference_refusing_ceres_halfway(),
+        &std::sync::atomic::AtomicBool::new(false),
+    )
+    .expect_err("a reference that stops serving Ceres mid-window must fail the fit");
+    assert!(error.contains("Ceres"), "{error}");
+    assert!(error.contains("2451545"), "{error}");
+    assert!(error.contains("no segment covers the instant"), "{error}");
+}
+
+#[test]
+fn dense_fit_stops_once_cancelled() {
+    let error = crate::regenerate::fit_dense_body_artifact(
+        &CelestialBody::Moon,
+        UNCOVERED_WINDOW,
+        &Synthetic,
+        &std::sync::atomic::AtomicBool::new(true),
+    )
+    .expect_err("a cancelled fit must not complete");
+    assert!(error.contains("cancelled"), "{error}");
+}
+
+#[test]
+fn packaged_build_returns_an_error_instead_of_panicking_on_an_uncovered_body() {
+    let error = crate::regenerate::build_packaged_artifact_from_reference_over(
+        &reference_refusing_ceres_halfway(),
+        UNCOVERED_WINDOW,
+    )
+    .expect_err("an uncovered packaged body must fail the build");
+    assert!(error.contains("Ceres"), "{error}");
+}
