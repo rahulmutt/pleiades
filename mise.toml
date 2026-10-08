@@ -43,7 +43,7 @@ gitleaks = "8.30.1"
 # cargo-nextest is published to crates.io as the `cargo-nextest` crate, so the
 # cargo backend resolves plain semver versions directly — no monorepo tag-prefix
 # ambiguity (the nextest repo tags cargo-nextest-*, nextest-runner-*, …).
-"cargo:cargo-nextest" = "0.9.146"
+"cargo:cargo-nextest" = "0.9.148"
 
 [tasks.fmt]
 run = "cargo fmt --all --check"
