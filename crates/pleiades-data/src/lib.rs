@@ -17,11 +17,12 @@
 //! The packaged artifact stores J2000 ecliptic coordinates directly,
 //! reconstructs equatorial coordinates from the stored channels and
 //! J2000 mean-obliquity transform when requested. The checked-in artifact
-//! carries no residual correction segments. A
-//! maintainer-facing regeneration helper rebuilds the checked-in fixture from
-//! the de440 and `sb441-n373s` kernels without introducing any native tooling. When the `packaged-artifact-path` feature is
-//! enabled, callers can also load an explicit artifact file for larger or
-//! externally distributed packaged datasets. See `docs/time-observer-policy.md`
+//! carries no residual correction segments. A maintainer-facing regeneration
+//! helper rebuilds the checked-in fixture from the de440 and `sb441-n373s`
+//! kernels without introducing any native tooling. When the
+//! `packaged-artifact-path` feature is enabled, callers can also load an
+//! explicit artifact file for larger or externally distributed packaged
+//! datasets. See `docs/time-observer-policy.md`
 //! for the explicit packaged request/lookup-epoch policy, and
 //! `spec/data-compression.md` for the stored-vs-derived artifact contract.
 //!
@@ -163,9 +164,16 @@ pub(crate) fn packaged_asteroids() -> &'static [CelestialBody] {
             CelestialBody::Pallas,
             CelestialBody::Juno,
             CelestialBody::Vesta,
-            CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+            packaged_eros().clone(),
         ]
     })
+}
+
+/// `asteroid:433-Eros`, the one packaged asteroid with no [`CelestialBody`]
+/// variant of its own.
+pub(crate) fn packaged_eros() -> &'static CelestialBody {
+    static EROS: OnceLock<CelestialBody> = OnceLock::new();
+    EROS.get_or_init(|| CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")))
 }
 
 /// Returns the per-body release claims for the packaged artifact. The planets,

@@ -13,7 +13,9 @@ use pleiades_jpl::SnapshotEntry;
 
 use crate::coverage::{packaged_artifact_body_cadence, PackagedArtifactBodyCadence};
 use crate::data::{packaged_artifact_bytes, packaged_artifact_from_bytes};
-use crate::{packaged_artifact_source_text, packaged_bodies, ARTIFACT_LABEL, AU_IN_KM};
+use crate::{
+    packaged_artifact_source_text, packaged_asteroids, packaged_bodies, ARTIFACT_LABEL, AU_IN_KM,
+};
 
 pub(crate) fn build_packaged_artifact() -> CompressedArtifact {
     packaged_artifact_from_bytes(packaged_artifact_bytes())
@@ -52,14 +54,7 @@ pub(crate) fn body_uses_heliocentric_frame(body: &CelestialBody) -> bool {
             | CelestialBody::Uranus
             | CelestialBody::Neptune
             | CelestialBody::Pluto
-            | CelestialBody::Ceres
-            | CelestialBody::Pallas
-            | CelestialBody::Juno
-            | CelestialBody::Vesta
-    ) || matches!(
-        body,
-        CelestialBody::Custom(id) if id.catalog == "asteroid" && id.designation == "433-Eros"
-    )
+    ) || packaged_asteroids().contains(body)
 }
 
 pub(crate) fn body_segment_span_limit(body: &CelestialBody) -> f64 {
