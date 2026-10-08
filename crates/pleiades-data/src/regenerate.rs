@@ -1,8 +1,9 @@
 use std::fmt;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::OnceLock;
 
 use pleiades_backend::{
-    Angle, CelestialBody, CustomBodyId, EclipticCoordinates, EphemerisBackend, EphemerisError,
+    Angle, CelestialBody, EclipticCoordinates, EphemerisBackend, EphemerisError,
     EphemerisErrorKind, EphemerisRequest, Instant, JulianDay, TimeRange, TimeScale,
 };
 use pleiades_compression::{
@@ -57,18 +58,6 @@ pub(crate) fn body_uses_heliocentric_frame(body: &CelestialBody) -> bool {
     ) || packaged_asteroids().contains(body)
 }
 
-pub(crate) fn body_segment_span_limit(body: &CelestialBody) -> f64 {
-    match packaged_artifact_body_cadence(body) {
-        PackagedArtifactBodyCadence::Luminaries => 256.0,
-        PackagedArtifactBodyCadence::InnerPlanets => 384.0,
-        PackagedArtifactBodyCadence::OuterPlanets => 768.0,
-        PackagedArtifactBodyCadence::Pluto => 1_536.0,
-        PackagedArtifactBodyCadence::LunarPoints => 256.0,
-        PackagedArtifactBodyCadence::SelectedAsteroids => 256.0,
-        PackagedArtifactBodyCadence::CustomBodies => 512.0,
-    }
-}
-
 pub(crate) fn packaged_artifact_segment_validation_fractions_for_body(
     body: &CelestialBody,
 ) -> &'static [f64] {
@@ -79,44 +68,36 @@ pub(crate) fn packaged_artifact_segment_validation_fractions_for_body(
     }
 }
 
+/// Each packaged body's dense fitting span
+/// ([`crate::coverage::fitting_segment_span_days`]), in artifact order.
 fn packaged_artifact_body_class_span_cap_entries() -> Vec<(&'static str, f64)> {
-    vec![
-        ("luminaries", body_segment_span_limit(&CelestialBody::Sun)),
-        (
-            "inner planets",
-            body_segment_span_limit(&CelestialBody::Mercury),
-        ),
-        (
-            "outer planets",
-            body_segment_span_limit(&CelestialBody::Jupiter),
-        ),
-        ("pluto", body_segment_span_limit(&CelestialBody::Pluto)),
-        (
-            "lunar points",
-            body_segment_span_limit(&CelestialBody::MeanNode),
-        ),
-        (
-            "selected asteroids",
-            body_segment_span_limit(&CelestialBody::Ceres),
-        ),
-        (
-            "custom bodies",
-            body_segment_span_limit(&CelestialBody::Custom(CustomBodyId::new(
-                "catalog",
-                "designation",
-            ))),
-        ),
-    ]
+    static LABELS: OnceLock<Vec<String>> = OnceLock::new();
+    let labels = LABELS.get_or_init(|| packaged_bodies().iter().map(ToString::to_string).collect());
+    packaged_bodies()
+        .iter()
+        .zip(labels)
+        .map(|(body, label)| {
+            (
+                label.as_str(),
+                crate::coverage::fitting_segment_span_days(body),
+            )
+        })
+        .collect()
 }
 
-/// Structured summary for the packaged-artifact body-class span caps.
+/// Structured summary for the packaged artifact's dense per-body fitting spans.
+///
+/// The type keeps the name of the body-class span caps it replaced (issue
+/// #234) so the public API, the CLI command and the release-bundle file are
+/// unchanged.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PackagedArtifactBodyClassSpanCapSummary {
-    /// Body-class span cap entries in release-facing order.
+    /// One `(body, fitting span in days)` entry per packaged body, in
+    /// artifact order.
     pub entries: Vec<(&'static str, f64)>,
 }
 
-/// Validation error for a packaged-artifact body-class span cap summary that drifted from the current posture.
+/// Validation error for a packaged-artifact fitting span summary that drifted from the current posture.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PackagedArtifactBodyClassSpanCapSummaryValidationError {
     /// A summary field is out of sync with the current packaged-artifact posture.
@@ -128,7 +109,7 @@ impl PackagedArtifactBodyClassSpanCapSummaryValidationError {
     pub fn summary_line(&self) -> String {
         match self {
             Self::FieldOutOfSync { field } => format!(
-                "the packaged artifact body-class span cap summary field `{field}` is out of sync with the current posture"
+                "the packaged artifact fitting span summary field `{field}` is out of sync with the current posture"
             ),
         }
     }
@@ -143,9 +124,9 @@ impl fmt::Display for PackagedArtifactBodyClassSpanCapSummaryValidationError {
 impl std::error::Error for PackagedArtifactBodyClassSpanCapSummaryValidationError {}
 
 impl PackagedArtifactBodyClassSpanCapSummary {
-    /// Returns the body-class span cap summary as a compact human-readable line.
+    /// Returns the fitting span summary as a compact human-readable line.
     pub fn summary_line(&self) -> String {
-        format!("body-class span caps: {}", self.entries_summary_line())
+        format!("dense fitting spans: {}", self.entries_summary_line())
     }
 
     fn entries_summary_line(&self) -> String {
@@ -158,7 +139,7 @@ impl PackagedArtifactBodyClassSpanCapSummary {
         join_display(&entries)
     }
 
-    /// Returns the validated body-class span cap summary as a compact human-readable line.
+    /// Returns the validated fitting span summary as a compact human-readable line.
     pub fn validated_summary_line(
         &self,
     ) -> Result<String, PackagedArtifactBodyClassSpanCapSummaryValidationError> {
@@ -186,7 +167,7 @@ impl fmt::Display for PackagedArtifactBodyClassSpanCapSummary {
     }
 }
 
-/// Returns the current packaged-artifact body-class span caps summary record.
+/// Returns the current packaged-artifact dense fitting span summary record.
 pub fn packaged_artifact_body_class_span_cap_summary_details(
 ) -> PackagedArtifactBodyClassSpanCapSummary {
     let summary = PackagedArtifactBodyClassSpanCapSummary {

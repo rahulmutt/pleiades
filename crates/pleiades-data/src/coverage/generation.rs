@@ -3,7 +3,10 @@ use super::*;
 /// Structured generation policy for the packaged artifact.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PackagedArtifactGenerationPolicy {
-    /// Same-body source epochs are fit with adjacent quadratic windows.
+    /// Every packaged body is fit densely: one polynomial per channel on each
+    /// fixed per-body fitting span. The variant keeps the name of the
+    /// quadratic-window policy it replaced (issue #234) so the public API is
+    /// unchanged; its label and note describe the dense fits.
     AdjacentSameBodyQuadraticWindows,
 }
 
@@ -37,7 +40,7 @@ impl PackagedArtifactGenerationPolicy {
     /// Returns the compact label used in release-facing summaries.
     pub const fn label(self) -> &'static str {
         match self {
-            Self::AdjacentSameBodyQuadraticWindows => "adjacent same-body quadratic windows",
+            Self::AdjacentSameBodyQuadraticWindows => "dense per-body polynomial fits",
         }
     }
 

@@ -239,12 +239,10 @@ fn packaged_artifact_body_cadence_distinguishes_custom_asteroid_and_custom_body_
         packaged_artifact_body_cadence(&custom_asteroid),
         PackagedArtifactBodyCadence::SelectedAsteroids
     ));
-    assert_eq!(body_segment_span_limit(&custom_asteroid), 256.0);
     assert!(matches!(
         packaged_artifact_body_cadence(&custom_comet),
         PackagedArtifactBodyCadence::CustomBodies
     ));
-    assert_eq!(body_segment_span_limit(&custom_comet), 512.0);
 }
 
 #[test]

@@ -191,12 +191,12 @@ mod tests {
 
     #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
     #[test]
-    fn render_artifact_summary_includes_span_caps() {
+    fn render_artifact_summary_includes_fitting_spans() {
         let rendered = super::render_artifact_summary().expect("artifact summary should render");
 
         assert!(rendered.contains("Artifact summary"));
         assert!(rendered.contains("Body-class cadence:"));
-        assert!(rendered.contains("Body-class span caps: luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"));
+        assert!(rendered.contains("Dense fitting spans: Sun=16 days, Moon=4 days, Mercury=8 days, Venus=16 days, Mars=32 days, Jupiter=128 days, Saturn=256 days, Uranus=512 days, Neptune=512 days, Pluto=512 days, Ceres=512 days, Pallas=128 days, Juno=256 days, Vesta=256 days, asteroid:433-Eros=64 days"));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 //! Relocated from `pleiades-data` (report-surface relocation program, Slice C).
 //!
-//! Rendering-only prose for packaged-artifact body-class span-cap and body-cadence
+//! Rendering-only prose for packaged-artifact dense fitting-span and body-cadence
 //! posture. The functional crate keeps the structured summary records, their
 //! constructors, and inherent methods; the regeneration pipeline also stays.
 
@@ -11,16 +11,16 @@ use pleiades_data::{
     PackagedArtifactBodyClassSpanCapSummary,
 };
 
-/// Returns the current packaged-artifact body-class span caps after validating the structured posture.
+/// Returns the current packaged-artifact dense fitting spans after validating the structured posture.
 pub(crate) fn packaged_artifact_body_class_span_cap_summary_for_report() -> String {
     let summary = packaged_artifact_body_class_span_cap_summary_details();
     match summary.validated_summary_line() {
         Ok(line) => line,
-        Err(error) => format!("body-class span caps: unavailable ({error})"),
+        Err(error) => format!("dense fitting spans: unavailable ({error})"),
     }
 }
 
-/// Reconstructs the packaged-artifact body-class span-cap entry line from the
+/// Reconstructs the packaged-artifact fitting-span entry line from the
 /// retained structured record. Mirrors `pleiades-data`'s private
 /// `PackagedArtifactBodyClassSpanCapSummary::entries_summary_line` (which stays
 /// private) using the public `entries` field, byte-for-byte.
@@ -34,7 +34,7 @@ fn entries_summary_line(summary: &PackagedArtifactBodyClassSpanCapSummary) -> St
     join_display(&entries)
 }
 
-/// Returns the current packaged-artifact body-class span-cap entries after validating the structured posture.
+/// Returns the current packaged-artifact fitting-span entries after validating the structured posture.
 pub(crate) fn packaged_artifact_body_class_span_cap_entries_for_report() -> String {
     let summary = packaged_artifact_body_class_span_cap_summary_details();
     match summary.validated_summary_line() {
@@ -75,7 +75,7 @@ mod tests {
         // Relocated from `pleiades-data` `tests/coverage.rs`.
         assert_eq!(
             packaged_artifact_body_class_span_cap_entries_for_report(),
-            "luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
+            "Sun=16 days, Moon=4 days, Mercury=8 days, Venus=16 days, Mars=32 days, Jupiter=128 days, Saturn=256 days, Uranus=512 days, Neptune=512 days, Pluto=512 days, Ceres=512 days, Pallas=128 days, Juno=256 days, Vesta=256 days, asteroid:433-Eros=64 days"
         );
     }
 

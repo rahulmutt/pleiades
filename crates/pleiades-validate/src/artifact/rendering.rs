@@ -95,7 +95,7 @@ pub(crate) fn render_artifact_summary_text(report: &ArtifactInspectionReport) ->
     text.push_str("  Body-class cadence: ");
     text.push_str(&format_body_class_cadence(report));
     text.push('\n');
-    text.push_str("  Body-class span caps: ");
+    text.push_str("  Dense fitting spans: ");
     text.push_str(&format_body_class_span_caps());
     text.push('\n');
     text.push_str("  Production profile skeleton: ");
@@ -678,7 +678,7 @@ pub(crate) fn format_body_class_cadence(report: &ArtifactInspectionReport) -> St
 pub(crate) fn format_body_class_span_caps() -> String {
     let summary = packaged_artifact_body_class_span_cap_summary_for_report();
     summary
-        .strip_prefix("body-class span caps: ")
+        .strip_prefix("dense fitting spans: ")
         .unwrap_or(&summary)
         .to_string()
 }
@@ -785,7 +785,7 @@ impl fmt::Display for ArtifactInspectionReport {
         write_body_class_envelopes(f, &self.model_comparison.samples)?;
         writeln!(f, "Body-class cadence")?;
         writeln!(f, "  {}", format_body_class_cadence(self))?;
-        writeln!(f, "Body-class span caps")?;
+        writeln!(f, "Dense fitting spans")?;
         writeln!(f, "  {}", format_body_class_span_caps())?;
         writeln!(f)?;
 

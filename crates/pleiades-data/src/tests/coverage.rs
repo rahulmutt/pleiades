@@ -412,7 +412,7 @@ fn packaged_artifact_generation_policy_summary_matches_current_posture() {
     assert_eq!(
         summary.summary_line(),
         format!(
-            "adjacent same-body quadratic windows; {}",
+            "dense per-body polynomial fits; {}",
             packaged_artifact_generation_policy_note_text()
         )
     );
@@ -502,7 +502,7 @@ fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage()
     assert_eq!(
         summary.generation_policy_line(),
         format!(
-            "generation policy: adjacent same-body quadratic windows; {}",
+            "generation policy: dense per-body polynomial fits; {}",
             packaged_artifact_generation_policy_note_text()
         )
     );
@@ -566,7 +566,7 @@ fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage()
     assert!(provenance.contains("segment span days="));
     assert!(provenance.contains("checksum=0x"));
     assert!(provenance.contains("artifact size="));
-    assert!(provenance.contains("generation policy: adjacent same-body quadratic windows"));
+    assert!(provenance.contains("generation policy: dense per-body polynomial fits"));
     assert!(
         provenance.contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=10")
     );
@@ -644,70 +644,46 @@ fn packaged_artifact_normalized_intermediate_summary_matches_current_posture() {
 }
 
 #[test]
-fn packaged_artifact_source_and_policy_prose_share_the_generation_tail() {
-    assert!(packaged_artifact_generation_policy_note_text()
-        .ends_with(PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL));
-    assert!(packaged_artifact_generation_policy_note_text()
-        .contains("quarter-biased splits on very long dense-body spans"));
-    assert!(packaged_artifact_generation_policy_note_text()
-        .contains("shared four-point control-point fallback across longitude, latitude, and distance channels"));
-    assert!(packaged_artifact_generation_policy_note_text()
-        .contains("residual-channel combinations and remaining channel-order permutations"));
-    assert!(packaged_artifact_generation_policy_note_text().contains("smaller residual footprint"));
-    assert!(packaged_artifact_generation_policy_note_text()
-        .contains("dense quarter-point control-point lattice"));
-    assert!(packaged_artifact_generation_policy_note_text()
-        .contains("one-sixth and five-sixth probe fractions"));
-    assert!(packaged_artifact_generation_policy_note_text()
-        .contains("five-point fallback on the longest dense-body spans"));
-    assert!(packaged_artifact_generation_policy_note_text()
-        .contains("seven-point fallback on super-extreme dense-body spans"));
-    assert!(packaged_artifact_generation_policy_note_text()
-        .contains("one-fifth and four-fifth probe fractions"));
-    assert!(packaged_artifact_generation_policy_note_text()
-        .contains("one-ninth and eight-ninths probe fractions"));
-    assert!(packaged_artifact_generation_policy_note_text()
-        .contains("one-eighth and seven-eighths probe fractions"));
-    assert!(packaged_artifact_generation_policy_note_text()
-        .contains("one-seventh and six-sevenths probe fractions"));
-    assert!(packaged_artifact_generation_policy_note_text().contains("lunar points"));
+fn packaged_artifact_source_and_policy_prose_share_the_dense_fit_method() {
+    let method = packaged_artifact_dense_fit_method_text();
+    assert!(packaged_artifact_generation_policy_note_text().ends_with(method));
+    assert!(packaged_artifact_source_text().ends_with(&format!("{method}.")));
+    assert!(method.contains("degree-8 least-squares polynomial"));
+    assert!(method.contains("from 27 evenly spaced kernel samples"));
     assert!(
-        packaged_artifact_generation_policy_note_text()
-            .find("seven-point fallback on super-extreme dense-body spans")
-            .expect("seven-point fallback text should be present")
-            < packaged_artifact_generation_policy_note_text()
-                .find("one-ninth and eight-ninths probe fractions")
-                .expect("ninth probe text should be present")
+        method.contains("no point segments, residual correction channels or adaptive subdivision")
     );
-    assert!(
-        packaged_artifact_generation_policy_note_text()
-            .find("one-ninth and eight-ninths probe fractions")
-            .expect("ninth probe text should be present")
-            < packaged_artifact_generation_policy_note_text()
-                .find("one-eighth and seven-eighths probe fractions")
-                .expect("eighth probe text should be present")
-    );
-    assert!(
-        packaged_artifact_generation_policy_note_text()
-            .find("one-eighth and seven-eighths probe fractions")
-            .expect("eighth probe text should be present")
-            < packaged_artifact_generation_policy_note_text()
-                .find("one-seventh and six-sevenths probe fractions")
-                .expect("seventh probe text should be present")
-    );
-    assert!(
-        packaged_artifact_generation_policy_note_text()
-            .find("one-seventh and six-sevenths probe fractions")
-            .expect("seventh probe text should be present")
-            < packaged_artifact_generation_policy_note_text()
-                .find("one-fifth and four-fifth probe fractions")
-                .expect("fifth probe text should be present")
-    );
-    assert!(packaged_artifact_source_text()
-        .contains("quarter-biased splits on very long dense-body spans"));
-    assert!(packaged_artifact_source_text().contains(PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL));
-    assert!(packaged_artifact_source_text()
-        .ends_with(&format!("{PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL}.")));
+    // None of the fitting machinery #233 deleted is described (issue #234).
+    for retired in [
+        "Chebyshev-Lobatto",
+        "quadratic",
+        "span caps",
+        "control-point",
+        "probe fractions",
+        "fallback",
+    ] {
+        assert!(
+            !packaged_artifact_source_text().contains(retired),
+            "{retired}"
+        );
+        assert!(
+            !packaged_artifact_generation_policy_note_text().contains(retired),
+            "{retired}"
+        );
+    }
+}
+
+/// The method text states one degree and one sample count for every body.
+#[test]
+fn every_packaged_body_shares_the_described_degree_and_sample_count() {
+    for body in packaged_bodies() {
+        assert_eq!(crate::coverage::fitting_degree(body), 8, "{body}");
+        assert_eq!(
+            crate::coverage::fitting_within_span_sample_count(body),
+            27,
+            "{body}"
+        );
+    }
 }
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
@@ -1111,7 +1087,7 @@ fn packaged_artifact_production_profile_summary_reflects_the_current_posture() {
         .contains("speed policy=FittedDerivative"));
     assert!(summary
         .summary_line()
-        .contains("segment strategy=bodies with a single sampled epoch use point segments"));
+        .contains("segment strategy=every packaged body is fit densely over the coverage window"));
     assert!(summary
         .summary_line()
         .contains("target thresholds: production thresholds recorded; scopes=luminaries, major planets, pluto, lunar points, selected asteroids, custom bodies; fit envelope:"));
@@ -1505,7 +1481,7 @@ fn packaged_artifact_generation_artifacts_keep_lookup_epoch_and_segment_strategy
         .contains("source provenance=Production generation source:"));
     assert!(manifest
         .summary_line()
-        .contains("segment strategy=bodies with a single sampled epoch use point segments"));
+        .contains("segment strategy=every packaged body is fit densely over the coverage window"));
 }
 
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
@@ -2461,7 +2437,7 @@ fn packaged_artifact_body_class_span_cap_summary_reflects_the_current_posture() 
     let summary = packaged_artifact_body_class_span_cap_summary_details();
     assert_eq!(
         summary.summary_line(),
-        "body-class span caps: luminaries=256 days, inner planets=384 days, outer planets=768 days, pluto=1536 days, lunar points=256 days, selected asteroids=256 days, custom bodies=512 days"
+        "dense fitting spans: Sun=16 days, Moon=4 days, Mercury=8 days, Venus=16 days, Mars=32 days, Jupiter=128 days, Saturn=256 days, Uranus=512 days, Neptune=512 days, Pluto=512 days, Ceres=512 days, Pallas=128 days, Juno=256 days, Vesta=256 days, asteroid:433-Eros=64 days"
     );
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
     assert!(summary.validate().is_ok());
@@ -2481,7 +2457,7 @@ fn packaged_artifact_body_class_span_cap_summary_validation_rejects_drift() {
     );
     assert_eq!(
         error.to_string(),
-        "the packaged artifact body-class span cap summary field `entries` is out of sync with the current posture"
+        "the packaged artifact fitting span summary field `entries` is out of sync with the current posture"
     );
 }
 

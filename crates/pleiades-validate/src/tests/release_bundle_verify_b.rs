@@ -1652,8 +1652,8 @@ fn verify_release_bundle_rejects_tampered_packaged_artifact_body_class_span_cap_
             "pleiades-release-bundle-tampered-packaged-artifact-body-class-span-cap-semantic",
             "packaged-artifact-body-class-span-cap-summary.txt",
             "packaged-artifact body-class span cap summary checksum (fnv1a-64):",
-            "Packaged-artifact body-class span caps: ",
-            "Packaged-artifact body-class span caps: drifted ",
+            "Packaged-artifact dense fitting spans: ",
+            "Packaged-artifact dense fitting spans: drifted ",
             "packaged-artifact body-class span cap summary no longer matches the current packaged-artifact body-class span cap posture",
         );
 }
