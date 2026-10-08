@@ -15,6 +15,51 @@ fn default_atmosphere_is_se_standard() {
 }
 
 #[test]
+fn se_default_call_is_atpress_zero_attemp_zero() {
+    let a = Atmosphere::SE_DEFAULT_CALL;
+    assert_eq!(a.pressure_mbar, 0.0);
+    assert_eq!(a.temperature_c, 0.0);
+}
+
+/// SE's `atpress == 0` estimate, `1013.25 (1 - 0.0065 h / 288)^5.255`,
+/// evaluated by hand: 1013.25 at sea level, 898.707 mbar at 1000 m.
+#[test]
+fn zero_pressure_is_estimated_from_elevation() {
+    let at = |elevation_m| Atmosphere::SE_DEFAULT_CALL.at_elevation(elevation_m);
+    assert_eq!(at(0.0).pressure_mbar, 1013.25);
+    assert!((at(1000.0).pressure_mbar - 898.707).abs() < 1e-3);
+    assert_eq!(at(1000.0).temperature_c, 0.0);
+    let given = Atmosphere {
+        pressure_mbar: 950.0,
+        temperature_c: 20.0,
+    };
+    assert_eq!(given.at_elevation(1000.0), given);
+}
+
+/// Sinclair's formula at apparent altitude 0 is 34.46′ before the SE
+/// pressure/temperature factor `(P - 80) / 930 / (1 + 8e-5 (34.46 + 39)
+/// (T - 10))`. By hand: 33.5933′ = 2015.60″ at 1013.25 mbar, 15 °C (the
+/// 2016″ issue #242 measured from SE) and 36.7395′ = 2204.37″ at 0 °C.
+#[test]
+fn horizon_refraction_is_sinclair_at_the_apparent_horizon() {
+    let arcsec = |atmos| horizon_refraction_deg(0.0, 0.0, atmos) * 3600.0;
+    assert!((arcsec(Atmosphere::default()) - 2015.60).abs() < 0.01);
+    let se_default = Atmosphere::SE_DEFAULT_CALL.at_elevation(0.0);
+    assert!((arcsec(se_default) - 2204.37).abs() < 0.01);
+}
+
+/// An apparent horizon below the dip of the sea horizon is not a place a
+/// body can be seen, and SE's `APP_TO_TRUE` applies no refraction there.
+/// The dip at 100 m in the standard atmosphere is about -0.278°.
+#[test]
+fn horizon_refraction_vanishes_below_the_dip() {
+    let atmos = Atmosphere::default();
+    assert_eq!(horizon_refraction_deg(-0.5, 100.0, atmos), 0.0);
+    assert!(horizon_refraction_deg(-0.2, 100.0, atmos) > 0.5);
+    assert_eq!(horizon_refraction_deg(-0.2, 0.0, atmos), 0.0);
+}
+
+#[test]
 fn refraction_at_horizon_is_about_34_arcmin() {
     // Bennett, evaluated ON the true altitude at h=0 with standard
     // atmosphere, gives a true→apparent lift of ~29' (0.4752° ≈ 28.5').

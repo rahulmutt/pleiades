@@ -5,7 +5,11 @@
 //!
 //! Fixture: the issues' own evidence, the Sun over
 //! `CompositeBackend<ElpBackend, Vsop87Backend>` with default
-//! `RiseSetOptions` and `Atmosphere`, query instants tagged `Tt`.
+//! `RiseSetOptions` and `Atmosphere::SE_DEFAULT_CALL`, query instants tagged
+//! `Tt`. The #81 latitudes were chosen under the earlier Bennett refraction
+//! (2174″ at the horizon); SE's default call (2204″) keeps their nights
+//! inside the sweep's 12-minute-to-1-hour band, which `Atmosphere::default`
+//! (2016″) does not (issue #242).
 
 use super::*;
 use pleiades_backend::CompositeBackend;
@@ -47,7 +51,7 @@ impl SunAt {
                 RiseSetTarget::Body(CelestialBody::Sun),
                 event,
                 self.observer.clone(),
-                Atmosphere::default(),
+                Atmosphere::SE_DEFAULT_CALL,
                 RiseSetOptions::default(),
                 after,
             )
@@ -61,7 +65,7 @@ impl SunAt {
                 RiseSetTarget::Body(CelestialBody::Sun),
                 event,
                 self.observer.clone(),
-                Atmosphere::default(),
+                Atmosphere::SE_DEFAULT_CALL,
                 RiseSetOptions::default(),
                 before,
             )
@@ -75,7 +79,7 @@ impl SunAt {
                 RiseSetTarget::Body(CelestialBody::Sun),
                 event,
                 self.observer.clone(),
-                Atmosphere::default(),
+                Atmosphere::SE_DEFAULT_CALL,
                 RiseSetOptions::default(),
                 start,
                 end,

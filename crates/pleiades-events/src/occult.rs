@@ -683,7 +683,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let sin_alt = (phi.sin() * dec.sin() + phi.cos() * dec.cos() * ha.cos()).clamp(-1.0, 1.0);
         let true_alt = sin_alt.asin().to_degrees();
         let az = ha.sin().atan2(ha.cos() * phi.sin() - dec.tan() * phi.cos());
-        let app_alt = apparent_from_true(true_alt, atmos);
+        let app_alt = apparent_from_true(
+            true_alt,
+            atmos.at_elevation(observer.elevation_m.unwrap_or(0.0)),
+        );
         Ok((az.to_degrees().rem_euclid(360.0), app_alt, app_alt > 0.0))
     }
 

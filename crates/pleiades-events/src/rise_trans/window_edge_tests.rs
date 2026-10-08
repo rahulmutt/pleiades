@@ -5,9 +5,10 @@
 //!
 //! Fixture: the issue's own evidence, the Sun over
 //! `CompositeBackend<ElpBackend, Vsop87Backend>` with default
-//! `RiseSetOptions` and `Atmosphere`, query instants tagged `Tt`. The
-//! expected instants are Swiss Ephemeris's (pyswisseph 2.10, Moshier,
-//! `swe.rise_trans`), converted to TT with `swe.deltat`.
+//! `RiseSetOptions`, query instants tagged `Tt`. The expected instants are
+//! Swiss Ephemeris's (pyswisseph 2.10, Moshier, `swe.rise_trans` with its
+//! default `atpress = 0, attemp = 0`, so the searches use
+//! `Atmosphere::SE_DEFAULT_CALL`), converted to TT with `swe.deltat`.
 
 use super::*;
 use pleiades_backend::CompositeBackend;
@@ -25,13 +26,14 @@ const LAST_LOWER_TRANSIT_TT: f64 = 2_488_069.447_71;
 /// Swiss Ephemeris: Dhaka's sunrise 0.68 h after the window's start.
 const DHAKA_FIRST_SUNRISE_TT: f64 = 2_415_020.528_35;
 
-/// Agreement asked of the 1900 instant. Measured 2026-10-06: the engine is
-/// 2.1 s before Swiss Ephemeris.
+/// Agreement asked of the 1900 instant. Measured 2026-10-08 (issue #242):
+/// the engine is 0.6 s before Swiss Ephemeris.
 const START_PARITY_TOLERANCE_DAYS: f64 = 5.0 * SECOND;
-/// Agreement asked of the 2100 instants. Measured 2026-10-06: the sunrise is
-/// 49.3 s and the lower transit 51.3 s after Swiss Ephemeris. An offset shared
-/// by a rising and a transit is one of Earth rotation: the engine's Delta T
-/// is extrapolated beyond 2020, and differs from Swiss Ephemeris's by 2100.
+/// Agreement asked of the 2100 instants. Measured 2026-10-08 (issue #242):
+/// the sunrise is 51.1 s and the lower transit 51.2 s after Swiss Ephemeris.
+/// An offset shared by a rising and a transit is one of Earth rotation: the
+/// engine's Delta T is extrapolated beyond 2020, and differs from Swiss
+/// Ephemeris's by 2100.
 const END_PARITY_TOLERANCE_DAYS: f64 = 60.0 * SECOND;
 
 type Found = Result<Option<f64>, EventError>;
@@ -75,7 +77,7 @@ impl At {
                 target,
                 event,
                 self.observer.clone(),
-                Atmosphere::default(),
+                Atmosphere::SE_DEFAULT_CALL,
                 RiseSetOptions::default(),
                 tt(after_jd),
             )
@@ -92,7 +94,7 @@ impl At {
                 sun(),
                 event,
                 self.observer.clone(),
-                Atmosphere::default(),
+                Atmosphere::SE_DEFAULT_CALL,
                 RiseSetOptions::default(),
                 tt(before_jd),
             )
@@ -110,7 +112,7 @@ impl At {
                 sun(),
                 event,
                 self.observer.clone(),
-                Atmosphere::default(),
+                Atmosphere::SE_DEFAULT_CALL,
                 RiseSetOptions::default(),
                 tt(start_jd),
                 tt(end_jd),
@@ -194,7 +196,7 @@ fn a_search_that_runs_past_the_windows_end_reports_out_of_window() {
     }
     // The sunset before it is inside the window and is still found.
     let set = found(london.next(RiseSetEvent::Set, WINDOW_END_JD - 0.5));
-    assert_close(set, 2_488_069.169_43, SECOND);
+    assert_close(set, 2_488_069.169_39, SECOND);
     // No transit follows the Sun's last one before the end.
     let last_upper = found(london.previous(RiseSetEvent::UpperTransit, WINDOW_END_JD));
     let needed = out_of_window_jd(london.next(RiseSetEvent::UpperTransit, last_upper));

@@ -8,7 +8,7 @@ use crate::root::wrap180;
 use crate::semidiameter::semidiameter_deg;
 use crate::time_scale::{local_apparent_sidereal_deg, tdb_jd};
 use pleiades_apparent::{
-    apparent_from_true, topocentric_position, true_obliquity_degrees, Atmosphere,
+    horizon_refraction_deg, topocentric_position, true_obliquity_degrees, Atmosphere,
 };
 use pleiades_backend::EphemerisBackend;
 use pleiades_types::{
@@ -270,14 +270,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
         }
     }
 
-    /// Apparent (refracted, when `opts.refraction`) topocentric altitude of the
-    /// target at `jd` (TDB), in degrees. This is the function rise/set root-finds.
-    pub(crate) fn target_apparent_altitude(
+    /// True (unrefracted) topocentric altitude of the target at `jd` (TDB),
+    /// in degrees. Rise/set root-finds this against `standard_altitude`.
+    pub(crate) fn target_true_altitude(
         &self,
         target: &RiseSetTarget,
         observer: &ObserverLocation,
         opts: &RiseSetOptions,
-        atmos: Atmosphere,
         jd: f64,
         track: Option<&BodyTrack<'_, B>>,
     ) -> Result<f64, EventError> {
@@ -288,30 +287,33 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let dec = dec_deg.to_radians();
         let sin_alt = phi.sin() * dec.sin() + phi.cos() * dec.cos() * ha.cos();
         // Guard the asin domain: fail-closed, never-NaN.
-        let true_alt = sin_alt.clamp(-1.0, 1.0).asin().to_degrees();
-        Ok(if opts.refraction {
-            apparent_from_true(true_alt, atmos)
-        } else {
-            true_alt
-        })
+        Ok(sin_alt.clamp(-1.0, 1.0).asin().to_degrees())
     }
 
-    /// The standard altitude `h0` the event is defined at: horizon geometry minus
-    /// the disc term, plus any custom horizon. Neither refraction nor an
-    /// elevation-based horizon dip are included here, matching SE's
-    /// `swe_rise_trans` (Model B): refraction lives entirely in the apparent
-    /// altitude returned by `target_apparent_altitude`, which the root-finder
-    /// compares against this `h0`; a height-based dip is omitted because SE's
+    /// The standard altitude `h0` the event is defined at: the TRUE altitude
+    /// of the disc's centre at which the chosen disc point appears on the
+    /// horizon (or on the custom horizon). It is the custom horizon, minus
+    /// the disc term, minus the refraction at that apparent horizon when
+    /// `opts.refraction` is set.
+    ///
+    /// This is SE's `swe_rise_trans` model (issue #242): refraction is
+    /// evaluated once, at the apparent horizon, with `swe_refrac_extended`
+    /// (`pleiades_apparent::horizon_refraction_deg`), and the true altitude is
+    /// rooted against that constant, so an [`Atmosphere`] built from an SE
+    /// call's `atpress`/`attemp` gives that call's instants. A zero pressure
+    /// is estimated from the observer's elevation, as SE does.
+    ///
+    /// No elevation-based dip of the horizon itself is included: SE's
     /// default `swe_rise_trans` calls `swe_rise_trans_true_hor` with
-    /// `horhgt = 0` (dip is only computed when `horhgt == -100`, a sentinel
-    /// SE's caller never requests by default) — so applying a dip here would
-    /// diverge from SE, not match it.
+    /// `horhgt = 0` (the dip is only computed when `horhgt == -100`, a
+    /// sentinel SE's caller never requests by default), so applying a dip
+    /// here would diverge from SE, not match it.
     pub(crate) fn standard_altitude(
         &self,
         target: &RiseSetTarget,
-        _observer: &ObserverLocation,
+        observer: &ObserverLocation,
         opts: &RiseSetOptions,
-        _atmos: Atmosphere,
+        atmos: Atmosphere,
         jd: f64,
         track: Option<&BodyTrack<'_, B>>,
     ) -> Result<f64, EventError> {
@@ -333,9 +335,12 @@ impl<B: EphemerisBackend> EventEngine<B> {
             DiscMode::LowerLimb => sd,
             DiscMode::Center => 0.0,
         };
-        // Custom local horizon altitude.
-        if let Some(hor) = opts.horizon_altitude_deg {
-            h0 += hor;
+        // Custom local horizon altitude, and the refraction at it.
+        let horizon = opts.horizon_altitude_deg.unwrap_or(0.0);
+        h0 += horizon;
+        if opts.refraction {
+            let elevation_m = observer.elevation_m.unwrap_or(0.0);
+            h0 -= horizon_refraction_deg(horizon, elevation_m, atmos.at_elevation(elevation_m));
         }
         Ok(h0)
     }
@@ -349,7 +354,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         }
     }
 
-    /// The rise/set residual: apparent altitude minus standard altitude. Its
+    /// The rise/set residual: true altitude minus standard altitude. Its
     /// zeros (ascending = rise, descending = set) are what `next_rise_set` and
     /// `rise_sets_in_range` root-find through the horizon scanner in `scan`,
     /// which reads each crossing's direction from the signs across its bracket.
@@ -362,7 +367,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         jd: f64,
         track: Option<&BodyTrack<'_, B>>,
     ) -> Result<f64, EventError> {
-        let alt = self.target_apparent_altitude(target, observer, opts, atmos, jd, track)?;
+        let alt = self.target_true_altitude(target, observer, opts, jd, track)?;
         let h0 = self.standard_altitude(target, observer, opts, atmos, jd, track)?;
         Ok(alt - h0)
     }
@@ -384,6 +389,21 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// every other event surface in this crate. Accuracy in UT/civil time is
     /// bounded by the packaged ΔT model (observed through 2020, extrapolated
     /// beyond).
+    ///
+    /// # Atmosphere
+    ///
+    /// With `opts.refraction`, `atmos` means what `swe_rise_trans`'s
+    /// `atpress`/`attemp` mean, and refraction is applied the way it applies
+    /// it: once, at the apparent horizon (see
+    /// [`pleiades_apparent::horizon_refraction_deg`]). An [`Atmosphere`]
+    /// built from an SE call's arguments therefore gives that call's
+    /// instants, and a zero pressure is estimated from the observer's
+    /// elevation, as in SE. [`Atmosphere::default`] is 1013.25 mbar at
+    /// 15 °C; SE code that passes `atpress = 0, attemp = 0` (SE's own
+    /// default call) is [`Atmosphere::SE_DEFAULT_CALL`]. At the horizon the
+    /// two differ by 189″ of refraction, which puts the default's sunrise
+    /// 14–44 s later at 0–60° latitude. Hindu rising has no refraction, so
+    /// `atmos` does not affect it.
     ///
     /// # Search window
     ///

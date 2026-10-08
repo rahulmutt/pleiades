@@ -82,7 +82,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
         Ok(Horizontal {
             azimuth: az.to_degrees().rem_euclid(360.0),
             true_altitude,
-            apparent_altitude: apparent_from_true(true_altitude, atmos),
+            apparent_altitude: apparent_from_true(
+                true_altitude,
+                atmos.at_elevation(observer.elevation_m.unwrap_or(0.0)),
+            ),
         })
     }
 }
@@ -108,7 +111,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
             })?;
         check_atmosphere(atmos)?;
         let alt_deg = if is_apparent {
-            pleiades_apparent::true_from_apparent(altitude_deg, atmos)
+            pleiades_apparent::true_from_apparent(
+                altitude_deg,
+                atmos.at_elevation(observer.elevation_m.unwrap_or(0.0)),
+            )
         } else {
             altitude_deg
         };
@@ -180,6 +186,38 @@ mod tests {
             h.apparent_altitude >= h.true_altitude,
             "refraction lifts the body"
         );
+    }
+
+    /// A zero pressure is SE's `atpress = 0`: estimated from the observer's
+    /// elevation (1013.25 mbar at sea level, 898.707 mbar at 1000 m), not a
+    /// vacuum (issue #242).
+    #[test]
+    fn zero_pressure_is_estimated_from_the_observer_elevation() {
+        let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
+        let at = tdb(2_451_545.0);
+        let input = HorizontalInput::Equatorial(
+            Angle::from_degrees(greenwich_last_deg(at) + 80.0),
+            Latitude::from_degrees(0.0),
+        );
+        let apparent = |elevation_m, pressure_mbar| {
+            let observer = ObserverLocation::new(
+                Latitude::from_degrees(51.48),
+                Longitude::from_degrees(0.0),
+                Some(elevation_m),
+            );
+            let atmos = Atmosphere {
+                pressure_mbar,
+                temperature_c: 0.0,
+            };
+            let h = engine.horizontal(input, observer, atmos, at).unwrap();
+            (h.apparent_altitude, h.true_altitude)
+        };
+        let (zero, true_alt) = apparent(0.0, 0.0);
+        assert!(zero > true_alt + 0.1, "refracted: {zero} vs {true_alt}");
+        assert_eq!(zero, apparent(0.0, 1013.25).0);
+        let (high, _) = apparent(1000.0, 0.0);
+        assert!((high - apparent(1000.0, 898.707).0).abs() < 1e-6);
+        assert!(high < zero, "thinner air refracts less");
     }
 
     #[test]

@@ -37,7 +37,7 @@ fn sunrise_after(engine: &EventEngine<impl EphemerisBackend>, after: Instant) ->
             RiseSetTarget::Body(CelestialBody::Sun),
             RiseSetEvent::Rise,
             greenwich(),
-            Atmosphere::default(),
+            Atmosphere::SE_DEFAULT_CALL,
             RiseSetOptions::default(),
             after,
         )
@@ -52,7 +52,7 @@ fn sunrise_before(engine: &EventEngine<impl EphemerisBackend>, before: Instant) 
             RiseSetTarget::Body(CelestialBody::Sun),
             RiseSetEvent::Rise,
             greenwich(),
-            Atmosphere::default(),
+            Atmosphere::SE_DEFAULT_CALL,
             RiseSetOptions::default(),
             before,
         )
