@@ -114,3 +114,31 @@ fn asteroid_fit_error_and_size_against_the_kernel() {
     );
     eprintln!("total added by the five asteroids: {total_added} bytes");
 }
+
+/// The ten base bodies keep their exact segments across the asteroid
+/// regeneration. Point `PLEIADES_BASELINE_ARTIFACT` at the artifact from
+/// before the regeneration.
+#[test]
+#[ignore = "maintainer check: needs PLEIADES_BASELINE_ARTIFACT"]
+fn base_bodies_match_the_baseline_artifact() {
+    let Ok(path) = std::env::var("PLEIADES_BASELINE_ARTIFACT") else {
+        eprintln!("skipping: set PLEIADES_BASELINE_ARTIFACT to run");
+        return;
+    };
+    let before = CompressedArtifact::decode(&std::fs::read(path).expect("read baseline"))
+        .expect("decode baseline");
+    let after = CompressedArtifact::decode(crate::packaged_artifact_bytes()).expect("decode");
+    for body in crate::PACKAGED_BASE_BODIES.iter() {
+        let old = before
+            .bodies
+            .iter()
+            .find(|b| &b.body == body)
+            .expect("baseline body");
+        let new = after
+            .bodies
+            .iter()
+            .find(|b| &b.body == body)
+            .expect("new body");
+        assert_eq!(old, new, "{body}: segments or frame changed");
+    }
+}

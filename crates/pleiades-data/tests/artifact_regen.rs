@@ -1,6 +1,7 @@
-//! Gated: regenerates the packaged compressed artifact from the real de440
-//! kernel and asserts byte-identity against the committed fixture. Skipped
-//! unless PLEIADES_DE_KERNEL points at de440.bsp.
+//! Gated: regenerates the packaged compressed artifact from the real de440 and
+//! sb441-n373s kernels and asserts byte-identity against the committed fixture.
+//! Skipped unless PLEIADES_DE_KERNEL points at de440.bsp and PLEIADES_AST_KERNEL
+//! points at sb441-n373s.bsp.
 //!
 //! Also contains a non-gated size/perf measurement test that prints the
 //! SP1 draft baseline numbers (artifact byte size, decode latency, lookup
@@ -48,13 +49,16 @@ fn sp1_draft_size_perf_baseline() {
 
 #[test]
 fn regenerated_artifact_matches_committed() {
-    let Ok(kernel) = std::env::var("PLEIADES_DE_KERNEL") else {
-        eprintln!("skipping: set PLEIADES_DE_KERNEL to run");
+    let (Ok(de), Ok(ast)) = (
+        std::env::var("PLEIADES_DE_KERNEL"),
+        std::env::var("PLEIADES_AST_KERNEL"),
+    ) else {
+        eprintln!("skipping: set PLEIADES_DE_KERNEL and PLEIADES_AST_KERNEL to run");
         return;
     };
 
-    let regenerated = pleiades_data::regenerate_packaged_artifact_from_kernel(&kernel)
-        .expect("artifact regeneration from de440 kernel should succeed");
+    let regenerated = pleiades_data::regenerate_packaged_artifact_from_kernels(&de, &ast)
+        .expect("artifact regeneration from de440 and sb441-n373s should succeed");
 
     let regenerated_bytes = regenerated
         .encode()

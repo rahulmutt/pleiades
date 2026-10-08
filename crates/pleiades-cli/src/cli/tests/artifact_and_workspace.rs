@@ -571,6 +571,10 @@ fn artifact_and_workspace_commands_render_compact_reports() {
             error.contains("generate-packaged-artifact requires PLEIADES_DE_KERNEL"),
             "unexpected error: {error}"
         );
+        assert!(
+            error.contains("PLEIADES_AST_KERNEL"),
+            "error should name the asteroid kernel too: {error}"
+        );
     }
     assert!(
         !artifact_fixture_path.exists(),

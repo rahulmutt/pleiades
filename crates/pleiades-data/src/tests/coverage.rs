@@ -2714,28 +2714,17 @@ fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
 }
 
 /// Kernel-free assembly test: runs `build_packaged_artifact_from_reference_over`
-/// with tiny synthetic windows so the test finishes in milliseconds.
+/// with a tiny synthetic window so the test finishes in milliseconds.
 ///
-/// Rationale for window parameterisation: the full 1900–2100 default-window build produces
-/// ~91 000 segments for the Moon alone; a synthetic-backend test over the full
-/// range would take minutes and violate the "no slow non-ignored tests" rule
-/// from the prior slice's review. By exposing the `_over` core we can exercise
-/// the complete assembly logic (body fan-out, span tiling, segment fitting,
-/// checksum, validate) with windows only a few hundred days wide — enough for
-/// several segments per body — while keeping runtime under a second.
-///
-/// For the constrained asteroid (Eros), segments are re-derived from the
-/// reference snapshot (curated corpus data), not from the committed artifact.
-/// The test verifies snapshot-based sourcing: Eros is present with ≥1 segment
-/// and its count matches the expected snapshot-fit count exactly.
+/// The full 1900-2100 default-window build produces ~91 000 segments for the
+/// Moon alone; a synthetic-backend test over the full range would take
+/// minutes. By exposing the `_over` core we can exercise the complete assembly
+/// logic (body fan-out, span tiling, segment fitting, checksum, validate) with
+/// a window only a few hundred days wide. Every packaged body, the five dense
+/// asteroids included, is fit from the reference over the same window.
 #[ignore = "slow: run via `mise test-full` or `cargo test -- --include-ignored`"]
 #[test]
 fn build_from_reference_produces_all_bodies_with_spanning_segments() {
-    // Tiny window: a few hundred days covers several segments for every
-    // non-asteroid cadence class (Moon=4-day spans → ~50 segs; outer
-    // planets=512-day spans → ~1 seg) while running in milliseconds on the
-    // Synthetic backend. The asteroid is re-derived from the reference snapshot,
-    // not carried from the committed artifact, so no .bin decode is needed.
     let base_window = (2_451_545.0, 2_451_545.0 + 200.0);
 
     let artifact =
@@ -2749,49 +2738,14 @@ fn build_from_reference_produces_all_bodies_with_spanning_segments() {
             .unwrap_or_else(|| panic!("missing body {body}"));
         assert!(!ba.segments.is_empty(), "{body} has no segments");
 
-        let cadence = crate::coverage::packaged_artifact_body_cadence(body);
-        match cadence {
-            crate::coverage::PackagedArtifactBodyCadence::SelectedAsteroids
-            | crate::coverage::PackagedArtifactBodyCadence::CustomBodies => {
-                // Eros must have been re-derived from the reference snapshot,
-                // not fit from the Synthetic backend. Verify segment count
-                // matches the expected snapshot-fit count — this is
-                // format/version-independent and does not decode the committed
-                // .bin.
-                use pleiades_jpl::{reference_snapshot, SnapshotEntry};
-                use std::cmp::Ordering;
-                let snap = reference_snapshot();
-                let mut e: Vec<&SnapshotEntry> = snap.iter().filter(|x| x.body == *body).collect();
-                e.sort_by(|left, right| {
-                    left.epoch
-                        .julian_day
-                        .days()
-                        .partial_cmp(&right.epoch.julian_day.days())
-                        .unwrap_or(Ordering::Equal)
-                });
-                let expected = crate::regenerate::body_segments_from_entries(
-                    &e,
-                    crate::regenerate::snapshot_fit_source(),
-                )
-                .len();
-                assert_eq!(
-                    ba.segments.len(),
-                    expected,
-                    "{body}: snapshot-fit segment count {}, expected {expected} from reference snapshot",
-                    ba.segments.len(),
-                );
-            }
-            _ => {
-                // Majors: segments must be contiguous and ascending.
-                for pair in ba.segments.windows(2) {
-                    assert!(
-                        pair[1].start.julian_day.days() >= pair[0].end.julian_day.days(),
-                        "{body}: segments not contiguous/ascending at boundary between {} and {}",
-                        pair[0].end.julian_day.days(),
-                        pair[1].start.julian_day.days(),
-                    );
-                }
-            }
+        // Segments must be contiguous and ascending.
+        for pair in ba.segments.windows(2) {
+            assert!(
+                pair[1].start.julian_day.days() >= pair[0].end.julian_day.days(),
+                "{body}: segments not contiguous/ascending at boundary between {} and {}",
+                pair[0].end.julian_day.days(),
+                pair[1].start.julian_day.days(),
+            );
         }
     }
 }

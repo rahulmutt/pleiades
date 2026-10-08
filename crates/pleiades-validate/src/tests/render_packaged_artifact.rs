@@ -271,6 +271,10 @@ fn regenerate_packaged_artifact_out_command_fails_closed_without_kernel() {
         "unexpected error: {error}"
     );
     assert!(
+        error.contains("PLEIADES_AST_KERNEL"),
+        "error should name the asteroid kernel too: {error}"
+    );
+    assert!(
         !output_path.exists(),
         "no artifact bytes should be written when the kernel is unset"
     );

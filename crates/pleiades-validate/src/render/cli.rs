@@ -2783,14 +2783,19 @@ fn render_packaged_artifact_regeneration(
     normalized_intermediate_path: Option<String>,
 ) -> Result<String, String> {
     // The WRITE path is kernel-gated: regenerating artifact bytes requires the
-    // de440 kernel. Kernel-free callers must use the committed artifact via the
-    // `packaged-artifact` decode path (and `--check`), not this write path.
-    let kernel_path = std::env::var("PLEIADES_DE_KERNEL").map_err(|_| {
-        "generate-packaged-artifact requires PLEIADES_DE_KERNEL (path to de440.bsp); \
-         kernel-free callers use the committed artifact via packaged-artifact decode"
+    // de440 and sb441-n373s kernels. Kernel-free callers must use the committed
+    // artifact via the `packaged-artifact` decode path (and `--check`), not this
+    // write path.
+    let missing = || {
+        "generate-packaged-artifact requires PLEIADES_DE_KERNEL (path to de440.bsp) and \
+         PLEIADES_AST_KERNEL (path to sb441-n373s.bsp); kernel-free callers use the \
+         committed artifact via packaged-artifact decode"
             .to_string()
-    })?;
-    let artifact = pleiades_data::regenerate_packaged_artifact_from_kernel(&kernel_path)?;
+    };
+    let de_kernel = std::env::var("PLEIADES_DE_KERNEL").map_err(|_| missing())?;
+    let asteroid_kernel = std::env::var("PLEIADES_AST_KERNEL").map_err(|_| missing())?;
+    let artifact =
+        pleiades_data::regenerate_packaged_artifact_from_kernels(&de_kernel, &asteroid_kernel)?;
     let encoded = artifact
         .encode()
         .map_err(|error| format!("failed to encode regenerated packaged artifact: {error}"))?;

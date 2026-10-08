@@ -12,17 +12,6 @@ pub(crate) enum PackagedArtifactBodyCadence {
 }
 
 impl PackagedArtifactBodyCadence {
-    pub(crate) fn uses_dense_sampling(self) -> bool {
-        matches!(
-            self,
-            Self::Luminaries
-                | Self::Pluto
-                | Self::LunarPoints
-                | Self::SelectedAsteroids
-                | Self::CustomBodies
-        )
-    }
-
     pub(crate) fn uses_dense_validation_sampling(self) -> bool {
         matches!(
             self,
@@ -34,24 +23,6 @@ impl PackagedArtifactBodyCadence {
                 | Self::SelectedAsteroids
                 | Self::CustomBodies
         )
-    }
-
-    pub(crate) fn uses_dense_residual_sample_lattice(self, kind: ChannelKind) -> bool {
-        match kind {
-            ChannelKind::Longitude | ChannelKind::Latitude => self.uses_dense_sampling(),
-            ChannelKind::DistanceAu => {
-                matches!(
-                    self,
-                    Self::InnerPlanets
-                        | Self::OuterPlanets
-                        | Self::Pluto
-                        | Self::LunarPoints
-                        | Self::SelectedAsteroids
-                        | Self::CustomBodies
-                )
-            }
-            _ => false,
-        }
     }
 }
 

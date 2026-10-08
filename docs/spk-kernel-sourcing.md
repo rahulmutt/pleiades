@@ -151,3 +151,37 @@ PLEIADES_DE_KERNEL=/path/to/de440.bsp \
 Without the env var the test compiles and passes immediately via early return
 (skip). With the kernel, it regenerates each boundary-slice row and asserts
 that values match the checked-in CSV within 1 km.
+
+## Regenerating the packaged artifact
+
+The packaged compressed artifact (`crates/pleiades-data/tests/fixtures/packaged-artifact.bin`)
+is fit densely from two kernels over the shipped 1900-2100 window: the de440
+planetary kernel (Sun, Moon, Mercury through Pluto, lunar points) and the
+`sb441-n373s` small-body kernel (Ceres, Pallas, Juno, Vesta and
+`asteroid:433-Eros`, stored heliocentric like the planets). Both kernels are
+required; the command refuses to write with either missing. Run it in release
+mode:
+
+```bash
+PLEIADES_DE_KERNEL=/path/to/de440.bsp PLEIADES_AST_KERNEL=/path/to/sb441-n373s.bsp \
+  cargo run --release -p pleiades-cli -- generate-packaged-artifact \
+  --out crates/pleiades-data/tests/fixtures/packaged-artifact.bin
+```
+
+Then verify the result (save the previous artifact first, to compare against):
+
+```bash
+# Regeneration is deterministic: the committed bytes are reproduced exactly.
+PLEIADES_DE_KERNEL=/path/to/de440.bsp PLEIADES_AST_KERNEL=/path/to/sb441-n373s.bsp \
+  cargo test --release -p pleiades-data --test artifact_regen -- --nocapture
+
+# The ten base bodies keep their segments bit-for-bit.
+PLEIADES_BASELINE_ARTIFACT=/path/to/packaged-artifact.before.bin \
+  cargo test --release -p pleiades-data --lib base_bodies_match_the_baseline_artifact -- --ignored --nocapture
+
+# The encoded artifact stays within its size budget.
+cargo test -q -p pleiades-data --lib encoded_artifact_within_size_budget
+```
+
+`pleiades-cli generate-artifact <de440.bsp> --asteroid-kernel <sb441-n373s.bsp> --out <path>`
+does the same over a custom coverage window.
