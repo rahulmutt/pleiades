@@ -58,16 +58,13 @@
 //!   `APPARENT_ALTITUDE_ARCSEC` ceiling as above-horizon rows (previously
 //!   informational-only; see `rise_trans_thresholds`).
 //! - The rise/set "refraction floor" category (Sun/Moon, refraction on, no
-//!   custom horizon; see `is_refraction_floor_row`) is UNCHANGED (still ~22 s
-//!   max residual): every such crossing's true altitude stays within [-1, 0)
-//!   deg, a range this task deliberately left untouched (see
-//!   `pleiades_apparent::refraction::apparent_from_true_below_horizon`'s doc
-//!   for why extending the fix into that exact band regressed a different
-//!   row via bisection-on-a-discontinuity). The corpus provides no
-//!   below-horizon ground truth in [-1, 0) deg to diagnose that residual's
-//!   real cause against, so `RISE_SET_SECONDS_REFRACTION_FLOOR` keeps its
-//!   prior (honestly measured) ceiling rather than being tightened on
-//!   unverified assumptions.
+//!   custom horizon) was unchanged by it (still ~22 s max residual). Issue
+//!   #242 found the cause: rise/set used a different refraction model from
+//!   `swe_rise_trans`. Rise/set no longer calls `apparent_from_true`; it
+//!   roots the true altitude against SE's refraction at the apparent horizon
+//!   (`pleiades_apparent::horizon_refraction_deg`), and every rise/set row
+//!   is now gated at one ceiling, `RISE_SET_SECONDS` (see
+//!   `rise_trans_thresholds`).
 
 use crate::rise_trans_thresholds::*;
 use pleiades_apparent::{apparent_from_true, fnv1a64, true_from_apparent, Atmosphere};
@@ -160,17 +157,9 @@ impl std::error::Error for RiseTransError {}
 pub struct RiseTransReport {
     pub rise_trans_checked: usize,
     pub azalt_checked: usize,
-    /// Max rise/set time residual (seconds) against `se_jd_tdb`, over
-    /// well-conditioned, non-refraction-floor, non-grazing, non-transit rows
-    /// (gated at `RISE_SET_SECONDS_TIGHT`).
+    /// Max rise/set time residual (seconds) against `se_jd_tdb`, over every
+    /// rise/set row (gated at `RISE_SET_SECONDS`).
     pub max_rise_set_residual_s: f64,
-    /// Max rise/set time residual (seconds) against `se_jd_tdb`, over the
-    /// Sun/Moon refraction-floor rows (gated at
-    /// `RISE_SET_SECONDS_REFRACTION_FLOOR`; see `is_refraction_floor_row`).
-    pub max_refraction_floor_residual_s: f64,
-    /// Max rise/set time residual (seconds) against `se_jd_tdb`, over the
-    /// lat-66.5N grazing rows (gated at `RISE_SET_SECONDS_GRAZING`).
-    pub max_grazing_residual_s: f64,
     /// Max meridian-transit time residual (seconds) against `se_jd_tdb`.
     pub max_transit_residual_s: f64,
     /// Max rise/set/transit time residual (seconds) against `se_jd_ut`
@@ -219,9 +208,7 @@ impl RiseTransReport {
             "validate-rise-trans: {} rise-trans + {} azalt SE fixtures — \
              Tier 1 self-consistency max {:.3}\" (ceiling {:.1}\"), \
              returned transit {:.3}\" past the meridian (ceiling {:.1}\", never before it), \
-             Tier 2 rise/set max {:.3} s (ceiling {:.1} s tight), \
-             refraction-floor max {:.3} s (ceiling {:.1} s, Task 17), \
-             grazing max {:.3} s (ceiling {:.1} s), \
+             Tier 2 rise/set max {:.3} s (ceiling {:.1} s), \
              transit max {:.3} s (ceiling {:.1} s), \
              azalt azimuth max {:.3}\" (ceiling {:.1}\"), \
              true-altitude max {:.3}\" (ceiling {:.1}\"), \
@@ -235,11 +222,7 @@ impl RiseTransReport {
             self.transit_hour_angle_arcsec,
             TRANSIT_HOUR_ANGLE_ARCSEC,
             self.max_rise_set_residual_s,
-            RISE_SET_SECONDS_TIGHT,
-            self.max_refraction_floor_residual_s,
-            RISE_SET_SECONDS_REFRACTION_FLOOR,
-            self.max_grazing_residual_s,
-            RISE_SET_SECONDS_GRAZING,
+            RISE_SET_SECONDS,
             self.max_transit_residual_s,
             TRANSIT_SECONDS,
             self.max_azimuth_residual_arcsec,
@@ -253,28 +236,6 @@ impl RiseTransReport {
             self.max_residual_vs_se_jd_ut_s,
         )
     }
-}
-
-/// Rows classified as genuinely ill-conditioned (near-circumpolar / grazing
-/// horizon geometry): the winter Sun/Aldebaran rise-set pair at the Arctic
-/// Circle (lat 66.5 N), where the body's altitude changes very slowly with
-/// time near the horizon (shallow rise/set angle), amplifying small
-/// cross-theory disagreement into a larger time residual. Identified by
-/// (object, event, lat_deg) so the classification is explicit and reviewable.
-fn is_grazing_row(object: &str, lat_deg: f64) -> bool {
-    (object == "Sun" || object == "Aldebaran") && (lat_deg - 66.5).abs() < 1e-6
-}
-
-/// Rows squarely in the below-horizon refraction-model floor (Task 17's
-/// scope, see the module doc): a Sun/Moon rise/set event with refraction
-/// enabled and no custom horizon offset, so the event is defined exactly at
-/// the geometric horizon where the engine's Bennett-forward refraction and
-/// SE's own refraction algorithm disagree most. Point bodies (stars, Mars)
-/// and any row with refraction disabled or a custom horizon offset (which
-/// moves the crossing away from the geometric horizon) are unaffected and
-/// fall through to the tight ceiling instead.
-fn is_refraction_floor_row(object: &str, refraction: bool, horizon_deg: Option<f64>) -> bool {
-    (object == "Sun" || object == "Moon") && refraction && horizon_deg.is_none()
 }
 
 fn wrap180(mut d: f64) -> f64 {
@@ -471,21 +432,10 @@ pub(crate) fn validate_rise_trans_csv(
                     event,
                     RiseSetEvent::UpperTransit | RiseSetEvent::LowerTransit
                 );
-                // Priority: transit > grazing (lat 66.5N oblique path) >
-                // refraction floor (Sun/Moon, refraction on, no custom
-                // horizon) > tight. Grazing is checked before the refraction
-                // floor because the two lat-66.5N Sun rows are affected by
-                // BOTH (stacked), and grazing's wider ceiling already covers
-                // that; only Aldebaran's lat-66.5N rows are grazing-but-not-
-                // floor (point body), and their residual is tiny regardless.
                 let ceiling_s = if is_transit {
                     TRANSIT_SECONDS
-                } else if is_grazing_row(object, lat_deg) {
-                    RISE_SET_SECONDS_GRAZING
-                } else if is_refraction_floor_row(object, refraction, horizon_deg) {
-                    RISE_SET_SECONDS_REFRACTION_FLOOR
                 } else {
-                    RISE_SET_SECONDS_TIGHT
+                    RISE_SET_SECONDS
                 };
                 if residual_s > ceiling_s {
                     return Err(RiseTransError::RiseTransParityExceeded {
@@ -496,11 +446,6 @@ pub(crate) fn validate_rise_trans_csv(
                 }
                 if is_transit {
                     report.max_transit_residual_s = report.max_transit_residual_s.max(residual_s);
-                } else if is_grazing_row(object, lat_deg) {
-                    report.max_grazing_residual_s = report.max_grazing_residual_s.max(residual_s);
-                } else if is_refraction_floor_row(object, refraction, horizon_deg) {
-                    report.max_refraction_floor_residual_s =
-                        report.max_refraction_floor_residual_s.max(residual_s);
                 } else {
                     report.max_rise_set_residual_s = report.max_rise_set_residual_s.max(residual_s);
                 }

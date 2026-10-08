@@ -192,31 +192,59 @@ fn hindu_moonrise_roots_the_geocentric_place() {
 
 #[test]
 fn standard_altitude_sun_upper_limb_is_about_negative_semidiameter() {
-    use pleiades_backend::test_backend::LinearSunMoon;
-    use pleiades_types::{Instant, JulianDay, Latitude, Longitude, ObserverLocation, TimeScale};
-    let engine = EventEngine::new(LinearSunMoon::new_moon_at(2_451_550.0));
-    let obs = ObserverLocation::new(
-        Latitude::from_degrees(40.0),
-        Longitude::from_degrees(0.0),
-        None,
-    );
-    let opts = RiseSetOptions::default(); // upper limb + refraction
+    let (engine, obs) = mid_latitude_fixture();
+    let opts = RiseSetOptions {
+        refraction: false,
+        ..RiseSetOptions::default()
+    };
     let h0 = engine
         .standard_altitude(
-            &RiseSetTarget::Body(pleiades_types::CelestialBody::Sun),
+            &RiseSetTarget::Body(CelestialBody::Sun),
             &obs,
             &opts,
-            pleiades_apparent::Atmosphere::default(),
-            Instant::new(JulianDay::from_days(2_451_545.0), TimeScale::Tdb)
-                .julian_day
-                .days(),
+            Atmosphere::default(),
+            2_451_545.0,
             None,
         )
         .unwrap();
-    // Model B (SE `swe_rise_trans`): refraction lives in the apparent
-    // altitude that this h0 is compared against, not in h0 itself. For
-    // upper-limb, h0 is just −SD ≈ −0.2666° (observed: −0.26657°).
+    // Unrefracted upper limb: h0 is just −SD ≈ −0.2666° (observed −0.26657°).
     assert!((h0 + 0.2666).abs() < 0.02, "sun standard altitude {h0}");
+}
+
+/// With refraction, `h0` is the TRUE altitude at which the disc point
+/// appears on the horizon: lower by SE's horizon refraction, Sinclair's
+/// formula at apparent altitude 0 under SE's pressure/temperature factor,
+/// evaluated by hand (issue #242). A zero pressure is SE's `atpress = 0`,
+/// estimated from the observer's elevation.
+#[test]
+fn refraction_lowers_standard_altitude_by_se_horizon_refraction() {
+    let (engine, obs) = mid_latitude_fixture();
+    let h0 = |observer: &ObserverLocation, refraction: bool, atmos: Atmosphere| {
+        let opts = RiseSetOptions {
+            refraction,
+            ..RiseSetOptions::default()
+        };
+        engine
+            .standard_altitude(
+                &RiseSetTarget::Body(CelestialBody::Sun),
+                observer,
+                &opts,
+                atmos,
+                2_451_545.0,
+                None,
+            )
+            .unwrap()
+    };
+    let lift_arcsec = |observer: &ObserverLocation, atmos| {
+        (h0(observer, false, atmos) - h0(observer, true, atmos)) * 3600.0
+    };
+    // 1013.25 mbar, 15 °C at sea level: 2015.60″.
+    let standard = lift_arcsec(&obs, Atmosphere::default());
+    assert!((standard - 2015.60).abs() < 0.01, "{standard}″");
+    // SE's default call at 1000 m: 898.707 mbar, 0 °C, 1933.82″.
+    let high = ObserverLocation::new(obs.latitude, obs.longitude, Some(1000.0));
+    let se_default = lift_arcsec(&high, Atmosphere::SE_DEFAULT_CALL);
+    assert!((se_default - 1933.82).abs() < 0.01, "{se_default}″");
 }
 
 #[test]
@@ -254,14 +282,13 @@ fn sun_rises_and_sets_within_a_day() {
         .unwrap();
     let rise = rise.expect("a rise within the window");
     let set = set.expect("a set within the window");
-    // At the rise instant the apparent altitude equals the standard altitude.
+    // At the rise instant the true altitude equals the standard altitude.
     let jd = rise.instant.julian_day.days();
     let alt = engine
-        .target_apparent_altitude(
+        .target_true_altitude(
             &RiseSetTarget::Body(CelestialBody::Sun),
             &obs,
             &RiseSetOptions::default(),
-            Atmosphere::default(),
             jd,
             None,
         )
@@ -284,7 +311,7 @@ fn sun_rises_and_sets_within_a_day() {
 /// `sun_rises_and_sets_within_a_day` above would still pass if
 /// the scanner's bracket-sign direction test were reversed (rise/set labels
 /// swapped), since it only checks `alt ≈ h0` and `rise != set`. Here we sample the residual
-/// (`target_apparent_altitude - standard_altitude`) just before and just
+/// (`target_true_altitude - standard_altitude`) just before and just
 /// after each event and assert the sign change goes the correct way: rise
 /// must be ASCENDING (below -> above), set must be DESCENDING (above ->
 /// below). A reversed classifier fails these assertions.

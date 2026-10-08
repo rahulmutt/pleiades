@@ -140,7 +140,7 @@ pub use topocentric::{topocentric_position, TopocentricPosition, DIURNAL_ABERRAT
 
 pub mod refraction;
 
-pub use refraction::{apparent_from_true, true_from_apparent, Atmosphere};
+pub use refraction::{apparent_from_true, horizon_refraction_deg, true_from_apparent, Atmosphere};
 
 /// Deterministic 64-bit content checksum (FNV-1a), byte-identical to
 /// `pleiades_time::fnv1a64`. Detects drift between a checked-in data table and

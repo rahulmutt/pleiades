@@ -21,10 +21,9 @@
 //!    stays that way for the whole span reports `None`, matching the
 //!    corpus's 4 `none`/`none` rows exactly.
 //!
-//! With both fixes applied, every row in the corpus now falls into one of
-//! four well-separated categories (see `is_grazing_row` /
-//! `is_refraction_floor_row` in `rise_trans_validation.rs` for the exact
-//! classification), each ceiling set to ~1.3-1.5x its measured max:
+//! With both fixes applied, every row in the corpus fell into one of
+//! four well-separated categories, each ceiling set to ~1.3-1.5x its measured
+//! max (issue #242, below, later merged the three rise/set categories):
 //!
 //! - Point-body / no-refraction-floor rise-set rows ("tight").
 //! - Sun/Moon rise-set rows with refraction enabled and no custom horizon
@@ -101,39 +100,34 @@
 //! one-sided under `TRANSIT_HOUR_ANGLE_ARCSEC` (past the meridian by no more
 //! than the tolerance's worth of rotation, and not before it), which states
 //! the engine's contract rather than one fixture's position in its bracket.
+//!
+//! ## Issue #242 — SE's rise/set refraction model
+//!
+//! The "refraction floor" and "grazing" residuals were not near-horizon
+//! refraction physics nor slow altitude rates: they were a different
+//! refraction model. SE's `swe_rise_trans` evaluates refraction once, at the
+//! apparent horizon (`swe_refrac_extended`, `SE_APP_TO_TRUE`, Sinclair's
+//! formula), and roots the TRUE altitude against that constant; the engine
+//! rooted Bennett's true→apparent formula on the moving true altitude, about
+//! 158″ more refraction at 15 °C and a different temperature dependence. The
+//! engine now uses SE's model (`pleiades_apparent::horizon_refraction_deg`),
+//! and the corpus's `atpress`/`attemp` (1013.25 mbar, 15 °C, recorded per
+//! row) reach it unchanged. Every rise/set row now agrees to under half a
+//! second, so the three rise/set categories are merged into one ceiling,
+//! `RISE_SET_SECONDS`:
+//!
+//! | category          | post-#80/#81 max | post-#242 max | ceiling           |
+//! |-------------------|------------------|---------------|-------------------|
+//! | tight             | 3.497 s          | 0.442 s       | 1.0 s (was 5.0)   |
+//! | refraction floor  | 21.401 s         | 0.384 s       | 1.0 s (was 31.0)  |
+//! | grazing           | 110.995 s        | 0.279 s       | 1.0 s (was 160.0) |
+//! | transit           | 0.403 s          | 0.403 s       | 1.0 s             |
 
-/// Rise/set time-parity ceiling (seconds) for a well-conditioned,
-/// non-grazing, non-refraction-floor row (point-like body: star or
-/// Mars-class planet; OR a Sun/Moon row with refraction disabled or a custom
-/// horizon offset that moves the crossing away from the geometric horizon).
-/// Measured max over this subset: 3.4631 s (Sun rise, lat 40, `horizon_plus5`
-/// preset — refraction on, but the +5 deg custom horizon keeps the crossing
-/// well clear of the near-horizon refraction floor). Ceiling = ceil(1.4 x
-/// 3.4631) rounded to 5.0 s.
-pub const RISE_SET_SECONDS_TIGHT: f64 = 5.0;
-
-/// Rise/set time-parity ceiling (seconds) for Sun/Moon rows where refraction
-/// is enabled and no custom horizon offset is given, so the event is defined
-/// exactly at the geometric horizon. Measured max: 21.9052 s (Moon rise, lat
-/// 40, elev 10m) — UNCHANGED by Task 17's below-horizon refraction fix,
-/// because every such crossing's true altitude stays within [-1, 0) deg,
-/// which that fix deliberately left untouched (see the module doc's "Task
-/// 17" section and `pleiades_apparent::refraction::apparent_from_true_below_horizon`'s
-/// doc for why). Ceiling = ceil(1.4 x 21.9052) rounded to 31.0 s — unchanged
-/// from its pre-Task-17 value, since the measured max didn't move; this is
-/// an honest, not-yet-closed gap (see `rise_trans_validation::is_refraction_floor_row`),
-/// not an inflated ceiling.
-pub const RISE_SET_SECONDS_REFRACTION_FLOOR: f64 = 31.0;
-
-/// Loosened ceiling for genuinely ill-conditioned rows: near-circumpolar /
-/// oblique-path geometry where `d(altitude)/dt -> 0` amplifies model
-/// disagreement into a large time residual. The only rows classified this
-/// way are the Sun/Aldebaran rise/set at lat 66.5N (near the Arctic Circle —
-/// the winter Sun's rise/set path is extremely oblique to the horizon).
-/// Measured max (elevation 0, so unaffected by the dip fix, and stacked with
-/// the refraction floor for the Sun rows): 110.8948 s. Ceiling = ceil(1.4 x
-/// 110.8948) rounded to 160.0 s.
-pub const RISE_SET_SECONDS_GRAZING: f64 = 160.0;
+/// Rise/set time-parity ceiling (seconds), every rise/set row. Measured
+/// max: 0.442 s (issue #242; see the module doc). Ceiling = 1.4 x 0.442
+/// rounded up to 1.0 s, which also leaves room for the 0.5 s by which a
+/// returned instant may trail its event.
+pub const RISE_SET_SECONDS: f64 = 1.0;
 
 /// Meridian-transit time-parity ceiling (seconds). Transits never call
 /// `standard_altitude` (no disc/dip term, no horizon residual at all — they
