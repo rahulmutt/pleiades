@@ -11,10 +11,10 @@
 //! Pluto, and falls back to other providers when callers request bodies
 //! outside that packaged slice.
 //!
-//! The artifact also carries segments for `asteroid:433-Eros`, fitted to 17
-//! reference rows. They are not served: outside those rows the fit is wrong by
-//! tens of degrees. `PackagedDataBackend` reports the body unsupported, and
-//! `packaged_lookup` refuses it too.
+//! Ceres, Pallas, Juno, Vesta and `asteroid:433-Eros` are densely fitted
+//! (heliocentric) from the JPL `sb441-n373s` small-body kernel and served on
+//! every date in 1900-2100 (issue #201); their accuracy is gated against the
+//! `sb441-n373s` rows of `asteroid_reference.csv`.
 //!
 //! The packaged artifact stores J2000 ecliptic coordinates directly,
 //! reconstructs equatorial coordinates from the stored channels and

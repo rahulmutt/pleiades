@@ -1172,9 +1172,9 @@ impl fmt::Display for PackagedTimeScaleBatchParitySummary {
 
 /// Returns a packaged lookup for a body and instant.
 ///
-/// It serves the bodies [`PackagedDataBackend`] serves. `asteroid:433-Eros`
-/// is carried by the artifact but not served (issue #201): its segments are
-/// fitted to rows too sparse to interpolate, so a lookup for it returns a
+/// It serves the bodies [`PackagedDataBackend`] serves, including the dense
+/// `sb441-n373s` asteroid fits (Ceres, Pallas, Juno, Vesta, `asteroid:433-Eros`).
+/// A body the artifact does not carry returns a
 /// [`MissingBody`](pleiades_compression::CompressionErrorKind::MissingBody)
 /// error. [`packaged_artifact`](crate::packaged_artifact) is the raw reader for
 /// what the artifact carries.
@@ -1225,8 +1225,8 @@ pub fn packaged_backend_from_artifact(artifact: CompressedArtifact) -> PackagedD
 
 /// Returns a packaged-data backend built from decoded artifact bytes.
 ///
-/// A backend built from a caller-supplied artifact also declines
-/// `asteroid:433-Eros` (issue #201).
+/// A backend built from a caller-supplied artifact serves the bodies that
+/// artifact carries and declines any body it does not.
 ///
 /// # Examples
 ///
@@ -1252,8 +1252,8 @@ pub fn packaged_backend_from_bytes(
 #[cfg(feature = "packaged-artifact-path")]
 /// Returns a packaged-data backend built from a decoded artifact file.
 ///
-/// A backend built from a caller-supplied artifact also declines
-/// `asteroid:433-Eros` (issue #201).
+/// A backend built from a caller-supplied artifact serves the bodies that
+/// artifact carries and declines any body it does not.
 ///
 /// # Examples
 ///
