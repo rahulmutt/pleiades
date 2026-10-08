@@ -1,28 +1,25 @@
 //! Packaged compressed ephemeris backend for the default 1900-2100 range.
 //!
 //! Wider coverage is available as an opt-in: regenerate the artifact over a
-//! custom window with the `generate-artifact <kernel> --out <path>
-//! [--start --end]` CLI subcommand.
+//! custom window with the `generate-artifact <kernel> --asteroid-kernel <kernel>
+//! --out <path> [--start --end]` CLI subcommand.
 //!
-//! This crate now ships a small stage-5 draft artifact backed by the
-//! `pleiades-compression` codec. The bundled data is regenerated from the
-//! checked-in JPL reference snapshot and validated against a deterministic
-//! binary fixture. The backend serves the Sun, the Moon and Mercury through
-//! Pluto, and falls back to other providers when callers request bodies
-//! outside that packaged slice.
+//! This crate ships a packaged artifact backed by the `pleiades-compression`
+//! codec, validated against a deterministic binary fixture. The backend serves
+//! the Sun, the Moon, Mercury through Pluto, and five asteroids (Ceres, Pallas,
+//! Juno, Vesta and `asteroid:433-Eros`), and falls back to other providers when
+//! callers request bodies outside that packaged slice.
 //!
-//! Ceres, Pallas, Juno, Vesta and `asteroid:433-Eros` are densely fitted
-//! (heliocentric) from the JPL `sb441-n373s` small-body kernel and served on
-//! every date in 1900-2100 (issue #201); their accuracy is gated against the
-//! `sb441-n373s` rows of `asteroid_reference.csv`.
+//! The asteroids are densely fitted (heliocentric) from the JPL `sb441-n373s`
+//! small-body kernel and served on every date in 1900-2100 (issue #201); their
+//! accuracy is gated against the `sb441-n373s` rows of `asteroid_reference.csv`.
 //!
 //! The packaged artifact stores J2000 ecliptic coordinates directly,
 //! reconstructs equatorial coordinates from the stored channels and
 //! J2000 mean-obliquity transform when requested, and adds residual correction
 //! channels on high-curvature spans when they improve the fit. A
-//! maintainer-facing regeneration helper can rebuild the checked-in fixture
-//! from the bundled JPL reference snapshot without introducing any native
-//! tooling. When the `packaged-artifact-path` feature is
+//! maintainer-facing regeneration helper rebuilds the checked-in fixture from
+//! the de440 and `sb441-n373s` kernels without introducing any native tooling. When the `packaged-artifact-path` feature is
 //! enabled, callers can also load an explicit artifact file for larger or
 //! externally distributed packaged datasets. See `docs/time-observer-policy.md`
 //! for the explicit packaged request/lookup-epoch policy, and

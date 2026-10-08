@@ -1,4 +1,4 @@
-//! Per-body fitting cadence model for dense de440-backed artifact generation.
+//! Per-body fitting cadence model for dense kernel-backed (de440 and sb441-n373s) artifact generation.
 //!
 //! Spans are accuracy-safe initial defaults (SP1); SP2 tunes them against the
 //! measured accuracy baseline. Within-span sampling oversamples the polynomial
@@ -28,8 +28,7 @@ pub fn fitting_segment_span_days(body: &CelestialBody) -> f64 {
         CelestialBody::Custom(id) if id.catalog == "asteroid" && id.designation == "433-Eros" => {
             64.0
         }
-        // Constrained asteroids (e.g. Eros) use a Mars-like span; only generated
-        // within their own corpus window by the caller.
+        // Any other body (none is packaged by default) gets a Mars-like span.
         _ => 16.0,
     }
 }
