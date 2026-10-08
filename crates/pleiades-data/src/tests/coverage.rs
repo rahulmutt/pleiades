@@ -50,7 +50,7 @@ fn packaged_artifact_profile_summary_details_match_the_bundled_header() {
     assert_eq!(
         coverage.summary_line_with_bodies(),
         format!(
-            "{}; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros",
+            "{}; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros",
             summary.profile.summary_for_body_count(summary.body_count)
         )
     );
@@ -65,7 +65,7 @@ fn packaged_artifact_profile_summary_details_match_the_bundled_header() {
     assert_eq!(
         summary.summary_line_with_bodies(),
         format!(
-            "{}; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros",
+            "{}; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros",
             artifact
                 .header
                 .summary_for_body_count(artifact.bodies.len())
@@ -114,7 +114,7 @@ fn packaged_artifact_profile_summary_details_match_the_bundled_header() {
     assert_eq!(
         packaged_artifact_profile_summary_with_body_coverage(),
         format!(
-            "{}; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros",
+            "{}; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros",
             artifact
                 .header
                 .summary_for_body_count(artifact.bodies.len())
@@ -170,7 +170,7 @@ fn packaged_artifact_profile_summary_validation_rejects_profile_drift() {
 #[test]
 fn packaged_artifact_profile_summary_validation_rejects_bundled_body_set_drift() {
     let mut bodies = packaged_bodies().to_vec();
-    bodies[0] = CelestialBody::Ceres;
+    bodies[0] = CelestialBody::Custom(CustomBodyId::new("asteroid", "2060-Chiron"));
 
     let summary = PackagedArtifactProfileSummary {
         body_count: bodies.len(),
@@ -425,15 +425,10 @@ fn packaged_artifact_generation_policy_summary_matches_current_posture() {
         summary.to_string()
     );
     let residual_bodies = packaged_artifact_generation_residual_bodies_summary_details();
-    // SP1 draft baseline: the dense de440-backed artifact fits the inner bodies and
-    // luminaries well enough that no residual correction is stored for them. Only the
-    // Eros asteroid series (carried from the curated snapshot) still carries residuals.
-    assert!(artifact
-        .residual_bodies()
-        .iter()
-        .any(|body| matches!(body, CelestialBody::Custom(custom)
-            if custom.designation.eq_ignore_ascii_case("433-Eros"))));
-    assert!(artifact.residual_segment_count() > 0);
+    // The dense fits (the base bodies from de440, the asteroids from sb441-n373s,
+    // issue #201) store no residual correction for any body.
+    assert!(artifact.residual_bodies().is_empty());
+    assert_eq!(artifact.residual_segment_count(), 0);
     assert_eq!(residual_bodies.body_count, artifact.residual_bodies().len());
     assert_eq!(residual_bodies.bodies, artifact.residual_bodies().to_vec());
     assert_eq!(
@@ -502,7 +497,7 @@ fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage()
     );
     assert_eq!(
         summary.body_coverage_line(),
-        "11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
+        "15 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
     );
     assert_eq!(
         summary.generation_policy_line(),
@@ -511,7 +506,12 @@ fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage()
             packaged_artifact_generation_policy_note_text()
         )
     );
-    assert_eq!(summary.fit_envelope.body_count, packaged_bodies().len());
+    // The fit envelope covers the base bodies; the asteroids are gated against
+    // `asteroid_reference.csv` instead (issue #201).
+    assert_eq!(
+        summary.fit_envelope.body_count,
+        crate::PACKAGED_BASE_BODIES.len()
+    );
     assert_eq!(
         summary.fit_envelope.expected_sample_count,
         summary.fit_envelope.sample_count
@@ -560,7 +560,7 @@ fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage()
     assert!(provenance.contains("profile id=pleiades-packaged-artifact-profile/stage-5-draft"));
     assert!(provenance.contains("source revision=Production generation source:"));
     assert!(provenance.contains("normalized intermediates: label=stage-5 packaged-data draft; profile id=pleiades-packaged-artifact-profile/stage-5-draft; version="));
-    assert!(provenance.contains("body count=11; segments="));
+    assert!(provenance.contains("body count=15; segments="));
     assert!(provenance.contains("residual-bearing segments="));
     assert!(provenance.contains("stored channels="));
     assert!(provenance.contains("segment span days="));
@@ -571,7 +571,7 @@ fn packaged_artifact_regeneration_summary_includes_reference_snapshot_coverage()
         provenance.contains("quantization scales: stored=Longitude=9, Latitude=9, DistanceAu=10")
     );
     assert!(provenance.contains(&format!("artifact version={}", artifact.header.version)));
-    assert!(provenance.contains("11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"));
+    assert!(provenance.contains("15 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"));
     assert!(provenance.contains("Reference snapshot coverage:"));
     assert!(provenance.contains("fit envelope:"));
     assert!(provenance.contains("segment samples across"));
@@ -2496,13 +2496,13 @@ fn packaged_artifact_body_cadence_summary_reflects_the_current_posture() {
             ("outer planets", 4),
             ("pluto", 1),
             ("lunar points", 0),
-            ("selected asteroids", 1),
+            ("selected asteroids", 5),
             ("custom bodies", 0),
         ]
     );
     assert_eq!(
         summary.summary_line(),
-        "body cadence: luminaries=2 bodies, inner planets=3 bodies, outer planets=4 bodies, pluto=1 body, lunar points=0 bodies, selected asteroids=1 body, custom bodies=0 bodies"
+        "body cadence: luminaries=2 bodies, inner planets=3 bodies, outer planets=4 bodies, pluto=1 body, lunar points=0 bodies, selected asteroids=5 bodies, custom bodies=0 bodies"
     );
     assert_eq!(summary.to_string(), summary.summary_line());
     assert_eq!(summary.validated_summary_line(), Ok(summary.summary_line()));
@@ -2536,7 +2536,7 @@ fn packaged_body_coverage_summary_matches_the_packaged_body_set() {
     assert_eq!(summary.bodies, packaged_bodies().to_vec());
     assert_eq!(
         summary.summary_line(),
-        "Packaged body set: 11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
+        "Packaged body set: 15 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
     );
 }
 

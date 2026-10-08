@@ -784,12 +784,8 @@ fn packaged_mixed_frame_batch_parity_request_entries(
     let mut requests = Vec::with_capacity(packaged_bodies().len());
     let mut entries = Vec::with_capacity(packaged_bodies().len());
 
-    // The batch runs against the backend, so it requests the bodies it serves.
-    let served_bodies = packaged_bodies()
-        .iter()
-        .filter(|body| !crate::is_carried_but_unserved(body))
-        .cloned();
-    for (index, body) in served_bodies.enumerate() {
+    // The backend serves every packaged body.
+    for (index, body) in packaged_bodies().iter().cloned().enumerate() {
         let entry = packaged_reference_entry_for_body(snapshot, &body)?;
         entries.push(entry.clone());
         requests.push(EphemerisRequest {
@@ -983,12 +979,8 @@ fn packaged_mixed_tt_tdb_batch_parity_request_entries(
     let mut requests = Vec::with_capacity(packaged_bodies().len());
     let mut entries = Vec::with_capacity(packaged_bodies().len());
 
-    // The batch runs against the backend, so it requests the bodies it serves.
-    let served_bodies = packaged_bodies()
-        .iter()
-        .filter(|body| !crate::is_carried_but_unserved(body))
-        .cloned();
-    for (index, body) in served_bodies.enumerate() {
+    // The backend serves every packaged body.
+    for (index, body) in packaged_bodies().iter().cloned().enumerate() {
         let entry = packaged_reference_entry_for_body(snapshot, &body)?;
         entries.push(entry.clone());
         requests.push(EphemerisRequest {
@@ -1203,16 +1195,6 @@ pub fn packaged_lookup(
     body: &CelestialBody,
     instant: Instant,
 ) -> Result<EclipticCoordinates, pleiades_compression::CompressionError> {
-    if crate::is_carried_but_unserved(body) {
-        return Err(pleiades_compression::CompressionError::new(
-            pleiades_compression::CompressionErrorKind::MissingBody,
-            format!(
-                "packaged data carries {body} but does not serve it: its segments are fitted \
-                 to rows too sparse to interpolate. Serve it from pleiades_jpl::SpkBackend \
-                 with a JPL kernel"
-            ),
-        ));
-    }
     packaged_artifact().lookup_ecliptic(body, normalize_lookup_instant(instant))
 }
 

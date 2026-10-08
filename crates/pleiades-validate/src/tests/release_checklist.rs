@@ -825,7 +825,7 @@ fn release_summary_command_renders_the_quick_overview() {
         &artifact_inspection_summary_for_report()
             .expect("artifact inspection summary should build")
     ));
-    assert!(rendered.contains("residual-bearing bodies: asteroid:433-Eros"));
+    assert!(rendered.contains("residual-bearing bodies: none"));
     assert!(rendered.contains("Release checklist summary: release-checklist-summary"));
     assert!(rendered.contains("Release gate reminders:"));
     assert!(rendered.contains("verify-compatibility-profile"));

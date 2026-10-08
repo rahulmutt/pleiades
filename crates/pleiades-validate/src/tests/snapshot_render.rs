@@ -1104,8 +1104,9 @@ fn comparison_and_benchmark_corpus_summary_commands_render_the_corpus_blocks() {
     assert!(release_body_claims_summary.contains("Release-grade body claims: ReleaseGrade: ["));
     assert!(release_body_claims_summary.contains("Pluto@pleiades-data"));
     assert!(release_body_claims_summary.contains("Moon@pleiades-data"));
-    // The packaged backend declines Eros (issue #158), so it has no claim there.
-    assert!(!release_body_claims_summary.contains("asteroid:433-Eros@pleiades-data"));
+    // The packaged backend serves the dense asteroids (issue #201).
+    assert!(release_body_claims_summary.contains("asteroid:433-Eros@pleiades-data"));
+    assert!(release_body_claims_summary.contains("Ceres@pleiades-data"));
     assert!(release_body_claims_summary.contains("Pluto@pleiades-vsop87"));
     assert!(release_body_claims_summary.contains("True Apogee@pleiades-elp"));
     {

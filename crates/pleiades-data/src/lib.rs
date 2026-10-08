@@ -171,32 +171,25 @@ pub(crate) fn packaged_asteroids() -> &'static [CelestialBody] {
     })
 }
 
-/// Whether the artifact carries `body` without the backend serving it.
-///
-/// `asteroid:433-Eros` is fitted to 17 reference rows that lie decades apart
-/// outside one nine-day cluster, so its segments are wrong by tens of degrees
-/// on almost every date (issue #158). The artifact keeps them, so its bytes
-/// and checksum are unchanged, and [`PackagedDataBackend`] declines the body.
-/// The dense-data follow-up (issue #201) removes or replaces the segments.
-pub(crate) fn is_carried_but_unserved(body: &CelestialBody) -> bool {
-    matches!(
-        body,
-        CelestialBody::Custom(id) if id.catalog == "asteroid" && id.designation == "433-Eros"
-    )
-}
-
-/// Returns the per-body release claims for the packaged artifact: every body
-/// the backend serves is release-grade, validated inside the artifact build
-/// against the corpus. A body the artifact carries but the backend does not
-/// serve (`asteroid:433-Eros`, issue #201) has no claim.
+/// Returns the per-body release claims for the packaged artifact. The planets,
+/// Sun and Moon are validated inside the artifact build against the hold-out
+/// corpus; the asteroids against the JPL `sb441-n373s` rows of
+/// `asteroid_reference.csv` (issue #201).
 pub fn packaged_body_claims() -> Vec<pleiades_backend::BodyClaim> {
     use pleiades_backend::{AccuracyClass, BodyClaim, ClaimEvidence};
+    let asteroids = packaged_asteroids();
     packaged_bodies()
         .iter()
-        .filter(|body| !is_carried_but_unserved(body))
         .cloned()
         .map(|body| {
-            BodyClaim::release_grade(body, AccuracyClass::High, ClaimEvidence::ArtifactValidated)
+            let evidence = if asteroids.contains(&body) {
+                ClaimEvidence::CorpusValidated {
+                    source: "sb441-n373s".to_string(),
+                }
+            } else {
+                ClaimEvidence::ArtifactValidated
+            };
+            BodyClaim::release_grade(body, AccuracyClass::High, evidence)
         })
         .collect()
 }

@@ -142,17 +142,21 @@ fn packaged_artifact_generation_policy_summary_and_alias_commands_render_the_pol
 fn packaged_artifact_generation_residual_bodies_validation_rejects_artifact_drift() {
     let artifact = packaged_artifact();
     let mut summary = pleiades_data::packaged_artifact_generation_residual_bodies_summary_details();
-    *summary
-        .bodies
-        .first_mut()
-        .expect("the residual body list should not be empty") = CelestialBody::Custom(
-        pleiades_backend::CustomBodyId::new("test", "residual-drift"),
-    );
+    // The dense fits store no residuals (issue #201), so any listed body drifts.
+    assert!(summary.bodies.is_empty());
+    summary.bodies = vec![CelestialBody::Custom(pleiades_backend::CustomBodyId::new(
+        "test",
+        "residual-drift",
+    ))];
+    summary.body_count = summary.bodies.len();
 
     let error = validate_packaged_artifact_generation_residual_bodies_summary(&summary, artifact)
         .expect_err("residual body drift should fail validation");
 
-    assert!(error.contains("does not match the current artifact"));
+    assert!(
+        error.contains("body count does not match residual body list"),
+        "{error}"
+    );
 }
 
 #[test]

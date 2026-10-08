@@ -587,7 +587,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
     assert!(regeneration_check.contains("checksum=0x"));
     assert!(!regeneration_check.contains("path:"));
     assert!(regeneration_check.contains(
-        "11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
+        "15 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
     ));
 
     let artifact_report =

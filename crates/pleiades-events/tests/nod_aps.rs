@@ -1,19 +1,15 @@
 //! nod_aps integration over the production-style backend chain.
 //!
-//! Asteroid coverage bound: outside the January 2001 fixture cluster no
-//! asteroid in the offline chain supports `nod_aps`'s osculating sampling. Ceres,
-//! Pallas, Juno, Vesta, asteroid:99942-Apophis and asteroid:433-Eros are
-//! served only by `JplSnapshotBackend`, at or between closely spaced sample
-//! rows; the packaged backend carries an Eros fit it does not serve. nod_aps
-//! samples off the row, so at an isolated row it fails closed with the
-//! backend's refusal (issue #158) — pinned below as the correct production
-//! behavior. Inside the January 2001 cluster the rows are close enough and
-//! it is served (issue #201).
+//! Asteroid coverage: the packaged backend serves Ceres, Pallas, Juno, Vesta
+//! and asteroid:433-Eros densely over 1900-2100 (issue #201), so `nod_aps`'s
+//! osculating sampling works for them anywhere in that window.
+//! asteroid:99942-Apophis is still served only by `JplSnapshotBackend`, at or
+//! between closely spaced sample rows.
 
 use pleiades_backend::{CompositeBackend, RoutingBackend};
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
-use pleiades_events::{ApsisConvention, EventEngine, EventError, NodApsMethod};
+use pleiades_events::{ApsisConvention, EventEngine, NodApsMethod};
 use pleiades_fict::FictitiousBackend;
 use pleiades_jpl::JplSnapshotBackend;
 use pleiades_types::{CelestialBody, CustomBodyId, Instant, JulianDay, TimeScale};
@@ -224,30 +220,21 @@ fn fictitious_bodies_compose_through_the_chain() {
     assert!(r.ascending.latitude_deg.abs() < 0.5, "{body:?}");
 }
 
-/// Ceres (and the other JPL-snapshot-only selected asteroids) is served by no
-/// continuous backend in the production chain — only `JplSnapshotBackend`,
-/// which answers at its sample rows and refuses an instant its rows cannot
-/// support (issue #158). nod_aps samples a fraction of a day either side of
-/// the query, off the J2000 row, so the engine fails closed with the
-/// backend's refusal. SE small-body parity here is a documented coverage
-/// bound (issues #158 and #160).
+/// Ceres is served densely by the packaged backend (issue #201), so the
+/// osculating nod_aps sampling a fraction of a day either side of J2000 works.
 #[test]
-fn snapshot_only_asteroids_fail_closed() {
+fn ceres_is_served_by_the_packaged_backend() {
     let engine = engine();
-    let err = engine
+    let result = engine
         .nod_aps(
             CelestialBody::Ceres,
             tdb(JD),
             NodApsMethod::Osculating,
             ApsisConvention::Aphelion,
         )
-        .unwrap_err();
-    assert!(
-        matches!(err, EventError::Backend { .. }),
-        "expected the backend's refusal, got: {err:?}"
-    );
-    assert!(err.to_string().contains("SpkBackend"), "{err}");
-    assert!(err.to_string().contains("OutOfRangeInstant"), "{err}");
+        .expect("the dense Ceres fit supports nod_aps's sampling");
+    assert!(result.perihelion.distance_au.is_finite() && result.perihelion.distance_au > 0.0);
+    assert!(result.ascending.latitude_deg.abs() < 0.5);
 }
 
 /// Inside the January 2001 cluster the snapshot rows are a day or less apart,
@@ -268,26 +255,19 @@ fn a_snapshot_asteroid_is_served_inside_the_fixture_cluster() {
     assert!(result.ascending.latitude_deg.abs() < 0.5);
 }
 
-/// asteroid:433-Eros routes past the packaged backend, which carries a fit it
-/// does not serve, to `JplSnapshotBackend`. The J2000 row is exact, but
-/// nod_aps samples a fraction of a day either side of it, where the snapshot
-/// refuses (issue #158).
+/// asteroid:433-Eros is served densely by the packaged backend (issue #201).
 #[test]
-fn eros_fails_closed_past_the_packaged_backend() {
+fn eros_is_served_by_the_packaged_backend() {
     let engine = engine();
-    let err = engine
+    let result = engine
         .nod_aps(
             CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
             tdb(JD),
             NodApsMethod::Osculating,
             ApsisConvention::Aphelion,
         )
-        .unwrap_err();
-    assert!(
-        matches!(err, EventError::Backend { .. }),
-        "expected the backend's refusal, got: {err:?}"
-    );
-    assert!(err.to_string().contains("OutOfRangeInstant"), "{err}");
+        .expect("the dense Eros fit supports nod_aps's sampling");
+    assert!(result.perihelion.distance_au.is_finite() && result.perihelion.distance_au > 0.0);
 }
 
 /// Issue #90: the mean lunar node and apsides are analytic, so the Mean method

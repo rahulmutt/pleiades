@@ -1,5 +1,5 @@
-//! The default chain never serves an asteroid position that disagrees with
-//! the JPL `sb441-n373s` rows (issue #158).
+//! The default chain serves every asteroid truth epoch from the packaged
+//! backend within tolerance of the JPL `sb441-n373s` rows (issues #158, #201).
 
 use crate::commands::chart::default_chart_backend;
 use pleiades_core::{
@@ -9,7 +9,6 @@ use pleiades_core::{
 use pleiades_jpl::SnapshotEntry;
 
 const TRUTH_TOLERANCE_ARCSEC: f64 = 5.0;
-const SHARED_EPOCH_JD: f64 = 2_453_000.5;
 
 /// The row's ecliptic longitude and latitude in degrees, from its ecliptic
 /// Cartesian position.
@@ -21,7 +20,7 @@ fn truth_longitude_latitude(row: &SnapshotEntry) -> (f64, f64) {
 }
 
 #[test]
-fn the_default_chain_serves_each_truth_epoch_within_tolerance_or_refuses_it() {
+fn the_default_chain_serves_every_truth_epoch_within_tolerance() {
     let backend = default_chart_backend();
     let bodies = [
         CelestialBody::Ceres,
@@ -32,7 +31,6 @@ fn the_default_chain_serves_each_truth_epoch_within_tolerance_or_refuses_it() {
     ];
     for body in bodies {
         let mut served = Vec::new();
-        let mut refused = 0_usize;
         for row in pleiades_jpl::asteroid_reference_corpus()
             .iter()
             .filter(|row| row.body == body)
@@ -65,28 +63,21 @@ fn the_default_chain_serves_each_truth_epoch_within_tolerance_or_refuses_it() {
                     );
                     assert_eq!(
                         result.backend_id.as_str(),
-                        "jpl-snapshot",
+                        "pleiades-data",
                         "{body} at JD {jd}"
                     );
                     served.push(jd);
                 }
-                Err(error) => {
-                    assert!(
-                        error.to_string().contains("SpkBackend"),
-                        "{body} at JD {jd}: {error}"
-                    );
-                    refused += 1;
-                }
+                Err(error) => panic!("{body} at JD {jd}: {error}"),
             }
         }
-        assert_eq!(served, vec![SHARED_EPOCH_JD], "{body}: served epochs");
-        assert_eq!(refused, 406, "{body}: refused epochs");
+        assert_eq!(served.len(), 407, "{body}: served epochs");
     }
 }
 
 #[test]
-fn stations_of_an_asteroid_report_the_refusal() {
-    let error = crate::commands::events::render_stations(&[
+fn stations_of_an_asteroid_are_searched() {
+    crate::commands::events::render_stations(&[
         "--body",
         "Ceres",
         "--from",
@@ -94,13 +85,12 @@ fn stations_of_an_asteroid_report_the_refusal() {
         "--to",
         "2451645.0",
     ])
-    .expect_err("the search samples Ceres off its J2000 row, which the snapshot refuses");
-    assert!(error.contains("SpkBackend"), "{error}");
+    .expect("the packaged backend serves Ceres across the window");
 }
 
 #[test]
-fn aspects_of_an_asteroid_report_the_refusal() {
-    let error = crate::commands::events::render_aspects(&[
+fn aspects_of_an_asteroid_are_searched() {
+    crate::commands::events::render_aspects(&[
         "--pair",
         "Sun,Ceres",
         "--angle",
@@ -110,6 +100,5 @@ fn aspects_of_an_asteroid_report_the_refusal() {
         "--to",
         "2451645.0",
     ])
-    .expect_err("the search samples Ceres off its J2000 row, which the snapshot refuses");
-    assert!(error.contains("SpkBackend"), "{error}");
+    .expect("the packaged backend serves Ceres across the window");
 }

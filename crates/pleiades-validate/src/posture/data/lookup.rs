@@ -142,7 +142,7 @@ mod tests {
         // the retained `pleiades-data` mixed-frame batch-parity renderer.
         assert_eq!(
             packaged_frame_parity_summary_for_report(),
-            "Packaged mixed frame batch parity: 10 requests across 10 bodies, ecliptic requests=5, equatorial requests=5; quality counts: Exact=0, Interpolated=10, Approximate=0, Unknown=0; order=preserved, single-query parity=preserved"
+            "Packaged mixed frame batch parity: 15 requests across 15 bodies, ecliptic requests=8, equatorial requests=7; quality counts: Exact=0, Interpolated=15, Approximate=0, Unknown=0; order=preserved, single-query parity=preserved"
         );
     }
 
@@ -150,7 +150,7 @@ mod tests {
     fn mixed_tt_tdb_batch_parity_summary_for_report_pins_current_string() {
         assert_eq!(
             packaged_mixed_tt_tdb_batch_parity_summary_for_report(),
-            "Packaged mixed TT/TDB batch parity: 10 requests across 10 bodies, TT requests=5, TDB requests=5; quality counts: Exact=0, Interpolated=10, Approximate=0, Unknown=0; order=preserved, single-query parity=preserved"
+            "Packaged mixed TT/TDB batch parity: 15 requests across 15 bodies, TT requests=8, TDB requests=7; quality counts: Exact=0, Interpolated=15, Approximate=0, Unknown=0; order=preserved, single-query parity=preserved"
         );
     }
 }

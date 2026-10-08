@@ -121,17 +121,17 @@ fn packaged_benchmark_corpus_uses_packaged_artifact_coverage() {
     let summary = corpus.summary();
     assert!(summary.name.contains("Packaged artifact"));
     assert_eq!(summary.apparentness, Apparentness::Mean);
-    // Every body the artifact carries except asteroid:433-Eros, which the
-    // packaged backend declines (issue #158).
+    // Every body the artifact carries: the backend serves the dense asteroids
+    // (issue #201).
     assert_eq!(
         summary.body_count,
-        pleiades_data::packaged_artifact().bodies.len() - 1
+        pleiades_data::packaged_artifact().bodies.len()
     );
     assert!(corpus
         .requests
         .iter()
-        .all(|request| request.body
-            != CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))));
+        .any(|request| request.body
+            == CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"))));
     assert!(summary.request_count > 0);
     assert!(summary.earliest_julian_day <= summary.latest_julian_day);
 }
