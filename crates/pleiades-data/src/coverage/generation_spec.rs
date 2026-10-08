@@ -1,4 +1,5 @@
-//! Per-body fitting cadence model for dense kernel-backed (de440 and sb441-n373s) artifact generation.
+//! Per-body fitting cadence model for dense kernel-backed (de440 and
+//! sb441-n373s) artifact generation.
 //!
 //! Spans are accuracy-safe initial defaults (SP1); SP2 tunes them against the
 //! measured accuracy baseline. Within-span sampling oversamples the polynomial
@@ -25,9 +26,7 @@ pub fn fitting_segment_span_days(body: &CelestialBody) -> f64 {
         CelestialBody::Ceres => 512.0,
         CelestialBody::Pallas => 128.0,
         CelestialBody::Juno | CelestialBody::Vesta => 256.0,
-        CelestialBody::Custom(id) if id.catalog == "asteroid" && id.designation == "433-Eros" => {
-            64.0
-        }
+        eros if eros == crate::packaged_eros() => 64.0,
         // Any other body (none is packaged by default) gets the Sun/Venus span.
         _ => 16.0,
     }

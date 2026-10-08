@@ -59,6 +59,9 @@ fn packaged_asteroids_are_served_at_both_window_ends_and_refused_past_them() {
     let range = backend.metadata().nominal_range;
     let start = range.start.expect("window start").julian_day.days();
     let end = range.end.expect("window end").julian_day.days();
+    // 1900-01-01 00:00 TDB, the first sb441-n373s reference row: the edges
+    // come from metadata, so pin the start against a metadata drift too.
+    assert_eq!(start, 2_415_020.5);
     for body in packaged_asteroids() {
         for jd in [start, end] {
             let at = Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);

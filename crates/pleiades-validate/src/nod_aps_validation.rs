@@ -136,7 +136,7 @@ impl NodApsReport {
 
     pub fn summary_line(&self) -> String {
         format!(
-            "validate-nod-aps: {} rows — max residuals: MEAN_PLANET lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; MEAN_MOON lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; OSCU_PLANET lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; OSCU_MOON lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day — coverage bound: SE swe_nod_aps implements neither fictitious bodies (upstream-disabled) nor offline small-body sampling; fictitious/asteroid nod_aps is engine-covered, gate-unreferenced",
+            "validate-nod-aps: {} rows — max residuals: MEAN_PLANET lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; MEAN_MOON lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; OSCU_PLANET lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; OSCU_MOON lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day — coverage bound: SE swe_nod_aps does not implement fictitious bodies (upstream-disabled), and offline chains cannot sample snapshot-only asteroids such as asteroid:99942-Apophis densely enough; fictitious/asteroid nod_aps is engine-covered, gate-unreferenced",
             self.rows,
             self.mean_planet.max_lon_arcsec,
             self.mean_planet.max_lat_arcsec,

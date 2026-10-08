@@ -590,4 +590,32 @@ mod tests {
             Err(ArtifactLookupBenchmarkReportValidationError::ZeroEncodedBytes)
         ));
     }
+
+    /// The candidate-support filter keeps exactly the ten bodies VSOP87/ELP
+    /// models and leaves out every packaged asteroid (issue #201).
+    #[test]
+    fn model_comparison_corpus_holds_only_the_bodies_the_candidate_models() {
+        let corpus = super::inspection::artifact_model_comparison_corpus(packaged_artifact());
+        let mut bodies: Vec<CelestialBody> = Vec::new();
+        for request in &corpus.requests {
+            if !bodies.contains(&request.body) {
+                bodies.push(request.body.clone());
+            }
+        }
+        assert_eq!(
+            bodies,
+            [
+                CelestialBody::Sun,
+                CelestialBody::Moon,
+                CelestialBody::Mercury,
+                CelestialBody::Venus,
+                CelestialBody::Mars,
+                CelestialBody::Jupiter,
+                CelestialBody::Saturn,
+                CelestialBody::Uranus,
+                CelestialBody::Neptune,
+                CelestialBody::Pluto,
+            ]
+        );
+    }
 }
