@@ -1,5 +1,4 @@
 use std::fmt;
-use std::sync::OnceLock;
 
 use pleiades_backend::{
     Angle, CelestialBody, CustomBodyId, EclipticCoordinates, EphemerisBackend, EphemerisError,
@@ -9,25 +8,11 @@ use pleiades_compression::{
     join_display, ArtifactHeader, BodyArtifact, ChannelKind, CompressedArtifact, PolynomialChannel,
     Segment,
 };
-use pleiades_jpl::{reference_snapshot, SnapshotCorpusBackend, SnapshotEntry};
+use pleiades_jpl::SnapshotEntry;
 
 use crate::coverage::{packaged_artifact_body_cadence, PackagedArtifactBodyCadence};
 use crate::data::{packaged_artifact_bytes, packaged_artifact_from_bytes};
 use crate::{packaged_artifact_source_text, packaged_bodies, ARTIFACT_LABEL, AU_IN_KM};
-
-/// The reference snapshot rows behind a backend that interpolates them
-/// without refusing.
-///
-/// The constrained asteroid's segments are fitted to the snapshot's cubic
-/// between rows that can lie decades apart. `JplSnapshotBackend::position`
-/// refuses such a request (issue #158), so the generator and the fit-envelope
-/// check read the same rows through [`SnapshotCorpusBackend`], which runs the
-/// same interpolation and never refuses. Nothing fitted here is served: the
-/// packaged backend declines the bodies fitted this way.
-pub(crate) fn snapshot_fit_source() -> &'static SnapshotCorpusBackend {
-    static SOURCE: OnceLock<SnapshotCorpusBackend> = OnceLock::new();
-    SOURCE.get_or_init(|| SnapshotCorpusBackend::from_entries(reference_snapshot().to_vec()))
-}
 
 pub(crate) fn build_packaged_artifact() -> CompressedArtifact {
     packaged_artifact_from_bytes(packaged_artifact_bytes())

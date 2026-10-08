@@ -149,14 +149,18 @@ impl PackagedArtifactFitEnvelopeSummary {
         // fractions for which both the fit-truth backend and the packaged backend yield an
         // ecliptic+distance state). The fit-truth backend (see `FitTruthBackend`) measures major
         // bodies against the dense de440 production reference corpus (full 1900–2100 window, ≥3
-        // entries/body, brackets every sampled epoch) and asteroid/custom bodies against the
-        // reference snapshot rows (`snapshot_fit_source`) they were fit from. Both `expected_sample_count` and `sample_count`
+        // entries/body, brackets every sampled epoch); the dense asteroids are excluded from the
+        // envelope (see `FitTruthBackend`), and `body_count` counts only measured bodies. Both `expected_sample_count` and `sample_count`
         // are derived from the same realized sample set, so the two checks below are informational
         // consistency guards (they confirm the live summary was built from the same realized set)
         // rather than a strict planned-vs-realized invariant.
         // The meaningful drift gate is the value comparison via `self != &expected` below.
         let expected_sample_count = packaged_artifact_fit_expected_sample_count(artifact);
-        let expected_body_count = artifact.bodies.len();
+        let expected_body_count = artifact
+            .bodies
+            .iter()
+            .filter(|body| fit_envelope_measures(&body.body))
+            .count();
 
         if self.expected_sample_count != expected_sample_count {
             return Err(
@@ -290,9 +294,8 @@ where
     // The envelope compares the de440-fit artifact against the kernel-free
     // `FitTruthBackend`: major bodies against the dense de440 production reference
     // corpus (interior ∪ boundary ∪ fast_clusters, full 1900–2100 window, ≥3
-    // entries/body so it brackets every sampled epoch and never extrapolates), and
-    // asteroid/custom bodies against the reference snapshot rows
-    // (`snapshot_fit_source`) they were fit from.
+    // entries/body so it brackets every sampled epoch and never extrapolates).
+    // The dense asteroids are not measured here (see `FitTruthBackend`).
     //
     // The expected count is DEFINED as the number of GENUINELY COVERABLE planned
     // samples for the artifact's window — i.e. exactly the realized fit samples
@@ -311,30 +314,23 @@ fn packaged_artifact_fit_expected_sample_count(artifact: &CompressedArtifact) ->
     packaged_artifact_fit_expected_sample_count_with_filter(artifact, |_| true)
 }
 
-/// Fit-envelope truth backend that measures each bundled body against the SAME
-/// source the generator fit that body against, so the envelope deltas are a true
-/// generator-vs-source residual rather than a generator-vs-mismatched-source
-/// artifact.
+/// Fit-envelope truth backend for the ten major bodies: the dense
+/// de440-derived production reference corpus (interior ∪ boundary ∪
+/// fast_clusters), the kernel-free analogue of the de440 kernel they were fit
+/// from. It spans the full 1900–2100 window with ≥3 entries/body so Lagrange
+/// interpolation never extrapolates.
 ///
-/// The artifact generator (`regenerate.rs`) fits the ten major bodies from the
-/// de440 kernel and fits the selected-asteroid / custom bodies from the narrow
-/// reference snapshot rows (`body_segments_from_entries` over
-/// `snapshot_fit_source`; "major bodies are fit from the kernel, never from the
-/// snapshot"). This truth backend mirrors that split:
-/// - major bodies → the dense de440-derived production reference corpus
-///   (interior ∪ boundary ∪ fast_clusters), the kernel-free analogue of the de440
-///   kernel they were fit from. It spans the full 1900–2100 window with ≥3
-///   entries/body so Lagrange interpolation never extrapolates.
-/// - selected-asteroid / custom bodies → the reference snapshot rows through
-///   `snapshot_fit_source`, the exact source they were fit against. Measuring asteroids against the corpus instead would
-///   compare them to a body they were never fit from, and the constrained asteroid
-///   corpus is too coarse for fast movers (Eros at ~180-day spacing) so cubic
-///   interpolation overshoots into non-physical multi-million-AU deltas — an
-///   interpolation artifact, not a real residual.
+/// The five asteroids (Ceres, Pallas, Juno, Vesta, Eros) are densely fit from
+/// the JPL `sb441-n373s` kernel and are deliberately NOT supported here, so the
+/// fit envelope excludes them. Their rows in the reference data lie roughly 180
+/// days apart; interpolating between them overshoots for fast movers such as
+/// Eros and would report a non-physical residual, an interpolation artifact
+/// rather than a fit error. Their accuracy evidence is the row-exact gate
+/// against the committed `asteroid_reference.csv` rows.
 ///
-/// Kernel-free: the corpus and the snapshot both read committed CSVs via
-/// `include_str!`. This backend only *measures* the committed artifact and is
-/// never a generation input, so byte-identity is preserved.
+/// Kernel-free: the corpus reads committed CSVs via `include_str!`. This backend
+/// only *measures* the committed artifact and is never a generation input, so
+/// byte-identity is preserved.
 ///
 /// Corpus de-duplication: the three major-body slices overlap at their shared
 /// anchor epochs (the boundary slice repeats interior/fast-cluster anchor rows),
@@ -348,18 +344,6 @@ fn packaged_artifact_fit_expected_sample_count(artifact: &CompressedArtifact) ->
 /// touches the committed CSVs.
 struct FitTruthBackend {
     corpus: SnapshotCorpusBackend,
-    snapshot: &'static SnapshotCorpusBackend,
-}
-
-impl FitTruthBackend {
-    fn fits_from_snapshot(body: &CelestialBody) -> bool {
-        use crate::coverage::PackagedArtifactBodyCadence;
-        matches!(
-            crate::coverage::packaged_artifact_body_cadence(body),
-            PackagedArtifactBodyCadence::SelectedAsteroids
-                | PackagedArtifactBodyCadence::CustomBodies
-        )
-    }
 }
 
 impl EphemerisBackend for FitTruthBackend {
@@ -368,20 +352,20 @@ impl EphemerisBackend for FitTruthBackend {
     }
 
     fn supports_body(&self, body: CelestialBody) -> bool {
-        if Self::fits_from_snapshot(&body) {
-            self.snapshot.supports_body(body)
-        } else {
-            self.corpus.supports_body(body)
-        }
+        self.corpus.supports_body(body)
     }
 
     fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
-        if Self::fits_from_snapshot(&req.body) {
-            self.snapshot.position(req)
-        } else {
-            self.corpus.position(req)
-        }
+        self.corpus.position(req)
     }
+}
+
+/// Whether the fit envelope measures `body`: only bodies the fit-truth backend
+/// supports. The dense asteroids are excluded explicitly (see
+/// [`FitTruthBackend`]), so they drop out of the samples and the body count
+/// together instead of vanishing through per-sample lookup errors.
+fn fit_envelope_measures(body: &CelestialBody) -> bool {
+    fit_truth_backend().supports_body(body.clone())
 }
 
 /// Returns the once-cached fit-truth backend (see [`FitTruthBackend`]).
@@ -398,7 +382,6 @@ fn fit_truth_backend() -> &'static FitTruthBackend {
             .collect::<Vec<_>>();
         FitTruthBackend {
             corpus: SnapshotCorpusBackend::from_entries(entries),
-            snapshot: crate::regenerate::snapshot_fit_source(),
         }
     })
 }
@@ -414,7 +397,7 @@ where
     let mut samples = Vec::new();
 
     for body_artifact in &artifact.bodies {
-        if !include_body(&body_artifact.body) {
+        if !include_body(&body_artifact.body) || !fit_envelope_measures(&body_artifact.body) {
             continue;
         }
 
@@ -503,7 +486,7 @@ where
     let mut samples = Vec::new();
 
     for body_artifact in &artifact.bodies {
-        if !include_body(&body_artifact.body) {
+        if !include_body(&body_artifact.body) || !fit_envelope_measures(&body_artifact.body) {
             continue;
         }
 

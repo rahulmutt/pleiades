@@ -763,10 +763,9 @@ pub fn packaged_artifact_fit_channel_outlier_summary_details(
 
 // SP1 draft baseline: thresholds are pinned to the measured worst case (overall
 // envelope and the worst per-scope envelope) of the regenerated dense de440-backed
-// draft artifact. Each body is measured against the SAME source it was fit from:
+// draft artifact. Each measured body is compared with the SAME source it was fit from:
 // major bodies against the dense de440 production reference corpus (1900–2100, ≥3
-// entries/body, no extrapolation), selected-asteroid/custom bodies against the
-// reference snapshot rows (`snapshot_fit_source`) they were fit against. So the posture
+// entries/body, no extrapolation); the dense asteroids are excluded. So the posture
 // reflects measured reality, not an enforced target. These are sample-residual
 // envelopes (not the per-body hold-out accuracy); they are finite and bounded.
 // SP2 tunes these toward real accuracy goals.
