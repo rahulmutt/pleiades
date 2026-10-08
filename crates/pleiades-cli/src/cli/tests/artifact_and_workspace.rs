@@ -69,7 +69,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
         render_cli(&["packaged-artifact-body-class-span-cap-summary"])
             .expect("packaged artifact body-class span cap summary should render");
     assert!(
-        packaged_artifact_body_class_span_caps.contains("Packaged-artifact body-class span caps: ")
+        packaged_artifact_body_class_span_caps.contains("Packaged-artifact dense fitting spans: ")
     );
     assert_eq!(
         packaged_artifact_body_class_span_caps,

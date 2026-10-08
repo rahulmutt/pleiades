@@ -1312,7 +1312,7 @@ fn packaged_artifact_body_class_span_cap_summary_and_alias_commands_render_the_s
     assert_eq!(
         span_caps,
         format!(
-            "Packaged-artifact body-class span caps: {}",
+            "Packaged-artifact dense fitting spans: {}",
             packaged_artifact_body_class_span_cap_entries_for_report()
         )
     );

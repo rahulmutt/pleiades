@@ -82,7 +82,7 @@ pub(crate) use lookup::{
 };
 #[cfg(test)]
 pub(crate) use regenerate::{
-    body_segment_span_limit, coordinates, packaged_artifact_segment_validation_fractions_for_body,
+    coordinates, packaged_artifact_segment_validation_fractions_for_body,
     PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS,
     PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS,
 };
@@ -106,14 +106,27 @@ pub(crate) use pleiades_jpl::{
 const PACKAGE_NAME: &str = "pleiades-data";
 const ARTIFACT_LABEL: &str = "stage-5 packaged-data draft";
 const ARTIFACT_PROFILE_ID: &str = "pleiades-packaged-artifact-profile/stage-5-draft";
-const PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL: &str = "with 8-point and 10-point Chebyshev-Lobatto baseline candidates before the dense body-specific ladders and 12-point and 14-point candidates for inner and outer planets before fallback, with 10-point, 12-point, 14-point, 16-point, 18-point, and 20-point options for luminaries, lunar points, Pluto, selected asteroids, and custom bodies, and the best dense candidate wins before fallback, with equal-error, equal-sample-count ties preferring the simpler segment, residual correction channels on high-curvature spans when they improve the fit, residual-channel combinations and remaining channel-order permutations when composing those channels, preferring the smaller residual footprint on equal-error ties, higher-order reconstruction from fit samples when it quantizes cleanly, shared four-point control-point fallback across longitude, latitude, and distance channels when the higher-order fit does not quantize cleanly, quarter-biased splits on very long dense-body spans when quarter-point curvature is strongly asymmetric, a dense quarter-point control-point lattice before exact-third fallback on irregular spans, one-sixth and five-sixth probe fractions on very long dense-body spans when quarter-point curvature stays balanced, one-third and two-thirds probe fractions on long dense-body spans when quarter-point curvature stays balanced, a dense five-point fallback on the longest dense-body spans when one-fifth through four-fifth samples fit cleanly, a dense seven-point fallback on super-extreme dense-body spans when one-seventh through six-sevenths samples fit cleanly, one-ninth and eight-ninths probe fractions on super-extreme dense-body spans when the finer probes stay balanced, one-eighth and seven-eighths probe fractions on super-extreme dense-body spans when the ninth-point probes stay balanced, one-seventh and six-sevenths probe fractions on extreme dense-body spans when the super-extreme probes stay balanced, one-fifth and four-fifth probe fractions on the longest dense-body spans when the coarser probes stay balanced, and quadratic fallback otherwise";
+/// How every packaged body is fit (`regenerate::fit_dense_body_artifact`),
+/// shared by the artifact header and the generation-policy note. Every
+/// packaged body uses the same degree and sample count (pinned by a test).
+pub(crate) fn packaged_artifact_dense_fit_method_text() -> &'static str {
+    static METHOD: OnceLock<String> = OnceLock::new();
+    METHOD.get_or_init(|| {
+        format!(
+            "one quantized degree-{} least-squares polynomial per channel (unwrapped longitude, latitude, distance) on each fixed per-body fitting span, from {} evenly spaced kernel samples, with the planets and asteroids stored heliocentric and recombined with the geocentric Sun at lookup, and no point segments, residual correction channels or adaptive subdivision",
+            coverage::fitting_degree(&CelestialBody::Sun),
+            coverage::fitting_within_span_sample_count(&CelestialBody::Sun),
+        )
+    })
+    .as_str()
+}
 
 pub(crate) fn packaged_artifact_generation_policy_note_text() -> &'static str {
     static NOTE: OnceLock<String> = OnceLock::new();
     NOTE.get_or_init(|| {
         format!(
-            "bodies with a single sampled epoch use point segments; bodies with two or more sampled epochs are recursively subdivided into quadratic windows using body-class span caps and measured-fit comparison against the fallback, {}",
-            PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL
+            "every packaged body is fit densely over the coverage window: {}",
+            packaged_artifact_dense_fit_method_text()
         )
     })
     .as_str()
@@ -123,8 +136,8 @@ pub(crate) fn packaged_artifact_source_text() -> &'static str {
     static SOURCE: OnceLock<String> = OnceLock::new();
     SOURCE.get_or_init(|| {
         format!(
-            "Quantized adjacent same-body quadratic windows with longitude-unwrapped planetary fits, with the comparison-body planetary set densely fit from the JPL de440 kernel over the default 1900-2100 coverage window and Ceres, Pallas, Juno, Vesta and asteroid:433-Eros densely fit from the JPL sb441-n373s small-body kernel, with point segments only for single-epoch bodies and recursively subdivided quadratic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, {}.",
-            PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL
+            "Dense per-body polynomial fits over the default 1900-2100 coverage window: the Sun, Moon and Mercury through Pluto from the JPL de440 kernel, and Ceres, Pallas, Juno, Vesta and asteroid:433-Eros from the JPL sb441-n373s small-body kernel; {}.",
+            packaged_artifact_dense_fit_method_text()
         )
     })
     .as_str()

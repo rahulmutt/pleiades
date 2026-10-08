@@ -343,7 +343,7 @@ fn help_text_lists_the_packaged_lookup_epoch_policy_summary_command() {
         "packaged-artifact-output-support       Alias for packaged-artifact-output-support-summary"
     ));
     assert!(help.contains(
-        "packaged-artifact-body-class-span-cap-summary  Print the packaged-artifact body-class span caps summary"
+        "packaged-artifact-body-class-span-cap-summary  Print the packaged-artifact dense fitting spans summary"
     ));
     assert!(help.contains(
         "packaged-artifact-body-class-span-cap  Alias for packaged-artifact-body-class-span-cap-summary"
