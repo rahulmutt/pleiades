@@ -71,7 +71,7 @@ Selected-asteroid coverage reads a JPL small-body perturber kernel,
 - Regenerate the committed slice with:
   `PLEIADES_DE_KERNEL=.kernels/de440.bsp PLEIADES_AST_KERNEL=.kernels/sb441-n373s.bsp PLEIADES_OBJECT_SPK_DIR=.kernels/objects cargo run -p pleiades-jpl --bin regenerate-asteroid-corpus`
 - Frame: rows are on the J2000 ecliptic, like the other de440-derived slices
-  (regenerated after the B1 reduction fix; earlier rows were ecliptic-of-date
+  (regenerated after the fixed-ε₀ J2000 ecliptic reduction fix, commit 375b54d39; earlier rows were ecliptic-of-date
   and off by up to about 47″ in latitude).
 - Default asteroid window: 1900–2100 CE (the corpus samples only this window;
   the kernel covers the full DE441 interval).
@@ -159,7 +159,7 @@ that values match the checked-in CSV within 1 km.
 
 The packaged compressed artifact (`crates/pleiades-data/tests/fixtures/packaged-artifact.bin`)
 is fit densely from two kernels over the shipped 1900-2100 window: the de440
-planetary kernel (Sun, Moon, Mercury through Pluto, lunar points) and the
+planetary kernel (Sun, Moon, Mercury through Pluto) and the
 `sb441-n373s` small-body kernel (Ceres, Pallas, Juno, Vesta and
 `asteroid:433-Eros`, stored heliocentric like the planets). Both kernels are
 required; the command refuses to write with either missing. Run it in release

@@ -28,7 +28,7 @@ pub fn fitting_segment_span_days(body: &CelestialBody) -> f64 {
         CelestialBody::Custom(id) if id.catalog == "asteroid" && id.designation == "433-Eros" => {
             64.0
         }
-        // Any other body (none is packaged by default) gets a Mars-like span.
+        // Any other body (none is packaged by default) gets the Sun/Venus span.
         _ => 16.0,
     }
 }

@@ -540,7 +540,7 @@ pub(crate) fn fit_dense_body_artifact(
 
 /// Core artifact builder parameterised by an explicit coverage window.
 ///
-/// Every packaged body (planets, Sun, Moon, lunar points and the five
+/// Every packaged body (the Sun, Moon, Mercury through Pluto and the five
 /// asteroids) is fit densely from `reference` over `window` using
 /// [`fitting_segment_boundaries`] + [`fit_segment_within_span`]. A tiny
 /// synthetic window lets the kernel-free unit tests run in milliseconds instead

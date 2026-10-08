@@ -16,8 +16,8 @@
 //!
 //! The packaged artifact stores J2000 ecliptic coordinates directly,
 //! reconstructs equatorial coordinates from the stored channels and
-//! J2000 mean-obliquity transform when requested, and adds residual correction
-//! channels on high-curvature spans when they improve the fit. A
+//! J2000 mean-obliquity transform when requested. The checked-in artifact
+//! carries no residual correction segments. A
 //! maintainer-facing regeneration helper rebuilds the checked-in fixture from
 //! the de440 and `sb441-n373s` kernels without introducing any native tooling. When the `packaged-artifact-path` feature is
 //! enabled, callers can also load an explicit artifact file for larger or
