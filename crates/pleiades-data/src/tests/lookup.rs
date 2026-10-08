@@ -95,8 +95,7 @@ fn lookup_uses_packaged_custom_asteroid_segments() {
         })
         .expect("reference snapshot should include asteroid:433-Eros at J2000");
     let body = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
-    // The artifact is read directly: `packaged_lookup` declines Eros (issue #158),
-    // but the artifact still carries its segments.
+    // The dense Eros fit (issue #201) against the reference snapshot row at J2000.
     let ecliptic = packaged_artifact()
         .lookup_ecliptic(
             &body,
@@ -105,9 +104,9 @@ fn lookup_uses_packaged_custom_asteroid_segments() {
         .expect("the artifact should carry the custom asteroid");
     let expected = coordinates(reference);
 
-    assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 1e-8);
-    assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 20.0);
-    assert!((ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1.0);
+    assert!((ecliptic.longitude.degrees() - expected.longitude.degrees()).abs() < 5.0 / 3600.0);
+    assert!((ecliptic.latitude.degrees() - expected.latitude.degrees()).abs() < 5.0 / 3600.0);
+    assert!((ecliptic.distance_au.unwrap() - expected.distance_au.unwrap()).abs() < 1e-6);
 }
 
 #[test]
@@ -164,572 +163,6 @@ fn lookup_uses_packaged_moon_segments() {
         packaged_artifact().residual_segment_count() > 0,
         !packaged_artifact().residual_bodies().is_empty()
     );
-}
-
-#[test]
-fn packaged_artifact_residual_sample_fractions_use_channel_specific_lattices() {
-    let luminary_longitude_fractions = packaged_artifact_residual_sample_fractions_for_channel(
-        &CelestialBody::Moon,
-        ChannelKind::Longitude,
-    );
-    let luminary_distance_fractions = packaged_artifact_residual_sample_fractions_for_channel(
-        &CelestialBody::Moon,
-        ChannelKind::DistanceAu,
-    );
-    let lunar_point_distance_fractions = packaged_artifact_residual_sample_fractions_for_channel(
-        &CelestialBody::MeanNode,
-        ChannelKind::DistanceAu,
-    );
-    let selected_asteroid_longitude_fractions =
-        packaged_artifact_residual_sample_fractions_for_channel(
-            &CelestialBody::Ceres,
-            ChannelKind::Longitude,
-        );
-    let selected_asteroid_distance_fractions =
-        packaged_artifact_residual_sample_fractions_for_channel(
-            &CelestialBody::Ceres,
-            ChannelKind::DistanceAu,
-        );
-    let custom_body_longitude_fractions = packaged_artifact_residual_sample_fractions_for_channel(
-        &CelestialBody::Custom(CustomBodyId::new("comet", "1P-Halley")),
-        ChannelKind::Longitude,
-    );
-    let custom_body_distance_fractions = packaged_artifact_residual_sample_fractions_for_channel(
-        &CelestialBody::Custom(CustomBodyId::new("comet", "1P-Halley")),
-        ChannelKind::DistanceAu,
-    );
-    let inner_planet_longitude_fractions = packaged_artifact_residual_sample_fractions_for_channel(
-        &CelestialBody::Mercury,
-        ChannelKind::Longitude,
-    );
-    let inner_planet_latitude_fractions = packaged_artifact_residual_sample_fractions_for_channel(
-        &CelestialBody::Mercury,
-        ChannelKind::Latitude,
-    );
-    let inner_planet_distance_fractions = packaged_artifact_residual_sample_fractions_for_channel(
-        &CelestialBody::Mercury,
-        ChannelKind::DistanceAu,
-    );
-    let outer_planet_longitude_fractions = packaged_artifact_residual_sample_fractions_for_channel(
-        &CelestialBody::Saturn,
-        ChannelKind::Longitude,
-    );
-    let outer_planet_latitude_fractions = packaged_artifact_residual_sample_fractions_for_channel(
-        &CelestialBody::Saturn,
-        ChannelKind::Latitude,
-    );
-    let outer_planet_distance_fractions = packaged_artifact_residual_sample_fractions_for_channel(
-        &CelestialBody::Saturn,
-        ChannelKind::DistanceAu,
-    );
-
-    assert_eq!(luminary_longitude_fractions.first().copied(), Some(0.0));
-    assert_eq!(luminary_longitude_fractions.last().copied(), Some(1.0));
-    assert!(luminary_longitude_fractions.len() > outer_planet_longitude_fractions.len());
-    assert_eq!(
-        lunar_point_distance_fractions,
-        PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
-    );
-    assert_eq!(
-        selected_asteroid_longitude_fractions,
-        PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
-    );
-    assert_eq!(
-        custom_body_longitude_fractions,
-        PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
-    );
-    assert_eq!(
-        selected_asteroid_distance_fractions,
-        PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
-    );
-    assert_eq!(
-        custom_body_distance_fractions,
-        PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
-    );
-    assert_eq!(
-        selected_asteroid_longitude_fractions,
-        selected_asteroid_distance_fractions
-    );
-    assert_eq!(
-        custom_body_longitude_fractions,
-        custom_body_distance_fractions
-    );
-    assert_eq!(
-        luminary_distance_fractions,
-        PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
-    );
-    assert_eq!(
-        inner_planet_longitude_fractions,
-        PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
-    );
-    assert_eq!(
-        inner_planet_latitude_fractions,
-        PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
-    );
-    assert_eq!(
-        inner_planet_distance_fractions,
-        PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
-    );
-    assert_eq!(
-        outer_planet_longitude_fractions,
-        PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
-    );
-    assert_eq!(
-        outer_planet_latitude_fractions,
-        PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS
-    );
-    assert_eq!(
-        outer_planet_distance_fractions,
-        PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS
-    );
-}
-
-#[test]
-fn packaged_artifact_fit_candidate_scoring_prefers_lower_error_and_lower_order_ties() {
-    let lower_order_worse = PackagedArtifactFitCandidateScore {
-        sample_count: 6,
-        complexity: 9,
-        error: PackagedArtifactSegmentFitError {
-            longitude_degrees: 2.0,
-            latitude_degrees: 2.0,
-            distance_au: 2.0,
-        },
-    };
-    let higher_order_better = PackagedArtifactFitCandidateScore {
-        sample_count: 12,
-        complexity: 12,
-        error: PackagedArtifactSegmentFitError {
-            longitude_degrees: 1.0,
-            latitude_degrees: 1.0,
-            distance_au: 1.0,
-        },
-    };
-    let equal_error_lower_order = PackagedArtifactFitCandidateScore {
-        sample_count: 8,
-        complexity: 8,
-        error: PackagedArtifactSegmentFitError {
-            longitude_degrees: 1.5,
-            latitude_degrees: 1.5,
-            distance_au: 1.5,
-        },
-    };
-    let equal_error_higher_order = PackagedArtifactFitCandidateScore {
-        sample_count: 8,
-        complexity: 12,
-        error: PackagedArtifactSegmentFitError {
-            longitude_degrees: 1.5,
-            latitude_degrees: 1.5,
-            distance_au: 1.5,
-        },
-    };
-
-    assert!(segment_fit_candidate_is_better(
-        lower_order_worse,
-        higher_order_better
-    ));
-    assert!(segment_fit_candidate_is_better(
-        equal_error_higher_order,
-        equal_error_lower_order
-    ));
-    assert!(!segment_fit_candidate_is_better(
-        equal_error_lower_order,
-        equal_error_higher_order
-    ));
-    assert!(segment_fit_candidate_is_better(
-        equal_error_higher_order,
-        PackagedArtifactFitCandidateScore {
-            sample_count: 8,
-            complexity: 8,
-            error: PackagedArtifactSegmentFitError {
-                longitude_degrees: 1.5,
-                latitude_degrees: 1.5,
-                distance_au: 1.5,
-            },
-        }
-    ));
-}
-
-#[test]
-fn moon_residual_search_can_compose_multiple_channel_candidates() {
-    fn candidate_for_kind(
-        segment: &Segment,
-        kind: ChannelKind,
-    ) -> Option<(Segment, PackagedArtifactSegmentFitError)> {
-        if segment
-            .residual_channels
-            .iter()
-            .any(|channel| channel.kind == kind)
-        {
-            return None;
-        }
-
-        let mut residual_channels = segment.residual_channels.clone();
-        residual_channels.push(PolynomialChannel::new(kind, 0, vec![0.0]));
-
-        let candidate = Segment::with_residual_channels(
-            segment.start,
-            segment.end,
-            segment.channels.clone(),
-            residual_channels.clone(),
-        );
-
-        let error = match residual_channels.as_slice() {
-            [channel] => match channel.kind {
-                ChannelKind::Longitude => PackagedArtifactSegmentFitError {
-                    longitude_degrees: 9.0,
-                    latitude_degrees: 9.0,
-                    distance_au: 9.0,
-                },
-                ChannelKind::Latitude => PackagedArtifactSegmentFitError {
-                    longitude_degrees: 11.0,
-                    latitude_degrees: 11.0,
-                    distance_au: 11.0,
-                },
-                ChannelKind::DistanceAu => PackagedArtifactSegmentFitError {
-                    longitude_degrees: 8.0,
-                    latitude_degrees: 8.0,
-                    distance_au: 8.0,
-                },
-                _ => unreachable!("unexpected residual channel kind"),
-            },
-            [first, second] => match (first.kind, second.kind) {
-                (ChannelKind::Longitude, ChannelKind::Latitude) => {
-                    PackagedArtifactSegmentFitError {
-                        longitude_degrees: 6.0,
-                        latitude_degrees: 6.0,
-                        distance_au: 6.0,
-                    }
-                }
-                (ChannelKind::Latitude, ChannelKind::Longitude) => {
-                    PackagedArtifactSegmentFitError {
-                        longitude_degrees: 1.0,
-                        latitude_degrees: 1.0,
-                        distance_au: 1.0,
-                    }
-                }
-                _ => PackagedArtifactSegmentFitError {
-                    longitude_degrees: 7.0,
-                    latitude_degrees: 7.0,
-                    distance_au: 7.0,
-                },
-            },
-            _ => PackagedArtifactSegmentFitError {
-                longitude_degrees: 7.0,
-                latitude_degrees: 7.0,
-                distance_au: 7.0,
-            },
-        };
-
-        Some((candidate, error))
-    }
-
-    let current_segment = unit_segment();
-    let current_error = baseline_fit_error();
-
-    let (best_segment, best_error) = best_residual_segment(
-        current_segment,
-        current_error,
-        &[
-            ChannelKind::Longitude,
-            ChannelKind::Latitude,
-            ChannelKind::DistanceAu,
-        ],
-        &candidate_for_kind,
-    );
-
-    assert_eq!(best_segment.residual_channels.len(), 2);
-    assert!(best_segment
-        .residual_channels
-        .iter()
-        .any(|channel| channel.kind == ChannelKind::Longitude));
-    assert!(best_segment
-        .residual_channels
-        .iter()
-        .any(|channel| channel.kind == ChannelKind::Latitude));
-    assert_eq!(best_error.max_delta(), 1.0);
-}
-
-#[test]
-fn moon_residual_search_prefers_lower_footprint_equal_error_candidates() {
-    fn candidate_for_kind(
-        segment: &Segment,
-        kind: ChannelKind,
-    ) -> Option<(Segment, PackagedArtifactSegmentFitError)> {
-        if segment
-            .residual_channels
-            .iter()
-            .any(|channel| channel.kind == kind)
-        {
-            return None;
-        }
-
-        let mut residual_channels = segment.residual_channels.clone();
-        residual_channels.push(PolynomialChannel::new(kind, 0, vec![0.0]));
-
-        let candidate = Segment::with_residual_channels(
-            segment.start,
-            segment.end,
-            segment.channels.clone(),
-            residual_channels.clone(),
-        );
-
-        let error = match residual_channels.as_slice() {
-            [channel] => match channel.kind {
-                ChannelKind::Longitude => PackagedArtifactSegmentFitError {
-                    longitude_degrees: 2.0,
-                    latitude_degrees: 2.0,
-                    distance_au: 2.0,
-                },
-                ChannelKind::Latitude => PackagedArtifactSegmentFitError {
-                    longitude_degrees: 1.0,
-                    latitude_degrees: 1.0,
-                    distance_au: 1.0,
-                },
-                ChannelKind::DistanceAu => PackagedArtifactSegmentFitError {
-                    longitude_degrees: 8.0,
-                    latitude_degrees: 8.0,
-                    distance_au: 8.0,
-                },
-                _ => unreachable!("unexpected residual channel kind"),
-            },
-            [first, second] => match (first.kind, second.kind) {
-                (ChannelKind::Longitude, ChannelKind::Latitude) => {
-                    PackagedArtifactSegmentFitError {
-                        longitude_degrees: 1.0,
-                        latitude_degrees: 1.0,
-                        distance_au: 1.0,
-                    }
-                }
-                _ => PackagedArtifactSegmentFitError {
-                    longitude_degrees: 7.0,
-                    latitude_degrees: 7.0,
-                    distance_au: 7.0,
-                },
-            },
-            _ => PackagedArtifactSegmentFitError {
-                longitude_degrees: 7.0,
-                latitude_degrees: 7.0,
-                distance_au: 7.0,
-            },
-        };
-
-        Some((candidate, error))
-    }
-
-    let current_segment = unit_segment();
-    let current_error = baseline_fit_error();
-
-    let (best_segment, best_error) = best_residual_segment(
-        current_segment,
-        current_error,
-        &[
-            ChannelKind::Longitude,
-            ChannelKind::Latitude,
-            ChannelKind::DistanceAu,
-        ],
-        &candidate_for_kind,
-    );
-
-    assert_eq!(best_segment.residual_channels.len(), 1);
-    assert_eq!(
-        best_segment.residual_channels[0].kind,
-        ChannelKind::Latitude
-    );
-    assert_eq!(best_error.max_delta(), 1.0);
-}
-
-#[test]
-fn moon_residual_search_prefers_smaller_residual_coefficient_footprint_equal_error_candidates() {
-    fn candidate_for_kind(
-        segment: &Segment,
-        kind: ChannelKind,
-    ) -> Option<(Segment, PackagedArtifactSegmentFitError)> {
-        if segment
-            .residual_channels
-            .iter()
-            .any(|channel| channel.kind == kind)
-        {
-            return None;
-        }
-
-        let coefficients = match kind {
-            ChannelKind::Longitude => vec![0.0, 1.0],
-            ChannelKind::Latitude => vec![0.0],
-            ChannelKind::DistanceAu => vec![0.0, 1.0, 2.0],
-            _ => unreachable!("unexpected residual channel kind"),
-        };
-
-        let mut residual_channels = segment.residual_channels.clone();
-        residual_channels.push(PolynomialChannel::new(kind, 0, coefficients));
-
-        let candidate = Segment::with_residual_channels(
-            segment.start,
-            segment.end,
-            segment.channels.clone(),
-            residual_channels,
-        );
-
-        Some((
-            candidate,
-            PackagedArtifactSegmentFitError {
-                longitude_degrees: 1.0,
-                latitude_degrees: 1.0,
-                distance_au: 1.0,
-            },
-        ))
-    }
-
-    let current_segment = unit_segment();
-    let current_error = baseline_fit_error();
-
-    let (best_segment, best_error) = best_residual_segment(
-        current_segment,
-        current_error,
-        &[
-            ChannelKind::Longitude,
-            ChannelKind::Latitude,
-            ChannelKind::DistanceAu,
-        ],
-        &candidate_for_kind,
-    );
-
-    assert_eq!(best_segment.residual_channels.len(), 1);
-    assert_eq!(
-        best_segment.residual_channels[0].kind,
-        ChannelKind::Latitude
-    );
-    assert_eq!(best_segment.residual_channels[0].coefficients.len(), 1);
-    assert_eq!(best_error.max_delta(), 1.0);
-}
-
-#[test]
-fn segment_error_prefers_the_simpler_segment_when_errors_match() {
-    let candidate_segment = Segment::with_residual_channels(
-        instant_tt(0.0),
-        instant_tt(1.0),
-        vec![PolynomialChannel::new(
-            ChannelKind::Longitude,
-            0,
-            vec![0.0, 1.0, 2.0],
-        )],
-        vec![PolynomialChannel::new(
-            ChannelKind::Latitude,
-            0,
-            vec![0.0, 1.0],
-        )],
-    );
-    let fallback_segment = Segment::new(
-        instant_tt(0.0),
-        instant_tt(1.0),
-        vec![PolynomialChannel::new(ChannelKind::Longitude, 0, vec![0.0])],
-    );
-    let candidate_error = Some(PackagedArtifactSegmentFitError {
-        longitude_degrees: 1.0,
-        latitude_degrees: 1.0,
-        distance_au: 1.0,
-    });
-    let fallback_error = Some(PackagedArtifactSegmentFitError {
-        longitude_degrees: 1.0,
-        latitude_degrees: 1.0,
-        distance_au: 1.0,
-    });
-
-    assert!(!segment_error_prefers_candidate(
-        &candidate_segment,
-        candidate_error,
-        &fallback_segment,
-        fallback_error,
-    ));
-    assert!(segment_error_prefers_candidate(
-        &fallback_segment,
-        candidate_error,
-        &candidate_segment,
-        fallback_error,
-    ));
-}
-
-#[test]
-fn segment_error_prefers_the_fallback_when_it_is_more_accurate() {
-    let candidate_segment = Segment::with_residual_channels(
-        instant_tt(0.0),
-        instant_tt(1.0),
-        vec![PolynomialChannel::new(
-            ChannelKind::Longitude,
-            0,
-            vec![0.0, 1.0, 2.0],
-        )],
-        vec![PolynomialChannel::new(
-            ChannelKind::Latitude,
-            0,
-            vec![0.0, 1.0],
-        )],
-    );
-    let fallback_segment = Segment::new(
-        instant_tt(0.0),
-        instant_tt(1.0),
-        vec![PolynomialChannel::new(ChannelKind::Longitude, 0, vec![0.0])],
-    );
-    let candidate_error = Some(PackagedArtifactSegmentFitError {
-        longitude_degrees: 1.1,
-        latitude_degrees: 1.1,
-        distance_au: 1.1,
-    });
-    let fallback_error = Some(PackagedArtifactSegmentFitError {
-        longitude_degrees: 1.0,
-        latitude_degrees: 1.0,
-        distance_au: 1.0,
-    });
-
-    assert!(!segment_error_prefers_candidate(
-        &candidate_segment,
-        candidate_error,
-        &fallback_segment,
-        fallback_error,
-    ));
-    assert!(segment_error_prefers_candidate(
-        &fallback_segment,
-        fallback_error,
-        &candidate_segment,
-        candidate_error,
-    ));
-}
-
-#[test]
-fn short_dense_span_prefers_the_fit_candidate_over_the_fallback_when_it_is_no_worse() {
-    let reference_backend = crate::regenerate::snapshot_fit_source();
-    let body = CelestialBody::Moon;
-    let start_julian_day = 2_451_545.0;
-    let end_julian_day = start_julian_day + 1.0;
-    let request_for = |julian_day| EphemerisRequest {
-        body: body.clone(),
-        instant: instant_tt(julian_day),
-        observer: None,
-        frame: CoordinateFrame::Ecliptic,
-        zodiac_mode: ZodiacMode::Tropical,
-        apparent: Apparentness::Mean,
-    };
-
-    let start_coordinates = reference_backend
-        .position(&request_for(start_julian_day))
-        .expect("short-span start position should be available")
-        .ecliptic
-        .expect("short-span start position should include ecliptic coordinates");
-    let end_coordinates = reference_backend
-        .position(&request_for(end_julian_day))
-        .expect("short-span end position should be available")
-        .ecliptic
-        .expect("short-span end position should include ecliptic coordinates");
-    let start =
-        snapshot_entry_from_ecliptic_coordinates(body.clone(), start_julian_day, start_coordinates);
-    let end =
-        snapshot_entry_from_ecliptic_coordinates(body.clone(), end_julian_day, end_coordinates);
-
-    let segment = segment_from_pair(&start, &end, reference_backend);
-
-    assert!(segment
-        .channels
-        .iter()
-        .all(|channel| channel.coefficients.len() >= 6));
 }
 
 #[test]
@@ -1002,13 +435,12 @@ fn backend_metadata_exposes_packaged_scope() {
         .supported_bodies()
         .contains(&CelestialBody::Jupiter));
     assert!(metadata.supported_bodies().contains(&CelestialBody::Pluto));
-    // The artifact carries Eros, but the backend does not serve it (issue #158).
-    assert!(!metadata
+    assert!(metadata
         .supported_bodies()
         .contains(&CelestialBody::Custom(CustomBodyId::new(
             "asteroid", "433-Eros",
         ))));
-    assert!(metadata.provenance.data_sources[0].contains("11 bundled bodies"));
+    assert!(metadata.provenance.data_sources[0].contains("15 bundled bodies"));
     assert!(metadata.provenance.data_sources[0].contains("asteroid:433-Eros"));
     let request_policy = packaged_request_policy_summary_details();
     assert!(request_policy.validate().is_ok());
@@ -1643,20 +1075,17 @@ fn mean_lunar_points_carry_release_grade_corpus_claims() {
     );
 }
 
-/// The artifact carries Eros segments fitted to rows decades apart. The
-/// backend does not serve them (issue #158): it reports the body unsupported
-/// so a routing chain moves on to a backend that can answer honestly.
+/// The dense Eros fit (issue #201) replaces the earlier sparse-row fit that the
+/// backend declined (issue #158): Eros is served and claimed like the other
+/// packaged asteroids.
 #[test]
-fn the_backend_does_not_serve_the_constrained_asteroid() {
-    use pleiades_backend::{BodyClaimTier, EphemerisBackend, EphemerisErrorKind};
+fn the_backend_serves_eros() {
+    use pleiades_backend::{BodyClaimTier, EphemerisBackend};
     let eros = CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros"));
     let backend = crate::PackagedDataBackend::new();
 
-    assert!(
-        crate::packaged_bodies().contains(&eros),
-        "the artifact still carries it"
-    );
-    assert!(!backend.supports_body(eros.clone()));
+    assert!(crate::packaged_bodies().contains(&eros));
+    assert!(backend.supports_body(eros.clone()));
 
     let request = EphemerisRequest {
         body: eros.clone(),
@@ -1666,42 +1095,18 @@ fn the_backend_does_not_serve_the_constrained_asteroid() {
         zodiac_mode: ZodiacMode::Tropical,
         apparent: Apparentness::Mean,
     };
-    let error = backend
-        .position(&request)
-        .expect_err("the constrained asteroid is not served");
-    assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
-    assert!(error.to_string().contains("SpkBackend"), "{error}");
-    let batch_error = backend
+    let result = backend.position(&request).expect("Eros is served");
+    assert!(result.ecliptic.is_some());
+    backend
         .positions(std::slice::from_ref(&request))
-        .expect_err("the batch path declines the constrained asteroid too");
-    assert_eq!(batch_error.kind, EphemerisErrorKind::UnsupportedBody);
-
-    let lookup_error = crate::packaged_lookup(&eros, request.instant)
-        .expect_err("the public lookup declines the constrained asteroid");
-    assert_eq!(
-        lookup_error.kind,
-        pleiades_compression::CompressionErrorKind::MissingBody
-    );
-    assert!(
-        lookup_error.to_string().contains("SpkBackend"),
-        "{lookup_error}"
-    );
-    assert!(
-        crate::packaged_artifact()
-            .lookup_ecliptic(
-                &eros,
-                crate::regenerate::normalize_lookup_instant(request.instant)
-            )
-            .is_ok(),
-        "the artifact still carries the constrained asteroid"
-    );
+        .expect("the batch path serves Eros too");
+    crate::packaged_lookup(&eros, request.instant).expect("the public lookup serves Eros");
 
     let metadata = backend.metadata();
-    assert!(metadata.claim_for(&eros).is_none());
-    assert!(metadata
-        .release_grade_bodies()
-        .iter()
-        .all(|body| body != &eros));
+    assert_eq!(
+        metadata.claim_for(&eros).map(|claim| claim.tier),
+        Some(BodyClaimTier::ReleaseGrade)
+    );
     assert_eq!(
         metadata
             .claim_for(&CelestialBody::Pluto)

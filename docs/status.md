@@ -44,14 +44,23 @@ crate source in this repo; gate names are the runnable `validate-*` subcommands
   via the packaged artifact; VSOP87 Pluto and the compact ELP Moon stay
   constrained. See `packaged_body_claims` in
   [`crates/pleiades-data/src/lib.rs`](../crates/pleiades-data/src/lib.rs).
-- **Asteroids offline are served only at their sample rows.** Ceres, Pallas,
-  Juno, Vesta, `asteroid:433-Eros` and `asteroid:99942-Apophis` come from a
-  sparse JPL Horizons fixture: a handful of epochs and a nine-day cluster in
-  January 2001 (Apophis from 2001-01-06). Any other date returns an
-  out-of-range error. The packaged artifact still carries an Eros fit that the
-  backend does not serve. For asteroid positions across 1900–2100, use `pleiades_jpl::SpkBackend` with a
-  JPL kernel (`docs/spk-kernel-sourcing.md`); offline coverage is tracked in
-  issue #201.
+- **Dense packaged asteroids.** `PackagedDataBackend` serves Ceres, Pallas,
+  Juno, Vesta and `asteroid:433-Eros` on every date in 1900-2100 from
+  heliocentric fits to the JPL `sb441-n373s` kernel. They are gated against the
+  407 `sb441-n373s` rows per body of `asteroid_reference.csv` by
+  [`packaged_asteroids_match_the_sb441_rows`](../crates/pleiades-data/src/tests/asteroid_gate.rs)
+  (row-gate ceiling `ASTEROID_CORPUS_CEILING`: 0.42″ longitude x cos latitude,
+  0.38″ latitude, against those rows only). Row maxima: 0.2938″ longitude
+  (Juno) and 0.2646″ latitude (Ceres). Dense 0.5-day sampling against the
+  kernel over 1900-2100 finds at most 0.52″ longitude and 0.37″ latitude
+  (acceptance rule 1″). Caller-supplied artifacts generated before
+  compatibility profile 0.7.34 must be regenerated (two kernels), because their
+  asteroid:433-Eros segments are the old sparse snapshot fit. `asteroid:99942-Apophis` stays snapshot-only: it is served only at
+  the sample rows of the sparse JPL Horizons fixture (a nine-day cluster in
+  January 2001 from 2001-01-06) and any other date returns an out-of-range
+  error. Asteroid stations and aspects are searched but ungated (#167 (d),
+  #168 (f)). Other asteroids need `pleiades_jpl::SpkBackend` with a JPL kernel
+  (`docs/spk-kernel-sourcing.md`).
 - Apparent place omits gravitational light-deflection. Rise/set/transit and
   horizontal coordinates read the `TimeScale` tag on their query instants and
   return **TDB** instants; their accuracy in civil time is bounded by the

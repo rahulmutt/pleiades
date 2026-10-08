@@ -131,3 +131,28 @@ mod tests {
         assert!(max_encoded_bytes <= 16_000_000);
     }
 }
+
+/// Ceilings for the packaged asteroids against the `sb441-n373s` rows of
+/// `asteroid_reference.csv` (issue #201): measured maximum x 1.4, rounded up to
+/// two significant figures, per channel from the worst body.
+///
+/// | body              | measured lon | measured lat |
+/// |-------------------|--------------|--------------|
+/// | Ceres             | 0.2605"      | 0.2646"      |
+/// | Pallas            | 0.0043"      | 0.0014"      |
+/// | Juno              | 0.2938"      | 0.1695"      |
+/// | Vesta             | 0.0056"      | 0.0042"      |
+/// | asteroid:433-Eros | 0.0020"      | 0.0008"      |
+#[cfg(test)]
+pub(crate) const ASTEROID_CORPUS_CEILING: AsteroidCorpusCeiling = AsteroidCorpusCeiling {
+    lon_arcsec: 0.42,
+    lat_arcsec: 0.38,
+};
+
+/// Longitude (x cos latitude) and latitude ceilings, arcseconds.
+#[cfg(test)]
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct AsteroidCorpusCeiling {
+    pub lon_arcsec: f64,
+    pub lat_arcsec: f64,
+}

@@ -813,12 +813,21 @@ fn empty_and_inverted_ranges_give_no_events() {
     );
 }
 
+/// Apophis is not in the packaged artifact (the dense asteroids are Ceres, Pallas,
+/// Juno, Vesta and Eros, issue #201).
+fn apophis() -> CelestialBody {
+    CelestialBody::Custom(pleiades_backend::CustomBodyId::new(
+        "asteroid",
+        "99942-Apophis",
+    ))
+}
+
 #[test]
 fn a_body_the_backend_does_not_serve_is_an_error() {
     let engine = EventEngine::new(packaged_backend());
     for (first, second) in [
-        (CelestialBody::Ceres, CelestialBody::Mars),
-        (CelestialBody::Mars, CelestialBody::Ceres),
+        (apophis(), CelestialBody::Mars),
+        (CelestialBody::Mars, apophis()),
     ] {
         let result = engine.aspects_in_range(
             first.clone(),

@@ -591,25 +591,32 @@ fn parse_ayanamsa_rejects_padded_custom_definition_names() {
     );
 }
 
-/// Ceres at J2000 sits on a snapshot row. The apparent reduction's light-time
-/// step lands off the row and is refused (issue #158), so the placement
-/// renders on its mean place. At JD 2451700, between J2000 and the January
-/// 2001 cluster, no rows support an interpolation, so the chart itself fails
-/// with the snapshot's refusal, which names `SpkBackend`.
+/// The packaged backend serves Ceres densely (issue #201), so the chart renders
+/// it at J2000 and between the old snapshot rows, and the apparent reduction's
+/// light-time step finds data.
 #[test]
-fn chart_command_routes_selected_asteroids_via_jpl_fallback() {
+fn chart_command_serves_selected_asteroids_from_the_packaged_backend() {
     let rendered = render_chart(&["--jd", "2451545.0", "--body", "Ceres"])
         .expect("asteroid chart should render");
     assert!(rendered.contains("Ceres 184.4"), "{rendered}");
     assert!(rendered.contains("Backend:"));
+    // Fully reduced: the label carries no "placements reduced" fallback note.
     assert!(
-        rendered.contains("Apparentness: Apparent (0 of 1 placements reduced)"),
+        rendered.contains("Apparentness: Apparent\n") && !rendered.contains("placements reduced"),
+        "{rendered}"
+    );
+    assert!(
+        rendered.contains("Ceres apparent: apparent-place"),
         "{rendered}"
     );
 
-    let refused = render_chart(&["--jd", "2451700.0", "--body", "Ceres"])
-        .expect_err("no snapshot row supports this date");
-    assert!(refused.contains("SpkBackend"), "{refused}");
+    let between = render_chart(&["--jd", "2451700.0", "--body", "Ceres"])
+        .expect("the dense fit serves dates between the old snapshot rows");
+    assert!(
+        between.contains("Ceres apparent: apparent-place")
+            && !between.contains("placements reduced"),
+        "{between}"
+    );
 }
 
 #[test]

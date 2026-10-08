@@ -571,6 +571,10 @@ fn artifact_and_workspace_commands_render_compact_reports() {
             error.contains("generate-packaged-artifact requires PLEIADES_DE_KERNEL"),
             "unexpected error: {error}"
         );
+        assert!(
+            error.contains("PLEIADES_AST_KERNEL"),
+            "error should name the asteroid kernel too: {error}"
+        );
     }
     assert!(
         !artifact_fixture_path.exists(),
@@ -583,7 +587,7 @@ fn artifact_and_workspace_commands_render_compact_reports() {
     assert!(regeneration_check.contains("checksum=0x"));
     assert!(!regeneration_check.contains("path:"));
     assert!(regeneration_check.contains(
-        "11 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros)"
+        "15 bundled bodies (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros)"
     ));
 
     let artifact_report =

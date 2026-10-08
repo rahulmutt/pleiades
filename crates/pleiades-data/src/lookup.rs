@@ -784,12 +784,8 @@ fn packaged_mixed_frame_batch_parity_request_entries(
     let mut requests = Vec::with_capacity(packaged_bodies().len());
     let mut entries = Vec::with_capacity(packaged_bodies().len());
 
-    // The batch runs against the backend, so it requests the bodies it serves.
-    let served_bodies = packaged_bodies()
-        .iter()
-        .filter(|body| !crate::is_carried_but_unserved(body))
-        .cloned();
-    for (index, body) in served_bodies.enumerate() {
+    // The backend serves every packaged body.
+    for (index, body) in packaged_bodies().iter().cloned().enumerate() {
         let entry = packaged_reference_entry_for_body(snapshot, &body)?;
         entries.push(entry.clone());
         requests.push(EphemerisRequest {
@@ -983,12 +979,8 @@ fn packaged_mixed_tt_tdb_batch_parity_request_entries(
     let mut requests = Vec::with_capacity(packaged_bodies().len());
     let mut entries = Vec::with_capacity(packaged_bodies().len());
 
-    // The batch runs against the backend, so it requests the bodies it serves.
-    let served_bodies = packaged_bodies()
-        .iter()
-        .filter(|body| !crate::is_carried_but_unserved(body))
-        .cloned();
-    for (index, body) in served_bodies.enumerate() {
+    // The backend serves every packaged body.
+    for (index, body) in packaged_bodies().iter().cloned().enumerate() {
         let entry = packaged_reference_entry_for_body(snapshot, &body)?;
         entries.push(entry.clone());
         requests.push(EphemerisRequest {
@@ -1180,9 +1172,9 @@ impl fmt::Display for PackagedTimeScaleBatchParitySummary {
 
 /// Returns a packaged lookup for a body and instant.
 ///
-/// It serves the bodies [`PackagedDataBackend`] serves. `asteroid:433-Eros`
-/// is carried by the artifact but not served (issue #201): its segments are
-/// fitted to rows too sparse to interpolate, so a lookup for it returns a
+/// It serves the bodies [`PackagedDataBackend`] serves, including the dense
+/// `sb441-n373s` asteroid fits (Ceres, Pallas, Juno, Vesta, `asteroid:433-Eros`).
+/// A body the artifact does not carry returns a
 /// [`MissingBody`](pleiades_compression::CompressionErrorKind::MissingBody)
 /// error. [`packaged_artifact`](crate::packaged_artifact) is the raw reader for
 /// what the artifact carries.
@@ -1203,16 +1195,6 @@ pub fn packaged_lookup(
     body: &CelestialBody,
     instant: Instant,
 ) -> Result<EclipticCoordinates, pleiades_compression::CompressionError> {
-    if crate::is_carried_but_unserved(body) {
-        return Err(pleiades_compression::CompressionError::new(
-            pleiades_compression::CompressionErrorKind::MissingBody,
-            format!(
-                "packaged data carries {body} but does not serve it: its segments are fitted \
-                 to rows too sparse to interpolate. Serve it from pleiades_jpl::SpkBackend \
-                 with a JPL kernel"
-            ),
-        ));
-    }
     packaged_artifact().lookup_ecliptic(body, normalize_lookup_instant(instant))
 }
 
@@ -1243,8 +1225,8 @@ pub fn packaged_backend_from_artifact(artifact: CompressedArtifact) -> PackagedD
 
 /// Returns a packaged-data backend built from decoded artifact bytes.
 ///
-/// A backend built from a caller-supplied artifact also declines
-/// `asteroid:433-Eros` (issue #201).
+/// A backend built from a caller-supplied artifact serves the bodies that
+/// artifact carries and declines any body it does not.
 ///
 /// # Examples
 ///
@@ -1270,8 +1252,8 @@ pub fn packaged_backend_from_bytes(
 #[cfg(feature = "packaged-artifact-path")]
 /// Returns a packaged-data backend built from a decoded artifact file.
 ///
-/// A backend built from a caller-supplied artifact also declines
-/// `asteroid:433-Eros` (issue #201).
+/// A backend built from a caller-supplied artifact serves the bodies that
+/// artifact carries and declines any body it does not.
 ///
 /// # Examples
 ///

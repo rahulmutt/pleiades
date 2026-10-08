@@ -436,8 +436,19 @@ fn artifact_timing_corpus(artifact: &CompressedArtifact) -> ValidationCorpus {
     corpus
 }
 
+/// The analytical VSOP87/ELP candidate has no model for the asteroids the
+/// artifact carries (issue #201), so they stay out of the model comparison.
 fn artifact_model_comparison_corpus(artifact: &CompressedArtifact) -> ValidationCorpus {
-    artifact_comparison_corpus_filtered(artifact, |body| !matches!(body, CelestialBody::Custom(_)))
+    artifact_comparison_corpus_filtered(artifact, |body| {
+        !matches!(
+            body,
+            CelestialBody::Custom(_)
+                | CelestialBody::Ceres
+                | CelestialBody::Pallas
+                | CelestialBody::Juno
+                | CelestialBody::Vesta
+        )
+    })
 }
 
 fn artifact_comparison_corpus_filtered<F>(

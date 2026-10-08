@@ -177,8 +177,8 @@ mod tests {
         let summary = report.summary_line();
         assert!(summary.contains("artifact inspection:"));
         assert!(summary.contains("residual-bearing segments:"));
-        assert!(summary.contains("residual-bearing bodies: asteroid:433-Eros"));
-        assert!(summary.contains("body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=0; custom bodies=1; other bodies=0"));
+        assert!(summary.contains("residual-bearing bodies: none"));
+        assert!(summary.contains("body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=4; custom bodies=1; other bodies=0"));
         assert!(summary.contains("roundtrip=ok"));
         assert!(summary.contains("checksum=ok"));
         assert!(summary.contains("encoded bytes="));
@@ -234,13 +234,32 @@ mod tests {
             .contains("artifact inspection report field `body_count`"));
     }
 
-    #[test]
-    fn artifact_inspection_report_validate_rejects_residual_body_coverage_drift() {
+    /// The dense packaged artifact stores no residuals (issue #201), so the
+    /// residual-consistency checks are exercised on a report made consistent
+    /// with one residual-bearing Sun segment.
+    fn report_with_a_sun_residual() -> ArtifactInspectionReport {
         let artifact = packaged_artifact();
         let encoded = artifact.encode().expect("packaged artifact should encode");
         let mut report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())
             .expect("artifact inspection report should build");
-        report.residual_bodies.push(CelestialBody::Sun);
+        report
+            .bodies
+            .iter_mut()
+            .find(|inspection| inspection.body == CelestialBody::Sun)
+            .expect("the report inspects the Sun")
+            .residual_segment_count = 1;
+        report.residual_segment_count = 1;
+        report.residual_bodies = vec![CelestialBody::Sun];
+        report
+            .validate()
+            .expect("the synthetic residual report should be consistent");
+        report
+    }
+
+    #[test]
+    fn artifact_inspection_report_validate_rejects_residual_body_coverage_drift() {
+        let mut report = report_with_a_sun_residual();
+        report.residual_bodies.push(CelestialBody::Moon);
 
         let error = report
             .validate()
@@ -252,10 +271,7 @@ mod tests {
 
     #[test]
     fn artifact_inspection_report_validate_rejects_residual_segment_count_drift() {
-        let artifact = packaged_artifact();
-        let encoded = artifact.encode().expect("packaged artifact should encode");
-        let mut report = ArtifactInspectionReport::from_artifact(artifact, encoded.len())
-            .expect("artifact inspection report should build");
+        let mut report = report_with_a_sun_residual();
         report.residual_segment_count += 1;
 
         let error = report

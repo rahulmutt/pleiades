@@ -1,28 +1,25 @@
 //! Packaged compressed ephemeris backend for the default 1900-2100 range.
 //!
 //! Wider coverage is available as an opt-in: regenerate the artifact over a
-//! custom window with the `generate-artifact <kernel> --out <path>
-//! [--start --end]` CLI subcommand.
+//! custom window with the `generate-artifact <kernel> --asteroid-kernel <kernel>
+//! --out <path> [--start --end]` CLI subcommand.
 //!
-//! This crate now ships a small stage-5 draft artifact backed by the
-//! `pleiades-compression` codec. The bundled data is regenerated from the
-//! checked-in JPL reference snapshot and validated against a deterministic
-//! binary fixture. The backend serves the Sun, the Moon and Mercury through
-//! Pluto, and falls back to other providers when callers request bodies
-//! outside that packaged slice.
+//! This crate ships a packaged artifact backed by the `pleiades-compression`
+//! codec, validated against a deterministic binary fixture. The backend serves
+//! the Sun, the Moon, Mercury through Pluto, and five asteroids (Ceres, Pallas,
+//! Juno, Vesta and `asteroid:433-Eros`), and falls back to other providers when
+//! callers request bodies outside that packaged slice.
 //!
-//! The artifact also carries segments for `asteroid:433-Eros`, fitted to 17
-//! reference rows. They are not served: outside those rows the fit is wrong by
-//! tens of degrees. `PackagedDataBackend` reports the body unsupported, and
-//! `packaged_lookup` refuses it too.
+//! The asteroids are densely fitted (heliocentric) from the JPL `sb441-n373s`
+//! small-body kernel and served on every date in 1900-2100 (issue #201); their
+//! accuracy is gated against the `sb441-n373s` rows of `asteroid_reference.csv`.
 //!
 //! The packaged artifact stores J2000 ecliptic coordinates directly,
 //! reconstructs equatorial coordinates from the stored channels and
-//! J2000 mean-obliquity transform when requested, and adds residual correction
-//! channels on high-curvature spans when they improve the fit. A
-//! maintainer-facing regeneration helper can rebuild the checked-in fixture
-//! from the bundled JPL reference snapshot without introducing any native
-//! tooling. When the `packaged-artifact-path` feature is
+//! J2000 mean-obliquity transform when requested. The checked-in artifact
+//! carries no residual correction segments. A
+//! maintainer-facing regeneration helper rebuilds the checked-in fixture from
+//! the de440 and `sb441-n373s` kernels without introducing any native tooling. When the `packaged-artifact-path` feature is
 //! enabled, callers can also load an explicit artifact file for larger or
 //! externally distributed packaged datasets. See `docs/time-observer-policy.md`
 //! for the explicit packaged request/lookup-epoch policy, and
@@ -70,10 +67,9 @@ pub use regenerate::*;
 // `use super::*` in the tests module can pick them up.
 #[cfg(test)]
 pub(crate) use coverage::{
-    channel_from_fit_samples_with_control_points, distance_channel_from_fit_samples,
-    distance_channel_from_samples, packaged_artifact_body_cadence,
-    packaged_artifact_fit_outlier_sample_fractions, packaged_artifact_fit_sample_fractions,
-    packaged_artifact_fit_sample_fractions_for_body, PackagedArtifactBodyCadence,
+    packaged_artifact_body_cadence, packaged_artifact_fit_outlier_sample_fractions,
+    packaged_artifact_fit_sample_fractions, packaged_artifact_fit_sample_fractions_for_body,
+    PackagedArtifactBodyCadence,
 };
 #[cfg(test)]
 pub(crate) use data::PACKAGED_ARTIFACT_FIXTURE;
@@ -85,46 +81,9 @@ pub(crate) use lookup::{
 };
 #[cfg(test)]
 pub(crate) use regenerate::{
-    best_residual_segment,
-    // other functions
-    body_segment_span_limit,
-    chebyshev_lobatto_fractions,
-    coordinates,
-    evaluate_polynomial_channel,
-    packaged_artifact_fit_sample_counts_for_body,
-    packaged_artifact_residual_sample_fractions_for_channel,
-    packaged_artifact_segment_validation_fractions_for_body,
-    packaged_artifact_split_fraction_for_interval,
-    segment_channel_value,
-    segment_error_prefers_candidate,
-    segment_fit_candidate_is_better,
-    segment_from_pair,
-    segment_from_pair_fallback,
-    snapshot_entry_from_ecliptic_coordinates,
-    validate_packaged_artifact_phase1_source_inputs,
-    PackagedArtifactFitCandidateScore,
-    PackagedArtifactSegmentFitError,
-    // structs
-    PackagedArtifactSplitCurvature,
-    PACKAGED_ARTIFACT_DENSE_FIT_SAMPLE_COUNTS,
-    PACKAGED_ARTIFACT_DENSE_RESIDUAL_SAMPLE_FRACTIONS,
+    body_segment_span_limit, coordinates, packaged_artifact_segment_validation_fractions_for_body,
     PACKAGED_ARTIFACT_DENSE_VALIDATION_SAMPLE_FRACTIONS,
-    PACKAGED_ARTIFACT_FOUR_FIFTHS_SPLIT_FRACTION,
-    // split fraction constants
-    PACKAGED_ARTIFACT_LEFT_BIASED_SPLIT_FRACTION,
-    PACKAGED_ARTIFACT_LEFT_EXTREME_SPLIT_FRACTION,
-    PACKAGED_ARTIFACT_MEDIUM_FIT_SAMPLE_COUNTS,
     PACKAGED_ARTIFACT_MEDIUM_VALIDATION_SAMPLE_FRACTIONS,
-    PACKAGED_ARTIFACT_ONE_EIGHTH_SPLIT_FRACTION,
-    PACKAGED_ARTIFACT_ONE_FIFTH_SPLIT_FRACTION,
-    PACKAGED_ARTIFACT_ONE_NINTH_SPLIT_FRACTION,
-    PACKAGED_ARTIFACT_ONE_SEVENTH_SPLIT_FRACTION,
-    PACKAGED_ARTIFACT_ONE_THIRD_SPLIT_FRACTION,
-    PACKAGED_ARTIFACT_RESIDUAL_SAMPLE_FRACTIONS,
-    PACKAGED_ARTIFACT_RIGHT_BIASED_SPLIT_FRACTION,
-    PACKAGED_ARTIFACT_RIGHT_EXTREME_SPLIT_FRACTION,
-    PACKAGED_ARTIFACT_SEVEN_EIGHTHS_SPLIT_FRACTION,
-    PACKAGED_ARTIFACT_SIX_SEVENTHS_SPLIT_FRACTION,
 };
 // External types needed by tests via `use super::*`
 #[cfg(test)]
@@ -135,8 +94,8 @@ pub(crate) use pleiades_backend::{
 };
 #[cfg(test)]
 pub(crate) use pleiades_compression::{
-    ArtifactOutput, ArtifactProfile, ChannelKind, CompressedArtifact, EndianPolicy,
-    PolynomialChannel, Segment, SpeedPolicy,
+    ArtifactOutput, ArtifactProfile, ChannelKind, CompressedArtifact, EndianPolicy, Segment,
+    SpeedPolicy,
 };
 #[cfg(test)]
 pub(crate) use pleiades_jpl::{
@@ -163,14 +122,14 @@ pub(crate) fn packaged_artifact_source_text() -> &'static str {
     static SOURCE: OnceLock<String> = OnceLock::new();
     SOURCE.get_or_init(|| {
         format!(
-            "Quantized adjacent same-body quadratic windows with longitude-unwrapped planetary fits, with the comparison-body planetary set densely fit from the JPL de440 kernel over the default 1900-2100 coverage window and the constrained asteroid:433-Eros sourced from its committed reference corpus, with point segments only for single-epoch bodies and recursively subdivided quadratic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, {}.",
+            "Quantized adjacent same-body quadratic windows with longitude-unwrapped planetary fits, with the comparison-body planetary set densely fit from the JPL de440 kernel over the default 1900-2100 coverage window and Ceres, Pallas, Juno, Vesta and asteroid:433-Eros densely fit from the JPL sb441-n373s small-body kernel, with point segments only for single-epoch bodies and recursively subdivided quadratic spans for multi-epoch bodies using body-class span caps and measured-fit comparison against the fallback, {}.",
             PACKAGED_ARTIFACT_GENERATION_STRATEGY_TAIL
         )
     })
     .as_str()
 }
 
-const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
+pub(crate) const PACKAGED_BASE_BODIES: [CelestialBody; 10] = [
     CelestialBody::Sun,
     CelestialBody::Moon,
     CelestialBody::Mercury,
@@ -189,39 +148,45 @@ pub(crate) fn packaged_bodies() -> &'static [CelestialBody] {
     static BODIES: OnceLock<Vec<CelestialBody>> = OnceLock::new();
     BODIES.get_or_init(|| {
         let mut bodies = PACKAGED_BASE_BODIES.to_vec();
-        bodies.push(CelestialBody::Custom(CustomBodyId::new(
-            "asteroid", "433-Eros",
-        )));
+        bodies.extend(packaged_asteroids().iter().cloned());
         bodies
     })
 }
 
-/// Whether the artifact carries `body` without the backend serving it.
-///
-/// `asteroid:433-Eros` is fitted to 17 reference rows that lie decades apart
-/// outside one nine-day cluster, so its segments are wrong by tens of degrees
-/// on almost every date (issue #158). The artifact keeps them, so its bytes
-/// and checksum are unchanged, and [`PackagedDataBackend`] declines the body.
-/// The dense-data follow-up (issue #201) removes or replaces the segments.
-pub(crate) fn is_carried_but_unserved(body: &CelestialBody) -> bool {
-    matches!(
-        body,
-        CelestialBody::Custom(id) if id.catalog == "asteroid" && id.designation == "433-Eros"
-    )
+/// The asteroids the artifact fits densely from the JPL `sb441-n373s`
+/// kernel, in artifact order (issue #201).
+pub(crate) fn packaged_asteroids() -> &'static [CelestialBody] {
+    static BODIES: OnceLock<Vec<CelestialBody>> = OnceLock::new();
+    BODIES.get_or_init(|| {
+        vec![
+            CelestialBody::Ceres,
+            CelestialBody::Pallas,
+            CelestialBody::Juno,
+            CelestialBody::Vesta,
+            CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+        ]
+    })
 }
 
-/// Returns the per-body release claims for the packaged artifact: every body
-/// the backend serves is release-grade, validated inside the artifact build
-/// against the corpus. A body the artifact carries but the backend does not
-/// serve (`asteroid:433-Eros`, issue #201) has no claim.
+/// Returns the per-body release claims for the packaged artifact. The planets,
+/// Sun and Moon are validated inside the artifact build against the hold-out
+/// corpus; the asteroids against the JPL `sb441-n373s` rows of
+/// `asteroid_reference.csv` (issue #201).
 pub fn packaged_body_claims() -> Vec<pleiades_backend::BodyClaim> {
     use pleiades_backend::{AccuracyClass, BodyClaim, ClaimEvidence};
+    let asteroids = packaged_asteroids();
     packaged_bodies()
         .iter()
-        .filter(|body| !is_carried_but_unserved(body))
         .cloned()
         .map(|body| {
-            BodyClaim::release_grade(body, AccuracyClass::High, ClaimEvidence::ArtifactValidated)
+            let evidence = if asteroids.contains(&body) {
+                ClaimEvidence::CorpusValidated {
+                    source: "sb441-n373s".to_string(),
+                }
+            } else {
+                ClaimEvidence::ArtifactValidated
+            };
+            BodyClaim::release_grade(body, AccuracyClass::High, evidence)
         })
         .collect()
 }

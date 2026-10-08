@@ -566,10 +566,19 @@ fn empty_and_inverted_ranges_give_no_stations() {
     assert!(stations(CelestialBody::Mercury, GEO, J2000 + 366.0, J2000).is_empty());
 }
 
+/// Apophis is not in the packaged artifact (the dense asteroids are Ceres, Pallas,
+/// Juno, Vesta and Eros, issue #201).
+fn apophis() -> CelestialBody {
+    CelestialBody::Custom(pleiades_backend::CustomBodyId::new(
+        "asteroid",
+        "99942-Apophis",
+    ))
+}
+
 #[test]
 fn a_body_the_backend_does_not_serve_is_an_error() {
     let engine = EventEngine::new(packaged_backend());
-    let result = engine.stations_in_range(CelestialBody::Ceres, GEO, tdb(J2000), tdb(J2000 + 30.0));
+    let result = engine.stations_in_range(apophis(), GEO, tdb(J2000), tdb(J2000 + 30.0));
     // An unserved body is a backend failure, not a missing speed.
     assert!(
         !matches!(result, Err(EventError::MissingSpeed { .. })),

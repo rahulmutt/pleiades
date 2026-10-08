@@ -147,9 +147,10 @@ J2000 the packaged true node has 102 stations at the default step and 108 at
 (`MIN_STATION_STEP_DAYS`) and at most the body's default step; any other is
 `EventError::InvalidStationStep`. The search costs one speed read per step,
 so a finer step costs proportionally more. Stations of fictitious bodies and the osculating
-apogee are found but not gated. An asteroid's stations cannot be searched
-offline: the backend chain serves asteroids only at sparse sample rows and the
-search returns its out-of-range error (issue #201).
+apogee are found but not gated. The packaged asteroids (Ceres, Pallas,
+Juno, Vesta, Eros) are searched across 1900-2100 but their stations are not gated
+(issue #167 (d)); Apophis is snapshot-only, so its search returns the
+out-of-range error.
 
 ## Aspects
 
@@ -210,6 +211,6 @@ relative speed:
 
 The gate also covers Mercury–Venus and Mars–Saturn in the mean place and
 Mars–Jupiter from the Sun. Aspects of the lunar points and fictitious
-bodies are found but not gated. An asteroid's aspects cannot be searched
-offline: the backend chain serves asteroids only at sparse sample rows and the
-search returns its out-of-range error (issue #201).
+bodies are found but not gated. The packaged asteroids (Ceres, Pallas, Juno, Vesta,
+Eros) are searched across 1900-2100 but their aspects are not gated (issue #168
+(f)); Apophis is snapshot-only, so its search returns the out-of-range error.

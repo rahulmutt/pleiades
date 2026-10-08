@@ -1,14 +1,15 @@
-//! `generate-artifact` command: regenerate the packaged artifact from a de440
-//! kernel over a chosen coverage window and write the encoded bytes to a file.
+//! `generate-artifact` command: regenerate the packaged artifact from the de440
+//! planetary kernel and the sb441-n373s small-body kernel over a chosen coverage
+//! window and write the encoded bytes to a file.
 //!
 //! Usage:
-//!   `generate-artifact <kernel.bsp> --out <path> [--start <year|JD>] [--end <year|JD>]`
+//!   `generate-artifact <kernel.bsp> --asteroid-kernel <sb441-n373s.bsp> --out <path> [--start <year|JD>] [--end <year|JD>]`
 //!
 //! `--start`/`--end` accept a calendar year (e.g. 1850) or a Julian Day (a value
 //! with a decimal point, e.g. 2451545.0). Omitted bounds default to the shipped
-//! 1900–2100 window. Major-body generation requires the kernel (dense de440 fit).
+//! 1900–2100 window. Every body is fit densely, so both kernels are required.
 
-use pleiades_data::regenerate_packaged_artifact_from_kernel_over;
+use pleiades_data::regenerate_packaged_artifact_from_kernels_over;
 use pleiades_jpl::spk::corpus_spec::CoverageWindow;
 
 /// Parse a `--start`/`--end` token: a value containing '.' is a JD; otherwise a
@@ -26,6 +27,7 @@ pub fn render_generate_artifact(args: &[&str]) -> Result<String, String> {
         .ok_or("generate-artifact requires a kernel path")?;
 
     let mut out: Option<&str> = None;
+    let mut asteroid_kernel: Option<&str> = None;
     let mut start: Option<f64> = None;
     let mut end: Option<f64> = None;
 
@@ -34,6 +36,10 @@ pub fn render_generate_artifact(args: &[&str]) -> Result<String, String> {
         match args[i] {
             "--out" => {
                 out = Some(args.get(i + 1).ok_or("--out requires a path")?);
+                i += 2;
+            }
+            "--asteroid-kernel" => {
+                asteroid_kernel = Some(args.get(i + 1).ok_or("--asteroid-kernel requires a path")?);
                 i += 2;
             }
             "--start" => {
@@ -62,7 +68,10 @@ pub fn render_generate_artifact(args: &[&str]) -> Result<String, String> {
         return Err("coverage window end must be after start".to_string());
     }
 
-    let artifact = regenerate_packaged_artifact_from_kernel_over(kernel, window)?;
+    let asteroid_kernel =
+        asteroid_kernel.ok_or("generate-artifact requires --asteroid-kernel <sb441-n373s.bsp>")?;
+
+    let artifact = regenerate_packaged_artifact_from_kernels_over(kernel, asteroid_kernel, window)?;
     let bytes = artifact.encode().map_err(|e| format!("encode: {e}"))?;
     let len = bytes.len();
     std::fs::write(out, &bytes).map_err(|e| format!("write {out}: {e}"))?;
@@ -95,6 +104,15 @@ mod tests {
     fn missing_out_errors() {
         let err = render_generate_artifact(&["/no/such/kernel.bsp"]).unwrap_err();
         assert!(err.contains("--out"), "unexpected: {err}");
+    }
+
+    #[test]
+    fn missing_asteroid_kernel_errors() {
+        let err = render_generate_artifact(&["k.bsp", "--out", "x.bin"]).unwrap_err();
+        assert!(
+            err.contains("generate-artifact requires --asteroid-kernel"),
+            "unexpected: {err}"
+        );
     }
 
     #[test]

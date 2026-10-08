@@ -61,8 +61,9 @@ These are the implementation gaps that still block a production release:
   via `SpeedPolicy::FittedDerivative` gated against speed ceilings, window
   1900–2100 CE).
 - body/backend claims are now **per-backend**: Pluto and the Moon are
-  release-grade via the packaged-data artifact (Eros is carried in it but not
-  served, issue #201), while VSOP87's Pluto stays
+  release-grade via the packaged-data artifact (which also serves Ceres, Pallas,
+  Juno, Vesta and asteroid:433-Eros densely over 1900–2100 from sb441-n373s
+  fits, issue #201; Apophis stays snapshot-only), while VSOP87's Pluto stays
   approximate and the compact ELP Moon stays constrained; the thirty-six
   Tier-A asteroids/TNOs (Ceres, Pallas, Juno, Vesta, Hygiea, Psyche, Iris,
   Eunomia, Cybele, Astraea, Hebe, Flora, Metis, Fortuna, Sappho, Eros, plus

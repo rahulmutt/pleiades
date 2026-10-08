@@ -605,7 +605,7 @@ fn release_bundle_writes_expected_artifacts() {
         .contains("Packaged-artifact generation manifest: Packaged artifact generation manifest:"));
     assert!(release_summary.contains("Packaged-artifact size: "));
     assert!(release_summary.contains(
-            "Artifact profile coverage: stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates, Motion]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates]; speed policy: FittedDerivative; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
+            "Artifact profile coverage: stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates, Motion]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates]; speed policy: FittedDerivative; applies to 15 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros"
         ));
     assert!(release_summary.contains(&format!(
         "Packaged-artifact access: {}",
@@ -858,8 +858,8 @@ fn release_bundle_writes_expected_artifacts() {
         &artifact_inspection_summary_for_report()
             .expect("artifact inspection summary should build")
     ));
-    assert!(release_summary.contains("residual-bearing bodies: asteroid:433-Eros"));
-    assert!(release_summary.contains("applies to 11 bundled bodies"));
+    assert!(release_summary.contains("residual-bearing bodies: none"));
+    assert!(release_summary.contains("applies to 15 bundled bodies"));
     assert!(release_summary.contains("Compact summary views: compatibility-profile-summary, release-notes-summary, backend-matrix-summary, api-stability-summary, workspace-audit-summary, validation-report-summary / validation-summary / report-summary, artifact-summary / artifact-posture-summary, release-checklist-summary"));
     assert!(release_summary
         .lines()
@@ -869,10 +869,10 @@ fn release_bundle_writes_expected_artifacts() {
         packaged_artifact_generation_manifest.contains("Packaged artifact generation manifest:")
     );
     assert!(artifact_summary.contains("residual-bearing segments:"));
-    assert!(artifact_summary.contains("residual-bearing bodies: asteroid:433-Eros"));
-    assert!(artifact_summary.contains("Body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=0; custom bodies=1; other bodies=0"));
+    assert!(artifact_summary.contains("residual-bearing bodies: none"));
+    assert!(artifact_summary.contains("Body classes: luminaries=2; major planets=8; lunar points=0; built-in asteroids=4; custom bodies=1; other bodies=0"));
     assert!(artifact_summary.contains(
-            "Artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates, Motion]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates]; speed policy: FittedDerivative; applies to 11 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, asteroid:433-Eros"
+            "Artifact profile: byte order: little-endian; stored channels: [Longitude, Latitude, DistanceAu]; derived outputs: [EclipticCoordinates, EquatorialCoordinates, Motion]; unsupported outputs: [ApparentCorrections, TopocentricCoordinates, SiderealCoordinates]; speed policy: FittedDerivative; applies to 15 bundled bodies; bundled bodies: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros"
         ));
     assert!(artifact_summary.contains("Generation manifest:"));
     assert!(artifact_summary.contains("Packaged-artifact phase-2 corpus alignment: "));
@@ -896,12 +896,8 @@ fn release_bundle_writes_expected_artifacts() {
     assert!(artifact_summary.contains(
         &pleiades_data::packaged_artifact_regeneration_summary_details().generation_policy_line()
     ));
-    // Over the 1900–2100 window the major bodies fit within threshold and carry no
-    // residual channels; only the snapshot-sourced constrained asteroid (Eros) does.
-    // (Body SET remains all 11; this is the residual-bearing subset.)
-    assert!(
-        artifact_summary.contains("residual bodies: asteroid:433-Eros; applies to 1 bundled body")
-    );
+    // The dense fits (issue #201) store no residual channels for any body.
+    assert!(artifact_summary.contains("residual bodies: none; applies to 0 bundled bodies"));
     assert!(artifact_summary.contains(&format!(
         "artifact version={}",
         pleiades_data::packaged_artifact_regeneration_summary_details().artifact_version
@@ -912,7 +908,7 @@ fn release_bundle_writes_expected_artifacts() {
             packaged_frame_treatment_summary_for_report()
         )
     }));
-    assert!(artifact_summary.contains("applies to 11 bundled bodies"));
+    assert!(artifact_summary.contains("applies to 15 bundled bodies"));
     assert!(artifact_summary.contains("Model error envelope"));
     assert!(artifact_summary.contains("mean longitude delta:"));
     assert!(artifact_summary.contains("median longitude delta:"));

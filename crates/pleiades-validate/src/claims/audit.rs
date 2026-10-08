@@ -169,8 +169,13 @@ pub fn audit_structural() -> Result<(), Vec<ClaimAuditError>> {
 ///   J2000-only snapshot and is tuned for the VSOP/ELP comparison, which inflates
 ///   latitude/distance deltas by orders of magnitude and does not reflect the
 ///   packaged artifact's true accuracy. This path runs with real teeth in the
-///   kernel-free environment. (The packaged backend no longer serves Eros and
-///   claims nothing for it, so no Eros row is exercised here.)
+///   kernel-free environment. The packaged asteroids (Ceres, Pallas, Juno, Vesta,
+///   Eros) have no hold-out rows; they are checked in a separate block against the
+///   committed `sb441-n373s` rows of `asteroid_reference.csv`, and a claimed
+///   asteroid with no rows or no comparison summary is an error, not a skip.
+///   Afterwards every remaining packaged release-grade body (other than the lunar
+///   points gated by their own named gates) with no evidence row is reported as
+///   [`ClaimAuditError::DeclaredBodyNotComputable`].
 /// - **jpl-spk** (`jpl-spk`): the sb441-n373s Tier-A asteroid reference (a
 ///   [`SnapshotCorpusBackend`] over [`crate::corpus::asteroid_corpus`]) is
 ///   compared against the SPK release backend. In the kernel-free environment
@@ -185,6 +190,8 @@ pub fn audit_structural() -> Result<(), Vec<ClaimAuditError>> {
 pub fn audit_release_grade_accuracy() -> Result<(), Vec<ClaimAuditError>> {
     let mut errors = Vec::new();
 
+    let mut holdout_audited: Vec<CelestialBody> = Vec::new();
+
     // packaged-data ReleaseGrade bodies vs the independent hold-out reference,
     // sampled at matching epochs (SP3-grade, apples-to-apples with the published
     // per-body accuracy ceilings).
@@ -196,9 +203,9 @@ pub fn audit_release_grade_accuracy() -> Result<(), Vec<ClaimAuditError>> {
         let corpus = crate::corpus::holdout_corpus();
 
         // Derive the set of release-grade bodies that have a hold-out truth row.
-        // The packaged backend has no claim for asteroid:433-Eros (it is unsupported
-        // there), so the intersection with the hold-out truth rows below keeps only
-        // bodies that have both a claim and a row.
+        // The hold-out corpus has no asteroid rows, so the intersection with the
+        // hold-out truth rows below keeps only bodies that have both a claim and a
+        // row; the packaged asteroids are audited against their own rows below.
         let holdout_bodies: std::collections::HashSet<CelestialBody> =
             pleiades_jpl::production_holdout_corpus()
                 .iter()
@@ -210,6 +217,7 @@ pub fn audit_release_grade_accuracy() -> Result<(), Vec<ClaimAuditError>> {
             .into_iter()
             .filter(|b| holdout_bodies.contains(b))
             .collect();
+        holdout_audited.clone_from(&expected_bodies);
 
         match crate::comparison::compare_backends(&reference, &candidate, &corpus) {
             Ok(report) => {
@@ -239,6 +247,38 @@ pub fn audit_release_grade_accuracy() -> Result<(), Vec<ClaimAuditError>> {
         }
     }
 
+    // packaged-data asteroids vs the sb441-n373s rows (issue #201). The
+    // hold-out corpus has no asteroid rows, so the block above skips them.
+    let asteroids_audited: Vec<CelestialBody> = {
+        let asteroids: Vec<CelestialBody> = pleiades_data::packaged_body_claims()
+            .into_iter()
+            .filter(|claim| {
+                matches!(&claim.evidence, ClaimEvidence::CorpusValidated { source } if source == "sb441-n373s")
+            })
+            .map(|claim| claim.body)
+            .collect();
+        audit_packaged_asteroids(
+            &asteroids,
+            pleiades_jpl::asteroid_reference_corpus(),
+            &mut errors,
+        );
+        asteroids
+    };
+
+    // Spec section 4: a release-grade body with no evidence row fails the audit.
+    for body in unaudited_release_grade_bodies(
+        &pleiades_data::PackagedDataBackend::default()
+            .metadata()
+            .body_claims,
+        &holdout_audited,
+        &asteroids_audited,
+    ) {
+        errors.push(ClaimAuditError::DeclaredBodyNotComputable {
+            backend: "pleiades-data".into(),
+            body: body.to_string(),
+        });
+    }
+
     // jpl-spk Tier-A asteroids vs the sb441-n373s asteroid reference.
     // NOTE: in the kernel-free environment the SPK backend declares no
     // release-grade bodies, so compare_backends returns Err and this block
@@ -265,6 +305,83 @@ pub fn audit_release_grade_accuracy() -> Result<(), Vec<ClaimAuditError>> {
         Ok(())
     } else {
         Err(errors)
+    }
+}
+
+/// Packaged lunar points whose release-grade evidence is a dedicated gate
+/// rather than the hold-out or `sb441-n373s` rows: `validate-lilith` (true
+/// apogee/perigee), `validate-true-node` (true node) and the mean-lunar-point
+/// gate (mean node/apogee/perigee). They are excluded from the evidence-row
+/// check by name; any other packaged body must be audited by a corpus block.
+const LUNAR_POINTS_GATED_ELSEWHERE: [CelestialBody; 6] = [
+    CelestialBody::TrueApogee,
+    CelestialBody::TruePerigee,
+    CelestialBody::TrueNode,
+    CelestialBody::MeanNode,
+    CelestialBody::MeanApogee,
+    CelestialBody::MeanPerigee,
+];
+
+/// Release-grade bodies in `claims` that no corpus block audited.
+///
+/// A body counts as covered when it was audited against the hold-out rows
+/// (`holdout_audited`) or the asteroid rows (`asteroids_audited`), or is one of
+/// the [`LUNAR_POINTS_GATED_ELSEWHERE`]. Anything left has no evidence row and
+/// must fail the audit rather than pass silently.
+fn unaudited_release_grade_bodies(
+    claims: &[pleiades_backend::BodyClaim],
+    holdout_audited: &[CelestialBody],
+    asteroids_audited: &[CelestialBody],
+) -> Vec<CelestialBody> {
+    claims
+        .iter()
+        .filter(|claim| claim.tier == BodyClaimTier::ReleaseGrade)
+        .map(|claim| &claim.body)
+        .filter(|body| {
+            !holdout_audited.contains(body)
+                && !asteroids_audited.contains(body)
+                && !LUNAR_POINTS_GATED_ELSEWHERE.contains(body)
+        })
+        .cloned()
+        .collect()
+}
+
+/// Compares the packaged backend against `rows` for the claimed `asteroids`.
+///
+/// Every claimed asteroid must have at least one reference row and appear in the
+/// comparison summaries; a missing body is reported as
+/// [`ClaimAuditError::DeclaredBodyNotComputable`] rather than skipped, so a
+/// release-grade claim can never pass without gate evidence.
+fn audit_packaged_asteroids(
+    asteroids: &[CelestialBody],
+    all_rows: &[pleiades_jpl::SnapshotEntry],
+    errors: &mut Vec<ClaimAuditError>,
+) {
+    let rows: Vec<pleiades_jpl::SnapshotEntry> = all_rows
+        .iter()
+        .filter(|row| asteroids.contains(&row.body))
+        .cloned()
+        .collect();
+    let reference = pleiades_jpl::SnapshotCorpusBackend::from_entries(rows.clone());
+    let candidate = pleiades_data::PackagedDataBackend::default();
+    let corpus = crate::corpus::corpus_from_entries(&rows);
+    match crate::comparison::compare_backends(&reference, &candidate, &corpus) {
+        Ok(report) => {
+            let summaries = report.body_summaries();
+            for body in asteroids {
+                if !summaries.iter().any(|summary| &summary.body == body) {
+                    errors.push(ClaimAuditError::DeclaredBodyNotComputable {
+                        backend: "pleiades-data".into(),
+                        body: body.to_string(),
+                    });
+                }
+            }
+            check_report(&report, "pleiades-data", asteroids, errors);
+        }
+        Err(_) => errors.push(ClaimAuditError::DeclaredBodyNotComputable {
+            backend: "pleiades-data".into(),
+            body: "<sb441-n373s asteroids>".into(),
+        }),
     }
 }
 
@@ -372,5 +489,119 @@ mod tests {
             ClaimEvidence::AlgorithmicModel,
         );
         assert!(tier_evidence_consistent(&bad2).is_err());
+    }
+
+    #[test]
+    fn packaged_asteroid_claims_are_non_empty_and_have_rows() {
+        let claimed: Vec<_> = pleiades_data::packaged_body_claims()
+            .into_iter()
+            .filter(|claim| {
+                matches!(&claim.evidence, ClaimEvidence::CorpusValidated { source } if source == "sb441-n373s")
+            })
+            .map(|claim| claim.body)
+            .collect();
+        assert_eq!(claimed.len(), 5);
+        for body in &claimed {
+            assert!(
+                pleiades_jpl::asteroid_reference_corpus()
+                    .iter()
+                    .any(|row| &row.body == body),
+                "no sb441-n373s rows for {body}"
+            );
+        }
+    }
+
+    /// Every release-grade body the packaged backend claims is covered by the
+    /// hold-out rows, the asteroid rows or a named dedicated gate (kernel-free).
+    #[test]
+    fn packaged_release_grade_bodies_all_have_an_evidence_row() {
+        let holdout: Vec<CelestialBody> = pleiades_jpl::production_holdout_corpus()
+            .iter()
+            .map(|entry| entry.body.clone())
+            .collect();
+        let asteroids: Vec<CelestialBody> = pleiades_data::packaged_body_claims()
+            .into_iter()
+            .filter(|claim| {
+                matches!(&claim.evidence, ClaimEvidence::CorpusValidated { source } if source == "sb441-n373s")
+            })
+            .map(|claim| claim.body)
+            .collect();
+        let claims = pleiades_data::PackagedDataBackend::default()
+            .metadata()
+            .body_claims;
+        let missing = unaudited_release_grade_bodies(&claims, &holdout, &asteroids);
+        assert!(missing.is_empty(), "no evidence row for {missing:?}");
+    }
+
+    /// A release-grade body whose evidence no block recognises is reported.
+    #[test]
+    fn release_grade_body_with_unrecognised_evidence_is_reported() {
+        use pleiades_backend::{AccuracyClass, BodyClaim};
+        let claims = vec![
+            BodyClaim::release_grade(
+                CelestialBody::Mars,
+                AccuracyClass::High,
+                ClaimEvidence::CorpusValidated {
+                    source: "some-unaudited-corpus".to_string(),
+                },
+            ),
+            BodyClaim::release_grade(
+                CelestialBody::TrueNode,
+                AccuracyClass::High,
+                ClaimEvidence::ArtifactValidated,
+            ),
+        ];
+        assert_eq!(
+            unaudited_release_grade_bodies(&claims, &[], &[]),
+            vec![CelestialBody::Mars]
+        );
+    }
+
+    /// With rows for Ceres only and a claim of `[Ceres, Pallas]`, the per-body
+    /// branch reports Pallas (the empty-rows test only reaches the whole-compare
+    /// failure branch).
+    #[test]
+    fn packaged_asteroid_missing_from_summaries_is_named() {
+        let ceres_rows: Vec<_> = pleiades_jpl::asteroid_reference_corpus()
+            .iter()
+            .filter(|row| row.body == CelestialBody::Ceres)
+            .cloned()
+            .collect();
+        assert!(!ceres_rows.is_empty());
+        let mut errors = Vec::new();
+        audit_packaged_asteroids(
+            &[CelestialBody::Ceres, CelestialBody::Pallas],
+            &ceres_rows,
+            &mut errors,
+        );
+        assert!(
+            errors.iter().any(|e| matches!(
+                e,
+                ClaimAuditError::DeclaredBodyNotComputable { body, .. } if body == "Pallas"
+            )),
+            "got {errors:?}"
+        );
+        assert!(
+            !errors.iter().any(|e| matches!(
+                e,
+                ClaimAuditError::DeclaredBodyNotComputable { body, .. } if body == "Ceres"
+            )),
+            "got {errors:?}"
+        );
+    }
+
+    /// A corpus-validated asteroid with no reference rows must be an error, not
+    /// a silent skip.
+    #[test]
+    fn packaged_asteroid_without_rows_is_reported() {
+        let mut errors = Vec::new();
+        audit_packaged_asteroids(&[CelestialBody::Ceres], &[], &mut errors);
+        assert!(
+            errors.iter().any(|e| matches!(
+                e,
+                ClaimAuditError::DeclaredBodyNotComputable { backend, .. } if backend == "pleiades-data"
+            )),
+            "got {errors:?}"
+        );
     }
 }

@@ -372,26 +372,42 @@ pub fn asteroid_corpus() -> ValidationCorpus {
 
     CACHE
         .get_or_init(|| {
-            let requests = pleiades_jpl::asteroid_reference_corpus()
-                .iter()
-                .map(|entry| EphemerisRequest {
-                    body: entry.body.clone(),
-                    instant: entry.epoch,
-                    observer: None,
-                    frame: CoordinateFrame::Ecliptic,
-                    zodiac_mode: ZodiacMode::Tropical,
-                    apparent: Apparentness::Mean,
-                })
-                .collect();
-
             ValidationCorpus {
                 name: "Tier-A asteroid reference window (sb441-n373s + per-object SPK)".to_string(),
                 description: "Asteroid accuracy-ceiling corpus built from the committed Tier-A reference rows (sb441-n373s perturber kernel plus per-object JPL SPKs for centaurs/NEA), used by the slow release-grade accuracy audit for small bodies.",
                 apparentness: Apparentness::Mean,
-                requests,
+                requests: requests_from_entries(pleiades_jpl::asteroid_reference_corpus()),
             }
         })
         .clone()
+}
+
+/// Builds a validation corpus from an arbitrary slice of reference rows.
+///
+/// Same request shape as [`asteroid_corpus`], one request per entry; used by the
+/// claims audit to check a filtered subset of the asteroid rows (the packaged
+/// `sb441-n373s` bodies) at exactly the reference epochs.
+pub(crate) fn corpus_from_entries(entries: &[pleiades_jpl::SnapshotEntry]) -> ValidationCorpus {
+    ValidationCorpus {
+        name: "Filtered asteroid reference rows".to_string(),
+        description: "Accuracy-ceiling corpus built from a filtered subset of the committed asteroid reference rows, one request per row.",
+        apparentness: Apparentness::Mean,
+        requests: requests_from_entries(entries),
+    }
+}
+
+fn requests_from_entries(entries: &[pleiades_jpl::SnapshotEntry]) -> Vec<EphemerisRequest> {
+    entries
+        .iter()
+        .map(|entry| EphemerisRequest {
+            body: entry.body.clone(),
+            instant: entry.epoch,
+            observer: None,
+            frame: CoordinateFrame::Ecliptic,
+            zodiac_mode: ZodiacMode::Tropical,
+            apparent: Apparentness::Mean,
+        })
+        .collect()
 }
 
 /// Creates the default benchmark corpus.
