@@ -2405,6 +2405,36 @@ pub(crate) fn fit_segment_within_span(
     Some(seg)
 }
 
+/// Fits `body` densely from `reference` over `window`, one segment per
+/// [`fitting_segment_boundaries`] span, in the body's stored frame.
+///
+/// # Panics
+///
+/// When `reference` cannot serve `body` somewhere in `window`: regeneration
+/// is a maintainer step whose kernels must cover the whole window.
+pub(crate) fn fit_dense_body_artifact(
+    body: &CelestialBody,
+    window: (f64, f64),
+    reference: &dyn EphemerisBackend,
+) -> BodyArtifact {
+    use crate::coverage::fitting_segment_boundaries;
+    let (start_jd, end_jd) = window;
+    let segments: Vec<Segment> = fitting_segment_boundaries(body, start_jd, end_jd)
+        .into_iter()
+        .map(|(t0, t1)| {
+            fit_segment_within_span(body, t0, t1, reference).unwrap_or_else(|| {
+                panic!("fit_segment_within_span failed for body {body} over [{t0}, {t1}]")
+            })
+        })
+        .collect();
+    let frame = if body_uses_heliocentric_frame(body) {
+        pleiades_compression::StoredFrame::Heliocentric
+    } else {
+        pleiades_compression::StoredFrame::Geocentric
+    };
+    BodyArtifact::with_frame(body.clone(), segments, frame)
+}
+
 /// Core artifact builder parameterised by an explicit coverage window.
 ///
 /// Accepts an explicit `base_window` used for all major bodies (planets, Sun,
@@ -2428,8 +2458,6 @@ pub(crate) fn build_packaged_artifact_from_reference_over(
     reference: &dyn EphemerisBackend,
     base_window: (f64, f64),
 ) -> CompressedArtifact {
-    use crate::coverage::fitting_segment_boundaries;
-
     let mut body_artifacts: Vec<(usize, BodyArtifact)> = Vec::new();
 
     std::thread::scope(|scope| {
@@ -2468,26 +2496,11 @@ pub(crate) fn build_packaged_artifact_from_reference_over(
                 }
                 _ => {
                     // Major body: fit densely from the reference (de440) backend.
-                    let (start_jd, end_jd) = base_window;
                     handles.push(scope.spawn(move || {
-                        let spans = fitting_segment_boundaries(&body, start_jd, end_jd);
-                        let segments: Vec<Segment> = spans
-                            .into_iter()
-                            .map(|(t0, t1)| {
-                                fit_segment_within_span(&body, t0, t1, reference)
-                                    .unwrap_or_else(|| {
-                                        panic!(
-                                            "fit_segment_within_span failed for body {body} over [{t0}, {t1}]"
-                                        )
-                                    })
-                            })
-                            .collect();
-                        let frame = if body_uses_heliocentric_frame(&body) {
-                            pleiades_compression::StoredFrame::Heliocentric
-                        } else {
-                            pleiades_compression::StoredFrame::Geocentric
-                        };
-                        (body_index, BodyArtifact::with_frame(body, segments, frame))
+                        (
+                            body_index,
+                            fit_dense_body_artifact(&body, base_window, reference),
+                        )
                     }));
                 }
             }
