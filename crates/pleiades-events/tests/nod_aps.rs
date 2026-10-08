@@ -237,16 +237,17 @@ fn ceres_is_served_by_the_packaged_backend() {
     assert!(result.ascending.latitude_deg.abs() < 0.5);
 }
 
-/// Inside the January 2001 cluster the snapshot rows are a day or less apart,
-/// so the stencil guard admits nod_aps's sampling a fraction of a day either
-/// side of the query and Ceres is served (issue #201).
+/// asteroid:99942-Apophis is still snapshot-only: inside the January 2001
+/// cluster (rows JD 2451917.5, 2451918.5 and 2451919.5, a day apart) the stencil
+/// guard admits nod_aps's sampling a fraction of a day either side of the
+/// query, so the default chain serves it from `JplSnapshotBackend` (issue #201).
 #[test]
 fn a_snapshot_asteroid_is_served_inside_the_fixture_cluster() {
     let engine = engine();
     let result = engine
         .nod_aps(
-            CelestialBody::Ceres,
-            tdb(2_451_915.0),
+            CelestialBody::Custom(CustomBodyId::new("asteroid", "99942-Apophis")),
+            tdb(2_451_918.5),
             NodApsMethod::Osculating,
             ApsisConvention::Aphelion,
         )
