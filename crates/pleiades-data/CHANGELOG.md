@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.6.0] - 2026-10-08
+
+### Breaking Changes
+
+- Dense packaged asteroid fits from sb441-n373s ([#201](https://github.com/rahulmutt/pleiades/pull/201)) ([#233](https://github.com/rahulmutt/pleiades/pull/233)) ([560d69c](https://github.com/rahulmutt/pleiades/commit/560d69cf9791eb61a6847a2dd18821d57b6269dc))
+
+### Fixed
+
+- Return an error, not a panic, when a kernel does not cover the window ([#235](https://github.com/rahulmutt/pleiades/pull/235)) ([#238](https://github.com/rahulmutt/pleiades/pull/238)) ([e960482](https://github.com/rahulmutt/pleiades/commit/e9604826dc3f9b2788e53c3795edacc70c7156d1))
+- Describe the dense per-body fits in the artifact header and span report ([#234](https://github.com/rahulmutt/pleiades/pull/234)) ([#243](https://github.com/rahulmutt/pleiades/pull/243)) ([b6ea7ef](https://github.com/rahulmutt/pleiades/commit/b6ea7ef81fba2634bf4f26cb00e5ae645ecaf8f6))
+
 ## [0.5.7] - 2026-10-07
 
 ### Fixed
