@@ -118,7 +118,10 @@ pub struct RiseSetOptions {
     pub disc: DiscMode,
     /// Apply atmospheric refraction (`false` = `SE_BIT_NO_REFRACTION`).
     pub refraction: bool,
-    /// Force ecliptic latitude 0 (`SE_BIT_GEOCTR_NO_ECL_LAT`).
+    /// Use the geocentric place with ecliptic latitude forced to 0
+    /// (`SE_BIT_GEOCTR_NO_ECL_LAT`). For a [`RiseSetTarget::Body`] this also
+    /// drops diurnal parallax and diurnal aberration: the body is placed as
+    /// seen from the Earth's centre, not from the observer.
     pub no_ecl_lat: bool,
     /// Hindu rising = `DISC_CENTER | NO_REFRACTION | GEOCTR_NO_ECL_LAT`.
     pub hindu: bool,
@@ -207,9 +210,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// - `EclipticPoint`: a pure geocentric ecliptic → equatorial rotation using
     ///   the true obliquity of date; `opts.no_ecl_lat` forces latitude to 0.
     /// - `Body`: the geocentric apparent ecliptic position (from
-    ///   `geocentric_apparent_ecliptic`), with `no_ecl_lat` applied, then
-    ///   diurnal parallax + diurnal aberration via `topocentric_position`
-    ///   before rotating to equatorial. A search passes the body's `track`,
+    ///   `geocentric_apparent_ecliptic`), corrected for diurnal parallax +
+    ///   diurnal aberration via `topocentric_position` before rotating to
+    ///   equatorial. With `opts.no_ecl_lat` the place stays geocentric and
+    ///   its latitude is forced to 0, as `SE_BIT_GEOCTR_NO_ECL_LAT` does. A search passes the body's `track`,
     ///   which supplies that position from a few lattice samples (see
     ///   [`BodyTrack`]); `None` reads it from the backend at `jd`.
     pub(crate) fn target_equatorial(
@@ -244,7 +248,15 @@ impl<B: EphemerisBackend> EventEngine<B> {
                     Some(track) => track.place(jd)?,
                     None => geocentric_apparent_ecliptic(&self.backend, b.clone(), "body", jd)?,
                 };
-                let lat = if opts.no_ecl_lat { 0.0 } else { lat };
+                if opts.no_ecl_lat {
+                    let ecl = EclipticCoordinates::new(
+                        Longitude::from_degrees(lon),
+                        Latitude::from_degrees(0.0),
+                        None,
+                    );
+                    let equ = ecl.to_equatorial(Angle::from_degrees(eps));
+                    return Ok((equ.right_ascension.degrees(), equ.declination.degrees()));
+                }
                 let ecl = EclipticCoordinates::new(
                     Longitude::from_degrees(lon),
                     Latitude::from_degrees(lat),
