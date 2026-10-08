@@ -49,9 +49,13 @@ crate source in this repo; gate names are the runnable `validate-*` subcommands
   heliocentric fits to the JPL `sb441-n373s` kernel. They are gated against the
   407 `sb441-n373s` rows per body of `asteroid_reference.csv` by
   [`packaged_asteroids_match_the_sb441_rows`](../crates/pleiades-data/src/tests/asteroid_gate.rs)
-  (ceiling `ASTEROID_CORPUS_CEILING`: 0.42″ longitude x cos latitude, 0.38″
-  latitude). Measured maxima: 0.2938″ longitude (Juno) and 0.2646″ latitude
-  (Ceres). `asteroid:99942-Apophis` stays snapshot-only: it is served only at
+  (row-gate ceiling `ASTEROID_CORPUS_CEILING`: 0.42″ longitude x cos latitude,
+  0.38″ latitude, against those rows only). Row maxima: 0.2938″ longitude
+  (Juno) and 0.2646″ latitude (Ceres). Dense 0.5-day sampling against the
+  kernel over 1900-2100 finds at most 0.52″ longitude and 0.37″ latitude
+  (acceptance rule 1″). Caller-supplied artifacts generated before
+  compatibility profile 0.7.34 must be regenerated (two kernels), because their
+  asteroid:433-Eros segments are the old sparse snapshot fit. `asteroid:99942-Apophis` stays snapshot-only: it is served only at
   the sample rows of the sparse JPL Horizons fixture (a nine-day cluster in
   January 2001 from 2001-01-06) and any other date returns an out-of-range
   error. Asteroid stations and aspects are searched but ungated (#167 (d),

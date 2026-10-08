@@ -115,10 +115,12 @@ the geocentric Cartesian position of the Sun, both decoded from the artifact at
 the same epoch.
 
 **Co-frame invariant.** Both channels are stored in the same reference frame —
-ecliptic-of-date Cartesian — so their Cartesian sum is valid in-frame with no
-obliquity rotation at lookup.  The planet-heliocentric channel and the
-Sun-geocentric channel are co-frame by construction: de440 provides both in the
-same ecliptic-of-date frame, the artifact fits them in that frame, and the
+J2000 ecliptic Cartesian (a fixed-ε₀ reduction) — so their Cartesian sum is
+valid in-frame with no obliquity rotation at lookup.  The planet-heliocentric
+channel and the Sun-geocentric channel are co-frame by construction: de440
+provides the planets and the Sun, and for the five asteroids sb441-n373s
+provides the heliocentric state while de440 provides the Sun; all are reduced
+to the same J2000 ecliptic frame, the artifact fits them in that frame, and the
 runtime adds them in that frame.
 
 ### Geocentric storage (Sun, Moon) — `StoredFrame::Geocentric`
@@ -161,17 +163,22 @@ and measured against the de440-derived hold-out corpus.
 | Luminary | Sun, Moon | 1.0″ | 1.0″ | 50 km | 0.5 ″/day | 1×10⁻⁴ AU/day |
 | Inner planet | Mercury, Venus, Mars | 1.0″ | 1.0″ | 50 km | 0.5 ″/day | 1×10⁻⁴ AU/day |
 | Outer planet | Jupiter, Saturn, Uranus, Neptune, Pluto | 5.0″ | 5.0″ | 1,000 km | 0.05 ″/day | 1×10⁻⁴ AU/day |
-| Asteroid (dense fit) | Ceres, Pallas, Juno, Vesta, Eros | 0.42″ (x cos lat) | 0.38″ | n/a | n/a | n/a |
+| Asteroid | Ceres, Pallas, Juno, Vesta, Eros | 30″ | 30″ | 5,000,000 km | 120 ″/day | 1×10⁻² AU/day |
 
 **Asteroid note:** the five asteroids are not checked against the hold-out corpus; their
 evidence is the blocking gate `packaged_asteroids_match_the_sb441_rows`
 (`crates/pleiades-data/src/tests/asteroid_gate.rs`), which compares the packaged backend with
 the 407 `sb441-n373s` rows per body of `crates/pleiades-jpl/data/corpus/asteroid_reference.csv`
-against `ASTEROID_CORPUS_CEILING` (measured maximum x 1.4, rounded up). Measured maxima:
-0.2938″ longitude (Juno) and 0.2646″ latitude (Ceres). They are excluded from the fit envelope.
-The slow claims audit also compares them with the looser per-class `accuracy_ceiling` (30″).
+against `ASTEROID_CORPUS_CEILING` (measured maximum x 1.4, rounded up): 0.42″ longitude x
+cos latitude and 0.38″ latitude. That is the row-gate ceiling against those corpus rows, not a
+bound on every date. Row maxima: 0.2938″ longitude (Juno) and 0.2646″ latitude (Ceres). Dense
+0.5-day sampling against the kernel over 1900-2100
+(`docs/superpowers/specs/notes/2026-10-08-asteroid-span-measurement.md`) finds larger maxima:
+at most 0.52″ longitude (Juno 0.5131″) and 0.37″ latitude (Juno 0.3682″) across the five bodies,
+inside the 1″ acceptance rule. They are excluded from the fit envelope. The slow claims audit
+compares them with the looser per-class `accuracy_ceiling` (30″, the table row above).
 
-**Size budget:** Encoded artifact ≤ 12,000,000 bytes (measured ~10.0 MB); enforced as a hard CI
+**Size budget:** Encoded artifact ≤ 12,000,000 bytes (measured ~10.4 MB, 10,421,155 B); enforced as a hard CI
 gate via `PACKAGED_BUDGETS.max_encoded_bytes`.
 
 **Latency budget:** Decode/single-lookup/batch targets are tracked in `PACKAGED_BUDGETS`
