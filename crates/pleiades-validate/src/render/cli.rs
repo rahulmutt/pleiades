@@ -3175,6 +3175,27 @@ geo,Sun,0.000000,2416000.500000,fwd,2416195.301931810,tropical
     // `tests::test_support::numeric_battery_outcome`.
     use crate::tests::test_support::numeric_battery_outcome;
 
+    /// The gates that exempt the lunar points from the claims audit's
+    /// evidence-row check run in the release battery, so their evidence
+    /// blocks a release (issue #236).
+    #[test]
+    fn lunar_point_evidence_gates_run_in_the_release_battery() {
+        for gate in crate::claims::audit::LUNAR_POINT_GATES {
+            let short = gate
+                .name
+                .strip_prefix("validate-")
+                .unwrap_or_else(|| panic!("{}: gate names start with validate-", gate.name));
+            let label = format!("{short} gate failed");
+            assert!(
+                super::NUMERIC_GATES
+                    .iter()
+                    .any(|(battery, _)| *battery == label),
+                "{} is not in the release battery as {label:?}",
+                gate.name
+            );
+        }
+    }
+
     #[test]
     fn run_all_numeric_gates_includes_rise_trans_and_passes() {
         numeric_battery_outcome().expect(

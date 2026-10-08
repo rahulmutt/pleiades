@@ -308,26 +308,56 @@ pub fn audit_release_grade_accuracy() -> Result<(), Vec<ClaimAuditError>> {
     }
 }
 
-/// Packaged lunar points whose release-grade evidence is a dedicated gate
-/// rather than the hold-out or `sb441-n373s` rows: `validate-lilith` (true
-/// apogee/perigee), `validate-true-node` (true node) and the mean-lunar-point
-/// gate (mean node/apogee/perigee). They are excluded from the evidence-row
-/// check by name; any other packaged body must be audited by a corpus block.
-const LUNAR_POINTS_GATED_ELSEWHERE: [CelestialBody; 6] = [
-    CelestialBody::TrueApogee,
-    CelestialBody::TruePerigee,
-    CelestialBody::TrueNode,
-    CelestialBody::MeanNode,
-    CelestialBody::MeanApogee,
-    CelestialBody::MeanPerigee,
+/// A dedicated gate that is release-grade evidence for the packaged lunar
+/// points, which have no hold-out or `sb441-n373s` rows.
+pub(crate) struct LunarPointGate {
+    /// The gate's command name, which a claim's evidence source names in
+    /// parentheses at its end, e.g. `"… SE_TRUE_NODE (validate-true-node)"`.
+    /// In the release battery (`render::cli::NUMERIC_GATES`, run by
+    /// `release-smoke` and `release-gate`) the gate reports under the name
+    /// without its `validate-` prefix, e.g. `"true-node gate failed"`.
+    pub(crate) name: &'static str,
+    /// The bodies the gate's corpus compares.
+    pub(crate) bodies: &'static [CelestialBody],
+}
+
+pub(crate) const LUNAR_POINT_GATES: [LunarPointGate; 3] = [
+    LunarPointGate {
+        name: "validate-lilith",
+        bodies: &[CelestialBody::TrueApogee, CelestialBody::TruePerigee],
+    },
+    LunarPointGate {
+        name: "validate-true-node",
+        bodies: &[CelestialBody::TrueNode],
+    },
+    LunarPointGate {
+        name: "validate-mean-lunar-points",
+        bodies: &[
+            CelestialBody::MeanNode,
+            CelestialBody::MeanApogee,
+            CelestialBody::MeanPerigee,
+        ],
+    },
 ];
+
+/// Whether `claim`'s evidence is a [`LUNAR_POINT_GATES`] gate that compares
+/// its body. The exemption follows the evidence, so a lunar point whose claim
+/// loses its gate is audited like any other body (issue #236).
+fn is_evidenced_by_a_lunar_point_gate(claim: &pleiades_backend::BodyClaim) -> bool {
+    let ClaimEvidence::CorpusValidated { source } = &claim.evidence else {
+        return false;
+    };
+    LUNAR_POINT_GATES.iter().any(|gate| {
+        source.ends_with(&format!("({})", gate.name)) && gate.bodies.contains(&claim.body)
+    })
+}
 
 /// Release-grade bodies in `claims` that no corpus block audited.
 ///
 /// A body counts as covered when it was audited against the hold-out rows
-/// (`holdout_audited`) or the asteroid rows (`asteroids_audited`), or is one of
-/// the [`LUNAR_POINTS_GATED_ELSEWHERE`]. Anything left has no evidence row and
-/// must fail the audit rather than pass silently.
+/// (`holdout_audited`) or the asteroid rows (`asteroids_audited`), or its
+/// evidence names a [`LUNAR_POINT_GATES`] gate that compares it. Anything left
+/// has no evidence row and must fail the audit rather than pass silently.
 fn unaudited_release_grade_bodies(
     claims: &[pleiades_backend::BodyClaim],
     holdout_audited: &[CelestialBody],
@@ -336,13 +366,12 @@ fn unaudited_release_grade_bodies(
     claims
         .iter()
         .filter(|claim| claim.tier == BodyClaimTier::ReleaseGrade)
-        .map(|claim| &claim.body)
-        .filter(|body| {
-            !holdout_audited.contains(body)
-                && !asteroids_audited.contains(body)
-                && !LUNAR_POINTS_GATED_ELSEWHERE.contains(body)
+        .filter(|claim| {
+            !holdout_audited.contains(&claim.body)
+                && !asteroids_audited.contains(&claim.body)
+                && !is_evidenced_by_a_lunar_point_gate(claim)
         })
-        .cloned()
+        .map(|claim| claim.body.clone())
         .collect()
 }
 
@@ -533,18 +562,24 @@ mod tests {
         assert!(missing.is_empty(), "no evidence row for {missing:?}");
     }
 
-    /// A release-grade body whose evidence no block recognises is reported.
+    fn corpus_claim(body: CelestialBody, source: &str) -> pleiades_backend::BodyClaim {
+        pleiades_backend::BodyClaim::release_grade(
+            body,
+            pleiades_backend::AccuracyClass::High,
+            ClaimEvidence::CorpusValidated {
+                source: source.to_string(),
+            },
+        )
+    }
+
+    /// A release-grade body whose evidence no block recognises is reported,
+    /// a lunar point included: its exemption follows its evidence, not its
+    /// name (issue #236).
     #[test]
     fn release_grade_body_with_unrecognised_evidence_is_reported() {
         use pleiades_backend::{AccuracyClass, BodyClaim};
         let claims = vec![
-            BodyClaim::release_grade(
-                CelestialBody::Mars,
-                AccuracyClass::High,
-                ClaimEvidence::CorpusValidated {
-                    source: "some-unaudited-corpus".to_string(),
-                },
-            ),
+            corpus_claim(CelestialBody::Mars, "some-unaudited-corpus"),
             BodyClaim::release_grade(
                 CelestialBody::TrueNode,
                 AccuracyClass::High,
@@ -553,8 +588,46 @@ mod tests {
         ];
         assert_eq!(
             unaudited_release_grade_bodies(&claims, &[], &[]),
-            vec![CelestialBody::Mars]
+            vec![CelestialBody::Mars, CelestialBody::TrueNode]
         );
+    }
+
+    /// A lunar point is exempt only through a gate that covers it: naming
+    /// another lunar point's gate, or a gate as a mere substring, is not
+    /// evidence.
+    #[test]
+    fn lunar_point_naming_a_gate_that_does_not_cover_it_is_reported() {
+        let claims = vec![
+            corpus_claim(
+                CelestialBody::TrueNode,
+                "Swiss Ephemeris 2.10.03 SE_OSCU_APOG (validate-lilith)",
+            ),
+            corpus_claim(
+                CelestialBody::MeanNode,
+                "validate-mean-lunar-points-retired",
+            ),
+            corpus_claim(
+                CelestialBody::TrueApogee,
+                "Swiss Ephemeris 2.10.03 SE_OSCU_APOG (validate-lilith)",
+            ),
+        ];
+        assert_eq!(
+            unaudited_release_grade_bodies(&claims, &[], &[]),
+            vec![CelestialBody::TrueNode, CelestialBody::MeanNode]
+        );
+    }
+
+    /// The packaged lunar points' own claims each name a gate that covers
+    /// them, so none of them is reported.
+    #[test]
+    fn packaged_lunar_point_claims_name_their_covering_gates() {
+        let claims: Vec<_> = pleiades_data::apsis_body_claims()
+            .into_iter()
+            .chain(pleiades_data::true_node_body_claims())
+            .chain(pleiades_data::mean_lunar_point_body_claims())
+            .collect();
+        assert_eq!(claims.len(), 6);
+        assert!(unaudited_release_grade_bodies(&claims, &[], &[]).is_empty());
     }
 
     /// With rows for Ceres only and a claim of `[Ceres, Pallas]`, the per-body
