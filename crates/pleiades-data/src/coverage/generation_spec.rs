@@ -19,6 +19,15 @@ pub fn fitting_segment_span_days(body: &CelestialBody) -> f64 {
         CelestialBody::Jupiter => 128.0,
         CelestialBody::Saturn => 256.0,
         CelestialBody::Uranus | CelestialBody::Neptune | CelestialBody::Pluto => 512.0,
+        // Dense sb441-n373s fits (issue #201), stored heliocentric. Spans
+        // measured against the kernel: see
+        // docs/superpowers/specs/notes/2026-10-08-asteroid-span-measurement.md.
+        CelestialBody::Ceres => 512.0,
+        CelestialBody::Pallas => 128.0,
+        CelestialBody::Juno | CelestialBody::Vesta => 256.0,
+        CelestialBody::Custom(id) if id.catalog == "asteroid" && id.designation == "433-Eros" => {
+            64.0
+        }
         // Constrained asteroids (e.g. Eros) use a Mars-like span; only generated
         // within their own corpus window by the caller.
         _ => 16.0,

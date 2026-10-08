@@ -234,8 +234,8 @@ pub(crate) fn body_segments_from_entries(
 }
 
 /// Bodies fit in the heliocentric frame and recombined with the geocentric Sun
-/// at lookup. Only the eight true planets; Sun, Moon, Eros, and lunar points
-/// stay geocentric.
+/// at lookup: the eight true planets and the dense asteroids. Sun, Moon, and
+/// lunar points stay geocentric.
 pub(crate) fn body_uses_heliocentric_frame(body: &CelestialBody) -> bool {
     matches!(
         body,
@@ -247,6 +247,13 @@ pub(crate) fn body_uses_heliocentric_frame(body: &CelestialBody) -> bool {
             | CelestialBody::Uranus
             | CelestialBody::Neptune
             | CelestialBody::Pluto
+            | CelestialBody::Ceres
+            | CelestialBody::Pallas
+            | CelestialBody::Juno
+            | CelestialBody::Vesta
+    ) || matches!(
+        body,
+        CelestialBody::Custom(id) if id.catalog == "asteroid" && id.designation == "433-Eros"
     )
 }
 

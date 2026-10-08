@@ -196,6 +196,23 @@ pub(crate) fn packaged_bodies() -> &'static [CelestialBody] {
     })
 }
 
+/// The asteroids the artifact fits densely from the JPL `sb441-n373s`
+/// kernel, in artifact order (issue #201).
+// Used only by the maintainer measurement until the artifact build consumes it.
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) fn packaged_asteroids() -> &'static [CelestialBody] {
+    static BODIES: OnceLock<Vec<CelestialBody>> = OnceLock::new();
+    BODIES.get_or_init(|| {
+        vec![
+            CelestialBody::Ceres,
+            CelestialBody::Pallas,
+            CelestialBody::Juno,
+            CelestialBody::Vesta,
+            CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+        ]
+    })
+}
+
 /// Whether the artifact carries `body` without the backend serving it.
 ///
 /// `asteroid:433-Eros` is fitted to 17 reference rows that lie decades apart
