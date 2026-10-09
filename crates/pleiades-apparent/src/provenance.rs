@@ -42,7 +42,9 @@ pub struct ApparentProvenance {
     /// Light-time retardation applied, in days (0.0 when no light-time iteration
     /// was performed, e.g. the Sun and lunar-apsis paths).
     pub light_time_days: f64,
-    /// Light-time iterations taken (0 when no iteration was performed).
+    /// Light-time iterations taken (0 when no iteration was performed),
+    /// counting steps interpolated between backend queries as well as queried
+    /// ones.
     pub iterations: u8,
     /// Longitude shift from J2000->of-date precession, arcseconds (wrapped to
     /// (-180deg, 180deg] before scaling).

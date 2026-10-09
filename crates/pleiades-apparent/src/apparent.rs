@@ -18,7 +18,8 @@ use crate::nutation::nutation;
 use crate::precession::precess_ecliptic_j2000_to_date;
 use crate::provenance::{ApparentProvenance, CorrectionSet, MODEL_SOURCES};
 
-/// Default light-time iteration cap (planets converge in 2–3 steps).
+/// Default light-time iteration cap (planets converge in 2–3 steps, of which
+/// at most two query the backend).
 pub const DEFAULT_MAX_ITERATIONS: u8 = 8;
 
 /// Combines mean-of-date ecliptic (λ, β) in degrees with arcsecond corrections
