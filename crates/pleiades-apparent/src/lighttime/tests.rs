@@ -168,15 +168,14 @@ fn queried_every_step(
 ) -> (EclipticCoordinates, f64, usize) {
     let mut tau = 0.0;
     let mut last = moving_body(BASE_JD, distance_au, distance_rate);
-    let mut queries = 1;
-    for _ in 0..max_iterations {
+    // The first query is at the unretarded instant; step `n` has made `n` queries.
+    for queries in 1..=usize::from(max_iterations) {
         let new_tau = last.distance_au.unwrap() * LIGHT_TIME_DAYS_PER_AU;
         if (new_tau - tau).abs() < CONVERGENCE_DAYS {
             return (last, new_tau, queries);
         }
         tau = new_tau;
         last = moving_body(BASE_JD - tau, distance_au, distance_rate);
-        queries += 1;
     }
     panic!("reference loop did not converge");
 }
