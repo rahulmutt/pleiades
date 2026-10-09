@@ -11,8 +11,8 @@
 # fit floor. Before FU-14 the goldens were fetched without TIME_TYPE=TT, so Horizons
 # read TLIST as UT while the gate evaluated the rows as TT; that dT-sized offset
 # (about 38" for the Moon at 2050) was what the former 40.8" Moon tolerance absorbed.
-# 433-Eros is EXCLUDED: the light-time iteration diverges or goes out of range at most
-# epochs because Eros's packaged data span is too narrow for apparent-mode convergence.
+# 433-Eros is EXCLUDED: these goldens predate its dense packaged fit (issue #201),
+# and its accuracy is gated against asteroid_reference.csv instead.
 set -euo pipefail
 OUT="$(dirname "$0")/../data/apparent-goldens.csv"
 API="https://ssd.jpl.nasa.gov/api/horizons.api"
@@ -59,10 +59,8 @@ fetch_tt() {
   echo "#     2026-09-30 against TT-tagged goldens: Sun 0.111\", Moon 0.109\", Mercury 0.114\","
   echo "#     Venus 0.107\", Mars 0.166\", Jupiter 0.114\", Saturn 0.131\", Uranus 0.251\","
   echo "#     Neptune 0.179\", Pluto 0.154\" (the packaged-ephemeris fit floor)."
-  echo "#   - 433-Eros: EXCLUDED. The light-time iteration diverges or goes out of range at 4 of 5 epochs"
-  echo "#     because Eros's packaged data covers a limited span and the apparent-mode iteration steps outside"
-  echo "#     it. Apparent-mode validation of Eros is not supported with the current packaged backend."
-  echo "#     (At J2000 the residual was 68 arcsec, also exceeding any reasonable tolerance.)"
+  echo "#   - 433-Eros: EXCLUDED from these goldens, which predate its dense packaged fit (issue #201);"
+  echo "#     its accuracy is gated against asteroid_reference.csv."
   echo "#"
   echo "# EPOCHS: 2415025.5 = 1900-Jan-06 TT (5 days past coverage start to avoid light-time stepping"
   echo "# before data start); 2488065.5 = 2099-Dec-26 TT (4 days before coverage end for same reason)."
