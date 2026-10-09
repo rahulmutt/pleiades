@@ -186,4 +186,44 @@ mod tests {
         );
         assert!(rows.iter().all(|e| e.body == eros));
     }
+
+    #[test]
+    fn asteroid_reference_agrees_with_horizons_snapshot_rows() {
+        // Issue #201: before #233 the sb441-n373s rows differed from the
+        // Horizons snapshot rows at JD 2453000.5 by up to 1.0″ in longitude and
+        // 1.9″ in latitude, the old corpus's stale ecliptic-of-date frame. Both
+        // are now geocentric ecliptic J2000 and agree within 0.032″ (Juno; the
+        // others within 0.007″). A frame regression would move them by arcseconds.
+        const EPOCH_JD: f64 = 2_453_000.5;
+        const TOLERANCE_ARCSEC: f64 = 0.1;
+        let row_at = |rows: &[SnapshotEntry], body: &CelestialBody| {
+            rows.iter()
+                .find(|e| &e.body == body && e.epoch.julian_day.days() == EPOCH_JD)
+                .map(|e| [e.x_km, e.y_km, e.z_km])
+                .unwrap_or_else(|| panic!("no {body} row at JD {EPOCH_JD}"))
+        };
+        let horizons = crate::backend::snapshot_entries().expect("reference snapshot parses");
+        for body in [
+            CelestialBody::Ceres,
+            CelestialBody::Pallas,
+            CelestialBody::Juno,
+            CelestialBody::Vesta,
+            CelestialBody::Custom(CustomBodyId::new("asteroid", "433-Eros")),
+        ] {
+            let a = row_at(asteroid_reference_corpus(), &body);
+            let b = row_at(horizons, &body);
+            let cross = [
+                a[1] * b[2] - a[2] * b[1],
+                a[2] * b[0] - a[0] * b[2],
+                a[0] * b[1] - a[1] * b[0],
+            ];
+            let cross_norm = cross.iter().map(|c| c * c).sum::<f64>().sqrt();
+            let dot = a.iter().zip(b).map(|(p, q)| p * q).sum::<f64>();
+            let separation_arcsec = cross_norm.atan2(dot).to_degrees() * 3600.0;
+            assert!(
+                separation_arcsec < TOLERANCE_ARCSEC,
+                "{body}: sb441 and Horizons rows {separation_arcsec}″ apart"
+            );
+        }
+    }
 }

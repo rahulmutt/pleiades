@@ -158,6 +158,13 @@ impl InterpolationQualitySample {
 /// to interpolate across (issue #158). The Moon is answered only at an exact
 /// row, because it moves too fast for the rows to interpolate (issue #200).
 /// [`crate::SpkBackend`] serves these bodies from a JPL kernel.
+///
+/// Its metadata describes what it serves, not only its rows (issue #201).
+/// `accuracy` is [`AccuracyClass::High`], not `Exact`. A row is the DE441
+/// value, but an interpolated answer reproduces a held-out row only within
+/// 0.3″ (see [`MAX_STENCIL_SPAN_DAYS`]). `nominal_range` is the envelope from
+/// the first row to the last. Inside it, an instant is served only at a row or
+/// within a supported stencil, and refused otherwise.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct JplSnapshotBackend;
 
@@ -184,8 +191,12 @@ impl EphemerisBackend for JplSnapshotBackend {
                     "NASA/JPL Horizons API vector tables (DE441)".to_string(),
                     "Checked-in derivative CSV fixture: epoch_jd,body,x_km,y_km,z_km".to_string(),
                     "Cubic interpolation on four-sample windows, quadratic interpolation on three-sample windows, and linear fallback between adjacent same-body fixture samples, only where the rows bracket the instant within 5 days; the Moon is served at exact rows only; any other instant is refused".to_string(),
+                    "Nominal range is the envelope of the fixture rows, not continuous coverage; interpolated answers reproduce held-out rows within 0.3 arcsec (asteroids 0.05 arcsec)".to_string(),
                 ],
             },
+            // The envelope of the rows. Inside it the stencil guard in
+            // `position` refuses any instant that is neither at a row nor
+            // within a supported stencil.
             nominal_range: if dataset_missing {
                 TimeRange::new(None, None)
             } else {
@@ -202,7 +213,7 @@ impl EphemerisBackend for JplSnapshotBackend {
                 batch: true,
                 native_sidereal: false,
             },
-            accuracy: AccuracyClass::Exact,
+            accuracy: AccuracyClass::High,
             deterministic: true,
             offline: true,
         }

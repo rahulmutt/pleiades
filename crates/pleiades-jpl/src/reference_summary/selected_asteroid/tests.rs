@@ -552,3 +552,33 @@ fn constrained_class_report_states_window_and_tiers() {
     assert!(r.contains("Tier A"));
     assert!(r.contains("Tier B"));
 }
+
+#[test]
+fn summaries_list_only_the_reference_asteroids_their_rows_hold() {
+    // Issue #201: a summary used to list every reference asteroid whatever
+    // rows it held. At JD 2451914.5 the snapshot holds rows for five of them,
+    // not Apophis, so a summary over those rows must list five.
+    let rows: Vec<SnapshotEntry> = snapshot_entries()
+        .expect("reference snapshot parses")
+        .iter()
+        .filter(|entry| {
+            reference_asteroids().contains(&entry.body)
+                && entry.epoch.julian_day.days() == 2_451_914.5
+        })
+        .cloned()
+        .collect();
+    let listed = super::reference_asteroids_present_in(&rows);
+    let apophis = CelestialBody::Custom(pleiades_backend::CustomBodyId::new(
+        "asteroid",
+        "99942-Apophis",
+    ));
+    assert!(reference_asteroids().contains(&apophis));
+    assert!(
+        !listed.contains(&apophis),
+        "Apophis has no row at JD 2451914.5"
+    );
+    assert_eq!(listed.len(), reference_asteroids().len() - 1);
+    assert!(listed
+        .iter()
+        .all(|body| rows.iter().any(|row| &row.body == body)));
+}

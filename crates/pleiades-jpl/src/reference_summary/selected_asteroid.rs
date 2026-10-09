@@ -346,7 +346,7 @@ pub(crate) fn selected_asteroid_source_evidence_summary_details(
 
     Some(SelectedAsteroidSourceSummary {
         sample_count: evidence.len(),
-        sample_bodies: reference_asteroids().to_vec(),
+        sample_bodies: reference_asteroids_present_in(evidence),
         epoch_count: evidence
             .iter()
             .map(|entry| entry.epoch.julian_day.days().to_bits())
@@ -409,7 +409,7 @@ pub(crate) fn selected_asteroid_source_window_summary_details(
 
     Some(SelectedAsteroidSourceWindowSummary {
         sample_count: evidence.len(),
-        sample_bodies: reference_asteroids().to_vec(),
+        sample_bodies: reference_asteroids_present_in(evidence),
         epoch_count: evidence
             .iter()
             .map(|entry| entry.epoch.julian_day.days().to_bits())
@@ -1486,6 +1486,19 @@ pub(crate) fn selected_asteroid_dense_boundary_summary_details(
     })
 }
 
+/// The reference asteroids that have at least one row in `entries`, in
+/// [`reference_asteroids`] order, so a summary never lists a body its rows
+/// lack (issue #201).
+fn reference_asteroids_present_in(
+    entries: &[SnapshotEntry],
+) -> Vec<pleiades_backend::CelestialBody> {
+    reference_asteroids()
+        .iter()
+        .filter(|body| entries.iter().any(|entry| &entry.body == *body))
+        .cloned()
+        .collect()
+}
+
 /// The distinct bodies of `entries`, in the order they first appear.
 fn bodies_in_first_seen_order(entries: &[SnapshotEntry]) -> Vec<pleiades_backend::CelestialBody> {
     let mut bodies = Vec::new();
@@ -1618,8 +1631,9 @@ impl SelectedAsteroidBoundarySummary {
                 },
             );
         }
-        if self.sample_bodies.as_slice() != reference_asteroids() {
-            for (index, (expected, found)) in reference_asteroids()
+        let expected_bodies = reference_asteroids_present_in(evidence);
+        if self.sample_bodies != expected_bodies {
+            for (index, (expected, found)) in expected_bodies
                 .iter()
                 .zip(self.sample_bodies.iter())
                 .enumerate()
@@ -1683,7 +1697,7 @@ pub(crate) fn selected_asteroid_boundary_summary_details() -> Option<SelectedAst
     }
     Some(SelectedAsteroidBoundarySummary {
         sample_count: evidence.len(),
-        sample_bodies: reference_asteroids().to_vec(),
+        sample_bodies: reference_asteroids_present_in(evidence),
         epochs,
     })
 }

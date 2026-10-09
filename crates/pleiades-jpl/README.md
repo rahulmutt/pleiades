@@ -21,7 +21,9 @@ cluster is served under the same rule, but its cluster rows are too few to
 hold one out, so that measurement does not cover it. The Sun and the planets
 are interpolated under the same rule, within 0.3″ (the worst is Mercury). The
 Moon is served only at an exact row: a cubic through rows a day apart
-misplaces it by up to 80″.
+misplaces it by up to 80″. Its metadata says so: the accuracy class is
+`High` rather than `Exact`, and `nominal_range` is the envelope from the first
+row to the last, not continuous coverage.
 
 Every row of the two snapshot fixtures agrees with JPL Horizons within 0.05″
 as seen from the Earth (fetched 2026-10-06). To repeat the check, with network

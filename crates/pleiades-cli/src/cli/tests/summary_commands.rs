@@ -116,7 +116,10 @@ fn backend_matrix_comparison_corpus_and_api_stability_summary_commands_render_co
         render_cli(&["backend-matrix-summary"]).expect("backend matrix summary should render");
     assert!(backend_matrix.contains("Backend matrix summary"));
     assert!(backend_matrix.contains("Backends: 5"));
-    assert!(backend_matrix.contains("Accuracy classes: Exact: 1"));
+    // jpl-snapshot is High, not Exact, since its interpolated answers are
+    // not source-equivalent (issue #201).
+    assert!(backend_matrix
+        .contains("Accuracy classes: Exact: 0, High: 1, Moderate: 0, Approximate: 4, Unknown: 0"));
     assert!(backend_matrix.contains("Reference snapshot dense boundary day:"));
     assert!(backend_matrix.contains("Reference major-body bridge evidence:"));
     assert!(backend_matrix.contains("Selected asteroid bridge evidence:"));
