@@ -890,9 +890,9 @@ fn backend_matrix_summary_command_renders_the_summary() {
     assert!(rendered.contains("preliminary-algorithm: 1"));
     assert!(rendered.contains("draft-artifact: 1"));
     assert!(rendered.contains("routing-facade: 1"));
-    assert!(rendered.contains("Accuracy classes:"));
-    assert!(rendered.contains("Exact: 1"));
-    assert!(rendered.contains("Approximate: 4"));
+    // jpl-snapshot is High, not Exact (issue #201).
+    assert!(rendered
+        .contains("Accuracy classes: Exact: 0, High: 1, Moderate: 0, Approximate: 4, Unknown: 0"));
     assert!(rendered.contains("VSOP87 source documentation: 8 source specs, 8 source-backed body profiles, 1 fallback (non-VSOP87B) body profile (Pluto); source-backed bodies: Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune; source files: VSOP87B.ear, VSOP87B.mer, VSOP87B.ven, VSOP87B.mar, VSOP87B.jup, VSOP87B.sat, VSOP87B.ura, VSOP87B.nep"));
     assert!(rendered.contains(
             "source-backed breakdown: 8 generated binary bodies (Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune), 0 vendored full-file bodies (none), 0 truncated slice bodies (none)"
