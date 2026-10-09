@@ -22,6 +22,10 @@ use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 /// and no position bit (to `0xa646_c0c4_0af4_0e91`). Issue #141 re-pinned it
 /// again: the 11 sidereal (Lahiri) rows' longitude speed dropped by the rate
 /// of the ayanamsa and of the removed nutation, and nothing else moved.
+/// Issue #247 re-pinned it from `0x6a34_9467_513a_e85b`: the light-time step
+/// that used to make a third backend query is interpolated between the first
+/// two, moving 21 Mercury-to-Pluto rows by at most 8.8e-10° in place and
+/// 2.6e-10 °/day in speed.
 ///
 /// Re-pin it only in a change that intentionally moves positions or speeds,
 /// like the crossings golden: run `cargo test -p pleiades-core --lib apparent_chart_outputs_are_pinned`,
@@ -29,7 +33,7 @@ use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 /// pinned bit, for a diff against the old run), and state the re-pin and its
 /// reason in the commit message. The value hashes `libm` output and is pinned
 /// on Linux CI; another platform's libm may differ in the last bit.
-const CHART_CHECKSUM: u64 = 0x6a34_9467_513a_e85b;
+const CHART_CHECKSUM: u64 = 0x5130_1cd4_b86b_e31b;
 
 fn eleven_bodies() -> Vec<CelestialBody> {
     vec![
