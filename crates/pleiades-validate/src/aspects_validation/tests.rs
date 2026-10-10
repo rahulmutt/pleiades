@@ -532,6 +532,27 @@ fn asteroid_corpus_tampering_fails_closed() {
 }
 
 #[test]
+fn a_missing_asteroid_aspect_fails_the_count() {
+    let mut lines: Vec<&str> = ASTEROID_CSV.lines().collect();
+    let first_row = lines
+        .iter()
+        .position(|l| l.starts_with("geo,Sun,Ceres,0,"))
+        .expect("a Sun-Ceres conjunction row");
+    lines.remove(first_row);
+    let csv = lines.join("\n") + "\n";
+    let (rows, _) = parse_manifest(ASTEROID_MANIFEST).unwrap();
+    let manifest = format!(
+        "slice aspects-asteroids file=asteroids.csv role=aspects rows={} checksum={}\n",
+        rows - 1,
+        fnv1a64(&csv)
+    );
+    assert!(matches!(
+        validate_scoped(&csv, &manifest, Scope::Asteroids),
+        Err(AspectsError::CountMismatch { .. })
+    ));
+}
+
+#[test]
 fn asteroid_scope_floor_is_its_own() {
     assert_eq!(Scope::Asteroids.floor(), MIN_ROWS_VALIDATED_ASTEROIDS);
     assert!(Scope::Asteroids.includes(Group::Geo));

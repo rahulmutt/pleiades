@@ -113,7 +113,9 @@ against its manifest, exactly as the planet file is verified.
   20 (Vesta) is accepted.
 - **Ceilings.** Per asteroid (stations: time and longitude in
   `stations_thresholds.rs`), per pair (aspects: separation and longitude in
-  `aspects_thresholds.rs`, and `PAIRS` grows from 11 to 16 entries), and a new
+  `aspects_thresholds.rs`; the five asteroid pairs live in a separate
+  `ASTEROID_PAIRS` table used by `Scope::Asteroids`, and the planet `PAIRS`
+  stays at 11), and a new
   `ASTEROID` category beside PLANET and MOON (nod-aps, `nod_aps_thresholds.rs`).
   Each ceiling is the measured maximum × 1.4, the #233 convention, never below
   the §2 floor, with a comment giving the measured maximum.
