@@ -6,6 +6,10 @@
 //! rounded up to two significant figures. The measured value and its series
 //! are recorded beside each ceiling.
 //!
+//! The asteroid ceilings (Ceres, Pallas, Juno, Vesta) use the measured value
+//! times 1.4 with a 2.3″ longitude floor, from the Swiss Ephemeris vs sb441
+//! spike (`docs/superpowers/specs/notes/2026-10-10-se-asteroid-agreement.md`).
+//!
 //! What the residual is. The corpus holds the zeros of Swiss Ephemeris'
 //! (Moshier) longitude speed; the engine finds the zeros of the packaged
 //! (DE440-derived) backend's. Near a station the longitude is a parabola in

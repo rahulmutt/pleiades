@@ -306,7 +306,7 @@ fn stations_gate_passes_within_ceilings() {
     for line in report.series_lines() {
         eprintln!("{line}");
     }
-    assert!(report.rows_validated >= MIN_ROWS_VALIDATED);
+    assert!(report.rows_validated >= MIN_ROWS_VALIDATED + MIN_ROWS_VALIDATED_ASTEROIDS);
 }
 
 #[test]

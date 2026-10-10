@@ -848,8 +848,9 @@ fn validate_scoped(
 /// where the longest series set the length). Run by `validate-stations` as
 /// `mise run gate-stations` (its own nightly job and a `release-gate`
 /// dependency) and by the opt-in `PLEIADES_FULL_STATIONS_GATE=1` test.
-/// Then the asteroid corpus (`Scope::Asteroids`, floor
-/// `MIN_ROWS_VALIDATED_ASTEROIDS`).
+/// It then runs the four asteroid series (`Scope::Asteroids`, 1225
+/// stations, floor `MIN_ROWS_VALIDATED_ASTEROIDS`) after the planet pool;
+/// their cost is not yet measured on the nightly runner.
 pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
     let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;
