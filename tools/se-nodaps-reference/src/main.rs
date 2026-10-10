@@ -120,13 +120,13 @@ const ASTEROID_SWIEPH_FILES: [(&str, &str); 3] = [
     ("seas_18.se1", SEAS_18_SHA256),
 ];
 
-/// (label, SE body number) for the `--asteroids` mode: Ceres..Vesta.
 const CSV_HEADER: &str = "label,se_body,method,fopoint,jd_tt,\
      asc_lon,asc_lat,asc_dist,asc_dlon,asc_dlat,asc_ddist,\
      dsc_lon,dsc_lat,dsc_dist,dsc_dlon,dsc_dlat,dsc_ddist,\
      peri_lon,peri_lat,peri_dist,peri_dlon,peri_dlat,peri_ddist,\
      apo_lon,apo_lat,apo_dist,apo_dlon,apo_dlat,apo_ddist\n";
 
+/// (label, SE body number) for the `--asteroids` mode: Ceres..Vesta.
 const ASTEROIDS: [(&str, c_int); 4] = [("Ceres", 17), ("Pallas", 18), ("Juno", 19), ("Vesta", 20)];
 
 // Epochs spanning 1900-2100, >= 2 days inside the packaged window.
