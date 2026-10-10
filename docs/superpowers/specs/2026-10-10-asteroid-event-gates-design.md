@@ -32,8 +32,9 @@ tiering code).
 
 ## 1. Swiss Ephemeris data files
 
-- `seas_18.se1` (asteroids, 1800–2400 CE) and `sepl_18.se1` (planets; SE needs
-  the Earth for a geocentric asteroid) from
+- `seas_18.se1` (asteroids, 1800–2400 CE), `sepl_18.se1` (planets) and
+  `semo_18.se1` (Moon): a geocentric asteroid needs the Earth, which SE derives
+  from the Earth–Moon barycentre and the Moon. All three come from
   `https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/`, the source
   `tools/se-nodaps-reference` already pins `sepl_18.se1`/`semo_18.se1` from.
 - Each tool that needs them pins their SHA-256 as constants and verifies them
@@ -50,16 +51,15 @@ A throwaway probe calls `swe_calc(SE_CERES..SE_VESTA, SEFLG_SWIEPH|SEFLG_SPEED|
 SEFLG_TRUEPOS|SEFLG_NOABERR|SEFLG_NOGDEFL|SEFLG_NONUT|SEFLG_J2000)`, the
 geometric J2000 geocentric place `asteroid_reference.csv` holds, at its 407
 epochs per body. It reports, per body, the maximum disagreement with the sb441
-rows in longitude × cos β, latitude, and (against a central difference of the
-rows' neighbours) longitude speed.
+rows in longitude × cos β and latitude. Speed is not compared: the rows are
+180 days apart, too far for a difference quotient to mean anything.
 
 - The result is recorded in
   `docs/superpowers/specs/notes/2026-10-10-se-asteroid-agreement.md`.
-- Gate ceilings are never set below this floor converted to the gated quantity:
-  an angle for the aspects separation and longitude ceilings and for nod-aps; a
-  time (the position floor ÷ the relative speed near the event) for the aspects
-  time ceiling; a time (the speed floor ÷ the longitude acceleration at
-  station) for the stations time ceiling.
+- Angle ceilings (stations and aspects longitude, aspects separation, nod-aps)
+  are never set below this floor. Time ceilings come from measurement, as the
+  planets' did; a station's time error is set by speed disagreement, which the
+  spike cannot measure.
 - **Stop condition:** if SE disagrees with sb441 by more than 5″ in position
   for any of the four bodies, work stops and the numbers go back to the
   maintainer before any corpus is built, because the ceilings would then mostly
