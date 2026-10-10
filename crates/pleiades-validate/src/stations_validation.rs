@@ -7,10 +7,15 @@
 //! separated stations: its speed touches zero about every two weeks, and
 //! whether a touch crosses zero for a few hours depends on the ephemeris.
 //! See `stations_thresholds` for the basis of the ceilings.
+//!
+//! Asteroids (issue #167 (d)): Ceres, Pallas, Juno and Vesta are compared
+//! station for station against `asteroids.csv`, generated with SWIEPH and
+//! seas_18 by the same tool's `--asteroids` mode, in the full gate only.
 
 use crate::stations_thresholds::{
-    ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_MEAN_SID_SUBSET,
-    SEPARATION_DAYS, TRUE_NODE_CLOSE_DAYS, TRUE_NODE_MIN_CLOSE_PERCENT,
+    ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_ASTEROIDS,
+    MIN_ROWS_VALIDATED_MEAN_SID_SUBSET, SEPARATION_DAYS, TRUE_NODE_CLOSE_DAYS,
+    TRUE_NODE_MIN_CLOSE_PERCENT,
 };
 use pleiades_apparent::fnv1a64;
 use pleiades_data::{packaged_backend, PackagedDataBackend};
@@ -26,6 +31,14 @@ const CORPUS_CSV: &str = include_str!(concat!(
 const MANIFEST: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/stations-corpus/manifest.txt"
+));
+const ASTEROID_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/asteroids.csv"
+));
+const ASTEROID_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/asteroids-manifest.txt"
 ));
 
 /// The spans `tools/se-stations-reference` scanned (Julian days, TT). The
@@ -57,6 +70,10 @@ enum Scope {
     /// The `mean` and `sid` series only, for the release battery
     /// (`run_all_numeric_gates`), where the full 1900–2100 scan is too slow.
     MeanSidSubset,
+    /// The asteroid corpus (`asteroids.csv`, Swiss Ephemeris SWIEPH with
+    /// seas_18): Ceres, Pallas, Juno, Vesta over 1900–2100. Part of the full
+    /// gate only (issue #167 (d)).
+    Asteroids,
 }
 
 impl Scope {
@@ -64,6 +81,7 @@ impl Scope {
         match self {
             Self::Full => true,
             Self::MeanSidSubset => group != Group::Geo,
+            Self::Asteroids => true,
         }
     }
 
@@ -71,6 +89,7 @@ impl Scope {
         match self {
             Self::Full => MIN_ROWS_VALIDATED,
             Self::MeanSidSubset => MIN_ROWS_VALIDATED_MEAN_SID_SUBSET,
+            Self::Asteroids => MIN_ROWS_VALIDATED_ASTEROIDS,
         }
     }
 
@@ -79,6 +98,7 @@ impl Scope {
         match self {
             Self::Full => "Stations gate",
             Self::MeanSidSubset => "Stations gate (mean/sid subset)",
+            Self::Asteroids => "Asteroid stations",
         }
     }
 }
@@ -289,6 +309,10 @@ fn body_from_name(name: &str) -> Option<(CelestialBody, &'static str)> {
         "Neptune" => (CelestialBody::Neptune, "Neptune"),
         "Pluto" => (CelestialBody::Pluto, "Pluto"),
         "TrueNode" => (CelestialBody::TrueNode, "TrueNode"),
+        "Ceres" => (CelestialBody::Ceres, "Ceres"),
+        "Pallas" => (CelestialBody::Pallas, "Pallas"),
+        "Juno" => (CelestialBody::Juno, "Juno"),
+        "Vesta" => (CelestialBody::Vesta, "Vesta"),
         _ => return None,
     })
 }
@@ -523,6 +547,18 @@ impl StationsReport {
     /// the ceilings in `stations_thresholds`.
     pub fn series_lines(&self) -> &[String] {
         &self.series_lines
+    }
+
+    /// The planet report followed by the asteroid report: rows summed, series
+    /// lines in order, summary lines joined with "; ".
+    fn merged_with(self, other: StationsReport) -> StationsReport {
+        let mut series_lines = self.series_lines;
+        series_lines.extend(other.series_lines);
+        StationsReport {
+            rows_validated: self.rows_validated + other.rows_validated,
+            series_lines,
+            summary_line: format!("{}; {}", self.summary_line, other.summary_line),
+        }
     }
 }
 
@@ -780,14 +816,23 @@ fn validate_scoped(
     if validated < floor {
         return Err(StationsError::TooFewRowsValidated { validated, floor });
     }
-    let summary_line = format!(
-        "{}: {validated} stations validated across {} series vs Swiss Ephemeris speed-zero corpus \
-         (planets station-for-station; true node on stations separated by >= {SEPARATION_DAYS} d, \
-         {TRUE_NODE_MIN_CLOSE_PERCENT} % of them within {TRUE_NODE_CLOSE_DAYS} d), \
-         max time {max_time_s:.1} s, max lon {max_lon_arcsec:.3}\"",
-        scope.title(),
-        series_lines.len(),
-    );
+    let summary_line = if scope == Scope::Asteroids {
+        format!(
+            "{}: {validated} stations validated across {} series vs Swiss Ephemeris SWIEPH (seas_18) \
+             speed-zero corpus (station-for-station), max time {max_time_s:.1} s, max lon {max_lon_arcsec:.3}\"",
+            scope.title(),
+            series_lines.len(),
+        )
+    } else {
+        format!(
+            "{}: {validated} stations validated across {} series vs Swiss Ephemeris speed-zero corpus \
+             (planets station-for-station; true node on stations separated by >= {SEPARATION_DAYS} d, \
+             {TRUE_NODE_MIN_CLOSE_PERCENT} % of them within {TRUE_NODE_CLOSE_DAYS} d), \
+             max time {max_time_s:.1} s, max lon {max_lon_arcsec:.3}\"",
+            scope.title(),
+            series_lines.len(),
+        )
+    };
     Ok(StationsReport {
         rows_validated: validated,
         series_lines,
@@ -803,8 +848,13 @@ fn validate_scoped(
 /// where the longest series set the length). Run by `validate-stations` as
 /// `mise run gate-stations` (its own nightly job and a `release-gate`
 /// dependency) and by the opt-in `PLEIADES_FULL_STATIONS_GATE=1` test.
+/// It then runs the four asteroid series (`Scope::Asteroids`, 1225
+/// stations, floor `MIN_ROWS_VALIDATED_ASTEROIDS`) after the planet pool;
+/// their cost is not yet measured on the nightly runner.
 pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {
-    validate(CORPUS_CSV, MANIFEST)
+    let planets = validate(CORPUS_CSV, MANIFEST)?;
+    let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;
+    Ok(planets.merged_with(asteroids))
 }
 
 /// The release-battery subset: verifies the checksum and row count of the

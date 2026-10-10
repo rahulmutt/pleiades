@@ -267,7 +267,7 @@ run = "cargo run -q -p pleiades-validate -- validate-corpus"
 run = "cargo run -q -p pleiades-validate -- validate-aspects"
 
 [tasks.gate-stations]
-# Full planetary-stations gate (every corpus series, ~2 min on the 4-core
+# Full planetary-stations gate (every corpus series, including Ceres–Vesta, ~2 min on the 4-core
 # runner): nightly `test-full-validate`'s long pole (FU-23 (u)), so it has its
 # own nightly job (.github/workflows/nightly.yml `stations-gate`) and is a
 # `release-gate` dependency. The mean/sid subset runs in the release battery

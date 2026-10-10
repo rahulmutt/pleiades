@@ -38,6 +38,8 @@ Crate names link to their docs.rs API docs where published, otherwise to the
 crate source in this repo; gate names are the runnable `validate-*` subcommands
 (and `release-gate`) that guard each surface.
 
+**Asteroid stations (issue #167 (d)).** Ceres, Pallas, Juno and Vesta are compared station for station against `stations-corpus/asteroids.csv`, which `tools/se-stations-reference --asteroids` generates from Swiss Ephemeris SWIEPH with the SHA-256-pinned `seas_18`/`sepl_18`/`semo_18` files. Swiss Ephemeris's asteroid positions agree with JPL's sb441-n373s within 2.26″ (`docs/superpowers/specs/notes/2026-10-10-se-asteroid-agreement.md`). These series run in the full gate only (`mise run gate-stations`, the nightly `stations-gate` job). asteroid:433-Eros is not gated for events: Swiss Ephemeris keeps it in a separate per-asteroid file that is not pinned. Its positions are gated against sb441.
+
 ### Known limits
 
 - Body/backend grades are **per-backend**: Pluto and the Moon are release-grade
@@ -58,8 +60,8 @@ crate source in this repo; gate names are the runnable `validate-*` subcommands
   asteroid:433-Eros segments are the old sparse snapshot fit. `asteroid:99942-Apophis` stays snapshot-only: it is served only at
   the sample rows of the sparse JPL Horizons fixture (a nine-day cluster in
   January 2001 from 2001-01-06) and any other date returns an out-of-range
-  error. Asteroid stations and aspects are searched but ungated (#167 (d),
-  #168 (f)). Other asteroids need `pleiades_jpl::SpkBackend` with a JPL kernel
+  error. Asteroid aspects are searched but ungated (#168 (f)); asteroid
+  stations are gated (see above). Other asteroids need `pleiades_jpl::SpkBackend` with a JPL kernel
   (`docs/spk-kernel-sourcing.md`).
 - Apparent place omits gravitational light-deflection. Rise/set/transit and
   horizontal coordinates read the `TimeScale` tag on their query instants and
