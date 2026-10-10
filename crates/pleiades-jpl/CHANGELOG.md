@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.6.1] - 2026-10-10
+
+### Fixed
+
+- Describe what JplSnapshotBackend serves in its metadata; pin the sb441-Horizons agreement ([#201](https://github.com/rahulmutt/pleiades/pull/201)) ([#249](https://github.com/rahulmutt/pleiades/pull/249)) ([0d900c1](https://github.com/rahulmutt/pleiades/commit/0d900c1109675ecb47812aea83ca2d7d4669bf30))
+
 ## [0.6.0] - 2026-10-08
 
 ### Breaking Changes
