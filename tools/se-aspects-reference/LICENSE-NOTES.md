@@ -14,8 +14,8 @@ degrees) used to validate the pure-Rust engine's
 ephemeris (`SEFLG_MOSEPH`), so no Swiss Ephemeris data files are used, bundled or
 distributed.
 
-The `--asteroids` mode additionally generates the Sun-Ceres/Pallas/Juno/Vesta and
-Moon-Ceres aspect corpus (`asteroids.csv` + `asteroids-manifest.txt`). It reads the
+The `--asteroids` mode additionally generates the Sun-Ceres/Pallas/Juno/Vesta,
+Moon-Ceres, Mars-Vesta and Jupiter-Ceres aspect corpus (`asteroids.csv` + `asteroids-manifest.txt`). It reads the
 Swiss Ephemeris data files `seas_18`, `sepl_18` and `semo_18` (SWIEPH), which are
 SHA-256-pinned in `src/pins.rs`. The developer downloads them into this tool's
 gitignored `data/` directory (from

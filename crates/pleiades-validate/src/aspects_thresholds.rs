@@ -47,8 +47,8 @@ pub(crate) const MIN_ROWS_VALIDATED: usize = 10_359;
 pub(crate) const MIN_ROWS_VALIDATED_MEAN_SUBSET: usize = 372;
 
 /// Fail-closed floor for the asteroid corpus: every row of `asteroids.csv`
-/// (9108, generated 2026-10-10), so a dropped event fails.
-pub(crate) const MIN_ROWS_VALIDATED_ASTEROIDS: usize = 9108;
+/// (10118, generated 2026-10-10), so a dropped event fails.
+pub(crate) const MIN_ROWS_VALIDATED_ASTEROIDS: usize = 10_118;
 
 /// Ceilings by corpus pair name (`"Mars-Saturn"`), or `None` for a pair the
 /// gate does not cover.
@@ -123,6 +123,20 @@ pub(crate) fn ceilings_for(pair: &str) -> Option<Ceilings> {
         "Moon-Ceres" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
+        }),
+        // The two pairs whose separation turns (issue #253). Near a turn the
+        // relative speed falls toward zero, so the time residual grows (up to
+        // 315 s and 980 s) and with it each body's motion over it, which the
+        // longitude residual includes; the separation residual stays small.
+        // measured max 2.284", 6.422" (geo; SWIEPH seas_18 corpus, 2026-10-10)
+        "Mars-Vesta" => Some(Ceilings {
+            sep_arcsec: 3.2,
+            lon_arcsec: 9.0,
+        }),
+        // measured max 1.351", 9.211" (geo; SWIEPH seas_18 corpus, 2026-10-10)
+        "Jupiter-Ceres" => Some(Ceilings {
+            sep_arcsec: 2.3,
+            lon_arcsec: 13.0,
         }),
         _ => None,
     }

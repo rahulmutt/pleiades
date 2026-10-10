@@ -362,7 +362,7 @@ fn first_mean_mars_saturn_conjunction() -> &'static str {
 }
 
 // Opt-in: the planet-pair gate measured 18.5 minutes on 2026-10-02 (the
-// asteroid pass adds about 41 s in release), which nightly `test-full`
+// asteroid pass adds about 55 s in release), which nightly `test-full`
 // cannot afford. `mise run gate-aspects` runs it (its own nightly
 // job and a `release-gate` dependency).
 #[test]
@@ -475,7 +475,7 @@ fn a_shifted_reference_instant_exceeds_the_separation_ceiling() {
 }
 
 #[test]
-fn asteroid_corpus_parses_into_the_five_asteroid_pairs() {
+fn asteroid_corpus_parses_into_the_seven_asteroid_pairs() {
     let rows = parse_corpus(ASTEROID_CSV, &ASTEROID_PAIRS).expect("asteroid corpus parses");
     let (rows_manifest, _) = parse_manifest(ASTEROID_MANIFEST).unwrap();
     assert_eq!(rows.len(), rows_manifest);
@@ -490,7 +490,9 @@ fn asteroid_corpus_parses_into_the_five_asteroid_pairs() {
             "Sun-Pallas",
             "Sun-Juno",
             "Sun-Vesta",
-            "Moon-Ceres"
+            "Moon-Ceres",
+            "Mars-Vesta",
+            "Jupiter-Ceres"
         ]
     );
     for (index, pair) in ASTEROID_PAIRS.iter().enumerate() {
@@ -510,6 +512,29 @@ fn asteroid_corpus_parses_into_the_five_asteroid_pairs() {
         parse_corpus(ASTEROID_CSV, &PAIRS),
         Err(AspectsError::MalformedRow(_))
     ));
+}
+
+/// Issue #253: a Sun or Moon pair's separation never turns, so without a
+/// slow pair the gate would never meet an asteroid's retrograde loop. A
+/// pair whose corpus holds events at both signs of the relative speed has
+/// a turning separation.
+#[test]
+fn the_asteroid_corpus_has_pairs_whose_separation_turns() {
+    let rows = parse_corpus(ASTEROID_CSV, &ASTEROID_PAIRS).expect("asteroid corpus parses");
+    let turning: Vec<String> = ASTEROID_PAIRS
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| {
+            let speeds = || {
+                rows.iter()
+                    .filter(|row| row.pair == *index)
+                    .map(|row| row.expected.rel_speed_deg_per_day)
+            };
+            speeds().any(|s| s > 0.0) && speeds().any(|s| s < 0.0)
+        })
+        .map(|(_, pair)| format!("{}-{}", pair.first, pair.second))
+        .collect();
+    assert_eq!(turning, ["Mars-Vesta", "Jupiter-Ceres"]);
 }
 
 #[test]

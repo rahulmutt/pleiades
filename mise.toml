@@ -37,7 +37,7 @@ rust = { version = "1.99.0", components = "rustfmt,clippy" }
 # Prebuilt-binary backends (aqua = checksum-verified) so `mise install` downloads
 # instead of compiling from source — keeps blocking CI inside its wall-clock budget.
 "aqua:orhun/git-cliff" = "2.14.2"
-"aqua:release-plz/release-plz" = "0.3.170"
+"aqua:release-plz/release-plz" = "0.3.171"
 "aqua:EmbarkStudios/cargo-deny" = "0.20.2"
 gitleaks = "8.30.1"
 # cargo-nextest is published to crates.io as the `cargo-nextest` crate, so the
@@ -261,7 +261,8 @@ run = "cargo run -q -p pleiades-validate -- validate-corpus"
 
 [tasks.gate-aspects]
 # Full exact-aspect gate (all 11 planet corpus pairs, ~15 min; 18.5 min as
-# the in-crate test; plus the Sun-Ceres..Vesta and Moon-Ceres asteroid pairs;
+# the in-crate test; plus the Sun-Ceres..Vesta, Moon-Ceres, Mars-Vesta and
+# Jupiter-Ceres asteroid pairs (the last two added after this measurement);
 # the whole gate measured ~6 min (5m53s) in the dev profile on the 24-core dev
 # box, 2026-10-10): too slow for nightly `test-full`, so it has its own nightly
 # job (.github/workflows/nightly.yml `aspects-gate`) and is a `release-gate`
