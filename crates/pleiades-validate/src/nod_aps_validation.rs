@@ -861,4 +861,48 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn asteroid_row_count_drift_fails_closed() {
+        // Drop the last data line and re-pin the checksum, so only the row
+        // count can reject it.
+        let trimmed = ASTEROID_CSV.trim_end_matches('\n');
+        let (csv, _) = trimmed.rsplit_once('\n').expect("multi-line corpus");
+        let csv = format!("{csv}\n");
+        let manifest = format!(
+            "file: {ASTEROID_CSV_FILE} rows={} checksum={}\n",
+            EXPECTED_ASTEROID_ROWS - 1,
+            fnv1a64(&csv)
+        );
+        assert!(matches!(
+            load_corpus(&manifest, ASTEROID_CSV_FILE, &csv, EXPECTED_ASTEROID_ROWS),
+            Err(NodApsError::RowCountMismatch {
+                file: "asteroids.csv",
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn asteroid_ceiling_breach_fails_closed() {
+        let mut track = CategoryTrack::default();
+        track.lon_arcsec.observe(39.0, "Ceres", 2_451_545.0);
+        let result = check_category(
+            Category::OscuAsteroid,
+            &track,
+            (
+                OSCU_ASTEROID_LONGITUDE_ARCSEC,
+                OSCU_ASTEROID_LATITUDE_ARCSEC,
+                OSCU_ASTEROID_DISTANCE_REL,
+                OSCU_ASTEROID_LON_SPEED_DEG_DAY,
+            ),
+        );
+        assert!(matches!(
+            result,
+            Err(NodApsError::ToleranceExceeded {
+                category: "OSCU_ASTEROID",
+                ..
+            })
+        ));
+    }
 }
