@@ -1,6 +1,8 @@
 //! Fail-closed two-tier `validate-nod-aps` gate over the committed
-//! Swiss-Ephemeris `swe_nod_aps` reference corpus (Task 8,
-//! `data/nod-aps-corpus/{nod-aps.csv,manifest.txt}`).
+//! Swiss-Ephemeris `swe_nod_aps` reference corpora
+//! (`data/nod-aps-corpus/{nod-aps.csv,manifest.txt}` for the planets and the
+//! Moon, `data/nod-aps-corpus/{asteroids.csv,asteroids-manifest.txt}` for
+//! Ceres, Pallas, Juno and Vesta, issue #160).
 //!
 //! Tier 1 (self-consistency, no SE reference): every row is recomputed with
 //! `pleiades_events::EventEngine::nod_aps` over the production-style backend
@@ -13,19 +15,22 @@
 //! `swe_nod_aps` reference columns — wrap-aware longitude residual, latitude
 //! residual, relative distance residual, and longitude-speed residual — and
 //! accumulated into per-category maxima. Categories are `MEAN_PLANET`,
-//! `MEAN_MOON`, `OSCU_PLANET`, `OSCU_MOON`: mean vs osculating (methods 2 and
-//! 4, heliocentric and barycentric, both count as osculating per the plan),
-//! Moon vs everything else (Sun and the eight classical planets share
-//! `*_PLANET`). `validate_nod_aps_corpus` gates every category's maxima
-//! fail-closed under `crate::nod_aps_thresholds`'s provisional ceilings
-//! (tightened in Task 9 once the true maxima are measured).
+//! `MEAN_MOON`, `OSCU_PLANET`, `OSCU_MOON`, `OSCU_ASTEROID`: mean vs
+//! osculating (methods 2 and 4, heliocentric and barycentric, both count as
+//! osculating per the plan), Moon vs asteroids vs everything else (Sun and the
+//! eight classical planets share `*_PLANET`). `validate_nod_aps_corpus` gates
+//! every category's maxima fail-closed under `crate::nod_aps_thresholds`'s
+//! measured ceilings.
 //!
-//! Corpus scope (see the committed `manifest.txt` and the CSV's header
-//! comment): SE 0-9 classical planets only (the mean set drops Pluto, SE 9,
-//! which has no SE mean elements). Small bodies (SE 15-20) and fictitious
-//! bodies (SE 40-58) are OUT OF SCOPE — this SE build's `swe_nod_aps` does
-//! not implement fictitious bodies at all, and the reference generator never
-//! sampled small bodies. See `summary_line`'s coverage-bound sentence.
+//! Corpus scope (see the committed manifests and the CSVs' header comments):
+//! `nod-aps.csv` holds the SE 0-9 classical planets (the mean set drops
+//! Pluto, SE 9, which has no SE mean elements), from Moshier except the
+//! barycentric rows; `asteroids.csv` holds osculating (method 2, fopoint 0)
+//! rows for Ceres, Pallas, Juno and Vesta (SE 17-20) from SWIEPH with the
+//! pinned `seas_18` file. Chiron and Pholus (SE 15-16) are not sampled, and
+//! fictitious bodies (SE 40-58) are OUT OF SCOPE — this SE build's
+//! `swe_nod_aps` does not implement fictitious bodies at all. See
+//! `summary_line`'s coverage-bound sentence.
 //!
 //! Sun rows are a special case: SE structurally zeroes the Sun's asc/dsc
 //! columns (all 12 fields across both points, for both mean and osculating
@@ -41,12 +46,12 @@
 //! and the SE corpus fields — failing closed on any nonzero value. Perihelion
 //! and aphelion stay on the normal Tier-1 + Tier-2 path for the Sun.
 //!
-//! A sibling `manifest.txt` records the fnv1a64 digest of the CSV (drift
-//! guard); a mismatch fails the gate closed.
+//! Each CSV's manifest records its fnv1a64 digest (drift guard); a mismatch
+//! fails the gate closed.
 
 use crate::nod_aps_thresholds::*;
 use pleiades_apparent::fnv1a64;
-use pleiades_backend::{CompositeBackend, RoutingBackend};
+use pleiades_backend::{CompositeBackend, EphemerisBackend, RoutingBackend};
 use pleiades_data::PackagedDataBackend;
 use pleiades_elp::ElpBackend;
 use pleiades_events::{ApsisConvention, EventEngine, NodApsMethod, NodApsPoint, NodesApsides};
@@ -65,11 +70,25 @@ const MANIFEST: &str = include_str!(concat!(
     "/data/nod-aps-corpus/manifest.txt"
 ));
 const CSV_FILE: &str = "nod-aps.csv";
+const ASTEROID_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/nod-aps-corpus/asteroids.csv"
+));
+const ASTEROID_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/nod-aps-corpus/asteroids-manifest.txt"
+));
+const ASTEROID_CSV_FILE: &str = "asteroids.csv";
 
 /// Fixture row count pinned by the corpus (Task 7: 72 mean + 6
 /// mean-fopoint + 80 osculating + 20 barycentric + 6 oscu-fopoint). Update
 /// when the corpus is regenerated.
 pub const EXPECTED_ROWS: usize = 184;
+
+/// Asteroid fixture row count pinned by `asteroids.csv` (issue #160: Ceres,
+/// Pallas, Juno, Vesta × the 8-epoch grid, osculating). Update when that
+/// corpus is regenerated.
+pub const EXPECTED_ASTEROID_ROWS: usize = 32;
 
 #[derive(Debug)]
 pub enum NodApsError {
@@ -79,8 +98,13 @@ pub enum NodApsError {
         got: u64,
         want: u64,
     },
-    /// The parsed corpus row count disagrees with [`EXPECTED_ROWS`].
-    RowCountMismatch { expected: usize, got: usize },
+    /// A parsed corpus row count disagrees with its pin ([`EXPECTED_ROWS`]
+    /// for `nod-aps.csv`, [`EXPECTED_ASTEROID_ROWS`] for `asteroids.csv`).
+    RowCountMismatch {
+        file: &'static str,
+        expected: usize,
+        got: usize,
+    },
     /// A Tier-2 residual exceeded its ceiling.
     ToleranceExceeded {
         category: &'static str,
@@ -92,8 +116,8 @@ pub enum NodApsError {
     /// Malformed manifest or corpus row (also covers a Tier-1
     /// self-consistency invariant failing on the recomputed row, and an
     /// unrecognized `se_body`/`method`/`fopoint` value — the parse is
-    /// fail-closed since only SE 0-9 / methods 1,2,4 / fopoint 0,1 exist in
-    /// the committed corpus).
+    /// fail-closed since only SE 0-9 and 17-20 / methods 1,2,4 / fopoint 0,1
+    /// exist in the committed corpora).
     Parse { row: String },
     /// The engine errored while recomputing a row.
     Engine(String),
@@ -118,11 +142,15 @@ pub struct CategoryMaxima {
 /// Summary of the measured maxima and checked-row count for the gate.
 #[derive(Debug, Default)]
 pub struct NodApsReport {
+    /// Rows checked from `nod-aps.csv` (planets and the Moon).
     pub rows: usize,
+    /// Rows checked from `asteroids.csv` (Ceres, Pallas, Juno, Vesta).
+    pub asteroid_rows: usize,
     pub mean_planet: CategoryMaxima,
     pub mean_moon: CategoryMaxima,
     pub oscu_planet: CategoryMaxima,
     pub oscu_moon: CategoryMaxima,
+    pub oscu_asteroid: CategoryMaxima,
 }
 
 impl NodApsReport {
@@ -131,13 +159,14 @@ impl NodApsReport {
     /// fail-closed by [`validate_nod_aps_corpus`], so reaching a report
     /// already implies every checked row was within ceiling.
     pub fn passed(&self) -> bool {
-        self.rows == EXPECTED_ROWS
+        self.rows == EXPECTED_ROWS && self.asteroid_rows == EXPECTED_ASTEROID_ROWS
     }
 
     pub fn summary_line(&self) -> String {
         format!(
-            "validate-nod-aps: {} rows — max residuals: MEAN_PLANET lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; MEAN_MOON lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; OSCU_PLANET lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; OSCU_MOON lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day — coverage bound: SE swe_nod_aps does not implement fictitious bodies (upstream-disabled), and offline chains cannot sample snapshot-only asteroids such as asteroid:99942-Apophis densely enough; fictitious/asteroid nod_aps is engine-covered, gate-unreferenced",
+            "validate-nod-aps: {} rows + {} asteroid rows — max residuals: MEAN_PLANET lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; MEAN_MOON lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; OSCU_PLANET lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; OSCU_MOON lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day; OSCU_ASTEROID lon {:.3}\" lat {:.3}\" dist {:.2e} rel speed {:.4} deg/day — asteroids (Ceres, Pallas, Juno, Vesta): osculating, gated vs SWIEPH seas_18 rows; coverage bound: SE swe_nod_aps does not implement fictitious bodies (upstream-disabled), and offline chains cannot sample snapshot-only asteroids such as asteroid:99942-Apophis densely enough; fictitious and other asteroid nod_aps is engine-covered, gate-unreferenced",
             self.rows,
+            self.asteroid_rows,
             self.mean_planet.max_lon_arcsec,
             self.mean_planet.max_lat_arcsec,
             self.mean_planet.max_dist_rel,
@@ -154,6 +183,10 @@ impl NodApsReport {
             self.oscu_moon.max_lat_arcsec,
             self.oscu_moon.max_dist_rel,
             self.oscu_moon.max_lon_speed_deg_day,
+            self.oscu_asteroid.max_lon_arcsec,
+            self.oscu_asteroid.max_lat_arcsec,
+            self.oscu_asteroid.max_dist_rel,
+            self.oscu_asteroid.max_lon_speed_deg_day,
         )
     }
 }
@@ -215,28 +248,32 @@ impl CategoryTrack {
     }
 }
 
-/// All measured residual maxima over the committed corpus, split into the
-/// four categories so each can be gated under its own ceilings. Tier-1
+/// All measured residual maxima over the committed corpora, split into the
+/// five categories so each can be gated under its own ceilings. Tier-1
 /// self-consistency is enforced during measurement (it never depends on the
 /// numeric ceilings); ceiling gating is applied afterwards by
 /// [`validate_nod_aps_corpus`].
 #[derive(Debug, Default)]
 struct Measured {
     rows: usize,
+    asteroid_rows: usize,
     mean_planet: CategoryTrack,
     mean_moon: CategoryTrack,
     oscu_planet: CategoryTrack,
     oscu_moon: CategoryTrack,
+    oscu_asteroid: CategoryTrack,
 }
 
 impl Measured {
     fn into_report(self) -> NodApsReport {
         NodApsReport {
             rows: self.rows,
+            asteroid_rows: self.asteroid_rows,
             mean_planet: self.mean_planet.to_maxima(),
             mean_moon: self.mean_moon.to_maxima(),
             oscu_planet: self.oscu_planet.to_maxima(),
             oscu_moon: self.oscu_moon.to_maxima(),
+            oscu_asteroid: self.oscu_asteroid.to_maxima(),
         }
     }
 
@@ -246,6 +283,7 @@ impl Measured {
             Category::MeanMoon => &mut self.mean_moon,
             Category::OscuPlanet => &mut self.oscu_planet,
             Category::OscuMoon => &mut self.oscu_moon,
+            Category::OscuAsteroid => &mut self.oscu_asteroid,
         }
     }
 }
@@ -256,6 +294,7 @@ enum Category {
     MeanMoon,
     OscuPlanet,
     OscuMoon,
+    OscuAsteroid,
 }
 
 impl Category {
@@ -265,14 +304,15 @@ impl Category {
             Category::MeanMoon => "MEAN_MOON",
             Category::OscuPlanet => "OSCU_PLANET",
             Category::OscuMoon => "OSCU_MOON",
+            Category::OscuAsteroid => "OSCU_ASTEROID",
         }
     }
 }
 
-/// SE body number -> `CelestialBody`. Only 0 (Sun), 1 (Moon), and 2..=9
-/// (Mercury..Pluto) exist in the committed corpus (controller-mandated scope
-/// cut: no small bodies, no fictitious bodies). Any other value is a
-/// fail-closed parse error.
+/// SE body number -> `CelestialBody`. Only 0–9 (Sun, Moon, Mercury..Pluto)
+/// and the asteroids 17–20 (Ceres, Pallas, Juno, Vesta) exist in the
+/// committed corpora (no Chiron/Pholus, no fictitious bodies). Any other
+/// value is a fail-closed parse error.
 fn body_from_se(se_body: i64) -> Option<CelestialBody> {
     match se_body {
         0 => Some(CelestialBody::Sun),
@@ -285,6 +325,10 @@ fn body_from_se(se_body: i64) -> Option<CelestialBody> {
         7 => Some(CelestialBody::Uranus),
         8 => Some(CelestialBody::Neptune),
         9 => Some(CelestialBody::Pluto),
+        17 => Some(CelestialBody::Ceres),
+        18 => Some(CelestialBody::Pallas),
+        19 => Some(CelestialBody::Juno),
+        20 => Some(CelestialBody::Vesta),
         _ => None,
     }
 }
@@ -307,6 +351,13 @@ fn convention_from_fopoint(fopoint: i64) -> Option<ApsisConvention> {
 }
 
 fn category_for(body: &CelestialBody, method: NodApsMethod) -> Category {
+    let is_asteroid = matches!(
+        body,
+        CelestialBody::Ceres | CelestialBody::Pallas | CelestialBody::Juno | CelestialBody::Vesta
+    );
+    if is_asteroid {
+        return Category::OscuAsteroid;
+    }
     let is_mean = method == NodApsMethod::Mean;
     let is_moon = *body == CelestialBody::Moon;
     match (is_mean, is_moon) {
@@ -321,16 +372,16 @@ fn wrap180(d: f64) -> f64 {
     ((d + 180.0).rem_euclid(360.0)) - 180.0
 }
 
-fn parse_manifest() -> Result<BTreeMap<String, (usize, u64)>, NodApsError> {
-    crate::corpus_manifest::file_entries(MANIFEST)
+fn parse_manifest(manifest: &str) -> Result<BTreeMap<String, (usize, u64)>, NodApsError> {
+    crate::corpus_manifest::file_entries(manifest)
         .map_err(|e| NodApsError::Parse { row: e.to_string() })
 }
 
-/// Looks up `file` in the manifest and compares `fnv1a64(csv)` against the
+/// Looks up `file` in `manifest` and compares `fnv1a64(csv)` against the
 /// recorded checksum, fail-closed. Returns the manifest's declared row count
 /// on success.
-fn check_checksum(file: &'static str, csv: &str) -> Result<usize, NodApsError> {
-    let manifest = parse_manifest()?;
+fn check_checksum(manifest: &str, file: &'static str, csv: &str) -> Result<usize, NodApsError> {
+    let manifest = parse_manifest(manifest)?;
     let (rows, want) = *manifest.get(file).ok_or_else(|| NodApsError::Parse {
         row: format!("manifest missing entry for {file}"),
     })?;
@@ -477,14 +528,147 @@ fn accumulate_tier2(
     track.lon_speed_deg_day.observe(speed_res, &tag, jd);
 }
 
-/// Runs the checksum guard, parses the corpus, recomputes every row via a
+/// One parsed corpus row: the SE inputs mapped to engine types, plus the
+/// four SE reference points.
+#[derive(Clone, Debug)]
+struct CorpusRow {
+    label: String,
+    se_body: i64,
+    body: CelestialBody,
+    method: NodApsMethod,
+    convention: ApsisConvention,
+    jd_tt: f64,
+    asc: SePoint,
+    dsc: SePoint,
+    peri: SePoint,
+    apo: SePoint,
+}
+
+/// Parses every data row of a corpus CSV (29 columns; `#` comments and the
+/// header are skipped), fail-closed on any malformed or unrecognized value.
+fn parse_rows(csv: &str) -> Result<Vec<CorpusRow>, NodApsError> {
+    let mut rows = Vec::new();
+    for line in csv.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') || line.starts_with("label,") {
+            continue;
+        }
+        let f: Vec<&str> = line.split(',').collect();
+        if f.len() != 29 {
+            return Err(NodApsError::Parse {
+                row: line.to_string(),
+            });
+        }
+        let se_body = parse_i64(f[1], line)?;
+        let se_method = parse_i64(f[2], line)?;
+        let se_fopoint = parse_i64(f[3], line)?;
+        rows.push(CorpusRow {
+            label: f[0].to_string(),
+            se_body,
+            body: body_from_se(se_body).ok_or_else(|| NodApsError::Parse {
+                row: format!("{line} (unrecognized se_body {se_body})"),
+            })?,
+            method: method_from_se(se_method).ok_or_else(|| NodApsError::Parse {
+                row: format!("{line} (unrecognized method {se_method})"),
+            })?,
+            convention: convention_from_fopoint(se_fopoint).ok_or_else(|| NodApsError::Parse {
+                row: format!("{line} (unrecognized fopoint {se_fopoint})"),
+            })?,
+            jd_tt: parse_f64(f[4], line)?,
+            asc: parse_point(&f[5..11], line)?,
+            dsc: parse_point(&f[11..17], line)?,
+            peri: parse_point(&f[17..23], line)?,
+            apo: parse_point(&f[23..29], line)?,
+        });
+    }
+    Ok(rows)
+}
+
+/// Recomputes one corpus row, enforces Tier-1 self-consistency, and
+/// accumulates its Tier-2 residuals into the row's category.
+fn check_row<B: EphemerisBackend>(
+    engine: &EventEngine<B>,
+    row: &CorpusRow,
+    m: &mut Measured,
+) -> Result<(), NodApsError> {
+    let label = row.label.as_str();
+    let jd_tt = row.jd_tt;
+    let instant = Instant::new(JulianDay::from_days(jd_tt), TimeScale::Tt);
+    let NodesApsides {
+        ascending,
+        descending,
+        perihelion,
+        aphelion,
+        ..
+    } = engine
+        .nod_aps(row.body.clone(), instant, row.method, row.convention)
+        .map_err(|e| NodApsError::Engine(format!("{label} ({jd_tt}): {e}")))?;
+
+    // ---- Tier 1: self-consistency (no SE reference) ----
+    // Sun ascending/descending are excluded from `check_tier1`: the
+    // engine now zeroes them (§R8), so its `distance > 0` invariant
+    // would legitimately fail on a Sun row — they get their own exact-
+    // zero assertion below instead.
+    let is_sun = row.se_body == 0;
+    if !is_sun {
+        check_tier1(label, "ascending", &ascending)?;
+        check_tier1(label, "descending", &descending)?;
+    }
+    check_tier1(label, "perihelion", &perihelion)?;
+    check_tier1(label, "aphelion", &aphelion)?;
+
+    // ---- Tier 2: SE parity residuals ----
+    let track = m.category_mut(category_for(&row.body, row.method));
+    if is_sun {
+        // SE zeroes the Sun node columns (Earth elements have no node,
+        // swecl.c:5436-5439) and the engine now matches (§R8, Task 9):
+        // assert both sides are exactly zero rather than running the
+        // normal residual-vs-ceiling comparison.
+        assert_sun_node_zeroed(label, jd_tt, "ascending", &ascending, &row.asc)?;
+        assert_sun_node_zeroed(label, jd_tt, "descending", &descending, &row.dsc)?;
+    } else {
+        accumulate_tier2(track, label, jd_tt, "ascending", &ascending, &row.asc);
+        accumulate_tier2(track, label, jd_tt, "descending", &descending, &row.dsc);
+    }
+    accumulate_tier2(track, label, jd_tt, "perihelion", &perihelion, &row.peri);
+    accumulate_tier2(track, label, jd_tt, "aphelion", &aphelion, &row.apo);
+    Ok(())
+}
+
+/// Verifies a corpus CSV against its own manifest, parses it, and pins its
+/// row count, all fail-closed.
+fn load_corpus(
+    manifest: &str,
+    file: &'static str,
+    csv: &str,
+    expected: usize,
+) -> Result<Vec<CorpusRow>, NodApsError> {
+    check_checksum(manifest, file, csv)?;
+    let rows = parse_rows(csv)?;
+    if rows.len() != expected {
+        return Err(NodApsError::RowCountMismatch {
+            file,
+            expected,
+            got: rows.len(),
+        });
+    }
+    Ok(rows)
+}
+
+/// Runs the checksum guards, parses both corpora, recomputes every row via a
 /// freshly built production-style `EventEngine`, enforces Tier-1
 /// self-consistency, and accumulates every Tier-2 residual maximum per
 /// category. Numeric ceiling gating is NOT applied here (that is
 /// [`validate_nod_aps_corpus`]'s job) — so this succeeds regardless of the
 /// ceiling constants.
 fn measure() -> Result<Measured, NodApsError> {
-    check_checksum(CSV_FILE, CSV)?;
+    let planet_rows = load_corpus(MANIFEST, CSV_FILE, CSV, EXPECTED_ROWS)?;
+    let asteroid_rows = load_corpus(
+        ASTEROID_MANIFEST,
+        ASTEROID_CSV_FILE,
+        ASTEROID_CSV,
+        EXPECTED_ASTEROID_ROWS,
+    )?;
 
     let backend = RoutingBackend::new(vec![
         Box::new(PackagedDataBackend::new()),
@@ -498,86 +682,13 @@ fn measure() -> Result<Measured, NodApsError> {
     let engine = EventEngine::new(backend);
     let mut m = Measured::default();
 
-    for line in CSV.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') || line.starts_with("label,") {
-            continue;
-        }
-        let f: Vec<&str> = line.split(',').collect();
-        if f.len() != 29 {
-            return Err(NodApsError::Parse {
-                row: line.to_string(),
-            });
-        }
-        let label = f[0];
-        let se_body = parse_i64(f[1], line)?;
-        let se_method = parse_i64(f[2], line)?;
-        let se_fopoint = parse_i64(f[3], line)?;
-        let jd_tt = parse_f64(f[4], line)?;
-        let asc = parse_point(&f[5..11], line)?;
-        let dsc = parse_point(&f[11..17], line)?;
-        let peri = parse_point(&f[17..23], line)?;
-        let apo = parse_point(&f[23..29], line)?;
-
-        let body = body_from_se(se_body).ok_or_else(|| NodApsError::Parse {
-            row: format!("{line} (unrecognized se_body {se_body})"),
-        })?;
-        let method = method_from_se(se_method).ok_or_else(|| NodApsError::Parse {
-            row: format!("{line} (unrecognized method {se_method})"),
-        })?;
-        let convention = convention_from_fopoint(se_fopoint).ok_or_else(|| NodApsError::Parse {
-            row: format!("{line} (unrecognized fopoint {se_fopoint})"),
-        })?;
-
-        let instant = Instant::new(JulianDay::from_days(jd_tt), TimeScale::Tt);
-        let NodesApsides {
-            ascending,
-            descending,
-            perihelion,
-            aphelion,
-            ..
-        } = engine
-            .nod_aps(body.clone(), instant, method, convention)
-            .map_err(|e| NodApsError::Engine(format!("{label} ({jd_tt}): {e}")))?;
-
-        // ---- Tier 1: self-consistency (no SE reference) ----
-        // Sun ascending/descending are excluded from `check_tier1`: the
-        // engine now zeroes them (§R8), so its `distance > 0` invariant
-        // would legitimately fail on a Sun row — they get their own exact-
-        // zero assertion below instead.
-        let is_sun = se_body == 0;
-        if !is_sun {
-            check_tier1(label, "ascending", &ascending)?;
-            check_tier1(label, "descending", &descending)?;
-        }
-        check_tier1(label, "perihelion", &perihelion)?;
-        check_tier1(label, "aphelion", &aphelion)?;
-
-        // ---- Tier 2: SE parity residuals ----
-        let category = category_for(&body, method);
-        let track = m.category_mut(category);
-        if is_sun {
-            // SE zeroes the Sun node columns (Earth elements have no node,
-            // swecl.c:5436-5439) and the engine now matches (§R8, Task 9):
-            // assert both sides are exactly zero rather than running the
-            // normal residual-vs-ceiling comparison.
-            assert_sun_node_zeroed(label, jd_tt, "ascending", &ascending, &asc)?;
-            assert_sun_node_zeroed(label, jd_tt, "descending", &descending, &dsc)?;
-        } else {
-            accumulate_tier2(track, label, jd_tt, "ascending", &ascending, &asc);
-            accumulate_tier2(track, label, jd_tt, "descending", &descending, &dsc);
-        }
-        accumulate_tier2(track, label, jd_tt, "perihelion", &perihelion, &peri);
-        accumulate_tier2(track, label, jd_tt, "aphelion", &aphelion, &apo);
-
+    for row in &planet_rows {
+        check_row(&engine, row, &mut m)?;
         m.rows += 1;
     }
-
-    if m.rows != EXPECTED_ROWS {
-        return Err(NodApsError::RowCountMismatch {
-            expected: EXPECTED_ROWS,
-            got: m.rows,
-        });
+    for row in &asteroid_rows {
+        check_row(&engine, row, &mut m)?;
+        m.asteroid_rows += 1;
     }
     Ok(m)
 }
@@ -617,7 +728,7 @@ fn check_category(
 }
 
 /// Full two-tier gate: Tier-1 self-consistency (via `measure`) plus Tier-2
-/// SE parity gated under the provisional ceilings in
+/// SE parity gated under the measured ceilings in
 /// `crate::nod_aps_thresholds`, per category. Fails closed on any exceeded
 /// ceiling.
 pub fn validate_nod_aps_corpus() -> Result<NodApsReport, NodApsError> {
@@ -663,6 +774,16 @@ pub fn validate_nod_aps_corpus() -> Result<NodApsReport, NodApsError> {
             OSCU_MOON_LON_SPEED_DEG_DAY,
         ),
     )?;
+    check_category(
+        Category::OscuAsteroid,
+        &m.oscu_asteroid,
+        (
+            OSCU_ASTEROID_LONGITUDE_ARCSEC,
+            OSCU_ASTEROID_LATITUDE_ARCSEC,
+            OSCU_ASTEROID_DISTANCE_REL,
+            OSCU_ASTEROID_LON_SPEED_DEG_DAY,
+        ),
+    )?;
 
     Ok(m.into_report())
 }
@@ -675,11 +796,13 @@ mod tests {
     fn manifest_row_count_is_pinned() {
         let report = run_nod_aps_tier1_only().expect("tier1 passes");
         assert_eq!(report.rows, EXPECTED_ROWS);
+        assert_eq!(report.asteroid_rows, EXPECTED_ASTEROID_ROWS);
+        assert!(report.passed());
     }
 
     #[test]
     fn checksum_drift_fails_closed() {
-        assert!(check_checksum("nod-aps.csv", "mutated,body\n").is_err());
+        assert!(check_checksum(MANIFEST, "nod-aps.csv", "mutated,body\n").is_err());
     }
 
     #[test]
@@ -689,9 +812,53 @@ mod tests {
 
     #[test]
     fn unrecognized_se_body_fails_closed() {
-        assert!(body_from_se(15).is_none());
-        assert!(body_from_se(20).is_none());
+        assert!(body_from_se(15).is_none(), "Chiron is not in the corpus");
+        assert!(body_from_se(16).is_none(), "Pholus is not in the corpus");
+        assert!(body_from_se(21).is_none());
         assert!(body_from_se(40).is_none());
         assert!(body_from_se(58).is_none());
+    }
+
+    #[test]
+    fn asteroid_se_bodies_map_to_ceres_through_vesta() {
+        assert_eq!(body_from_se(17), Some(CelestialBody::Ceres));
+        assert_eq!(body_from_se(18), Some(CelestialBody::Pallas));
+        assert_eq!(body_from_se(19), Some(CelestialBody::Juno));
+        assert_eq!(body_from_se(20), Some(CelestialBody::Vesta));
+    }
+
+    #[test]
+    fn asteroid_rows_parse_and_count_32() {
+        let rows = parse_rows(ASTEROID_CSV).expect("asteroid corpus parses");
+        assert_eq!(rows.len(), EXPECTED_ASTEROID_ROWS);
+        assert_eq!(EXPECTED_ASTEROID_ROWS, 32);
+        assert!(rows.iter().all(|r| r.method == NodApsMethod::Osculating));
+    }
+
+    #[test]
+    fn asteroid_corpus_tampering_fails_closed() {
+        let tampered = ASTEROID_CSV.replacen("Ceres,17,", "Ceres,17, ", 1);
+        assert_ne!(tampered, ASTEROID_CSV);
+        assert!(matches!(
+            check_checksum(ASTEROID_MANIFEST, ASTEROID_CSV_FILE, &tampered),
+            Err(NodApsError::ChecksumMismatch { .. })
+        ));
+        check_checksum(ASTEROID_MANIFEST, ASTEROID_CSV_FILE, ASTEROID_CSV)
+            .expect("committed asteroid corpus matches its manifest");
+    }
+
+    #[test]
+    fn asteroid_rows_fall_in_the_asteroid_category() {
+        for body in [
+            CelestialBody::Ceres,
+            CelestialBody::Pallas,
+            CelestialBody::Juno,
+            CelestialBody::Vesta,
+        ] {
+            assert_eq!(
+                category_for(&body, NodApsMethod::Osculating),
+                Category::OscuAsteroid
+            );
+        }
     }
 }
