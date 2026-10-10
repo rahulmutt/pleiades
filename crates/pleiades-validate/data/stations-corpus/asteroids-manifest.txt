@@ -1,0 +1,1 @@
+slice stations-asteroids file=asteroids.csv role=stations rows=1225 checksum=15455220665812727372
