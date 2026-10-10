@@ -27,6 +27,17 @@
 //!
 //! Ephemeris: Moshier (SEFLG_MOSEPH), no data files needed.
 //!
+//! Asteroid mode (`--asteroids --out <dir> [--ephe <dir>]`): `geo` aspects of
+//! the Sun with Ceres, Pallas, Juno and Vesta (SE ids 17-20) over the full
+//! span, and of the Moon with Ceres over 1990-2030, with the `geo` flags but
+//! SEFLG_SWIEPH instead of SEFLG_MOSEPH, from the `seas_18`/`sepl_18`/`semo_18`
+//! files pinned in `pins.rs` (verified before anything is written). The same
+//! 30-arcsecond graze refusal applies. Writes `<dir>/asteroids.csv` and
+//! `<dir>/asteroids-manifest.txt` itself, so no devenv banner reaches them:
+//! `devenv shell -- env CFLAGS=-std=gnu17 cargo build --release --manifest-path tools/se-aspects-reference/Cargo.toml`, then
+//! `tools/se-aspects-reference/target/release/se-aspects-reference --asteroids --out crates/pleiades-validate/data/aspects-corpus`.
+//! The ephe directory is `$SE_EPHE_PATH`, else `--ephe`, else this tool's `data/`.
+//!
 //! Two build/run caveats: under devenv's gcc the build needs `CFLAGS=-std=gnu17`
 //! (libswisseph-sys otherwise fails with a conflicting `getenv` declaration), and
 //! `devenv shell` prints a banner line to stdout that must be removed from the
@@ -37,11 +48,15 @@
 //!    --manifest-path tools/se-aspects-reference/Cargo.toml \
 //!    > crates/pleiades-validate/data/aspects-corpus/aspects.csv`
 
+mod pins;
+
 use std::ffi::CStr;
+use std::fmt::Write as _;
 use std::os::raw::{c_char, c_int};
 
-use libswisseph_sys::raw::swe_calc;
+use libswisseph_sys::raw::{swe_calc, swe_set_ephe_path};
 
+const SEFLG_SWIEPH: c_int = 2;
 const SEFLG_MOSEPH: c_int = 4;
 const SEFLG_HELCTR: c_int = 8;
 const SEFLG_TRUEPOS: c_int = 16; // geometric: no light-time
@@ -53,6 +68,9 @@ const SEFLG_NOABERR: c_int = 1024; // no annual aberration
 const GEO: c_int = SEFLG_MOSEPH | SEFLG_SPEED;
 const MEAN: c_int = GEO | SEFLG_TRUEPOS | SEFLG_NOABERR | SEFLG_NOGDEFL | SEFLG_NONUT;
 const HELIO: c_int = GEO | SEFLG_HELCTR | SEFLG_TRUEPOS;
+/// `GEO` with the SWIEPH data files in place of Moshier.
+const GEO_SWIEPH: c_int = (GEO & !SEFLG_MOSEPH) | SEFLG_SWIEPH;
+const DEFAULT_EPHE_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/data");
 
 /// (Swiss Ephemeris body id, name as written to the CSV).
 type Body = (c_int, &'static str);
@@ -97,6 +115,9 @@ fn state(jd_tt: f64, ipl: c_int, iflag: c_int) -> (f64, f64) {
             .to_string_lossy()
             .into_owned();
         panic!("swe_calc(ipl={ipl}, iflag={iflag}) failed at jd_tt={jd_tt}: {msg}");
+    }
+    if iflag & SEFLG_SWIEPH != 0 && ret & SEFLG_SWIEPH == 0 {
+        panic!("swe_calc(ipl={ipl}) fell back from SWIEPH at jd_tt={jd_tt} (ret={ret})");
     }
     assert!(
         xx[0].is_finite() && xx[3].is_finite(),
@@ -158,8 +179,17 @@ fn bisect(f: impl Fn(f64) -> f64, mut a: f64, mut f_a: f64, mut b: f64) -> f64 {
     0.5 * (a + b)
 }
 
-/// Prints every exact aspect of the pair in `[lo, hi]`, for each angle.
-fn scan(group: &str, first: Body, second: Body, iflag: c_int, (lo, hi): (f64, f64), grid: f64) {
+/// Hands every exact aspect of the pair in `[lo, hi]`, for each angle, to `out`
+/// as a CSV row.
+fn scan(
+    out: &mut dyn FnMut(String),
+    group: &str,
+    first: Body,
+    second: Body,
+    iflag: c_int,
+    (lo, hi): (f64, f64),
+    grid: f64,
+) {
     let at = |jd: f64| sample(jd, first, second, iflag);
     let mut events: Vec<Vec<Sample>> = vec![Vec::new(); ANGLES.len()];
     let steps = ((hi - lo) / grid).floor() as u64;
@@ -218,15 +248,21 @@ fn scan(group: &str, first: Body, second: Body, iflag: c_int, (lo, hi): (f64, f6
             events[index].len()
         );
         for event in &events[index] {
-            println!(
+            out(format!(
                 "{group},{},{},{angle:.0},{:.7},{:.9},{:.9},{:.9}",
                 first.1, second.1, event.jd, event.first_lon, event.second_lon, event.rel_speed
-            );
+            ));
         }
     }
 }
 
 fn main() {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.iter().any(|a| a == "--asteroids") {
+        asteroids_main(&args);
+        return;
+    }
+    let out = &mut |row: String| println!("{row}");
     println!("# Source: Swiss Ephemeris 2.10.03 (libswisseph-sys 0.1.2), Moshier (SEFLG_MOSEPH, no data files).");
     println!("# A row is an instant at which wrap180(lon(first) - lon(second)) of swe_calc(jd_tt, body, iflag|SEFLG_SPEED)");
     println!("# equals +angle or -angle, scanned on a 0.05-day grid (0.01 day with the Moon), each step split at the zero");
@@ -241,7 +277,7 @@ fn main() {
     println!(
         "group,first,second,angle_deg,jd_tt,first_lon_deg,second_lon_deg,rel_speed_deg_per_day"
     );
-    scan("geo", SUN, MOON, GEO, SHORT_SPAN, MOON_GRID_DAYS);
+    scan(out, "geo", SUN, MOON, GEO, SHORT_SPAN, MOON_GRID_DAYS);
     for (first, second) in [
         (SUN, MERCURY),
         (MERCURY, VENUS),
@@ -251,10 +287,65 @@ fn main() {
         (JUPITER, SATURN),
         (SATURN, PLUTO),
     ] {
-        scan("geo", first, second, GEO, FULL_SPAN, GRID_DAYS);
+        scan(out, "geo", first, second, GEO, FULL_SPAN, GRID_DAYS);
     }
     for (first, second) in [(MERCURY, VENUS), (MARS, SATURN)] {
-        scan("mean", first, second, MEAN, SHORT_SPAN, GRID_DAYS);
+        scan(out, "mean", first, second, MEAN, SHORT_SPAN, GRID_DAYS);
     }
-    scan("helio", MARS, JUPITER, HELIO, FULL_SPAN, GRID_DAYS);
+    scan(out, "helio", MARS, JUPITER, HELIO, FULL_SPAN, GRID_DAYS);
+}
+
+fn asteroids_main(args: &[String]) {
+    let value_of = |flag: &str| {
+        args.iter().position(|a| a == flag).map(|i| {
+            args.get(i + 1)
+                .unwrap_or_else(|| panic!("{flag} needs a value"))
+                .clone()
+        })
+    };
+    let out_dir = value_of("--out").expect("--asteroids needs --out <dir>");
+    let ephe_dir = std::env::var("SE_EPHE_PATH")
+        .ok()
+        .or_else(|| value_of("--ephe"))
+        .unwrap_or_else(|| DEFAULT_EPHE_DIR.to_string());
+    if let Err(e) = pins::verify_swieph_files(&ephe_dir) {
+        eprintln!("{e}");
+        std::process::exit(1);
+    }
+    let ephe = std::ffi::CString::new(ephe_dir).expect("ephe path has NUL");
+    unsafe { swe_set_ephe_path(ephe.as_ptr()) };
+
+    let mut csv = String::new();
+    csv.push_str("# Source: Swiss Ephemeris 2.10.03 (libswisseph-sys 0.1.2), SEFLG_SWIEPH with seas_18/sepl_18/semo_18 (SHA-256 pinned in tools/se-aspects-reference/src/pins.rs).\n");
+    csv.push_str("# A row is an instant at which wrap180(lon(first) - lon(second)) of swe_calc(jd_tt, body, iflag|SEFLG_SPEED)\n");
+    csv.push_str("# equals +angle or -angle, scanned on a 0.05-day grid (0.01 day with the Moon), each step split at the zero\n");
+    csv.push_str("# of the relative longitude speed, and bisected to 1e-7 day. jd_tt is TT.\n");
+    csv.push_str("# geo: apparent, tropical, true equinox of date (default flags) with SEFLG_SWIEPH; Sun with Ceres, Pallas, Juno, Vesta JD 2415025.5-2488064.5, Moon-Ceres JD 2447892.5-2462502.5.\n");
+    csv.push_str("# Angles 0, 60, 90, 120, 180.\n");
+    csv.push_str("# rel_speed_deg_per_day is the longitude speed of first less that of second at the row's instant.\n");
+    csv.push_str("# No turning point of any pair's separation is within 30 arcsec of one of its levels (the tool fails otherwise).\n");
+    csv.push_str("group,first,second,angle_deg,jd_tt,first_lon_deg,second_lon_deg,rel_speed_deg_per_day\n");
+    let mut rows = 0usize;
+    {
+        let mut push = |row: String| {
+            rows += 1;
+            writeln!(csv, "{row}").unwrap();
+        };
+        const ASTEROIDS: [Body; 4] = [(17, "Ceres"), (18, "Pallas"), (19, "Juno"), (20, "Vesta")];
+        for asteroid in ASTEROIDS {
+            scan(&mut push, "geo", SUN, asteroid, GEO_SWIEPH, FULL_SPAN, GRID_DAYS);
+        }
+        scan(&mut push, "geo", MOON, (17, "Ceres"), GEO_SWIEPH, SHORT_SPAN, MOON_GRID_DAYS);
+    }
+    let manifest = format!(
+        "slice aspects-asteroids file=asteroids.csv role=aspects rows={rows} checksum={}\n",
+        pins::fnv1a64(&csv)
+    );
+    std::fs::create_dir_all(&out_dir).unwrap_or_else(|e| panic!("create {out_dir}: {e}"));
+    let csv_path = format!("{out_dir}/asteroids.csv");
+    let manifest_path = format!("{out_dir}/asteroids-manifest.txt");
+    std::fs::write(&csv_path, &csv).unwrap_or_else(|e| panic!("write {csv_path}: {e}"));
+    std::fs::write(&manifest_path, &manifest)
+        .unwrap_or_else(|e| panic!("write {manifest_path}: {e}"));
+    eprintln!("wrote {csv_path} ({rows} rows) and {manifest_path}");
 }

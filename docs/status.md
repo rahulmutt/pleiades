@@ -24,7 +24,7 @@ not restated here.
 | Longitude crossings (geocentric apparent or mean of date, heliocentric; tropical or sidereal) | [`pleiades-events`](../crates/pleiades-events) | `validate-crossings` | arcsecond-class |
 | Ecliptic position & speed (geocentric apparent, geocentric mean-of-date, heliocentric; tropical or sidereal zodiac) | [`pleiades-events`](../crates/pleiades-events) | `validate-helio-position` (heliocentric), `validate-apparent` (geocentric); mean-of-date and sidereal longitudes through the `validate-crossings` gate (their speeds are unit-tested only) | arcsecond-class geocentric; arcsecond-class heliocentric |
 | Planetary stations (geocentric apparent or mean of date; tropical or sidereal) | [`pleiades-events`](../crates/pleiades-events) | `validate-stations` | arcsecond-class longitude; timing within 22 minutes of Swiss Ephemeris (planets; true node existence-checked only) |
-| Exact aspects between two bodies (geocentric apparent or mean of date, heliocentric; tropical or sidereal) | [`pleiades-events`](../crates/pleiades-events) | `validate-aspects` | event for event with Swiss Ephemeris; separation within 3″ at the exact moment |
+| Exact aspects between two bodies (geocentric apparent or mean of date, heliocentric; tropical or sidereal) | [`pleiades-events`](../crates/pleiades-events) | `validate-aspects` | event for event with Swiss Ephemeris (planets, plus Sun–Ceres..Vesta and Moon–Ceres against SWIEPH); separation within 3″ at the exact moment |
 | Rise/set/transit & horizontal | [`pleiades-events`](../crates/pleiades-events) | `validate-rise-trans` | sub-arcsecond (horizontal); timing seconds-of-time |
 | Fictitious bodies | [`pleiades-fict`](../crates/pleiades-fict) | `validate-fictitious` | definitional (sub-arcsecond) |
 | Nodes & apsides | [`pleiades-events`](../crates/pleiades-events) | `validate-nod-aps` | sub-arcsecond (mean) / arcminute-class (osculating) |
@@ -39,6 +39,8 @@ crate source in this repo; gate names are the runnable `validate-*` subcommands
 (and `release-gate`) that guard each surface.
 
 **Asteroid stations (issue #167 (d)).** Ceres, Pallas, Juno and Vesta are compared station for station against `stations-corpus/asteroids.csv`, which `tools/se-stations-reference --asteroids` generates from Swiss Ephemeris SWIEPH with the SHA-256-pinned `seas_18`/`sepl_18`/`semo_18` files. Swiss Ephemeris's asteroid positions agree with JPL's sb441-n373s within 2.26″ (`docs/superpowers/specs/notes/2026-10-10-se-asteroid-agreement.md`). These series run in the full gate only (`mise run gate-stations`, the nightly `stations-gate` job). asteroid:433-Eros is not gated for events: Swiss Ephemeris keeps it in a separate per-asteroid file that is not pinned. Its positions are gated against sb441.
+
+**Asteroid aspects (issue #168 (f)).** The exact aspects (0, 60, 90, 120 and 180 degrees) of Sun–Ceres, Sun–Pallas, Sun–Juno and Sun–Vesta over 1900–2100, and of Moon–Ceres over 1990–2030, are compared event for event (9108 events) against `aspects-corpus/asteroids.csv`, which `tools/se-aspects-reference --asteroids` generates from Swiss Ephemeris SWIEPH with the SHA-256-pinned `seas_18`/`sepl_18`/`semo_18` files. Swiss Ephemeris's asteroid positions agree with JPL's sb441-n373s within 2.26″ (`docs/superpowers/specs/notes/2026-10-10-se-asteroid-agreement.md`). These series run in the full gate only (`mise run gate-aspects`, the nightly `aspects-gate` job); the `release-smoke` mean subset is unchanged. The asteroid pass adds about 41 s in release on the 24-core dev box (full gate, planets and asteroids: 126.7 s there, 2026-10-10). asteroid:433-Eros is not gated for events: Swiss Ephemeris keeps it in a separate per-asteroid file that is not pinned. Its positions are gated against sb441.
 
 ### Known limits
 
@@ -60,8 +62,7 @@ crate source in this repo; gate names are the runnable `validate-*` subcommands
   asteroid:433-Eros segments are the old sparse snapshot fit. `asteroid:99942-Apophis` stays snapshot-only: it is served only at
   the sample rows of the sparse JPL Horizons fixture (a nine-day cluster in
   January 2001 from 2001-01-06) and any other date returns an out-of-range
-  error. Asteroid aspects are searched but ungated (#168 (f)); asteroid
-  stations are gated (see above). Other asteroids need `pleiades_jpl::SpkBackend` with a JPL kernel
+  error. Asteroid stations and aspects are gated (see above). Other asteroids need `pleiades_jpl::SpkBackend` with a JPL kernel
   (`docs/spk-kernel-sourcing.md`).
 - Apparent place omits gravitational light-deflection. Rise/set/transit and
   horizontal coordinates read the `TimeScale` tag on their query instants and
