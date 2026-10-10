@@ -518,3 +518,86 @@ fn chunked_scan_matches_the_single_scan_at_every_seam() {
         assert_eq!(got.unwrap(), want, "{}", series.body_name);
     }
 }
+
+#[test]
+fn asteroid_corpus_rows_parse_into_four_geo_series() {
+    let series = parse_corpus(ASTEROID_CSV).expect("asteroid corpus parses");
+    let names: Vec<&str> = series.iter().map(|s| s.body_name).collect();
+    assert_eq!(names, ["Ceres", "Pallas", "Juno", "Vesta"]);
+    assert!(series.iter().all(|s| s.group == Group::Geo));
+    assert!(series.iter().all(|s| span(s) == FULL_SPAN));
+    assert!(series.iter().all(|s| ceilings_for(s.body_name).is_some()));
+}
+
+#[test]
+fn asteroid_corpus_tampering_fails_closed() {
+    let tampered = ASTEROID_CSV.replacen(",R\n", ",D\n", 1);
+    assert!(matches!(
+        validate_scoped(&tampered, ASTEROID_MANIFEST, Scope::Asteroids),
+        Err(StationsError::ChecksumMismatch { .. })
+    ));
+    let (rows, checksum) = parse_manifest(ASTEROID_MANIFEST).unwrap();
+    let drifted = format!(
+        "slice stations-asteroids file=asteroids.csv role=stations rows={} checksum={checksum}\n",
+        rows + 1
+    );
+    assert!(matches!(
+        validate_scoped(ASTEROID_CSV, &drifted, Scope::Asteroids),
+        Err(StationsError::ManifestDrift { .. })
+    ));
+}
+
+#[test]
+fn a_missing_asteroid_station_fails_the_count() {
+    let mut lines: Vec<&str> = ASTEROID_CSV.lines().collect();
+    let first_row = lines
+        .iter()
+        .position(|l| l.starts_with("geo,Ceres,"))
+        .expect("a Ceres row");
+    lines.remove(first_row);
+    let csv = lines.join("\n") + "\n";
+    let (rows, _) = parse_manifest(ASTEROID_MANIFEST).unwrap();
+    let manifest = format!(
+        "slice stations-asteroids file=asteroids.csv role=stations rows={} checksum={}\n",
+        rows - 1,
+        fnv1a64(&csv)
+    );
+    assert!(matches!(
+        validate_scoped(&csv, &manifest, Scope::Asteroids),
+        Err(StationsError::CountMismatch { .. })
+    ));
+}
+
+#[test]
+fn asteroid_scope_floor_is_its_own() {
+    assert_eq!(Scope::Asteroids.floor(), MIN_ROWS_VALIDATED_ASTEROIDS);
+    assert!(Scope::Asteroids.includes(Group::Geo));
+    let (rows, _) = parse_manifest(ASTEROID_MANIFEST).unwrap();
+    assert_eq!(
+        rows, MIN_ROWS_VALIDATED_ASTEROIDS,
+        "every asteroid row is compared"
+    );
+}
+
+#[test]
+fn full_report_keeps_the_planet_summary_prefix() {
+    let planets = StationsReport {
+        rows_validated: 2,
+        series_lines: vec!["geo Mercury: …".into()],
+        summary_line: "Stations gate: 2 stations validated".into(),
+    };
+    let asteroids = StationsReport {
+        rows_validated: 3,
+        series_lines: vec!["geo Ceres: …".into()],
+        summary_line: "Asteroid stations: 3 stations validated".into(),
+    };
+    let merged = planets.merged_with(asteroids);
+    assert_eq!(merged.rows_validated, 5);
+    assert_eq!(merged.series_lines, ["geo Mercury: …", "geo Ceres: …"]);
+    assert!(merged
+        .summary_line
+        .starts_with("Stations gate: 2 stations validated; "));
+    assert!(merged
+        .summary_line
+        .ends_with("Asteroid stations: 3 stations validated"));
+}

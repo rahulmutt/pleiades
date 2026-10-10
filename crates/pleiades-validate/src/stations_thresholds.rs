@@ -83,6 +83,10 @@ pub(crate) const MIN_ROWS_VALIDATED: usize = 5542;
 /// compared on 2026-10-02 (734).
 pub(crate) const MIN_ROWS_VALIDATED_MEAN_SID_SUBSET: usize = 734;
 
+/// Fail-closed floor for the asteroid corpus: every row of `asteroids.csv`
+/// (1225, generated 2026-10-10), so a dropped station fails.
+pub(crate) const MIN_ROWS_VALIDATED_ASTEROIDS: usize = 1225;
+
 /// Ceilings by corpus body name, or `None` for a body the gate does not cover.
 pub(crate) fn ceilings_for(body_name: &str) -> Option<Ceilings> {
     match body_name {
@@ -139,6 +143,29 @@ pub(crate) fn ceilings_for(body_name: &str) -> Option<Ceilings> {
         "TrueNode" => Some(Ceilings {
             time_s: 270_000.0,
             lon_arcsec: 78.0,
+        }),
+        // Asteroids: measured × 1.4, rounded up to two significant figures;
+        // `lon_arcsec` is never below 2.3" (the 2.2584" Vesta longitude
+        // floor of Swiss Ephemeris seas_18 vs JPL sb441, rounded up).
+        // measured max 127.2 s, 1.500" (geo; SWIEPH seas_18 corpus, 2026-10-10)
+        "Ceres" => Some(Ceilings {
+            time_s: 180.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 143.5 s, 1.815" (geo; SWIEPH seas_18 corpus, 2026-10-10)
+        "Pallas" => Some(Ceilings {
+            time_s: 210.0,
+            lon_arcsec: 2.6,
+        }),
+        // measured max 229.8 s, 0.925" (geo; SWIEPH seas_18 corpus, 2026-10-10)
+        "Juno" => Some(Ceilings {
+            time_s: 330.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 60.5 s, 1.678" (geo; SWIEPH seas_18 corpus, 2026-10-10)
+        "Vesta" => Some(Ceilings {
+            time_s: 85.0,
+            lon_arcsec: 2.4,
         }),
         _ => None,
     }
