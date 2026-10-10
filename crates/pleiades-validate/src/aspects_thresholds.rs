@@ -19,7 +19,9 @@
 //!
 //! The asteroid pairs (issue #168) were measured on 2026-10-10 against the
 //! SWIEPH (seas_18) asteroid corpus; their ceilings use × 1.4 and a 2.3"
-//! floor, recorded beside them.
+//! floor on separation and longitude (from the Swiss Ephemeris vs sb441
+//! spike, `docs/superpowers/specs/notes/2026-10-10-se-asteroid-agreement.md`),
+//! recorded beside them.
 //!
 //! The longitude ceiling bounds the difference of either body's longitude
 //! at the event. It includes the body's motion over the time residual.

@@ -361,7 +361,7 @@ fn first_mean_mars_saturn_conjunction() -> &'static str {
         .expect("the corpus has a mean Mars-Saturn conjunction")
 }
 
-// Opt-in: the full gate measured 18.5 minutes on 2026-10-02, which nightly
+// Opt-in: the planet-pair gate measured 18.5 minutes on 2026-10-02 (the asteroid pass adds about 41 s in release), which nightly
 // `test-full` cannot afford. `mise run gate-aspects` runs it (its own nightly
 // job and a `release-gate` dependency).
 #[test]

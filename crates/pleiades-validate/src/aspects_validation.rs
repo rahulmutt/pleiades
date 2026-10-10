@@ -653,15 +653,17 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
     })
 }
 
-/// The full gate: every corpus pair at every angle, floor
-/// `MIN_ROWS_VALIDATED` (10359 events). Run by `validate-aspects` /
+/// The full gate: every planet corpus pair at every angle (floor
+/// `MIN_ROWS_VALIDATED`, 10359 events), then the asteroid pairs (floor
+/// `MIN_ROWS_VALIDATED_ASTEROIDS`, 9108 events). Run by `validate-aspects` /
 /// `mise run gate-aspects` (its own nightly job and a `release-gate`
 /// dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test. About
 /// 880 s (15 min) as the command and 1110.8 s (18.5 min) as the in-crate
-/// test, dev/test profile (2026-10-02); too slow for nightly `test-full`.
-///
-/// It then runs the five asteroid pairs (`Scope::Asteroids`, 9108 events,
-/// floor `MIN_ROWS_VALIDATED_ASTEROIDS`) after the planet pairs.
+/// test, dev/test profile (2026-10-02; planet pairs only); too slow for
+/// nightly `test-full`. The asteroid pass (`Scope::Asteroids`, five pairs)
+/// adds about 41 s in the release profile on the 24-core dev box
+/// (2026-10-10; the nightly runner is not yet measured), and the whole gate
+/// took 126.7 s there in release.
 pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
     let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;
