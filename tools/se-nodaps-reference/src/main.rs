@@ -64,9 +64,11 @@
 //! `semo_18.se1` and `seas_18.se1` (the main-belt asteroid file). They are
 //! gitignored and never committed or distributed; fetch them from
 //! https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/ . All three
-//! are verified before anything is computed or written, and any row whose
-//! SWIEPH request falls back to Moshier (SE reports it in `serr`) aborts the
-//! run.
+//! are verified before anything is computed or written; that SHA-256 pin
+//! verification is the primary guard against a Moshier fallback. As a best
+//! effort extra check, a row whose last SE sub-call left a warning in `serr`
+//! aborts the run (`swe_nod_aps` makes several `swe_calc` calls, each clearing
+//! `serr`, so earlier warnings can be lost).
 //!
 //! Build (needs libclang, hence devenv):
 //!   devenv shell -- env CFLAGS=-std=gnu17 cargo build --release \
@@ -87,12 +89,13 @@ use std::os::raw::{c_char, c_int};
 use libswisseph_sys::raw::{swe_nod_aps, swe_set_ephe_path, swe_version};
 
 // SE default output minus gravitational deflection (see plan §R3):
+const SEFLG_SWIEPH: c_int = 2;
 // SEFLG_MOSEPH=4, SEFLG_SPEED=256, SEFLG_NOGDEFL=512.
 const IFLAG_MOSEPH: c_int = 4 | 256 | 512;
 // Method-4 (barycentric) rows only: SEFLG_SWIEPH=2 instead of MOSEPH, because
 // Moshier cannot produce the barycentric positions SE_NODBIT_OSCU_BAR needs
 // for bodies beyond ~6 AU (see module doc).
-const IFLAG_SWIEPH: c_int = 2 | 256 | 512;
+const IFLAG_SWIEPH: c_int = SEFLG_SWIEPH | 256 | 512;
 
 // swe_nod_aps `method` bit flags (see swephexp.h).
 const SE_NODBIT_MEAN: c_int = 1;
@@ -324,9 +327,12 @@ fn emit_row(
             serr_string(&serr)
         );
     }
-    // A SWIEPH request that cannot be served falls back to Moshier with a
-    // warning in serr (ret stays >= 0); refuse such rows.
-    if iflag & 2 != 0 && !serr_string(&serr).is_empty() {
+    // Best effort only: a SWIEPH request that cannot be served falls back to
+    // Moshier with a warning in serr (ret stays >= 0), but swe_nod_aps makes
+    // several swe_calc sub-calls that each clear serr, so only the last call's
+    // warning survives. The SHA-256 pin verification of the ephemeris files is
+    // the primary guard.
+    if iflag & SEFLG_SWIEPH != 0 && !serr_string(&serr).is_empty() {
         panic!(
             "SWIEPH request for {label} (se={se_body}) at jd_tt={jd_tt} did not run clean: {}",
             serr_string(&serr)
