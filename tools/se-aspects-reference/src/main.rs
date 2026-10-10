@@ -23,12 +23,14 @@
 //! Grazes: the corpus must hold no model-dependent event. If any turning
 //! point of a pair's separation comes within 30 arcseconds of one of its
 //! levels, on either side, the tool panics and names the pair, angle and
-//! instant, and no corpus is written. Counts per pair and angle go to STDERR.
+//! instant, and no corpus is written. Counts per pair and angle, and each
+//! pair's turning points and closest turn to a level, go to STDERR.
 //!
 //! Ephemeris: Moshier (SEFLG_MOSEPH), no data files needed.
 //!
 //! Asteroid mode (`--asteroids --out <dir> [--ephe <dir>]`): `geo` aspects of
-//! the Sun with Ceres, Pallas, Juno and Vesta (SE ids 17-20) over the full
+//! the Sun with Ceres, Pallas, Juno and Vesta (SE ids 17-20) and of Mars with
+//! Vesta and Jupiter with Ceres (pairs whose separation turns) over the full
 //! span, and of the Moon with Ceres over 1990-2030, with the `geo` flags but
 //! SEFLG_SWIEPH instead of SEFLG_MOSEPH, from the `seas_18`/`sepl_18`/`semo_18`
 //! files pinned in `pins.rs` (verified before anything is written). The same
@@ -82,6 +84,10 @@ const MARS: Body = (4, "Mars");
 const JUPITER: Body = (5, "Jupiter");
 const SATURN: Body = (6, "Saturn");
 const PLUTO: Body = (9, "Pluto");
+const CERES: Body = (17, "Ceres");
+const PALLAS: Body = (18, "Pallas");
+const JUNO: Body = (19, "Juno");
+const VESTA: Body = (20, "Vesta");
 
 /// The pleiades-events window (JD 2415020.5–2488069.5) less five days at each
 /// end, so neither side of the comparison meets the engine's edge clamp.
@@ -96,6 +102,19 @@ const BISECT_TOLERANCE_DAYS: f64 = 1e-7;
 /// Ephemeris (Moshier) and pleiades separations.
 const GRAZE_MARGIN_DEG: f64 = 30.0 / 3600.0;
 const ANGLES: [f64; 5] = [0.0, 60.0, 90.0, 120.0, 180.0];
+
+/// The asteroid-mode pairs: `(first, second, span, grid)`, all `geo` with
+/// `GEO_SWIEPH`. The separation of a Sun or Moon pair never turns; Mars–Vesta
+/// and Jupiter–Ceres turn 188 and 315 times over the span (issue #253).
+const ASTEROID_PAIRS: [(Body, Body, (f64, f64), f64); 7] = [
+    (SUN, CERES, FULL_SPAN, GRID_DAYS),
+    (SUN, PALLAS, FULL_SPAN, GRID_DAYS),
+    (SUN, JUNO, FULL_SPAN, GRID_DAYS),
+    (SUN, VESTA, FULL_SPAN, GRID_DAYS),
+    (MOON, CERES, SHORT_SPAN, MOON_GRID_DAYS),
+    (MARS, VESTA, FULL_SPAN, GRID_DAYS),
+    (JUPITER, CERES, FULL_SPAN, GRID_DAYS),
+];
 
 /// `(longitude_deg in [0, 360), longitude_speed_deg_per_day)`.
 fn state(jd_tt: f64, ipl: c_int, iflag: c_int) -> (f64, f64) {
@@ -193,6 +212,8 @@ fn scan(
     let at = |jd: f64| sample(jd, first, second, iflag);
     let mut events: Vec<Vec<Sample>> = vec![Vec::new(); ANGLES.len()];
     let steps = ((hi - lo) / grid).floor() as u64;
+    let mut turns = 0usize;
+    let mut closest_miss = f64::INFINITY;
     let mut prev = at(lo);
     for k in 1..=steps {
         let cur = at(lo + k as f64 * grid);
@@ -206,9 +227,11 @@ fn scan(
                 prev.rel_speed,
                 cur.jd,
             ));
+            turns += 1;
             for angle in ANGLES {
                 for level in levels(angle) {
                     let miss = wrap180(turn.separation - level).abs();
+                    closest_miss = closest_miss.min(miss);
                     assert!(
                         miss >= GRAZE_MARGIN_DEG,
                         "graze: {group},{},{} turns {:.2} arcsec from the {angle} degree level \
@@ -238,6 +261,16 @@ fn scan(
             }
         }
         prev = cur;
+    }
+    if turns == 0 {
+        eprintln!("{group},{},{}: no turning points", first.1, second.1);
+    } else {
+        eprintln!(
+            "{group},{},{}: {turns} turning points, closest {:.1} arcsec from a level",
+            first.1,
+            second.1,
+            closest_miss * 3600.0
+        );
     }
     for (index, angle) in ANGLES.iter().enumerate() {
         events[index].sort_by(|x, y| x.jd.total_cmp(&y.jd));
@@ -320,7 +353,7 @@ fn asteroids_main(args: &[String]) {
     csv.push_str("# A row is an instant at which wrap180(lon(first) - lon(second)) of swe_calc(jd_tt, body, iflag|SEFLG_SPEED)\n");
     csv.push_str("# equals +angle or -angle, scanned on a 0.05-day grid (0.01 day with the Moon), each step split at the zero\n");
     csv.push_str("# of the relative longitude speed, and bisected to 1e-7 day. jd_tt is TT.\n");
-    csv.push_str("# geo: apparent, tropical, true equinox of date (default flags) with SEFLG_SWIEPH; Sun with Ceres, Pallas, Juno, Vesta JD 2415025.5-2488064.5, Moon-Ceres JD 2447892.5-2462502.5.\n");
+    csv.push_str("# geo: apparent, tropical, true equinox of date (default flags) with SEFLG_SWIEPH; Sun with Ceres, Pallas, Juno, Vesta, Mars-Vesta, Jupiter-Ceres JD 2415025.5-2488064.5, Moon-Ceres JD 2447892.5-2462502.5.\n");
     csv.push_str("# Angles 0, 60, 90, 120, 180.\n");
     csv.push_str("# rel_speed_deg_per_day is the longitude speed of first less that of second at the row's instant.\n");
     csv.push_str("# No turning point of any pair's separation is within 30 arcsec of one of its levels (the tool fails otherwise).\n");
@@ -331,11 +364,9 @@ fn asteroids_main(args: &[String]) {
             rows += 1;
             writeln!(csv, "{row}").unwrap();
         };
-        const ASTEROIDS: [Body; 4] = [(17, "Ceres"), (18, "Pallas"), (19, "Juno"), (20, "Vesta")];
-        for asteroid in ASTEROIDS {
-            scan(&mut push, "geo", SUN, asteroid, GEO_SWIEPH, FULL_SPAN, GRID_DAYS);
+        for (first, second, span, grid) in ASTEROID_PAIRS {
+            scan(&mut push, "geo", first, second, GEO_SWIEPH, span, grid);
         }
-        scan(&mut push, "geo", MOON, (17, "Ceres"), GEO_SWIEPH, SHORT_SPAN, MOON_GRID_DAYS);
     }
     let manifest = format!(
         "slice aspects-asteroids file=asteroids.csv role=aspects rows={rows} checksum={}\n",

@@ -22,7 +22,7 @@ or the finders' handling of slow, loop-making bodies fails a gate.
 |---|---|---|
 | Reference authority | Swiss Ephemeris, `SEFLG_SWIEPH` with `seas_18.se1` | Same authority as every other event gate; #160 names SE rows as the intended fix. Pleiades' own finders on JPL kernels would gate the ephemeris, not the finders, and break the convention. |
 | Bodies | Ceres, Pallas, Juno, Vesta | Covered by `seas_18.se1`. Eros needs SE's separate per-asteroid file; it stays ungated for events (positions remain gated against sb441). |
-| Aspect pairs | Ceres–Sun, Pallas–Sun, Juno–Sun, Vesta–Sun, Ceres–Moon | Sun pairs cover conjunction/opposition and the retrograde loops; Ceres–Moon adds a fast partner that stresses the scan step. |
+| Aspect pairs | Ceres–Sun, Pallas–Sun, Juno–Sun, Vesta–Sun, Ceres–Moon; Mars–Vesta, Jupiter–Ceres (#253) | Sun pairs cover conjunction/opposition; Ceres–Moon adds a fast partner that stresses the scan step. *Corrected by #253:* a Sun–asteroid separation never turns (the relative speed stays at least 0.354°/day), so the Sun pairs do not cover the retrograde loops. Mars–Vesta and Jupiter–Ceres, whose separations turn 188 and 315 times over 1900–2100, were added for them. |
 | Structure | Separate `asteroids.csv` per corpus, read by the existing gates | Planet corpora and checksums cannot drift; asteroid rows inherit each gate's tiering; one gate per event family. |
 
 Rejected: appending asteroid rows to the existing CSVs (a regeneration would mix
@@ -86,7 +86,9 @@ The planet code paths, flags and output are unchanged.
 
 - `geo` pairs Ceres–Sun, Pallas–Sun, Juno–Sun, Vesta–Sun over `FULL_SPAN`;
   Ceres–Moon over `SHORT_SPAN` (JD 2447892.5–2462502.5) with the Moon grid,
-  as Sun–Moon uses.
+  as Sun–Moon uses. Added by #253: Mars–Vesta and Jupiter–Ceres over
+  `FULL_SPAN`, whose separations turn (closest turn to an angle level 276.2″
+  and 209.5″).
 - Angles 0, 60, 90, 120 and 180°; the existing refusal of a turning point
   within 30″ of an angle level applies unchanged.
 - Output: `crates/pleiades-validate/data/aspects-corpus/asteroids.csv` and
@@ -113,7 +115,7 @@ against its manifest, exactly as the planet file is verified.
   20 (Vesta) is accepted.
 - **Ceilings.** Per asteroid (stations: time and longitude in
   `stations_thresholds.rs`), per pair (aspects: separation and longitude in
-  `aspects_thresholds.rs`; the five asteroid pairs live in a separate
+  `aspects_thresholds.rs`; the asteroid pairs (five, seven since #253) live in a separate
   `ASTEROID_PAIRS` table used by `Scope::Asteroids`, and the planet `PAIRS`
   stays at 11), and a new
   `ASTEROID` category beside PLANET and MOON (nod-aps, `nod_aps_thresholds.rs`).

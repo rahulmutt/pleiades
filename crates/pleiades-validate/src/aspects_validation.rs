@@ -14,10 +14,14 @@
 //! runs in its own nightly job and in `release-gate`; the `mean` subset
 //! (about 16 s) runs in the release battery (`release-smoke`).
 //!
-//! Asteroids (issue #168): Sun–Ceres, Sun–Pallas, Sun–Juno and Sun–Vesta over
-//! 1900–2100 and Moon–Ceres over 1990–2030 are compared event for event
-//! against `asteroids.csv`, generated with SWIEPH and seas_18 by the same
-//! tool's `--asteroids` mode, in the full gate only.
+//! Asteroids (issue #168): Sun–Ceres, Sun–Pallas, Sun–Juno, Sun–Vesta,
+//! Mars–Vesta and Jupiter–Ceres over 1900–2100 and Moon–Ceres over 1990–2030
+//! are compared event for event against `asteroids.csv`, generated with
+//! SWIEPH and seas_18 by the same tool's `--asteroids` mode, in the full gate
+//! only. A Sun or Moon pair's separation never turns; Mars–Vesta and
+//! Jupiter–Ceres turn 188 and 315 times, so the asteroids' retrograde loops
+//! reach the gate (issue #253). None of their turns comes within 209" of an
+//! angle, and no two events of one angle fall within one 2-day search step.
 
 use crate::aspects_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_ASTEROIDS,
@@ -183,12 +187,14 @@ const PAIRS: [Pair; 11] = [
 
 /// The asteroid corpus plan, mirroring the `--asteroids` mode of
 /// `tools/se-aspects-reference`.
-const ASTEROID_PAIRS: [Pair; 5] = [
+const ASTEROID_PAIRS: [Pair; 7] = [
     pair(Group::Geo, "Sun", "Ceres", FULL_SPAN),
     pair(Group::Geo, "Sun", "Pallas", FULL_SPAN),
     pair(Group::Geo, "Sun", "Juno", FULL_SPAN),
     pair(Group::Geo, "Sun", "Vesta", FULL_SPAN),
     pair(Group::Geo, "Moon", "Ceres", SHORT_SPAN),
+    pair(Group::Geo, "Mars", "Vesta", FULL_SPAN),
+    pair(Group::Geo, "Jupiter", "Ceres", FULL_SPAN),
 ];
 
 fn body_from_name(name: &str) -> Option<CelestialBody> {
@@ -655,15 +661,15 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
 
 /// The full gate: every planet corpus pair at every angle (floor
 /// `MIN_ROWS_VALIDATED`, 10359 events), then the asteroid pairs (floor
-/// `MIN_ROWS_VALIDATED_ASTEROIDS`, 9108 events). Run by `validate-aspects` /
+/// `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events). Run by `validate-aspects` /
 /// `mise run gate-aspects` (its own nightly job and a `release-gate`
 /// dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test. About
 /// 880 s (15 min) as the command and 1110.8 s (18.5 min) as the in-crate
 /// test, dev/test profile (2026-10-02; planet pairs only); too slow for
-/// nightly `test-full`. The asteroid pass (`Scope::Asteroids`, five pairs)
-/// adds about 41 s in the release profile on the 24-core dev box
-/// (2026-10-10; the nightly runner is not yet measured), and the whole gate
-/// took 126.7 s there in release.
+/// nightly `test-full`. The asteroid pass (`Scope::Asteroids`, seven pairs)
+/// took 54.5 s in the release profile on the 24-core dev box under load
+/// (2026-10-10; five pairs took about 41 s; the nightly runner is not yet
+/// measured).
 pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
     let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;
