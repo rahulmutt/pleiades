@@ -7,9 +7,15 @@
 //! Task 8 provisional (deliberately generous) placeholders.
 //!
 //! Categories (see `crate::nod_aps_validation`'s module doc for the split):
-//! `MEAN_PLANET`, `MEAN_MOON`, `OSCU_PLANET`, `OSCU_MOON` — mean vs
-//! osculating (methods 2 and 4 both count as osculating), Moon vs
-//! everything else (Sun and the eight classical planets). Sun ascending/
+//! `MEAN_PLANET`, `MEAN_MOON`, `OSCU_PLANET`, `OSCU_MOON`, `OSCU_ASTEROID` —
+//! mean vs osculating (methods 2 and 4 both count as osculating), Moon vs
+//! asteroids vs everything else (Sun and the eight classical planets).
+//!
+//! The `OSCU_ASTEROID` ceilings (Ceres, Pallas, Juno, Vesta; issue #160) were
+//! measured on 2026-10-10 over the 32-row SWIEPH (`seas_18`) asteroid corpus
+//! (`data/nod-aps-corpus/asteroids.csv`): measured × 1.4, rounded up to two
+//! significant figures, with angle ceilings never below 2.3″ (the
+//! Swiss-Ephemeris-vs-sb441 agreement floor of 2.2584″). Sun ascending/
 //! descending rows are excluded from these ceilings entirely: since Task 9
 //! (§R8) they are asserted exactly zero (both engine and SE side) rather
 //! than gated against a residual ceiling — see `nod_aps_validation`'s
@@ -79,3 +85,23 @@ pub const OSCU_MOON_DISTANCE_REL: f64 = 1.5e-3;
 /// longitude ceiling above; dropped from the Task 8 provisional 5.0 now
 /// that the true maximum is measured.
 pub const OSCU_MOON_LON_SPEED_DEG_DAY: f64 = 4.0;
+
+/// Measured max 27.048″ (Ceres perihelion, jd 2433282.5) on the 2026-10-10
+/// SWIEPH asteroid corpus; ceiling × 1.4, rounded up to two significant
+/// figures. Per point: ascending 8.230″, descending 4.390″, perihelion
+/// 27.048″, aphelion 19.414″ — the apse line again carries the largest
+/// residual, as for OSCU_PLANET, though Ceres's e≈0.08 amplifies far less.
+pub const OSCU_ASTEROID_LONGITUDE_ARCSEC: f64 = 38.0;
+/// Measured max 1.392″ (Ceres aphelion, jd 2433282.5) on the 2026-10-10
+/// SWIEPH asteroid corpus; × 1.4 is 1.95″, raised to the 2.3″ floor set by
+/// the Swiss-Ephemeris-vs-sb441 asteroid agreement (2.2584″,
+/// `docs/superpowers/specs/notes/2026-10-10-se-asteroid-agreement.md`).
+pub const OSCU_ASTEROID_LATITUDE_ARCSEC: f64 = 2.3;
+/// Measured max 5.847e-5 (Ceres perihelion, jd 2433282.5) on the 2026-10-10
+/// SWIEPH asteroid corpus; ceiling × 1.4, rounded up to two significant
+/// figures.
+pub const OSCU_ASTEROID_DISTANCE_REL: f64 = 8.2e-5;
+/// Measured max 2.230e-4 deg/day (Juno perihelion, jd 2477476.5) on the
+/// 2026-10-10 SWIEPH asteroid corpus; ceiling × 1.4, rounded up to two
+/// significant figures.
+pub const OSCU_ASTEROID_LON_SPEED_DEG_DAY: f64 = 3.2e-4;

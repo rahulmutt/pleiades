@@ -54,9 +54,32 @@
 //! each of the 4 points asc/dsc/peri/apo, 24 values total) is asserted
 //! finite before the row is appended. No partial rows are ever emitted.
 //!
+//! ## `--asteroids` mode
+//!
+//! `--asteroids` writes `asteroids.csv` + `asteroids-manifest.txt` instead of
+//! the planet files: 32 osculating (`SE_NODBIT_OSCU`, fopoint 0) rows for
+//! Ceres, Pallas, Juno and Vesta (SE 17-20) at the 8 `EPOCHS`, computed with
+//! `SEFLG_SWIEPH` (same 29-column layout as `nod-aps.csv`). It reads three
+//! SHA-256-pinned DE431-derived files from the ephe dir: `sepl_18.se1`,
+//! `semo_18.se1` and `seas_18.se1` (the main-belt asteroid file). They are
+//! gitignored and never committed or distributed; fetch them from
+//! https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/ . All three
+//! are verified before anything is computed or written; that SHA-256 pin
+//! verification is the primary guard against a Moshier fallback. As a best
+//! effort extra check, a row whose last SE sub-call left a warning in `serr`
+//! aborts the run (`swe_nod_aps` makes several `swe_calc` calls, each clearing
+//! `serr`, so earlier warnings can be lost).
+//!
+//! Build (needs libclang, hence devenv):
+//!   devenv shell -- env CFLAGS=-std=gnu17 cargo build --release \
+//!     --manifest-path tools/se-nodaps-reference/Cargo.toml
+//! Regenerate (run the binary OUTSIDE devenv, which prints a banner):
+//!   se-nodaps-reference --asteroids --out crates/pleiades-validate/data/nod-aps-corpus
+//!
 //! Usage:
 //!   se-nodaps-reference --dry-run          # print CSV+manifest, no writes
 //!   se-nodaps-reference --out <dir>        # write the two files
+//!   se-nodaps-reference --asteroids [--dry-run | --out <dir>]  # asteroid rows
 //! Requires libclang + LIBCLANG_PATH to build. NOT needed to run the gate.
 
 use std::env;
@@ -66,12 +89,13 @@ use std::os::raw::{c_char, c_int};
 use libswisseph_sys::raw::{swe_nod_aps, swe_set_ephe_path, swe_version};
 
 // SE default output minus gravitational deflection (see plan §R3):
+const SEFLG_SWIEPH: c_int = 2;
 // SEFLG_MOSEPH=4, SEFLG_SPEED=256, SEFLG_NOGDEFL=512.
 const IFLAG_MOSEPH: c_int = 4 | 256 | 512;
 // Method-4 (barycentric) rows only: SEFLG_SWIEPH=2 instead of MOSEPH, because
 // Moshier cannot produce the barycentric positions SE_NODBIT_OSCU_BAR needs
 // for bodies beyond ~6 AU (see module doc).
-const IFLAG_SWIEPH: c_int = 2 | 256 | 512;
+const IFLAG_SWIEPH: c_int = SEFLG_SWIEPH | 256 | 512;
 
 // swe_nod_aps `method` bit flags (see swephexp.h).
 const SE_NODBIT_MEAN: c_int = 1;
@@ -86,6 +110,27 @@ const SE_NODBIT_FOPOINT: c_int = 256;
 // the committed provenance.
 const SEPL_18_SHA256: &str = "ca1393ceab3a44fbc895887cf789c68819ae6a1cbc9b22225872dbe4ccd99a66";
 const SEMO_18_SHA256: &str = "1ca07bd67c24374d77226180c20a4f9996cba013697894810518e7eb582ca4f7";
+// Main-belt asteroid file (Ceres, Pallas, Juno, Vesta) for `--asteroids`.
+const SEAS_18_SHA256: &str = "a2cd8fc33807c78ca9a700c91c2e042258b12fc4796519e00781440b5ad8b2e2";
+
+const PLANET_SWIEPH_FILES: [(&str, &str); 2] = [
+    ("sepl_18.se1", SEPL_18_SHA256),
+    ("semo_18.se1", SEMO_18_SHA256),
+];
+const ASTEROID_SWIEPH_FILES: [(&str, &str); 3] = [
+    ("sepl_18.se1", SEPL_18_SHA256),
+    ("semo_18.se1", SEMO_18_SHA256),
+    ("seas_18.se1", SEAS_18_SHA256),
+];
+
+const CSV_HEADER: &str = "label,se_body,method,fopoint,jd_tt,\
+     asc_lon,asc_lat,asc_dist,asc_dlon,asc_dlat,asc_ddist,\
+     dsc_lon,dsc_lat,dsc_dist,dsc_dlon,dsc_dlat,dsc_ddist,\
+     peri_lon,peri_lat,peri_dist,peri_dlon,peri_dlat,peri_ddist,\
+     apo_lon,apo_lat,apo_dist,apo_dlon,apo_dlat,apo_ddist\n";
+
+/// (label, SE body number) for the `--asteroids` mode: Ceres..Vesta.
+const ASTEROIDS: [(&str, c_int); 4] = [("Ceres", 17), ("Pallas", 18), ("Juno", 19), ("Vesta", 20)];
 
 // Epochs spanning 1900-2100, >= 2 days inside the packaged window.
 const EPOCHS: [f64; 8] = [
@@ -207,18 +252,15 @@ fn sha256_hex(data: &[u8]) -> String {
     h.iter().map(|x| format!("{x:08x}")).collect()
 }
 
-/// Fail-closed guard for the method-4 (barycentric) rows: both SWIEPH data
-/// files must exist in `ephe_dir` and match their pinned SHA-256 digests.
-fn verify_swieph_files(ephe_dir: &str) {
-    for (name, want) in [
-        ("sepl_18.se1", SEPL_18_SHA256),
-        ("semo_18.se1", SEMO_18_SHA256),
-    ] {
+/// Fail-closed guard for the SWIEPH-based rows: every file in `files`
+/// (name, pinned SHA-256) must exist in `ephe_dir` and match its digest.
+fn verify_swieph_files(ephe_dir: &str, files: &[(&str, &str)]) {
+    for &(name, want) in files {
         let path = format!("{ephe_dir}/{name}");
         let bytes = std::fs::read(&path).unwrap_or_else(|e| {
             panic!(
                 "cannot read {path}: {e}\n\
-                 The barycentric (method=4) rows need the SWIEPH data files. Download:\n\
+                 The SWIEPH-based rows need these data files. Download:\n\
                  curl -fLo {ephe_dir}/{name} \
                  https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/{name}"
             )
@@ -285,6 +327,17 @@ fn emit_row(
             serr_string(&serr)
         );
     }
+    // Best effort only: a SWIEPH request that cannot be served falls back to
+    // Moshier with a warning in serr (ret stays >= 0), but swe_nod_aps makes
+    // several swe_calc sub-calls that each clear serr, so only the last call's
+    // warning survives. The SHA-256 pin verification of the ephemeris files is
+    // the primary guard.
+    if iflag & SEFLG_SWIEPH != 0 && !serr_string(&serr).is_empty() {
+        panic!(
+            "SWIEPH request for {label} (se={se_body}) at jd_tt={jd_tt} did not run clean: {}",
+            serr_string(&serr)
+        );
+    }
     for v in xnasc.iter().chain(&xndsc).chain(&xperi).chain(&xaphe) {
         assert!(
             v.is_finite(),
@@ -321,13 +374,7 @@ fn build_csv(version: &str, ephe_dir: &str) -> (String, usize) {
          (offline backend chain cannot serve small bodies; this SE build's swe_nod_aps does not \
          implement fictitious bodies). Times are TT (Terrestrial Time) Julian days.\n",
     );
-    csv.push_str(
-        "label,se_body,method,fopoint,jd_tt,\
-         asc_lon,asc_lat,asc_dist,asc_dlon,asc_dlat,asc_ddist,\
-         dsc_lon,dsc_lat,dsc_dist,dsc_dlon,dsc_dlat,dsc_ddist,\
-         peri_lon,peri_lat,peri_dist,peri_dlon,peri_dlat,peri_ddist,\
-         apo_lon,apo_lat,apo_dist,apo_dlon,apo_dlat,apo_ddist\n",
-    );
+    csv.push_str(CSV_HEADER);
 
     // 1. Mean rows: (Sun, Moon, Mercury..Neptune) x EPOCHS x method=mean,
     //    fopoint=false -> 9 x 8 = 72 rows. Pluto is dropped: SE does not
@@ -385,7 +432,7 @@ fn build_csv(version: &str, ephe_dir: &str) -> (String, usize) {
     //    EPOCHS_SHORT[..4] x method=osculating-barycentric -> 5 x 4 = 20 rows
     //    (Jupiter pins the <= 6 AU heliocentric fallback). SWIEPH-based:
     //    verify the pinned data files fail-closed before emitting anything.
-    verify_swieph_files(ephe_dir);
+    verify_swieph_files(ephe_dir, &PLANET_SWIEPH_FILES);
     for &(label, se_body) in &PLANETS[5..10] {
         for &jd_tt in &EPOCHS_SHORT[..4] {
             emit_row(
@@ -421,6 +468,61 @@ fn build_csv(version: &str, ephe_dir: &str) -> (String, usize) {
     (csv, rows)
 }
 
+fn build_asteroid_csv(version: &str, ephe_dir: &str) -> (String, usize) {
+    // Verify before computing anything: fail closed.
+    verify_swieph_files(ephe_dir, &ASTEROID_SWIEPH_FILES);
+    let mut csv = String::new();
+    let mut rows = 0usize;
+    csv.push_str(&format!(
+        "# Source: Swiss Ephemeris {version} (libswisseph-sys 0.1.2), swe_nod_aps, iflag={IFLAG_SWIEPH} \
+         (SEFLG_SWIEPH|SEFLG_SPEED|SEFLG_NOGDEFL, DE431-derived sepl_18.se1/semo_18.se1/seas_18.se1, \
+         SHA-256 pinned in the generator).\n"
+    ));
+    csv.push_str(
+        "# Osculating (method=2, SE_NODBIT_OSCU, fopoint=0) nodes/apsides for Ceres, Pallas, \
+         Juno, Vesta (SE 17-20). Times are TT (Terrestrial Time) Julian days.\n",
+    );
+    csv.push_str(CSV_HEADER);
+    for &(label, se_body) in &ASTEROIDS {
+        for &jd_tt in &EPOCHS {
+            emit_row(
+                &mut csv,
+                &mut rows,
+                label,
+                se_body,
+                IFLAG_SWIEPH,
+                SE_NODBIT_OSCU,
+                false,
+                jd_tt,
+            );
+        }
+    }
+    assert_eq!(rows, 32, "asteroid corpus must have 32 rows");
+    (csv, rows)
+}
+
+fn build_asteroid_manifest(version: &str, csv: &str, rows: usize) -> String {
+    let mut m = String::new();
+    m.push_str("corpus: nod-aps-asteroids\n");
+    m.push_str(&format!(
+        "source: Swiss Ephemeris {version} (SWIEPH, DE431-derived sepl_18/semo_18/seas_18)\n"
+    ));
+    m.push_str("generator: tools/se-nodaps-reference --asteroids\n");
+    m.push_str(&format!(
+        "file: asteroids.csv rows={rows} checksum={}\n",
+        fnv1a64(csv)
+    ));
+    m.push_str(&format!(
+        "iflag: {IFLAG_SWIEPH} (SEFLG_SWIEPH|SEFLG_SPEED|SEFLG_NOGDEFL); sepl_18.se1/semo_18.se1/\
+         seas_18.se1 SHA-256-pinned in the generator\n"
+    ));
+    m.push_str("methods: 2=SE_NODBIT_OSCU (fopoint=0)\n");
+    m.push_str("bodies: SE 17-20 Ceres, Pallas, Juno, Vesta\n");
+    m.push_str("times: TT (Terrestrial Time) Julian days\n");
+    m.push_str("window: 1900-2100 CE (EPOCHS 8-point grid)\n");
+    m
+}
+
 fn build_manifest(version: &str, csv: &str, rows: usize) -> String {
     let mut m = String::new();
     m.push_str("corpus: nod-aps\n");
@@ -454,6 +556,7 @@ fn build_manifest(version: &str, csv: &str, rows: usize) -> String {
 
 struct Config {
     dry_run: bool,
+    asteroids: bool,
     out_dir: String,
     ephe_dir: String,
 }
@@ -466,12 +569,14 @@ const DEFAULT_EPHE_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/data");
 
 fn parse_args() -> Config {
     let mut dry_run = false;
+    let mut asteroids = false;
     let mut out_dir = ".".to_string();
     let mut ephe_dir = env::var("SE_EPHE_PATH").unwrap_or_else(|_| DEFAULT_EPHE_DIR.to_string());
     let mut args = env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
             "--dry-run" => dry_run = true,
+            "--asteroids" => asteroids = true,
             "--out" => out_dir = args.next().expect("--out needs a directory"),
             "--ephe" => ephe_dir = args.next().expect("--ephe needs a directory"),
             other if !other.starts_with("--") => out_dir = other.to_string(),
@@ -480,6 +585,7 @@ fn parse_args() -> Config {
     }
     Config {
         dry_run,
+        asteroids,
         out_dir,
         ephe_dir,
     }
@@ -492,15 +598,29 @@ fn main() {
     unsafe { swe_set_ephe_path(ephe.as_ptr()) };
 
     let version = se_version();
-    let (csv, rows) = build_csv(&version, &cfg.ephe_dir);
-    let manifest = build_manifest(&version, &csv, rows);
+    let (csv, rows, manifest, csv_name, mf_name, expected) = if cfg.asteroids {
+        let (csv, rows) = build_asteroid_csv(&version, &cfg.ephe_dir);
+        let manifest = build_asteroid_manifest(&version, &csv, rows);
+        (
+            csv,
+            rows,
+            manifest,
+            "asteroids.csv",
+            "asteroids-manifest.txt",
+            32,
+        )
+    } else {
+        let (csv, rows) = build_csv(&version, &cfg.ephe_dir);
+        let manifest = build_manifest(&version, &csv, rows);
+        (csv, rows, manifest, "nod-aps.csv", "manifest.txt", 184)
+    };
 
     if cfg.dry_run {
         print!("{csv}");
-        println!("# ---- manifest.txt ----");
+        println!("# ---- {mf_name} ----");
         print!("{manifest}");
         eprintln!(
-            "dry-run: nod-aps rows={rows} (expected 184), SE {version} (ephe={})",
+            "dry-run: {csv_name} rows={rows} (expected {expected}), SE {version} (ephe={})",
             cfg.ephe_dir
         );
         return;
@@ -508,8 +628,8 @@ fn main() {
 
     std::fs::create_dir_all(&cfg.out_dir)
         .unwrap_or_else(|e| panic!("create_dir_all {}: {e}", cfg.out_dir));
-    let csv_path = format!("{}/nod-aps.csv", cfg.out_dir);
-    let mf_path = format!("{}/manifest.txt", cfg.out_dir);
+    let csv_path = format!("{}/{csv_name}", cfg.out_dir);
+    let mf_path = format!("{}/{mf_name}", cfg.out_dir);
     std::fs::write(&csv_path, &csv).unwrap_or_else(|e| panic!("write {csv_path}: {e}"));
     std::fs::write(&mf_path, &manifest).unwrap_or_else(|e| panic!("write {mf_path}: {e}"));
     eprintln!("wrote {csv_path} ({rows} rows), {mf_path}; SE {version}");

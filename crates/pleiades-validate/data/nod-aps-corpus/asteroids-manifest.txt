@@ -1,0 +1,9 @@
+corpus: nod-aps-asteroids
+source: Swiss Ephemeris 2.10.03 (SWIEPH, DE431-derived sepl_18/semo_18/seas_18)
+generator: tools/se-nodaps-reference --asteroids
+file: asteroids.csv rows=32 checksum=18270164710041781455
+iflag: 770 (SEFLG_SWIEPH|SEFLG_SPEED|SEFLG_NOGDEFL); sepl_18.se1/semo_18.se1/seas_18.se1 SHA-256-pinned in the generator
+methods: 2=SE_NODBIT_OSCU (fopoint=0)
+bodies: SE 17-20 Ceres, Pallas, Juno, Vesta
+times: TT (Terrestrial Time) Julian days
+window: 1900-2100 CE (EPOCHS 8-point grid)
