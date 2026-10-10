@@ -2,7 +2,7 @@
 title: "Stations gate failing"
 labels: stations-gate-failure
 ---
-The scheduled **full planetary-stations gate** (`mise run gate-stations`) failed.
+The scheduled **full planetary-stations gate** (`mise run gate-stations`; planets, true node, and Ceres–Vesta) failed.
 
 - Failing run: {{ env.RUN_URL }}
 - Commit: {{ sha }}

@@ -54,7 +54,7 @@ pub fn fnv1a64(text: &str) -> u64 {
 }
 
 /// Minimal embedded SHA-256 (FIPS 180-4), public-domain-style, no deps.
-/// Used only to pin the two SWIEPH data files; unit-tested below against the
+/// Used only to pin the three SWIEPH data files; unit-tested below against the
 /// canonical b"abc" digest.
 pub fn sha256_hex(data: &[u8]) -> String {
     const K: [u32; 64] = [
