@@ -218,7 +218,7 @@ mean,Mercury,Venus,60,2451650.0000000,70.000000000,10.000000000,-0.900000000
 
 #[test]
 fn corpus_rows_parse_with_their_pair_and_angle() {
-    let rows = parse_corpus(SMALL_CSV).unwrap();
+    let rows = parse_corpus(SMALL_CSV, &PAIRS).unwrap();
     assert_eq!(rows.len(), 4);
     let pair = |row: &Row| {
         (
@@ -254,7 +254,10 @@ fn malformed_rows_are_rejected() {
     ] {
         let csv = format!("{header}{bad}");
         assert!(
-            matches!(parse_corpus(&csv), Err(AspectsError::MalformedRow(_))),
+            matches!(
+                parse_corpus(&csv, &PAIRS),
+                Err(AspectsError::MalformedRow(_))
+            ),
             "{bad}"
         );
     }
@@ -376,8 +379,11 @@ fn aspects_gate_passes_within_ceilings() {
         eprintln!("{line}");
     }
     eprintln!("full gate: {:.1} s", started.elapsed().as_secs_f64());
-    assert!(report.rows_validated >= MIN_ROWS_VALIDATED);
-    assert_eq!(report.pair_lines().len(), 11);
+    assert!(report.rows_validated >= MIN_ROWS_VALIDATED + MIN_ROWS_VALIDATED_ASTEROIDS);
+    assert_eq!(
+        report.pair_lines().len(),
+        PAIRS.len() + ASTEROID_PAIRS.len()
+    );
 }
 
 #[test]
@@ -465,4 +471,98 @@ fn a_shifted_reference_instant_exceeds_the_separation_ceiling() {
         }
         other => panic!("{other:?}"),
     }
+}
+
+#[test]
+fn asteroid_corpus_parses_into_the_five_asteroid_pairs() {
+    let rows = parse_corpus(ASTEROID_CSV, &ASTEROID_PAIRS).expect("asteroid corpus parses");
+    let (rows_manifest, _) = parse_manifest(ASTEROID_MANIFEST).unwrap();
+    assert_eq!(rows.len(), rows_manifest);
+    let names: Vec<String> = ASTEROID_PAIRS
+        .iter()
+        .map(|pair| format!("{}-{}", pair.first, pair.second))
+        .collect();
+    assert_eq!(
+        names,
+        [
+            "Sun-Ceres",
+            "Sun-Pallas",
+            "Sun-Juno",
+            "Sun-Vesta",
+            "Moon-Ceres"
+        ]
+    );
+    for (index, pair) in ASTEROID_PAIRS.iter().enumerate() {
+        assert_eq!(pair.group, Group::Geo);
+        assert!(
+            rows.iter().any(|row| row.pair == index),
+            "no rows for {}",
+            names[index]
+        );
+        assert!(body_from_name(pair.first).is_some(), "{}", pair.first);
+        assert!(body_from_name(pair.second).is_some(), "{}", pair.second);
+        assert!(ceilings_for(&names[index]).is_some(), "{}", names[index]);
+    }
+    assert!(rows.iter().all(|row| row.pair < ASTEROID_PAIRS.len()));
+    // The planet plan does not know the asteroid pairs.
+    assert!(matches!(
+        parse_corpus(ASTEROID_CSV, &PAIRS),
+        Err(AspectsError::MalformedRow(_))
+    ));
+}
+
+#[test]
+fn asteroid_corpus_tampering_fails_closed() {
+    let tampered = ASTEROID_CSV.replacen("geo,Sun,Ceres,", "geo,Sun,Ceres, ", 1);
+    assert_ne!(tampered, ASTEROID_CSV);
+    assert!(matches!(
+        validate_scoped(&tampered, ASTEROID_MANIFEST, Scope::Asteroids),
+        Err(AspectsError::ChecksumMismatch { .. })
+    ));
+    let (rows, checksum) = parse_manifest(ASTEROID_MANIFEST).unwrap();
+    let drifted = format!(
+        "slice aspects-asteroids file=asteroids.csv role=aspects rows={} checksum={checksum}\n",
+        rows + 1
+    );
+    assert!(matches!(
+        validate_scoped(ASTEROID_CSV, &drifted, Scope::Asteroids),
+        Err(AspectsError::ManifestDrift { .. })
+    ));
+}
+
+#[test]
+fn asteroid_scope_floor_is_its_own() {
+    assert_eq!(Scope::Asteroids.floor(), MIN_ROWS_VALIDATED_ASTEROIDS);
+    assert!(Scope::Asteroids.includes(Group::Geo));
+    assert_eq!(Scope::Asteroids.pairs().len(), ASTEROID_PAIRS.len());
+    assert_eq!(Scope::Full.pairs().len(), PAIRS.len());
+    assert_eq!(Scope::MeanSubset.pairs().len(), PAIRS.len());
+    let (rows, _) = parse_manifest(ASTEROID_MANIFEST).unwrap();
+    assert_eq!(
+        rows, MIN_ROWS_VALIDATED_ASTEROIDS,
+        "every asteroid row is compared"
+    );
+}
+
+#[test]
+fn full_report_keeps_the_planet_summary_prefix() {
+    let planets = AspectsReport {
+        rows_validated: 2,
+        pair_lines: vec!["geo Sun-Moon: …".into()],
+        summary_line: "Aspects gate: 2 exact aspects validated".into(),
+    };
+    let asteroids = AspectsReport {
+        rows_validated: 3,
+        pair_lines: vec!["geo Sun-Ceres: …".into()],
+        summary_line: "Asteroid aspects: 3 exact aspects validated".into(),
+    };
+    let merged = planets.merged_with(asteroids);
+    assert_eq!(merged.rows_validated, 5);
+    assert_eq!(merged.pair_lines, ["geo Sun-Moon: …", "geo Sun-Ceres: …"]);
+    assert!(merged
+        .summary_line
+        .starts_with("Aspects gate: 2 exact aspects validated; "));
+    assert!(merged
+        .summary_line
+        .ends_with("Asteroid aspects: 3 exact aspects validated"));
 }

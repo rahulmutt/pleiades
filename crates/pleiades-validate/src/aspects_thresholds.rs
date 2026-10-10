@@ -17,6 +17,10 @@
 //! the event: the separation residual, in arcseconds. The largest time
 //! residual per pair is reported by the gate, with no ceiling of its own.
 //!
+//! The asteroid pairs (issue #168) were measured on 2026-10-10 against the
+//! SWIEPH (seas_18) asteroid corpus; their ceilings use × 1.4 and a 2.3"
+//! floor, recorded beside them.
+//!
 //! The longitude ceiling bounds the difference of either body's longitude
 //! at the event. It includes the body's motion over the time residual.
 
@@ -39,6 +43,10 @@ pub(crate) const MIN_ROWS_VALIDATED: usize = 10_359;
 /// `validate_aspects_corpus_subset`): the count that subset compared on
 /// 2026-10-02 (372).
 pub(crate) const MIN_ROWS_VALIDATED_MEAN_SUBSET: usize = 372;
+
+/// Fail-closed floor for the asteroid corpus: every row of `asteroids.csv`
+/// (9108, generated 2026-10-10), so a dropped event fails.
+pub(crate) const MIN_ROWS_VALIDATED_ASTEROIDS: usize = 9108;
 
 /// Ceilings by corpus pair name (`"Mars-Saturn"`), or `None` for a pair the
 /// gate does not cover.
@@ -83,6 +91,36 @@ pub(crate) fn ceilings_for(pair: &str) -> Option<Ceilings> {
         "Saturn-Pluto" => Some(Ceilings {
             sep_arcsec: 2.4,
             lon_arcsec: 2.5,
+        }),
+        // Asteroids (Swiss Ephemeris SWIEPH seas_18 corpus): measured × 1.4,
+        // rounded up to two significant figures; neither ceiling is below
+        // 2.3" (the 2.2584" Vesta longitude floor of Swiss Ephemeris seas_18
+        // vs JPL sb441, rounded up).
+        // measured max 1.445", 1.506" (geo; SWIEPH seas_18 corpus, 2026-10-10)
+        "Sun-Ceres" => Some(Ceilings {
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 2.623", 2.196" (geo; SWIEPH seas_18 corpus, 2026-10-10)
+        "Sun-Pallas" => Some(Ceilings {
+            sep_arcsec: 3.7,
+            lon_arcsec: 3.1,
+        }),
+        // measured max 0.910", 0.969" (geo; SWIEPH seas_18 corpus, 2026-10-10)
+        "Sun-Juno" => Some(Ceilings {
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 2.459", 1.693" (geo; SWIEPH seas_18 corpus, 2026-10-10)
+        "Sun-Vesta" => Some(Ceilings {
+            sep_arcsec: 3.5,
+            lon_arcsec: 2.4,
+        }),
+        // measured max 0.761", 0.764" (geo 1990–2030; SWIEPH seas_18 corpus,
+        // 2026-10-10)
+        "Moon-Ceres" => Some(Ceilings {
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
         _ => None,
     }

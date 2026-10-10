@@ -13,9 +13,15 @@
 //! 18.5 minutes as the in-crate test, 1110.8 s; dev/test profile, 2026-10-02)
 //! runs in its own nightly job and in `release-gate`; the `mean` subset
 //! (about 16 s) runs in the release battery (`release-smoke`).
+//!
+//! Asteroids (issue #168): Sun–Ceres, Sun–Pallas, Sun–Juno and Sun–Vesta over
+//! 1900–2100 and Moon–Ceres over 1990–2030 are compared event for event
+//! against `asteroids.csv`, generated with SWIEPH and seas_18 by the same
+//! tool's `--asteroids` mode, in the full gate only.
 
 use crate::aspects_thresholds::{
-    ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_MEAN_SUBSET,
+    ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_ASTEROIDS,
+    MIN_ROWS_VALIDATED_MEAN_SUBSET,
 };
 use pleiades_apparent::fnv1a64;
 use pleiades_data::packaged_backend;
@@ -29,6 +35,14 @@ const CORPUS_CSV: &str = include_str!(concat!(
 const MANIFEST: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/aspects-corpus/manifest.txt"
+));
+const ASTEROID_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/aspects-corpus/asteroids.csv"
+));
+const ASTEROID_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/aspects-corpus/asteroids-manifest.txt"
 ));
 
 /// The spans `tools/se-aspects-reference` scanned (Julian days, TT). The
@@ -53,6 +67,10 @@ enum Scope {
     /// The `mean` group only, for the release battery
     /// (`run_all_numeric_gates`), where the full 1900–2100 scans are too slow.
     MeanSubset,
+    /// The asteroid corpus (`asteroids.csv`, Swiss Ephemeris SWIEPH with
+    /// seas_18): the [`ASTEROID_PAIRS`]. Part of the full gate only (issue
+    /// #168).
+    Asteroids,
 }
 
 impl Scope {
@@ -60,6 +78,7 @@ impl Scope {
         match self {
             Self::Full => true,
             Self::MeanSubset => group == Group::Mean,
+            Self::Asteroids => true,
         }
     }
 
@@ -67,6 +86,7 @@ impl Scope {
         match self {
             Self::Full => MIN_ROWS_VALIDATED,
             Self::MeanSubset => MIN_ROWS_VALIDATED_MEAN_SUBSET,
+            Self::Asteroids => MIN_ROWS_VALIDATED_ASTEROIDS,
         }
     }
 
@@ -75,6 +95,15 @@ impl Scope {
         match self {
             Self::Full => "Aspects gate",
             Self::MeanSubset => "Aspects gate (mean subset)",
+            Self::Asteroids => "Asteroid aspects",
+        }
+    }
+
+    /// The corpus plan this scope's corpus was generated from.
+    fn pairs(self) -> &'static [Pair] {
+        match self {
+            Self::Full | Self::MeanSubset => &PAIRS,
+            Self::Asteroids => &ASTEROID_PAIRS,
         }
     }
 }
@@ -152,6 +181,16 @@ const PAIRS: [Pair; 11] = [
     pair(Group::Helio, "Mars", "Jupiter", FULL_SPAN),
 ];
 
+/// The asteroid corpus plan, mirroring the `--asteroids` mode of
+/// `tools/se-aspects-reference`.
+const ASTEROID_PAIRS: [Pair; 5] = [
+    pair(Group::Geo, "Sun", "Ceres", FULL_SPAN),
+    pair(Group::Geo, "Sun", "Pallas", FULL_SPAN),
+    pair(Group::Geo, "Sun", "Juno", FULL_SPAN),
+    pair(Group::Geo, "Sun", "Vesta", FULL_SPAN),
+    pair(Group::Geo, "Moon", "Ceres", SHORT_SPAN),
+];
+
 fn body_from_name(name: &str) -> Option<CelestialBody> {
     Some(match name {
         "Sun" => CelestialBody::Sun,
@@ -162,6 +201,10 @@ fn body_from_name(name: &str) -> Option<CelestialBody> {
         "Jupiter" => CelestialBody::Jupiter,
         "Saturn" => CelestialBody::Saturn,
         "Pluto" => CelestialBody::Pluto,
+        "Ceres" => CelestialBody::Ceres,
+        "Pallas" => CelestialBody::Pallas,
+        "Juno" => CelestialBody::Juno,
+        "Vesta" => CelestialBody::Vesta,
         _ => return None,
     })
 }
@@ -182,7 +225,8 @@ struct Expected {
     rel_speed_deg_per_day: f64,
 }
 
-/// One corpus row, with its pair and angle as indices into [`PAIRS`] and
+/// One corpus row, with its pair and angle as indices into the corpus plan
+/// it was parsed against ([`PAIRS`] or [`ASTEROID_PAIRS`]) and into
 /// [`ANGLES_DEG`].
 #[derive(Clone, Copy, Debug)]
 struct Row {
@@ -281,11 +325,13 @@ impl std::fmt::Display for AspectsError {
 
 impl std::error::Error for AspectsError {}
 
-fn parse_corpus(csv: &str) -> Result<Vec<Row>, AspectsError> {
+/// Parses `csv` against the corpus plan `pairs`: a row whose pair is not in
+/// the plan is malformed.
+fn parse_corpus(csv: &str, pairs: &[Pair]) -> Result<Vec<Row>, AspectsError> {
     let malformed = |what: String| AspectsError::MalformedRow(what);
     let mut rows = Vec::new();
     // The last instant seen in each pair-and-angle series.
-    let mut last_jd = [[f64::NEG_INFINITY; ANGLES_DEG.len()]; PAIRS.len()];
+    let mut last_jd = vec![[f64::NEG_INFINITY; ANGLES_DEG.len()]; pairs.len()];
     for line in csv.lines() {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') || line.starts_with("group,") {
@@ -300,7 +346,7 @@ fn parse_corpus(csv: &str) -> Result<Vec<Row>, AspectsError> {
         }
         let group = Group::from_name(fields[0])
             .ok_or_else(|| malformed(format!("unknown group {} in {line}", fields[0])))?;
-        let pair = PAIRS
+        let pair = pairs
             .iter()
             .position(|p| p.group == group && p.first == fields[1] && p.second == fields[2])
             .ok_or_else(|| {
@@ -483,6 +529,18 @@ impl AspectsReport {
     pub fn pair_lines(&self) -> &[String] {
         &self.pair_lines
     }
+
+    /// The planet report followed by the asteroid report: rows summed, pair
+    /// lines in order, summary lines joined with "; ".
+    fn merged_with(self, other: AspectsReport) -> AspectsReport {
+        let mut pair_lines = self.pair_lines;
+        pair_lines.extend(other.pair_lines);
+        AspectsReport {
+            rows_validated: self.rows_validated + other.rows_validated,
+            pair_lines,
+            summary_line: format!("{}; {}", self.summary_line, other.summary_line),
+        }
+    }
 }
 
 fn validate(csv: &str, manifest: &str) -> Result<AspectsReport, AspectsError> {
@@ -498,7 +556,7 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
             want: manifest_checksum,
         });
     }
-    let rows = parse_corpus(csv)?;
+    let rows = parse_corpus(csv, scope.pairs())?;
     if rows.len() != manifest_rows {
         return Err(AspectsError::ManifestDrift {
             rows_csv: rows.len(),
@@ -512,7 +570,8 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
     let tdb = |jd: f64| Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
     let mut total = Residuals::default();
     let mut pair_lines = Vec::new();
-    let in_scope = PAIRS
+    let in_scope = scope
+        .pairs()
         .iter()
         .enumerate()
         .filter(|(_, pair)| scope.includes(pair.group));
@@ -573,8 +632,13 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
         total.absorb(residuals);
     }
     check_floor(total.matched, scope.floor())?;
+    let source = if scope == Scope::Asteroids {
+        "Swiss Ephemeris SWIEPH (seas_18) corpus"
+    } else {
+        "Swiss Ephemeris corpus"
+    };
     let summary_line = format!(
-        "{}: {} exact aspects validated across {} pairs vs Swiss Ephemeris corpus (event for event at 0, 60, 90, 120 and 180 degrees), max separation residual {:.3}\", max time {:.1} s, max lon {:.3}\"",
+        "{}: {} exact aspects validated across {} pairs vs {source} (event for event at 0, 60, 90, 120 and 180 degrees), max separation residual {:.3}\", max time {:.1} s, max lon {:.3}\"",
         scope.title(),
         total.matched,
         pair_lines.len(),
@@ -595,8 +659,13 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
 /// dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test. About
 /// 880 s (15 min) as the command and 1110.8 s (18.5 min) as the in-crate
 /// test, dev/test profile (2026-10-02); too slow for nightly `test-full`.
+///
+/// It then runs the five asteroid pairs (`Scope::Asteroids`, 9108 events,
+/// floor `MIN_ROWS_VALIDATED_ASTEROIDS`) after the planet pairs.
 pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
-    validate(CORPUS_CSV, MANIFEST)
+    let planets = validate(CORPUS_CSV, MANIFEST)?;
+    let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;
+    Ok(planets.merged_with(asteroids))
 }
 
 /// The release-battery subset: verifies the checksum and row count of the
