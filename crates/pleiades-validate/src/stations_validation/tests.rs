@@ -291,8 +291,9 @@ fn manifest_parses_rows_and_checksum() {
 }
 
 // Opt-in: the full gate was nightly `test-full-validate`'s long pole (~105 s
-// on the 4-core runner, FU-23 (u)). `mise run gate-stations` runs it (its own
-// nightly job and a `release-gate` dependency).
+// on the 4-core runner on 2026-10-04, FU-23 (u); 28-29 s by 2026-10-15).
+// `mise run gate-stations` runs it (its own nightly job and a `release-gate`
+// dependency).
 #[test]
 fn stations_gate_passes_within_ceilings() {
     if std::env::var("PLEIADES_FULL_STATIONS_GATE").as_deref() != Ok("1") {
@@ -543,6 +544,38 @@ fn asteroid_corpus_tampering_fails_closed() {
     );
     assert!(matches!(
         validate_scoped(ASTEROID_CSV, &drifted, Scope::Asteroids),
+        Err(StationsError::ManifestDrift { .. })
+    ));
+}
+
+// Issue #254: the release-battery subset checks the asteroid corpus against
+// its manifest before any scan, so these fail in milliseconds.
+#[test]
+fn committed_asteroid_corpus_matches_its_manifest() {
+    let series = check_manifest(ASTEROID_CSV, ASTEROID_MANIFEST).expect("manifest matches");
+    let rows: usize = series.iter().map(|s| s.stations.len()).sum();
+    assert_eq!(rows, MIN_ROWS_VALIDATED_ASTEROIDS);
+}
+
+#[test]
+fn mean_sid_subset_fails_a_tampered_asteroid_corpus() {
+    let tampered = ASTEROID_CSV.replacen(",R\n", ",D\n", 1);
+    assert_ne!(tampered, ASTEROID_CSV);
+    assert!(matches!(
+        validate_subset(&tampered, ASTEROID_MANIFEST),
+        Err(StationsError::ChecksumMismatch { .. })
+    ));
+}
+
+#[test]
+fn mean_sid_subset_fails_an_asteroid_manifest_row_count_drift() {
+    let (rows, checksum) = parse_manifest(ASTEROID_MANIFEST).unwrap();
+    let drifted = format!(
+        "slice stations-asteroids file=asteroids.csv role=stations rows={} checksum={checksum}\n",
+        rows - 1
+    );
+    assert!(matches!(
+        validate_subset(ASTEROID_CSV, &drifted),
         Err(StationsError::ManifestDrift { .. })
     ));
 }

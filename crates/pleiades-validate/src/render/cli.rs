@@ -163,17 +163,18 @@ const NUMERIC_GATES: &[NumericGate] = &[
             .map(drop)
             .map_err(|e| e.to_string())
     }),
-    // The full stations gate takes minutes; it runs as `mise run
-    // gate-stations` (its own nightly job and a `release-gate` dependency).
-    // The battery compares the mean/sid subset.
+    // The full stations gate runs as `mise run gate-stations` (its own
+    // nightly job and a `release-gate` dependency). The battery compares the
+    // mean/sid subset. Both subsets also check the asteroid corpus's checksum
+    // and row count against its manifest, without scanning (#254).
     ("stations gate (mean/sid subset) failed", || {
         crate::validate_stations_corpus_subset()
             .map(drop)
             .map_err(|e| e.to_string())
     }),
-    // The full aspects gate takes ~15 minutes as `mise run
-    // gate-aspects` (18.5 as the in-crate test); it has its own nightly job and
-    // is a `release-gate` dependency.
+    // The full aspects gate takes about 2 minutes as `mise run gate-aspects`
+    // on the nightly runner; it has its own nightly job and is a
+    // `release-gate` dependency.
     // The battery compares the mean subset.
     ("aspects gate (mean subset) failed", || {
         crate::validate_aspects_corpus_subset()

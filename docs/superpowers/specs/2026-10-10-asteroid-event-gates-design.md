@@ -131,10 +131,23 @@ against its manifest, exactly as the planet file is verified.
 
 ## 5. Tiers
 
-- Stations and aspects asteroid rows run in the full gates only: `mise run
-  gate-stations` / `gate-aspects`, the nightly `stations-gate` and
-  `aspects-gate` jobs, and so `release-gate`. The `release-smoke` subsets are
-  unchanged.
+- Stations and aspects asteroid rows are compared in the full gates only:
+  `mise run gate-stations` / `gate-aspects`, the nightly `stations-gate` and
+  `aspects-gate` jobs, and so `release-gate`. The `release-smoke` subsets
+  compare no asteroid rows.
+- Amended by issue #254: the `release-smoke` subsets
+  (`validate_stations_corpus_subset`, `validate_aspects_corpus_subset`) first
+  verify each `asteroids.csv` against its `asteroids-manifest.txt`, checksum,
+  parse and row count, with no engine scan (milliseconds). A hand-edited
+  asteroid CSV or a regenerated one whose manifest was not updated therefore
+  fails the blocking tier, not only the next nightly.
+- Measured nightly cost (issue #255; 4-core runner, five runs at 3f5849db6,
+  2026-10-11..15, warm build): the `validate-stations` command takes 28–29 s
+  (job 1m06s–1m27s; 20-min step / 30-min job timeout), with the asteroid pass
+  inside runner noise; the `validate-aspects` command takes 77–151 s, median
+  114 s (job 2m00s–3m07s; 80-min step / 90-min job timeout), against 82 s for
+  the planets alone the night before #251, so the asteroid pass is roughly
+  30 s. Both timeouts keep ample headroom.
 - Nod-aps's 32 rows join its existing full run in the release battery.
 
 ## 6. Documentation
