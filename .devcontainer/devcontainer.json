@@ -1,6 +1,6 @@
 {
   "name": "pleiades",
-  "image": "ghcr.io/rahulmutt/dev:sha-2a79fb9",
+  "image": "ghcr.io/rahulmutt/dev:sha-67e8a89",
   "workspaceFolder": "/workspace",
   "remoteUser": "dev",
   "containerEnv": {
