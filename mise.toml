@@ -202,17 +202,23 @@ description = "Mutation testing baseline over the pure-logic crates (report-only
 # the ENTIRE workspace suite per mutant by default, and pleiades-validate /
 # pleiades-cli carry individual tests of 300+ seconds (see
 # docs/superpowers/plans/test-timings.md). Without this flag one mutant costs
-# minutes, and the tier's ~2,843 mutants (1,415 measured over the three prior
-# crates + ~1,205 measured for pleiades-houses + 223 measured for
-# pleiades-apsides) are unschedulable at any cadence. Restricting to the
-# mutated package's own tests is also the semantically correct scope.
+# minutes, and the tier's 3,521 mutants (as of 2026-10-15: apparent 1,241,
+# houses 1,210, time 475, types 313, apsides 282) are unschedulable at any
+# cadence. Restricting to the mutated package's own tests is also the
+# semantically correct scope.
 # Exit code 2 (surviving mutants found) is an EXPECTED result here, not an error
 # — this tier is report-only. See .github/workflows/mutants.yml for the mapping.
+# `--shard k/n` (0-based k) runs every n-th mutant only; CI runs the set as
+# four round-robin shards in parallel (#258). Round-robin rather than
+# cargo-mutants' default slicing because slices follow crate order, and the
+# expensive pleiades-houses mutants would all land in one shard.
+usage = 'flag "--shard <shard>" help="Run one shard of the mutant set, for example 0/4 (0-based)"'
 run = """
 cargo mutants \
   --test-tool nextest \
   --test-workspace=false \
   --baseline run \
+  ${usage_shard:+--shard "$usage_shard" --sharding round-robin} \
   -p pleiades-types \
   -p pleiades-time \
   -p pleiades-apparent \
