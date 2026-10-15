@@ -226,4 +226,27 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn fixture_golden_rows_match_the_reference_snapshot() {
+        // Both hold the same Horizons rows at J2000, fixture_golden rounded to
+        // a millimetre. Issue #201: the Apophis snapshot row had drifted 25000
+        // km from its golden twin after a multi-epoch Horizons request.
+        let snapshot = crate::backend::snapshot_entries().expect("reference snapshot parses");
+        for golden in fixture_golden_corpus() {
+            let row = snapshot
+                .iter()
+                .find(|e| e.body == golden.body && e.epoch.julian_day == golden.epoch.julian_day)
+                .unwrap_or_else(|| panic!("no snapshot row for golden {}", golden.body));
+            let km = ((row.x_km - golden.x_km).powi(2)
+                + (row.y_km - golden.y_km).powi(2)
+                + (row.z_km - golden.z_km).powi(2))
+            .sqrt();
+            assert!(
+                km < 1e-5,
+                "{}: snapshot row {km} km from golden",
+                golden.body
+            );
+        }
+    }
 }

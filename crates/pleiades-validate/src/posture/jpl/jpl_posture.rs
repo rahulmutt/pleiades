@@ -674,7 +674,7 @@ mod tests {
         );
     }
 
-    const EXPECTED_INTERPOLATION_QUALITY_SUMMARY_LINE: &str = r"JPL interpolation quality: 219 samples across 16 bodies and 19 epochs (217 cubic, 2 quadratic, 0 linear), epoch window JD 2451545.0 (TDB) → JD 2500000.0 (TDB); leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span=181166.5 d (Ceres @ JD 2500000.0 (TDB)); mean bracket span=6009.8 d; median bracket span=2.0 d; p95 bracket span=36890.0 d; max Δlon=179.218062830799° (Pallas @ JD 2453000.5 (TDB)); mean Δlon=7.251597715784°; median Δlon=0.000000297373°; p95 Δlon=78.457354458624°; rms Δlon=30.747799488276°; max Δlat=27.987857088489° (Pallas @ JD 2453000.5 (TDB)); mean Δlat=0.374670972881°; median Δlat=0.000000044866°; p95 Δlat=0.374777622854°; rms Δlat=2.331428338151°; max Δdist=18591789.124255102128 AU (asteroid:433-Eros @ JD 2500000.0 (TDB)); mean Δdist=388499.071196755103 AU; median Δdist=0.000000019375 AU; p95 Δdist=277.465364380563 AU; rms Δdist=2577503.422592955176 AU; transparency evidence only, not a production tolerance envelope";
+    const EXPECTED_INTERPOLATION_QUALITY_SUMMARY_LINE: &str = r"JPL interpolation quality: 223 samples across 16 bodies and 19 epochs (223 cubic, 0 quadratic, 0 linear), epoch window JD 2451545.0 (TDB) → JD 2500000.0 (TDB); leave-one-out runtime interpolation evidence with worst-case bodies named, max bracket span=181166.5 d (Ceres @ JD 2500000.0 (TDB)); mean bracket span=6934.9 d; median bracket span=2.0 d; p95 bracket span=46961.4 d; max Δlon=179.218062830799° (Pallas @ JD 2453000.5 (TDB)); mean Δlon=8.041214898285°; median Δlon=0.000000332541°; p95 Δlon=80.619622268234°; rms Δlon=32.702769647353°; max Δlat=27.987857088489° (Pallas @ JD 2453000.5 (TDB)); mean Δlat=0.396808901238°; median Δlat=0.000000045655°; p95 Δlat=1.484296982870°; rms Δlat=2.335134877979°; max Δdist=30464538.352736100554 AU (asteroid:99942-Apophis @ JD 2500000.0 (TDB)); mean Δdist=518152.740007942659 AU; median Δdist=0.000000020598 AU; p95 Δdist=1027.889565384317 AU; rms Δdist=3268973.477932852693 AU; transparency evidence only, not a production tolerance envelope";
 
     #[test]
     fn checked_in_snapshot_schema_summary_for_report_reports_the_shared_schema() {
@@ -882,7 +882,7 @@ mod tests {
     fn interpolation_quality_summary_reports_the_worst_case_labels() {
         let summary =
             pleiades_jpl::jpl_interpolation_quality_summary().expect("summary should exist");
-        assert_eq!(summary.sample_count, 219);
+        assert_eq!(summary.sample_count, 223);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.epoch_count, 19);
         assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
@@ -893,7 +893,7 @@ mod tests {
             summary.sample_count
         );
         assert!(summary.cubic_sample_count > 0);
-        assert_eq!(summary.quadratic_sample_count, 2);
+        assert_eq!(summary.quadratic_sample_count, 0);
         assert_eq!(summary.linear_sample_count, 0);
         assert!(summary.mean_bracket_span_days.is_finite());
         assert!(summary.median_bracket_span_days.is_finite());
@@ -907,7 +907,7 @@ mod tests {
         assert!(rendered.contains("cubic"));
         assert!(rendered.contains("quadratic"));
         assert!(rendered.contains("linear"));
-        assert!(rendered.contains("219 samples across 16 bodies and 19 epochs"));
+        assert!(rendered.contains("223 samples across 16 bodies and 19 epochs"));
         assert!(rendered.contains("epoch window"));
         assert!(rendered.contains("mean bracket span="));
         assert!(rendered.contains("median bracket span="));
@@ -953,17 +953,17 @@ mod tests {
     fn interpolation_quality_kind_coverage_reports_the_distinct_body_breakdown() {
         let coverage =
             pleiades_jpl::jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
-        assert_eq!(coverage.sample_count, 219);
+        assert_eq!(coverage.sample_count, 223);
         assert_eq!(coverage.body_count, 16);
         assert_eq!(coverage.bodies.len(), coverage.body_count);
         assert!(!coverage.bodies.is_empty());
         assert!(coverage.cubic_body_count > 0);
-        assert_eq!(coverage.quadratic_body_count, 1);
+        assert_eq!(coverage.quadratic_body_count, 0);
         assert_eq!(coverage.linear_body_count, 0);
 
         let rendered = jpl_interpolation_quality_kind_coverage_line(&coverage);
         assert!(rendered.contains("JPL interpolation quality kind coverage:"));
-        assert!(rendered.contains("219 samples across 16 bodies ["));
+        assert!(rendered.contains("223 samples across 16 bodies ["));
         assert!(rendered.contains(&coverage.bodies[0]));
         assert!(rendered.contains("cubic bodies"));
         assert!(rendered.contains("quadratic bodies"));
@@ -978,7 +978,7 @@ mod tests {
     fn interpolation_quality_sample_request_corpus_reports_the_explicit_request_slice() {
         let summary = pleiades_jpl::interpolation_quality_sample_request_corpus_summary()
             .expect("sample request corpus should exist");
-        assert_eq!(summary.request_count, 219);
+        assert_eq!(summary.request_count, 223);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.bodies.len(), summary.body_count);
         assert!(!summary.bodies.is_empty());
@@ -1133,7 +1133,7 @@ mod tests {
             summary.derivation,
             "leave-one-out interpolation evidence derived from the checked-in reference snapshot"
         );
-        assert_eq!(summary.sample_count, 219);
+        assert_eq!(summary.sample_count, 223);
         assert_eq!(summary.body_count, 16);
         assert_eq!(summary.epoch_count, 19);
         assert_eq!(summary.validate(), Ok(()));
