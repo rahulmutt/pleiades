@@ -191,21 +191,30 @@ fn a_request_past_the_last_row_keeps_its_message() {
 }
 
 #[test]
-fn a_request_after_apophiss_last_row_names_the_row_and_the_remedy() {
-    for jd in [2_462_240.5, 2_451_920.5] {
+fn a_request_between_or_after_apophiss_isolated_rows_names_the_row_and_the_remedy() {
+    for (jd, nearest_row) in [
+        (2_451_920.5, "2451919.5"),
+        (2_462_240.5, "2453000.5"),
+        (2_634_168.0, "2634167"),
+    ] {
         let error = JplSnapshotBackend
             .position(&mean_request(apophis(), jd))
-            .expect_err("Apophis has no row after JD 2451919.5");
+            .expect_err("no Apophis rows support this instant");
         assert_eq!(error.kind, EphemerisErrorKind::OutOfRangeInstant, "JD {jd}");
         let message = error.to_string();
         assert!(message.contains("SpkBackend"), "{message}");
-        assert!(
-            message.contains("outside adjacent JPL fixture samples"),
-            "{message}"
-        );
         assert!(message.contains(&apophis().to_string()), "{message}");
-        assert!(message.contains("2451919.5"), "{message}");
+        assert!(message.contains(nearest_row), "{message}");
     }
+    let error = JplSnapshotBackend
+        .position(&mean_request(apophis(), 2_634_168.0))
+        .expect_err("past Apophis's last row");
+    assert!(
+        error
+            .to_string()
+            .contains("outside adjacent JPL fixture samples"),
+        "{error}"
+    );
 }
 
 #[test]
@@ -227,6 +236,7 @@ fn stencils_the_guard_admits_reproduce_held_out_rows() {
     let is_asteroid = |body: &CelestialBody| truth_bodies().contains(body) || *body == apophis();
     let mut asteroid_cases = 0_usize;
     let mut worst_asteroid = 0.0_f64;
+    let mut apophis_cases = 0_usize;
     for held_out in entries.iter().filter(|entry| is_asteroid(&entry.body)) {
         let jd = held_out.epoch.julian_day.days();
         let rest = entries
@@ -242,20 +252,22 @@ fn stencils_the_guard_admits_reproduce_held_out_rows() {
         let (longitude, latitude) =
             separation_arcsec(&interpolated.ecliptic(), &held_out.ecliptic());
         asteroid_cases += 1;
+        apophis_cases += usize::from(held_out.body == apophis());
         worst_asteroid = worst_asteroid.max(longitude.max(latitude));
     }
     assert!(asteroid_cases >= 40, "only {asteroid_cases} asteroid cases");
+    // JD 2451915.5, 2451917.5 and 2451918.5, each from the four rows around it.
+    assert_eq!(apophis_cases, 3, "Apophis cluster cases");
     assert!(
         worst_asteroid <= ADMITTED_ASTEROID_CEILING_ARCSEC,
         "asteroids: {worst_asteroid:.4}″"
     );
 }
 
-/// Measured 2026-10-06 over 49 admitted asteroid cases: the worst is 0.0032″,
-/// Juno at JD 2451918.5. The cases are Ceres, Pallas, Juno, Vesta and Eros;
-/// Apophis contributes none, as its cluster rows are too few to hold one out,
-/// so its in-cluster interpolation is served under the same rule but is not
-/// covered by this figure.
+/// Measured 2026-10-15 over 52 admitted asteroid cases: the worst is 0.0064″,
+/// Apophis at JD 2451915.5 (its three cases are 0.0053″ to 0.0064″); the
+/// worst of Ceres, Pallas, Juno, Vesta and Eros is 0.0019″, Pallas at JD
+/// 2451911.5. Apophis's cases rest on its JD 2451915.0 row (issue #201).
 const ADMITTED_ASTEROID_CEILING_ARCSEC: f64 = 0.05;
 
 /// Holds every major-body row out in turn, as the asteroid test above does.

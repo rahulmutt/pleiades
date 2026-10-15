@@ -280,7 +280,7 @@ fn reference_snapshot_source_summary_reports_the_expected_provenance() {
     );
     assert_eq!(
             summary.coverage,
-            "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Sun, Moon, Mercury and Venus sampled at 2415020.5 (1900-01-01), 2451915.25 and 2451915.75; Sun through Pluto sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; Ceres, Pallas, Juno, Vesta and asteroid:433-Eros sampled at 2378498.5, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.5, 2451917.5, 2451918.5, 2451919.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis sampled at 2378498.5, 2451545, 2451915.5, 2451917.5, 2451918.5, and 2451919.5."
+            "major-body samples are confined to the 1900-2100 window [JD 2415020.5, 2488069.5]; Sun, Moon, Mercury and Venus sampled at 2415020.5 (1900-01-01), 2451915.25 and 2451915.75; Sun through Pluto sampled at 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.0, 2451916.5, 2451917.0, 2451917.5, 2451918.5, 2451919.5, 2451920.5, and 2453000.5; Ceres, Pallas, Juno, Vesta and asteroid:433-Eros sampled at 2378498.5, 2451545, 2451910.5, 2451911.5, 2451912.5, 2451913.5, 2451914.0, 2451914.5, 2451915.0, 2451915.5, 2451916.5, 2451917.5, 2451918.5, 2451919.5, 2453000.5, 2500000, and 2634167; asteroid:99942-Apophis sampled at 2378498.5, 2451545, 2451915.0, 2451915.5, 2451917.5, 2451918.5, 2451919.5, 2453000.5, 2500000, and 2634167."
         );
     assert_eq!(summary.evidence_class, REFERENCE_SNAPSHOT_EVIDENCE_CLASS);
     assert_eq!(summary.columns, REFERENCE_SNAPSHOT_COLUMNS);
@@ -375,7 +375,7 @@ fn reference_snapshot_source_summary_reports_the_expected_provenance() {
     assert_eq!(body_class_summary.major_bodies.len(), 10);
     assert_eq!(body_class_summary.major_epoch_count, 20);
     assert_eq!(body_class_summary.major_windows.len(), 10);
-    assert_eq!(body_class_summary.asteroid_row_count, 91);
+    assert_eq!(body_class_summary.asteroid_row_count, 95);
     assert_eq!(body_class_summary.asteroid_bodies.len(), 6);
     assert_eq!(body_class_summary.asteroid_epoch_count, 17);
     assert_eq!(body_class_summary.asteroid_windows.len(), 6);
@@ -471,27 +471,17 @@ fn jpl_snapshot_evidence_posture_summaries_validate_and_fail_closed() {
 #[test]
 fn interpolation_quality_samples_are_reportable() {
     let samples = interpolation_quality_samples();
-    assert_eq!(samples.len(), 219);
+    assert_eq!(samples.len(), 223);
     assert!(samples
         .iter()
         .any(|sample| sample.interpolation_kind == InterpolationQualityKind::Cubic));
-    // Of Apophis's six reference rows, the reference-only epochs 2378498.5 and
-    // 2451917.5 are excluded from the interpolation set, leaving four:
-    // 2451545, 2451915.5, 2451918.5 and 2451919.5. The two interior rows are
-    // the leave-one-out samples, and leaving one out keeps three points, so
-    // both fits are quadratic.
-    let quadratic: Vec<_> = samples
+    // Every body keeps at least four points once a row is left out, so every
+    // leave-one-out fit is cubic. (Until Apophis's rows at JD 2451915.0,
+    // 2453000.5, 2500000 and 2634167 were restored, its two leave-one-out
+    // samples were quadratic; issue #201.)
+    assert!(!samples
         .iter()
-        .filter(|sample| sample.interpolation_kind == InterpolationQualityKind::Quadratic)
-        .map(|sample| (sample.body.to_string(), sample.epoch.julian_day.days()))
-        .collect();
-    assert_eq!(
-        quadratic,
-        vec![
-            ("asteroid:99942-Apophis".to_string(), 2_451_915.5),
-            ("asteroid:99942-Apophis".to_string(), 2_451_918.5),
-        ]
-    );
+        .any(|sample| sample.interpolation_kind == InterpolationQualityKind::Quadratic));
     assert!(!samples
         .iter()
         .any(|sample| sample.interpolation_kind == InterpolationQualityKind::Linear));
@@ -589,7 +579,7 @@ fn interpolation_quality_sample_request_corpus_remains_the_explicit_alias() {
 #[test]
 fn interpolation_quality_summary_reports_the_worst_case_labels() {
     let summary = jpl_interpolation_quality_summary().expect("summary should exist");
-    assert_eq!(summary.sample_count, 219);
+    assert_eq!(summary.sample_count, 223);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.epoch_count, 19);
     assert!(summary.earliest_epoch.julian_day.days() <= summary.latest_epoch.julian_day.days());
@@ -598,7 +588,7 @@ fn interpolation_quality_summary_reports_the_worst_case_labels() {
         summary.sample_count
     );
     assert!(summary.cubic_sample_count > 0);
-    assert_eq!(summary.quadratic_sample_count, 2);
+    assert_eq!(summary.quadratic_sample_count, 0);
     assert_eq!(summary.linear_sample_count, 0);
     assert!(summary.mean_bracket_span_days.is_finite());
     assert!(summary.median_bracket_span_days.is_finite());
@@ -624,12 +614,12 @@ fn interpolation_quality_summary_reports_the_worst_case_labels() {
 #[test]
 fn interpolation_quality_kind_coverage_reports_the_distinct_body_breakdown() {
     let coverage = jpl_interpolation_quality_kind_coverage().expect("coverage should exist");
-    assert_eq!(coverage.sample_count, 219);
+    assert_eq!(coverage.sample_count, 223);
     assert_eq!(coverage.body_count, 16);
     assert_eq!(coverage.bodies.len(), coverage.body_count);
     assert!(!coverage.bodies.is_empty());
     assert!(coverage.cubic_body_count > 0);
-    assert_eq!(coverage.quadratic_body_count, 1);
+    assert_eq!(coverage.quadratic_body_count, 0);
     assert_eq!(coverage.linear_body_count, 0);
 }
 
@@ -637,7 +627,7 @@ fn interpolation_quality_kind_coverage_reports_the_distinct_body_breakdown() {
 fn interpolation_quality_sample_request_corpus_reports_the_explicit_request_slice() {
     let summary = interpolation_quality_sample_request_corpus_summary()
         .expect("sample request corpus should exist");
-    assert_eq!(summary.request_count, 219);
+    assert_eq!(summary.request_count, 223);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.bodies.len(), summary.body_count);
     assert!(!summary.bodies.is_empty());
@@ -721,7 +711,7 @@ fn interpolation_quality_source_summary_reports_the_expected_provenance() {
 
     assert_eq!(summary.source, reference_snapshot_source_summary().source);
     assert_eq!(summary.derivation, JPL_INTERPOLATION_QUALITY_DERIVATION);
-    assert_eq!(summary.sample_count, 219);
+    assert_eq!(summary.sample_count, 223);
     assert_eq!(summary.body_count, 16);
     assert_eq!(summary.epoch_count, 19);
     assert_eq!(summary.validate(), Ok(()));

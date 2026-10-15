@@ -62,8 +62,9 @@ crate source in this repo; gate names are the runnable `validate-*` subcommands
   (acceptance rule 1″). Caller-supplied artifacts generated before
   compatibility profile 0.7.34 must be regenerated (two kernels), because their
   asteroid:433-Eros segments are the old sparse snapshot fit. `asteroid:99942-Apophis` stays snapshot-only: it is served only at
-  the sample rows of the sparse JPL Horizons fixture (a nine-day cluster in
-  January 2001 from 2001-01-06) and any other date returns an out-of-range
+  the sample rows of the sparse JPL Horizons fixture (a cluster from 2001-01-05
+  to 2001-01-10 and isolated rows in 1800, 2000, 2003, 2132 and 2500) and any
+  other date returns an out-of-range
   error. Asteroid stations, aspects and osculating nodes/apsides are gated (see above). Other asteroids need `pleiades_jpl::SpkBackend` with a JPL kernel
   (`docs/spk-kernel-sourcing.md`).
 - Apparent place omits gravitational light-deflection. Rise/set/transit and

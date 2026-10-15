@@ -16,9 +16,8 @@ Experimental, pre-1.0: breaking changes can land in any minor release. The check
 on both sides of the instant and span at most five days. Any other instant
 returns `OutOfRangeInstant`. Use `SpkBackend` with a JPL kernel for positions
 at arbitrary dates. The five-day interpolation is validated to 0.05″ for
-Ceres, Pallas, Juno, Vesta and Eros only. Apophis's interpolation inside the
-cluster is served under the same rule, but its cluster rows are too few to
-hold one out, so that measurement does not cover it. The Sun and the planets
+the six asteroids, Apophis included: each row in the January 2001 cluster is
+held out in turn and the rows around it reproduce it. The Sun and the planets
 are interpolated under the same rule, within 0.3″ (the worst is Mercury). The
 Moon is served only at an exact row: a cubic through rows a day apart
 misplaces it by up to 80″. Its metadata says so: the accuracy class is
@@ -26,8 +25,13 @@ misplaces it by up to 80″. Its metadata says so: the accuracy class is
 row to the last, not continuous coverage.
 
 Every row of the two snapshot fixtures agrees with JPL Horizons within 0.05″
-as seen from the Earth (fetched 2026-10-06). To repeat the check, with network
-access:
+as seen from the Earth (fetched 2026-10-15; the worst row is 0.0017″). The
+check requests each asteroid row on its own: Horizons integrates a small body
+from one listed epoch to the next, so a request listing several epochs answers
+along a path that depends on the list, and for Apophis, whose Earth encounters
+amplify it, that moves its 2001 rows by up to 85000 km. Apophis's rows at
+JD 2500000 and 2634167 follow its nominal orbit past the 2029 encounter, which
+the next orbit solution can move. To repeat the check, with network access:
 
 ```sh
 cargo run -p pleiades-jpl --features horizons-fetch --bin check-snapshot-fixtures

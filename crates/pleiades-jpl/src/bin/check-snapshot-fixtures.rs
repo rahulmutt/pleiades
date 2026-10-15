@@ -23,9 +23,10 @@ fn main() -> Result<(), String> {
 }
 
 /// Largest separation, as seen from the Earth, between a fixture row and the
-/// Horizons vector for the same body and instant. Measured 2026-10-06: the
-/// worst row is asteroid:433-Eros at JD 2634167.0, 0.0203″ (an orbit-solution
-/// update, 34 km at 2.3 AU); every major-body row agrees to the printed digits.
+/// Horizons vector for the same body and instant. Measured 2026-10-15 with one
+/// request per small-body epoch: the worst row is 0.0017″ in either fixture.
+/// (On 2026-10-06, with each body's epochs in one request, the worst was
+/// asteroid:433-Eros at JD 2634167.0, 0.0203″.)
 #[cfg(feature = "horizons-fetch")]
 const TOLERANCE_ARCSEC: f64 = 0.05;
 
@@ -65,13 +66,31 @@ fn main() -> Result<(), String> {
                 .iter()
                 .map(|entry| entry.epoch.julian_day.days())
                 .collect::<Vec<_>>();
-            let bytes = HttpHorizonsSource
-                .fetch_url(&vectors_url(&command, &epochs))
-                .map_err(|error| format!("{label}: fetching {body}: {error}"))?;
-            let text =
-                String::from_utf8(bytes).map_err(|error| format!("{label}: {body}: {error}"))?;
-            let fetched =
-                parse_vectors(&text).map_err(|error| format!("{label}: {body}: {error}"))?;
+            // Horizons integrates a small body's orbit from one listed epoch
+            // to the next, so a request listing several epochs answers along
+            // a path that depends on the list. For Apophis, whose close
+            // approaches with the Earth amplify that path, a list starting at
+            // JD 2378498.5 moves the 2001 rows by up to 85000 km (issue #201).
+            // A small body is therefore fetched one epoch per request, which
+            // integrates straight from the orbit solution's epoch.
+            let requests = if command.ends_with(';') {
+                epochs.iter().map(|jd| vec![*jd]).collect::<Vec<_>>()
+            } else {
+                vec![epochs]
+            };
+            let mut fetched = Vec::new();
+            for request in requests {
+                let bytes = HttpHorizonsSource
+                    .fetch_url(&vectors_url(&command, &request))
+                    .map_err(|error| format!("{label}: fetching {body}: {error}"))?;
+                let text = String::from_utf8(bytes)
+                    .map_err(|error| format!("{label}: {body}: {error}"))?;
+                fetched.extend(
+                    parse_vectors(&text).map_err(|error| format!("{label}: {body}: {error}"))?,
+                );
+                // Be polite to the Horizons API between requests.
+                std::thread::sleep(std::time::Duration::from_millis(600));
+            }
             for entry in body_rows {
                 let jd = entry.epoch.julian_day.days();
                 let truth = fetched
@@ -89,8 +108,6 @@ fn main() -> Result<(), String> {
                     println!("{label}: {body} at JD {jd} is {separation:.4}″ from Horizons");
                 }
             }
-            // Be polite to the Horizons API between objects.
-            std::thread::sleep(std::time::Duration::from_millis(600));
         }
         println!(
             "{label}: {rows} rows across {} bodies, worst {worst:.4}″",

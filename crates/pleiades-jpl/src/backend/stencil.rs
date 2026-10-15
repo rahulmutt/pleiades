@@ -16,10 +16,8 @@ use super::SnapshotEntry;
 /// next wider bracket in the snapshot is a year, where the same cubic is
 /// wrong by tens of degrees (issue #158).
 ///
-/// The 0.05″ figure is measured for Ceres, Pallas, Juno, Vesta and Eros.
-/// Apophis's interpolation inside the cluster is served under the same rule,
-/// but its cluster rows are too few to hold one out, so that measurement does
-/// not cover it.
+/// The 0.05″ figure covers all six asteroids with rows in the January 2001
+/// cluster: Ceres, Pallas, Juno, Vesta, Eros and Apophis.
 ///
 /// The same rule serves the Sun and the planets, whose held-out rows are
 /// reproduced within 0.3″ (the worst is Mercury, 0.20″;
