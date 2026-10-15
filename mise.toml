@@ -260,21 +260,28 @@ run = "cargo run -q -p pleiades-validate -- validate-topocentric"
 run = "cargo run -q -p pleiades-validate -- validate-corpus"
 
 [tasks.gate-aspects]
-# Full exact-aspect gate (all 11 planet corpus pairs, ~15 min; 18.5 min as
-# the in-crate test; plus the Sun-Ceres..Vesta, Moon-Ceres, Mars-Vesta and
-# Jupiter-Ceres asteroid pairs (the last two added after this measurement);
-# the whole gate measured ~6 min (5m53s) in the dev profile on the 24-core dev
-# box, 2026-10-10): too slow for nightly `test-full`, so it has its own nightly
-# job (.github/workflows/nightly.yml `aspects-gate`) and is a `release-gate`
-# dependency. The mean subset runs in the release battery (`release-smoke`).
+# Full exact-aspect gate: the 11 planet corpus pairs plus the Sun-Ceres..Vesta,
+# Moon-Ceres, Mars-Vesta and Jupiter-Ceres asteroid pairs. On the 4-core
+# nightly runner (3f5849db6, 2026-10-11..15) the command takes 77-151 s
+# (median 114 s; planets alone 82 s at b23c6ca39, so the asteroid pass is
+# roughly 30 s) and the `aspects-gate` job 2m00s-3m07s, far inside its 80-min
+# step / 90-min job timeouts. It first measured ~15 min (2026-10-02, planets
+# only, before later engine speedups), so it has its own nightly job
+# (.github/workflows/nightly.yml `aspects-gate`) and is a `release-gate`
+# dependency. The mean subset, and a scan-free checksum/row-count check of the
+# asteroid corpus (#254), run in the release battery (`release-smoke`).
 run = "cargo run -q -p pleiades-validate -- validate-aspects"
 
 [tasks.gate-stations]
-# Full planetary-stations gate (every corpus series, including Ceres–Vesta, ~2 min on the 4-core
-# runner): nightly `test-full-validate`'s long pole (FU-23 (u)), so it has its
-# own nightly job (.github/workflows/nightly.yml `stations-gate`) and is a
-# `release-gate` dependency. The mean/sid subset runs in the release battery
-# (`release-smoke`).
+# Full planetary-stations gate (every corpus series, including Ceres–Vesta).
+# On the 4-core nightly runner (3f5849db6, 2026-10-11..15) the command takes
+# 28-29 s and the `stations-gate` job 1m06s-1m27s, far inside its 20-min step /
+# 30-min job timeouts; the asteroid pass is within runner noise (planets alone
+# took 29 s before #250). It was nightly `test-full-validate`'s long pole
+# (FU-23 (u)), so it has its own nightly job (.github/workflows/nightly.yml
+# `stations-gate`) and is a `release-gate` dependency. The mean/sid subset, and
+# a scan-free checksum/row-count check of the asteroid corpus (#254), run in
+# the release battery (`release-smoke`).
 run = "cargo run -q -p pleiades-validate -- validate-stations"
 
 [tasks.compat-claims-audit]

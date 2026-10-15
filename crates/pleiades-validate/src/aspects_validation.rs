@@ -9,16 +9,18 @@
 //! separation turns within 30 arcseconds of an angle, so no corpus event
 //! depends on the ephemeris. See `aspects_thresholds` for the ceilings.
 //!
-//! Tiers: the full gate (about 15 minutes as `mise run gate-aspects`, 880 s;
-//! 18.5 minutes as the in-crate test, 1110.8 s; dev/test profile, 2026-10-02)
-//! runs in its own nightly job and in `release-gate`; the `mean` subset
-//! (about 16 s) runs in the release battery (`release-smoke`).
+//! Tiers: the full gate (about 2 minutes as `mise run gate-aspects` on the
+//! 4-core nightly runner, planets and asteroids, 2026-10-15; see
+//! [`validate_aspects_corpus`]) runs in its own nightly job and in
+//! `release-gate`; the `mean` subset (about 16 s) runs in the release
+//! battery (`release-smoke`), after a scan-free checksum and row-count check
+//! of the asteroid corpus (issue #254).
 //!
 //! Asteroids (issue #168): Sun–Ceres, Sun–Pallas, Sun–Juno, Sun–Vesta,
 //! Mars–Vesta and Jupiter–Ceres over 1900–2100 and Moon–Ceres over 1990–2030
 //! are compared event for event against `asteroids.csv`, generated with
 //! SWIEPH and seas_18 by the same tool's `--asteroids` mode, in the full gate
-//! only. A Sun or Moon pair's separation never turns; Mars–Vesta and
+//! only (the release battery checks only that file's manifest). A Sun or Moon pair's separation never turns; Mars–Vesta and
 //! Jupiter–Ceres turn 188 and 315 times, so the asteroids' retrograde loops
 //! reach the gate (issue #253). None of their turns comes within 209" of an
 //! angle, and no two events of one angle fall within one 2-day search step.
@@ -553,7 +555,9 @@ fn validate(csv: &str, manifest: &str) -> Result<AspectsReport, AspectsError> {
     validate_scoped(csv, manifest, Scope::Full)
 }
 
-fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsReport, AspectsError> {
+/// Ties a corpus to its manifest without scanning: the checksum, the parse
+/// against `pairs` and the row count. Returns the parsed rows.
+fn check_manifest(csv: &str, manifest: &str, pairs: &[Pair]) -> Result<Vec<Row>, AspectsError> {
     let (manifest_rows, manifest_checksum) = parse_manifest(manifest)?;
     let got_checksum = fnv1a64(csv);
     if got_checksum != manifest_checksum {
@@ -562,13 +566,18 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
             want: manifest_checksum,
         });
     }
-    let rows = parse_corpus(csv, scope.pairs())?;
+    let rows = parse_corpus(csv, pairs)?;
     if rows.len() != manifest_rows {
         return Err(AspectsError::ManifestDrift {
             rows_csv: rows.len(),
             rows_manifest: manifest_rows,
         });
     }
+    Ok(rows)
+}
+
+fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsReport, AspectsError> {
+    let rows = check_manifest(csv, manifest, scope.pairs())?;
 
     let engine = EventEngine::new(packaged_backend());
     // The corpus epoch is TT; the engine reads the Julian day as TDB. The two
@@ -663,13 +672,19 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
 /// `MIN_ROWS_VALIDATED`, 10359 events), then the asteroid pairs (floor
 /// `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events). Run by `validate-aspects` /
 /// `mise run gate-aspects` (its own nightly job and a `release-gate`
-/// dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test. About
-/// 880 s (15 min) as the command and 1110.8 s (18.5 min) as the in-crate
-/// test, dev/test profile (2026-10-02; planet pairs only); too slow for
-/// nightly `test-full`. The asteroid pass (`Scope::Asteroids`, seven pairs)
-/// took 54.5 s in the release profile on the 24-core dev box under load
-/// (2026-10-10; five pairs took about 41 s; the nightly runner is not yet
-/// measured).
+/// dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test.
+/// Measured on the 4-core nightly runner with both passes (five nightly
+/// runs at 3f5849db6, 2026-10-11..15, warm build): the gate command takes
+/// 77–151 s (median 114 s) and the whole `aspects-gate` job 2m00s–3m07s,
+/// against an 80-min step and 90-min job timeout. The gate does not time its
+/// passes; the planets-only command took 82 s at b23c6ca39 (2026-10-10, the
+/// run before #251), so the asteroid pass (`Scope::Asteroids`, seven pairs)
+/// is roughly 30 s there, less than the run-to-run spread above. On the 24-core dev
+/// box under load it took 54.5 s in the release profile (2026-10-10). The
+/// first measurements, 880 s as the command and 1110.8 s as the in-crate
+/// test (dev/test profile, 2026-10-02, planet pairs only), predate the
+/// event-engine speedups since and are why the gate left nightly
+/// `test-full`.
 pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
     let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;
@@ -681,7 +696,22 @@ pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
 /// Mars–Saturn over 1990–2030), floor `MIN_ROWS_VALIDATED_MEAN_SUBSET`.
 /// Fail-closed like the full gate. 372 events, about 16 s in the dev/test
 /// profile (2026-10-02).
+///
+/// Before that it verifies the asteroid corpus's checksum and row count
+/// against its manifest, with no engine scan (issue #254), so a hand-edited
+/// `asteroids.csv` or a stale manifest fails the blocking tier rather than
+/// only the nightly full gate.
 pub fn validate_aspects_corpus_subset() -> Result<AspectsReport, AspectsError> {
+    validate_subset(ASTEROID_CSV, ASTEROID_MANIFEST)
+}
+
+/// [`validate_aspects_corpus_subset`] with the asteroid corpus passed in, so
+/// a test can hand it a tampered file or manifest.
+fn validate_subset(
+    asteroid_csv: &str,
+    asteroid_manifest: &str,
+) -> Result<AspectsReport, AspectsError> {
+    check_manifest(asteroid_csv, asteroid_manifest, &ASTEROID_PAIRS)?;
     validate_scoped(CORPUS_CSV, MANIFEST, Scope::MeanSubset)
 }
 

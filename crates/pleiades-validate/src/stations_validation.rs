@@ -10,7 +10,9 @@
 //!
 //! Asteroids (issue #167 (d)): Ceres, Pallas, Juno and Vesta are compared
 //! station for station against `asteroids.csv`, generated with SWIEPH and
-//! seas_18 by the same tool's `--asteroids` mode, in the full gate only.
+//! seas_18 by the same tool's `--asteroids` mode, in the full gate only; the
+//! release-battery subset checks only that file's checksum and row count
+//! against its manifest, with no scan (issue #254).
 
 use crate::stations_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_ASTEROIDS,
@@ -760,11 +762,9 @@ fn compare_series(
     Ok(SeriesOutcome { residuals, line })
 }
 
-fn validate_scoped(
-    csv: &str,
-    manifest: &str,
-    scope: Scope,
-) -> Result<StationsReport, StationsError> {
+/// Ties a corpus to its manifest without scanning: the checksum, the parse
+/// and the row count. Returns the parsed series.
+fn check_manifest(csv: &str, manifest: &str) -> Result<Vec<Series>, StationsError> {
     let (manifest_rows, manifest_checksum) = parse_manifest(manifest)?;
     let got_checksum = fnv1a64(csv);
     if got_checksum != manifest_checksum {
@@ -781,7 +781,15 @@ fn validate_scoped(
             rows_manifest: manifest_rows,
         });
     }
+    Ok(all)
+}
 
+fn validate_scoped(
+    csv: &str,
+    manifest: &str,
+    scope: Scope,
+) -> Result<StationsReport, StationsError> {
+    let all = check_manifest(csv, manifest)?;
     let selected: Vec<&Series> = all
         .iter()
         .filter(|series| scope.includes(series.group))
@@ -843,14 +851,20 @@ fn validate_scoped(
 /// The full gate: every corpus series (planets over 1900–2100 and the
 /// 1990–2030 series), floor `MIN_ROWS_VALIDATED` (5542 stations). The
 /// series scan in ten-year windows on a pool of one thread per core, so the
-/// wall-clock is about 343 s of CPU spread over the cores: about 105 s on
-/// the 4-core nightly runner (2026-10-04; 178 s with one thread per series,
-/// where the longest series set the length). Run by `validate-stations` as
-/// `mise run gate-stations` (its own nightly job and a `release-gate`
-/// dependency) and by the opt-in `PLEIADES_FULL_STATIONS_GATE=1` test.
+/// wall-clock is the CPU total spread over the cores (when this pooling
+/// landed: 343 s of CPU, about 105 s on the 4-core nightly runner,
+/// 2026-10-04, against 178 s with one thread per series). Run by
+/// `validate-stations` as `mise run gate-stations` (its own nightly job and
+/// a `release-gate` dependency) and by the opt-in
+/// `PLEIADES_FULL_STATIONS_GATE=1` test.
 /// It then runs the four asteroid series (`Scope::Asteroids`, 1225
-/// stations, floor `MIN_ROWS_VALIDATED_ASTEROIDS`) after the planet pool;
-/// their cost is not yet measured on the nightly runner.
+/// stations, floor `MIN_ROWS_VALIDATED_ASTEROIDS`) after the planet pool.
+/// Measured on the 4-core nightly runner with both passes (five nightly
+/// runs at 3f5849db6, 2026-10-11..15, warm build): the gate command takes
+/// 28–29 s and the whole `stations-gate` job 1m06s–1m27s, against a 20-min
+/// step and 30-min job timeout. The asteroid share is within runner noise:
+/// the gate does not time its passes, and the planets-only run before #250
+/// took 29 s.
 pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
     let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;
@@ -858,11 +872,26 @@ pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {
 }
 
 /// The release-battery subset: verifies the checksum and row count of the
-/// whole corpus, then compares only the `mean` and `sid` series (Mercury,
-/// Mars, Saturn over 1990–2030), floor `MIN_ROWS_VALIDATED_MEAN_SID_SUBSET`
-/// (734 stations). Fail-closed like the full gate, in about 24 s in the dev
-/// profile (2026-10-02).
+/// whole planet corpus, then compares only the `mean` and `sid` series
+/// (Mercury, Mars, Saturn over 1990–2030), floor
+/// `MIN_ROWS_VALIDATED_MEAN_SID_SUBSET` (734 stations). Fail-closed like the
+/// full gate, in about 24 s in the dev profile (2026-10-02).
+///
+/// Before that it verifies the asteroid corpus's checksum and row count
+/// against its manifest, with no engine scan (issue #254), so a hand-edited
+/// `asteroids.csv` or a stale manifest fails the blocking tier rather than
+/// only the nightly full gate.
 pub fn validate_stations_corpus_subset() -> Result<StationsReport, StationsError> {
+    validate_subset(ASTEROID_CSV, ASTEROID_MANIFEST)
+}
+
+/// [`validate_stations_corpus_subset`] with the asteroid corpus passed in, so
+/// a test can hand it a tampered file or manifest.
+fn validate_subset(
+    asteroid_csv: &str,
+    asteroid_manifest: &str,
+) -> Result<StationsReport, StationsError> {
+    check_manifest(asteroid_csv, asteroid_manifest)?;
     validate_scoped(CORPUS_CSV, MANIFEST, Scope::MeanSidSubset)
 }
 

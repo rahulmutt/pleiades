@@ -361,10 +361,11 @@ fn first_mean_mars_saturn_conjunction() -> &'static str {
         .expect("the corpus has a mean Mars-Saturn conjunction")
 }
 
-// Opt-in: the planet-pair gate measured 18.5 minutes on 2026-10-02 (the
-// asteroid pass adds about 55 s in release), which nightly `test-full`
-// cannot afford. `mise run gate-aspects` runs it (its own nightly
-// job and a `release-gate` dependency).
+// Opt-in: the planet-pair gate measured 18.5 minutes as this test on
+// 2026-10-02, which nightly `test-full` could not afford (the command now
+// takes about 2 minutes on the nightly runner; see `validate_aspects_corpus`).
+// `mise run gate-aspects` runs it (its own nightly job and a `release-gate`
+// dependency).
 #[test]
 fn aspects_gate_passes_within_ceilings() {
     if std::env::var("PLEIADES_FULL_ASPECTS_GATE").as_deref() != Ok("1") {
@@ -552,6 +553,38 @@ fn asteroid_corpus_tampering_fails_closed() {
     );
     assert!(matches!(
         validate_scoped(ASTEROID_CSV, &drifted, Scope::Asteroids),
+        Err(AspectsError::ManifestDrift { .. })
+    ));
+}
+
+// Issue #254: the release-battery subset checks the asteroid corpus against
+// its manifest before any scan, so these fail in milliseconds.
+#[test]
+fn committed_asteroid_corpus_matches_its_manifest() {
+    let rows =
+        check_manifest(ASTEROID_CSV, ASTEROID_MANIFEST, &ASTEROID_PAIRS).expect("manifest matches");
+    assert_eq!(rows.len(), MIN_ROWS_VALIDATED_ASTEROIDS);
+}
+
+#[test]
+fn mean_subset_fails_a_tampered_asteroid_corpus() {
+    let tampered = ASTEROID_CSV.replacen("geo,Sun,Ceres,", "geo,Sun,Ceres, ", 1);
+    assert_ne!(tampered, ASTEROID_CSV);
+    assert!(matches!(
+        validate_subset(&tampered, ASTEROID_MANIFEST),
+        Err(AspectsError::ChecksumMismatch { .. })
+    ));
+}
+
+#[test]
+fn mean_subset_fails_an_asteroid_manifest_row_count_drift() {
+    let (rows, checksum) = parse_manifest(ASTEROID_MANIFEST).unwrap();
+    let drifted = format!(
+        "slice aspects-asteroids file=asteroids.csv role=aspects rows={} checksum={checksum}\n",
+        rows - 1
+    );
+    assert!(matches!(
+        validate_subset(ASTEROID_CSV, &drifted),
         Err(AspectsError::ManifestDrift { .. })
     ));
 }
