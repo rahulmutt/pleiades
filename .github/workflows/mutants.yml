@@ -57,7 +57,9 @@ jobs:
     # unmutated baseline each shard repeats and ~1 min of setup on a warm
     # tools cache (~9 min cold). The 60-minute step timeout below leaves over
     # 2x headroom at the slowest runner rate seen; the job's 75 is the outer
-    # backstop. When the set grows, add a shard (update `shard`, the job
+    # backstop. First sharded run (run 38816956184, 2026-10-15, 880-881
+    # mutants per shard, warm tools cache with a 0s install): testing steps
+    # 20m13s, 21m36s, 24m15s and 26m02s; the longest job took 26m33s. When the set grows, add a shard (update `shard`, the job
     # name and the `--shard` divisor together) rather than raising these: a
     # shard costs ~1-2 runner minutes of overhead, while one long job is
     # bounded by GitHub's 6 h job limit and takes hours to report.
