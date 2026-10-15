@@ -24,32 +24,50 @@ env:
 
 jobs:
   mutants:
+    name: mutants (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
-    # Calibrated 2026-07-25: the first scheduled run (2026-07-20, run
-    # 29733596109) took 16m05s of job wall-clock on the 4-vCPU runner. Of
-    # that, cargo-mutants itself reported ~10m (9m54s measured) testing
-    # 1,415 mutants (191 missed, 1,160 caught, 64 unviable) in the three
-    # baseline crates; the remaining ~6m is fixed checkout/mise-install/
-    # cache/upload overhead that does not scale with mutant count.
-    # pleiades-houses adds a measured 1,205 mutants (whole-crate run of the
-    # FU-9 "houses Catalog + thresholds" slice:
-    # 1,205 tested / 36 missed / 1,145 caught / 24 unviable / 0 timeout),
-    # growing the set to 2,620 (~1.85x baseline). Scaling only the testing
-    # phase projects ~18-19m testing + the same ~6m fixed overhead, i.e.
-    # ~24-25m job wall-clock. 90 minutes is retained as headroom for further
-    # crate additions; revisit it if a scheduled run exceeds ~60 min.
+    # Four round-robin shards in parallel (`mise run mutants --shard k/4`),
+    # one runner each. History and calibration:
     #
-    # 2026-09-08: pleiades-apsides joins the tier, adding a measured 223
-    # mutants (whole-crate run at the close of the slice, after review
-    # reclaimed three initially-documented equivalents: 223 tested / 1 missed /
-    # 218 caught / 4 unviable / 0 timeout) and growing the set to 2,843 (~1.09x
-    # the previous
-    # projection). This is a PROJECTION, NOT A MEASUREMENT: no scheduled run
-    # has yet executed the five-crate set. Scaling only the testing phase off
-    # the ~24-25m figure above projects roughly +2 minutes of job wall-clock.
-    # The next scheduled run supersedes this estimate. timeout-minutes stays
-    # at 90, unchanged.
-    timeout-minutes: 90
+    # 2026-07-25: the first scheduled run (run 29733596109, three crates,
+    # 1,415 mutants) took 16m05s of job wall-clock; cargo-mutants itself
+    # reported ~10m, the rest was fixed checkout/install/upload overhead.
+    # pleiades-houses (2026-07) and pleiades-apsides (2026-09-08) joined later.
+    #
+    # 2026-10-15 (#258): the single-job run stopped fitting. Measured from the
+    # mutants-report artifacts (outcomes.json phase durations, summed over
+    # the four cargo-mutants workers):
+    #
+    #   run (date)               mutants  testing step   houses rebuild/mutant
+    #   36456663938 (09-28)        2,866  35m00s         4.0s median
+    #   37350152421 (10-05)        3,195  69m35s         7.7s median
+    #   38291003053 (10-12)        3,521  >75m, timed    10.4s median
+    #                                     out at 2,559
+    #
+    # Two things compound. The mutant count grew 23% in two weeks (apparent
+    # 791 -> 1,241, time 335 -> 475, apsides 223 -> 282). And the cost per
+    # mutant, nearly all of it the opt-level=2 rebuild of the mutated crate,
+    # varies ~2.5x between runners: pleiades-houses barely changed across
+    # those runs and the toolchain bump between them (1.98.1 -> 1.99.0)
+    # costs nothing measurable locally (~3.0 CPU-s per houses mutant on
+    # both), yet its median rebuild went 4.0s -> 10.4s. At the slowest rate
+    # seen, the full set is ~24,000 worker-seconds: ~100 min on one runner.
+    #
+    # Split four ways that is ~25 min of testing per shard, plus the ~0.5 min
+    # unmutated baseline each shard repeats and ~1 min of setup on a warm
+    # tools cache (~9 min cold). The 60-minute step timeout below leaves over
+    # 2x headroom at the slowest runner rate seen; the job's 75 is the outer
+    # backstop. When the set grows, add a shard (update `shard`, the job
+    # name and the `--shard` divisor together) rather than raising these: a
+    # shard costs ~1-2 runner minutes of overhead, while one long job is
+    # bounded by GitHub's 6 h job limit and takes hours to report.
+    timeout-minutes: 75
+    strategy:
+      # One shard's failure must not cancel the others: a cancelled shard
+      # uploads no report, and the other shards' outcomes are still valid.
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -59,17 +77,25 @@ jobs:
         with:
           install: false
 
-      - name: Cache Rust toolchain, Cargo, and build artifacts
+      # The same toolchain/tools cache key as ci.yml and nightly.yml. The
+      # former mutants-only key (`-mutants-`) was touched once a week, so with
+      # the repository's caches over GitHub's 10 GB limit it was always the
+      # least recently used entry and was evicted before the next run: the
+      # runs of 2026-09-28, 10-05 and 10-12 all found no cache and compiled
+      # cargo-fuzz, cargo-mutants, cargo-release and cargo-nextest from source
+      # (6-8 min). The shared key is restored by every CI run, so it stays
+      # resident. `target` is not cached: cargo-mutants builds in a copy of
+      # the source tree that excludes it, so a restored `target` went unused.
+      - name: Cache Rust toolchain, Cargo, and mise tools
         uses: actions/cache@v4
         with:
           path: |
             ~/.rustup
             ~/.cargo
             ~/.local/share/mise
-            target
-          key: ${{ runner.os }}-mutants-${{ hashFiles('mise.toml', 'Cargo.lock') }}
+          key: ${{ runner.os }}-tools-${{ hashFiles('mise.toml', 'Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mutants-
+            ${{ runner.os }}-tools-
 
       - name: Install mise-managed tools
         run: mise install
@@ -84,18 +110,19 @@ jobs:
       # being re-implemented and re-verified against itself.
       #
       # Step-level timeout is deliberately shorter than the job-level one.
-      # GitHub *cancels* a job that exceeds its job-level timeout, and
-      # `if: failure()` steps do not run on cancellation — so a wedged run,
-      # the exact case the job timeout exists to catch, would fail silently
-      # with no tracking issue opened, and nobody watches a weekly cron's UI.
-      # A step timeout instead makes the step *fail* (not get cancelled), so
-      # the job continues to the issue-open step below. The job-level 90 is
-      # the outer backstop in case something outside this step hangs.
+      # GitHub *cancels* a job that exceeds its job-level timeout, and a
+      # wedged shard, the exact case the job timeout exists to catch, would
+      # then end "cancelled" with its partial report possibly lost. A step
+      # timeout instead makes the step *fail* (not get cancelled), so the
+      # upload below still runs and the shard reports "failure". The tracking
+      # issue is handled once for the whole run by the `report` job, which
+      # runs whatever the shards' outcome. The job-level 75 is the outer
+      # backstop in case something outside this step hangs.
       - name: Run mutation baseline
-        timeout-minutes: 75
+        timeout-minutes: 60
         run: |
           set +e
-          mise run mutants
+          mise run mutants --shard "${{ matrix.shard }}/4"
           code=$?
           set -e
           echo "cargo-mutants exit code: $code"
@@ -105,12 +132,25 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mutants-report
+          name: mutants-report-shard-${{ matrix.shard }}
           path: mutants.out/
           if-no-files-found: warn
 
+  # One verdict for the whole run. Per-shard issue steps would race: a green
+  # shard's close step could close the issue another shard had just opened.
+  # `always()` so a failed or cancelled shard still reaches this job.
+  report:
+    needs: mutants
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        if: needs.mutants.result != 'success'
+        uses: actions/checkout@v4
+
       - name: Open/update tracking issue on failure
-        if: failure()
+        if: needs.mutants.result != 'success'
         uses: JasonEtco/create-an-issue@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -120,10 +160,17 @@ jobs:
           update_existing: true
           search_existing: open
 
+      - name: Fail the run when a shard did not measure
+        if: needs.mutants.result != 'success'
+        run: |
+          echo "::error::A mutants shard ended '${{ needs.mutants.result }}'; see the shard jobs."
+          exit 1
+
       - name: Close tracking issue on success
-        if: success()
+        if: needs.mutants.result == 'success'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           gh issue list --label mutants-failure --state open --json number --jq '.[].number' \
             | while read -r n; do

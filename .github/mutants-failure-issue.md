@@ -9,14 +9,16 @@ Run: {{ env.RUN_URL }}
 
 **This issue does not mean surviving mutants were found.** Surviving mutants
 (cargo-mutants exit code 2) are the expected steady state for this report-only
-tier and pass the job. This issue fires only on exit 1 (usage error), 3 (tests
-timed out), or 4 (baseline tests already failing) — i.e. the run could not
-measure anything. Check the job log for the specific exit code.
+tier and pass the job. This issue fires only when a shard exits 1 (usage
+error), 3 (tests timed out) or 4 (baseline tests already failing), or overruns
+its step timeout — i.e. the run could not measure anything. Check the failed
+shard job's log for the specific exit code.
 
-Reproduce locally:
+Reproduce locally (the whole set, or one shard as CI runs it):
 
 ```bash
 mise run mutants
+mise run mutants --shard 0/4
 ```
 
 Or for a single crate:
@@ -25,7 +27,8 @@ Or for a single crate:
 mise run mutants-crate pleiades-types
 ```
 
-The partial report is attached to the run as the `mutants-report` artifact.
+Each shard's (partial) report is attached to the run as a
+`mutants-report-shard-<k>` artifact.
 
 Most likely causes, by exit code:
 
@@ -35,6 +38,9 @@ Most likely causes, by exit code:
   is too low for a slow runner.
 - **1 (usage error):** the `mise run mutants` invocation or a cargo-mutants
   version bump changed an interface.
+- **No exit code logged (step timed out):** the shard outgrew its time budget.
+  Add a shard rather than raising the timeout; see the calibration comment in
+  `.github/workflows/mutants.yml`.
 
 Per `docs/superpowers/specs/2026-07-18-devkit-phase3-mutants-slice-design.md`,
 mutation score is report-only and gates nothing; the surviving-mutant backlog
