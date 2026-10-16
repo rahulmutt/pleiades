@@ -164,7 +164,11 @@ const DESCRIPTOR_ZERO_POINTS: &[(Ayanamsa, f64, f64, f64)] = &[
     // -28/3 degrees: the catalog keeps the exact third, where `sweph.h` rounds
     // to -9.33333.
     (Ayanamsa::Hipparchus, 1674484.0, -9.333333333333334, 1.0e-12),
-    // -0 deg 07' 14" = -434/3600 degrees.
+    // REGRESSION PIN, NO INDEPENDENT SOURCE. Neither the catalog notes nor any
+    // spec or git history (`git log -S`) cite a number for this zero point, and
+    // `sweph.h` row 12 is {1684532.5, -4.46667}. The literal is the descriptor's
+    // own value (-434/3600 degrees, i.e. -0 deg 07' 14") written out, so this row
+    // only guards against sign and operator slips; it does not vouch for the value.
     (
         Ayanamsa::BabylonianHuber,
         1721171.5,

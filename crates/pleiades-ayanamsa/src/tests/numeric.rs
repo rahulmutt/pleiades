@@ -38,7 +38,10 @@ fn at(jd: f64) -> Instant {
 }
 
 /// The legacy linear path: `offset + centuries * 1.3969712777...` degrees per
-/// Julian century, with `centuries = (jd - epoch) / 36525`.
+/// Julian century, with `centuries = (jd - epoch) / 36525`. The rate is the
+/// IAU 1976 general precession in longitude at J2000, 5029.0966 arcseconds per
+/// Julian century (Lieske et al. 1977), divided by 3600. The expected values
+/// below are worked out from that rate, not read back from the code.
 #[test]
 fn linear_offset_adds_the_precession_rate_per_julian_century() {
     let d = AyanamsaDescriptor::new(
@@ -152,10 +155,17 @@ const GALACTIC_ROWS: &[SeRow] = &[
 /// Agreement required between a committed cubic and the SE row, in degrees.
 ///
 /// The gate ceiling for these classes is 1.0 arcsecond (2.8e-4 degrees), which
-/// is far too loose to see a sign flip on a cubic coefficient (as small as
-/// 1.1e-7 degrees at T = 1). The committed fits reproduce these two rows to
-/// better than 7e-9 degrees (measured residuals, 9-digit CSV resolution), so the
-/// tolerance is set at 2e-8: above the residual, below the smallest displacement.
+/// is far too loose to see a sign flip on a cubic coefficient.
+///
+/// Floor: the largest fit residual against these rows is 6.73e-9 degrees
+/// (Mula/Wilhelm at T = 1; 9-digit CSV resolution). Ceiling: the binding mutants
+/// are the `delete -` flips on the galactic Equator `c3` (IAU 1958, True, Mula),
+/// whose |mutant - SE| at T = 1 is 1.12e-7 to 1.13e-7. 2e-8 sits above the
+/// floor and 5.6x below the ceiling.
+///
+/// Both JDs are nodes of the fit grid (T = 0 and T = 1, the window edge), where
+/// the residuals are smallest. A refit with a different grid or window must
+/// re-measure these residuals before this tolerance is trusted.
 const FIT_ROW_TOL_DEG: f64 = 2.0e-8;
 
 fn assert_rows_match(rows: &[SeRow], offset: impl Fn(&Ayanamsa, f64) -> Option<f64>) {

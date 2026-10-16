@@ -52,14 +52,13 @@ The two survivors are the documented equivalents below.
 
 | Survivors | Site | Test (file) | Reference |
 |-----------|------|-------------|-----------|
-| 25 | `catalog.rs` zero points: 16 `-`→`+`/`/` on `360.0 - x` and `23.25 - x` (Usha/Shashi, Yukteshwar, Djwhal Khul, Bhasin, Lahiri ICRC; release and built-in tables), 9 `delete -` (SS Revati, Hipparchus, Babylonian Huber, SS mean Sun, Aryabhata mean Sun, Valens; both tables) | `descriptor_zero_points_match_published_values_in_both_catalog_tables` (`tests/zero_points.rs`) | `sweph.h` `ayanamsa[]` rows 4, 6, 7, 8, 25, 22, 24, 42, 46 evaluated by hand (`360 - 341.33904 = 18.66096`); Hipparchus `-28/3`; Huber `-434/3600` (no `sweph.h` source, see below) |
+| 25 | `catalog.rs` zero points: 16 `-`→`+`/`/` on `360.0 - x` and `23.25 - x` (Usha/Shashi, Yukteshwar, Djwhal Khul, Bhasin, Lahiri ICRC; release and built-in tables), 9 `delete -` (SS Revati, Hipparchus, Babylonian Huber, SS mean Sun, Aryabhata mean Sun, Valens; both tables) | `descriptor_zero_points_match_published_values_in_both_catalog_tables` (`tests/zero_points.rs`) | `sweph.h` `ayanamsa[]` rows 4, 6, 7, 8, 25, 22, 24, 42, 46 evaluated by hand (`360 - 341.33904 = 18.66096`); Hipparchus `-28/3`. The two Babylonian (Huber) `delete -` kills (`catalog.rs:266`, `:795`) are **not source-backed**: a self-referential regression pin, see below |
 | 22 | `se_anchors.rs`: 10 `-`→`+`/`/`, 12 `delete -` | `se_anchor_table_matches_sweph_h_rows` | All 29 rows transcribed from SE 2.10.03 `sweph.h` (`libswisseph-sys-0.1.2`), `SE_SIDM`, `t0`, `ayan_t0`, `t0_is_UT` |
-| (both) | Descriptor vs anchor drift | `pinned_descriptors_agree_with_se_anchors_except_documented_divergences` | The two tables must agree for the 9 pinned non-divergent modes |
 | 4 | `galactic.rs` `delete -` on the `c3` of IAU 1958, True, Mula and Mula/Wilhelm | `galactic_cubics_reproduce_swiss_ephemeris_rows` (`tests/numeric.rs`) | `ayanamsa-corpus/ayanamsa.csv` rows at JD 2451545 and 2488070 |
 | 3 | `truestar.rs` `eval` (`+`→`-` at col 31, `+`→`-` and `+`→`*` at col 51) | `true_star_cubics_reproduce_swiss_ephemeris_rows` and the galactic test (every cubic goes through `eval`) | Same corpus rows |
 | 4 | `truestar.rs` deleted arms Citra, Revati, Pushya, Mula | `true_star_cubics_reproduce_swiss_ephemeris_rows` | Each mode must return its own SE value; the fall-through is the Sheoran fit, 0.64 (Mula) to 5.19 (Revati) degrees away at J2000 |
 | 6 | `general_precession_longitude_arcsec` | `general_precession_matches_the_p03_polynomial` | IAU 2006 `pA(T)` (Capitaine et al. 2003) hand-summed at T = 1, -2, 3, 10 |
-| 4 | `offset_from_components` | `linear_offset_adds_the_precession_rate_per_julian_century` | `offset + centuries * 1.3969712777...` at +2, -1, +0.5 centuries |
+| 4 | `offset_from_components` | `linear_offset_adds_the_precession_rate_per_julian_century` | `offset + centuries * 1.3969712777...` at +2, -1, +0.5 centuries; the rate is the IAU 1976 precession 5029.0966 arcsec per Julian century (Lieske et al. 1977) over 3600 |
 | 2 | `validate_ayanamsa_catalog_entries` `+=`→`*=` | `entry_validation_counts_every_canonical_name_and_alias` | A crafted slice of two descriptors with 3 + 2 labels; `built_in_validation_summary_counts_every_label` adds the whole-catalog count |
 | 2 | `format_ayanamsa_label_list` → `String::new()`, `"xyzzy"` | `format_label_list_renders_none_or_a_comma_separated_list` | The documented `none` / comma-joined text |
 | 3 | `AyanamsaDescriptor::validate`: `\|\|`→`&&` at 77, 103; `delete !` at 103 | `validate_rejects_a_canonical_name_with_surrounding_whitespace`, `validate_rejects_notes_with_surrounding_whitespace` | A name or note that only the padding clause rejects |
@@ -72,10 +71,23 @@ Descriptors that are not pinned to `sweph.h` by the zero-point table (for
 example DeLuce, whose catalog epoch is J2000, and Hipparchus and Babylonian
 (Huber), which keep their own historical values) are outside the
 descriptor-versus-anchor comparison on purpose: the catalog does not claim to
-mirror every `aya_init` row. The Huber zero point (`1721171.5`, `-0.12055...`) has
-no `sweph.h` source; its test value is the descriptor's own documented number
-written as a literal (`-0 deg 07' 14"`), so it pins the sign, not the
-provenance.
+mirror every `aya_init` row.
+
+`pinned_descriptors_agree_with_se_anchors_except_documented_divergences` is a
+drift guard, not a kill: it keeps the descriptor and anchor tables from
+diverging for the 9 pinned non-divergent modes, and no mutant depends on it.
+
+**Self-referential exception: Babylonian (Huber).** The catalog's Huber zero
+point (`1721171.5`, `-0.12055...`) has no independent source. The catalog notes
+cite no number, no spec or plan names one, a pickaxe search of the history
+finds the value only in the commits that introduced it, and `sweph.h` row 12 is
+`{1684532.5, -4.46667}` (`sweph.h` also says the Huber mode "had a wrong initial
+value until 14 Sept. 2018"). The test literal (`-434/3600`, written
+`-0 deg 07' 14"`) is the descriptor's own value converted back, so the two
+`delete -` kills at `catalog.rs:266` and `:795` are a regression pin: they catch
+a sign slip and say nothing about whether the value is right. The test row is
+labelled the same way. (Huber is a fitted-offset mode, so `sidereal_offset`
+does not read this zero point; it is catalog metadata only.)
 
 ## Per-mutant displacement rows
 
@@ -95,10 +107,34 @@ provenance.
 | Hipparchus -9.333... | - | - | 18.667 |
 | Huber -0.12055... | - | - | 0.24111 |
 
-The anchor table's 29 rows carry the same operators on the same constants
-(`delete -` on 12 negative anchors, 5 expression anchors) and the same or larger
-displacements (for example Kugler 1, -5.66667: 11.333). The true minimum is
-**0.009284 degrees** (Lahiri ICRC `-`→`+`, because the subtracted nutation term
+The 22 `se_anchors.rs` kills (10 operator, 12 `delete -`) have their own rows.
+`delete -` displacement is `2|v|`; the operator rows use the same `a - b`
+constants as the catalog (source line in `se_anchors.rs` in brackets).
+
+| Anchor (`SE_SIDM`) | `-`→`+` | `-`→`/` | `delete -` |
+|--------------------|---------|---------|------------|
+| Usha/Shashi (4) [48] | 682.68 | -17.606 | - |
+| Djwhal Khul (6) [58] | 666.07 | -25.882 | - |
+| Yukteshwar (7) [68] | 677.84 | -20.020 | - |
+| Bhasin (8) [78] | 677.27 | -20.302 | - |
+| Lahiri ICRC (46) [318] | 0.0092841 | 4985.3 | - |
+| Kugler 1 (9) -5.66667 | - | - | 11.33334 |
+| Kugler 2 (10) -4.26667 | - | - | 8.53334 |
+| Kugler 3 (11) -3.41667 | - | - | 6.83334 |
+| Huber (12) -4.46667 | - | - | 8.93334 |
+| Eta Piscium (13) -5.079167 | - | - | 10.15833 |
+| Aldebaran (14) -4.44138598 | - | - | 8.88277 |
+| Hipparchus (15) -9.33333 | - | - | 18.66666 |
+| SS mean Sun (22) -0.21463395 | - | - | 0.42927 |
+| Aryabhata mean Sun (24) -0.23763238 | - | - | 0.47526 |
+| SS Revati (25) -0.79167046 | - | - | 1.58334 |
+| Britton (38) -3.2 | - | - | 6.40000 |
+| Valens (42) -2.9422 | - | - | 5.88440 |
+
+These are 5 expression anchors x 2 mutants = 10 and 12 negative anchors. They
+are transcribed from `sweph.h`, so the Huber caveat above does not apply to
+them. The true minimum over the anchor table is **0.42927** (SS mean Sun
+`delete -`); over the catalog and anchor tables together it is **0.009284 degrees** (Lahiri ICRC `-`→`+`, because the subtracted nutation term
 is only 0.00464207), seven orders above the 1e-9 tolerance. Every row is checked
 at both catalog tables for the descriptors and once for the anchor.
 
@@ -110,55 +146,100 @@ operator in `5028.796195 * t + 1.1054348 * t * t + 0.000_079_64 * t * t * t`.
 | Mutant | T = 1 | T = -2 | T = 3 | T = 10 |
 |--------|-------|--------|-------|--------|
 | 11:21 `+`→`-` | -2.21087 | -8.84348 | -19.8978 | -221.087 |
-| 11:33 `*`→`+` (`(c2+t)*t*t`) | 1.0 | -8.0 | 27.0 | 1000.0 |
+| 11:33 `*`→`+` (inner `*`: `(c2+t)*t`) | 1.0 | -2.63261 | 2.36739 | 0.510868 |
 | 11:41 `+`→`-` | -1.5928e-4 | 1.27424e-3 | -4.30056e-3 | -0.15928 |
-| 11:56 `*`→`+` | 1.0 | -7.99904 | 26.99857 | 999.928 |
+| 11:56 `*`→`+` (`((c3+t)*t)*t`) | 1.0 | -7.99904 | 26.9986 | 999.928 |
 | 11:60 `*`→`+` | 1.0 | 4.00096 | 8.99857 | 99.9283 |
 | 11:64 `*`→`+` | 1.0 | -1.99904 | 2.99857 | 9.92832 |
 
 The true minimum is **1.5928e-4 arcsec** (11:41, T = 1; that is `2 * 7.964e-5`),
-five orders above the 1e-9 tolerance, which sits an order above f64 rounding at
-the largest value (5e4 arcsec, about 7e-12). The cubic-term mutants need only
-T = 1, but the three values at |T| > 1 also separate `*`→`+` mutants that happen
-to coincide at T = 1.
+five orders above the 1e-9 tolerance, which sits two orders above f64 rounding
+at the largest value (5e4 arcsec, about 7e-12). Over the other five mutants the
+minimum is **0.510868** (11:33, T = 10).
 
 ### `eval` and the galactic `c3` flips (degrees; tolerance 2e-8)
 
-Rows are at JD 2488070 (T = 1); at JD 2451545 (T = 0) every mutant
-displacement is exactly 0, so that row pins only the constant term. The fit
-residual against the SE row, measured at the same two epochs, is at most 6.7e-9
-(Wilhelm) and about 1e-9 for the rest, so the tolerance sits above the residual
-and below every row marked as killing.
+`eval` is `((c0 + c1 t) + c2 t t) + c3 t t t`, so the mutants are:
+58:31 `+`→`-` (the second `+`: the `c2` term negated), 58:51 `+`→`-` (the `c3`
+term negated) and 58:51 `+`→`*` (`(c0 + c1 t + c2 t^2) * (c3 t^3)`). The galactic
+`delete -` mutants (28:5, 34:5, 40:5, 52:5) negate one `c3` and move the value
+by `2|c3| T^3`, the same as 58:51 `+`→`-` for that mode.
 
-| Mode | 58:31 `+`→`-` | 58:51 `+`→`-` | 58:51 `+`→`*` | galactic `delete -` on `c3` |
-|------|---------------|---------------|---------------|------------------------------|
-| True Chitra / Citra | -6.15e-4 | -7.09e-8 | -3.07e-4 | - |
-| True Revati | -6.14e-4 | -5.61e-8 | -3.07e-4 | - |
-| True Pushya | -6.13e-4 | -5.75e-8 | -3.07e-4 | - |
-| True Mula | -6.41e-4 | -6.12e-8 | -3.20e-4 | - |
-| True Sheoran | -6.13e-4 | -5.75e-8 | -3.07e-4 | - |
-| Galactic Center / Rgilbrand / Cochrane | -6.25e-4 | -7.08e-8 | -3.12e-4 | - |
-| Galactic Equator IAU 1958 | -5.97e-4 | +1.11e-7 | -2.99e-4 | +1.11e-7 (28:5) |
-| Galactic Equator True | -5.97e-4 | +1.11e-7 | -2.99e-4 | +1.11e-7 (34:5) |
-| Galactic Equator Mula | -5.97e-4 | +1.11e-7 | -2.99e-4 | +1.11e-7 (40:5) |
-| Galactic Center Mardyks | -6.14e-4 | -7.4e-9 | -3.07e-4 | - |
-| Galactic Center Mula/Wilhelm | -9.74e-4 | +1.40e-5 | -4.80e-4 | +1.40e-5 (52:5) |
-| Galactic Equator Fiorenza | -6.14e-4 | -7.4e-9 | -3.07e-4 | - |
+Two tables, one row per mode. First the displacement (mutant minus original);
+then the killing margin `|mutant - SE|`, which is what the tolerance has to stay
+below, because the tests compare against the SE row. T = 0 is JD 2451545 and
+T = 1 is JD 2488070. At T = 0 the 31 and 51 `-` mutants move the value by
+exactly 0 (every term but `c0` vanishes), so that row only pins `c0`; the 51
+`+`→`*` mutant is displaced by about `-c0` at T = 0.
 
-The true minimum over the rows that carry a mutant's kill is **5.61e-8**
-(58:51 `+`→`-`, True Revati) and **1.11e-7** for the three smallest galactic
-`delete -` mutants, against a 2e-8 tolerance. Mardyks and Fiorenza have a `c3`
-near 3.7e-9, so their 58:51 `+`→`-` row (7.4e-9) is below the tolerance and does
-not by itself kill that mutant; the other thirteen modes do. This is why the
-tolerance is 2e-8 and not tighter.
+| Mode | 31 `-` disp (T=1) | 51 `-` disp (T=1) | 51 `*` disp (T=0 / T=1) |
+|------|------------------|------------------|--------------------------|
+| True Chitra | -6.147e-4 | -7.088e-8 | -23.84 / -25.24 |
+| True Citra | -6.147e-4 | -7.088e-8 | -23.84 / -25.24 |
+| True Revati | -6.136e-4 | -5.606e-8 | -20.04 / -21.44 |
+| True Pushya | -6.135e-4 | -5.750e-8 | -22.72 / -24.12 |
+| True Mula | -6.409e-4 | -6.122e-8 | -24.59 / -25.98 |
+| True Sheoran | -6.135e-4 | -5.750e-8 | -25.23 / -26.63 |
+| Galactic Center | -6.248e-4 | -7.076e-8 | -26.85 / -28.25 |
+| Galactic Center Rgilbrand | -6.248e-4 | -7.076e-8 | -22.47 / -23.87 |
+| Galactic Center Cochrane | -6.248e-4 | -7.076e-8 | -356.9 / -358.2 |
+| Galactic Equator IAU 1958 | -5.974e-4 | +1.112e-7 | -30.02 / -31.43 |
+| Galactic Equator True | -5.973e-4 | +1.111e-7 | -30.08 / -31.48 |
+| Galactic Equator Mula | -5.973e-4 | +1.111e-7 | -23.41 / -24.81 |
+| Galactic Center Mardyks | -6.142e-4 | -7.403e-9 | -30.02 / -31.41 |
+| Galactic Center Mula/Wilhelm | -9.742e-4 | +1.402e-5 | -20.05 / -21.50 |
+| Galactic Equator Fiorenza | -6.142e-4 | -7.409e-9 | -25.00 / -26.40 |
 
-Why SE rows with a tolerance of 2e-8 degrees (7.2e-5 arcsec) rather than the
-gate's 1.0 arcsec ceiling: the gate's ceiling is a release criterion, sized
-so that the cubic fits pass with margin (the measured maxima are 0.057 arcsec
-at worst). A sign flip on a cubic coefficient moves the value by about 1e-7
-degrees at the window edge, so the ceiling cannot see it. The committed fits
-reproduce the T = 0 and T = 1 rows to 7e-9 degrees, so the tighter bound is
-measured, not assumed, and the corpus file stays unchanged.
+| Mode | 31 `-` margin | 51 `-` margin (= `c3` flip) | 51 `*` margin |
+|------|---------------|-----------------------------|---------------|
+| True Chitra | 6.147e-4 | 6.941e-8 | 25.24 |
+| True Citra | 6.147e-4 | 6.941e-8 | 25.24 |
+| True Revati | 6.136e-4 | 5.530e-8 | 21.44 |
+| True Pushya | 6.135e-4 | 5.644e-8 | 24.12 |
+| True Mula | 6.409e-4 | 6.022e-8 | 25.98 |
+| True Sheoran | 6.135e-4 | 5.569e-8 | 26.63 |
+| Galactic Center | 6.248e-4 | 6.952e-8 | 28.25 |
+| Galactic Center Rgilbrand | 6.248e-4 | 6.952e-8 | 23.87 |
+| Galactic Center Cochrane | 6.248e-4 | 6.954e-8 | 358.2 |
+| Galactic Equator IAU 1958 | 5.974e-4 | 1.121e-7 | 31.43 |
+| Galactic Equator True | 5.973e-4 | 1.124e-7 | 31.48 |
+| Galactic Equator Mula | 5.973e-4 | 1.127e-7 | 24.81 |
+| Galactic Center Mardyks | 6.142e-4 | 5.924e-9 (does not kill) | 31.41 |
+| Galactic Center Mula/Wilhelm | 9.742e-4 | 1.402e-5 | 21.50 |
+| Galactic Equator Fiorenza | 6.142e-4 | 6.178e-9 (does not kill) | 26.40 |
+
+Best killing margin per mutant (the largest over modes and epochs, since one
+failing assertion kills):
+
+| Mutant | Best margin | From | Weakest mode that still kills |
+|--------|-------------|------|-------------------------------|
+| 58:31 `+`→`-` | 9.742e-4 | Mula/Wilhelm | 5.973e-4 (Equator True / Mula) |
+| 58:51 `+`→`-` | 1.402e-5 | Mula/Wilhelm | 5.530e-8 (True Revati); Mardyks and Fiorenza do not kill |
+| 58:51 `+`→`*` | 358.2 | Cochrane | 21.44 (True Revati, T = 1) |
+| 28:5 `delete -` (IAU 1958 `c3`) | 1.121e-7 | IAU 1958 | the only mode that carries it |
+| 34:5 `delete -` (Equator True `c3`) | 1.124e-7 | Equator True | same |
+| 40:5 `delete -` (Equator Mula `c3`) | 1.127e-7 | Equator Mula | same |
+| 52:5 `delete -` (Mula/Wilhelm `c3`) | 1.402e-5 | Mula/Wilhelm | same |
+
+**Binding constraint and floor.** The tolerance must sit above the worst fit
+residual at the two epochs and below the smallest margin of a mutant that has
+only one killer. The floor is Mula/Wilhelm's residual of 6.73e-9 at T = 1 (at
+T = 0 the worst residual is Wilhelm's 3.6e-9). The ceiling is the three galactic
+Equator `c3` `delete -` flips, each killable only through its own mode:
+1.121e-7, 1.124e-7 and 1.127e-7. 2e-8 is 3x above the floor and 5.6x below the
+ceiling. The true minimum over the mutants is therefore **1.121e-7** (28:5, IAU
+1958). The 58:51 `+`→`-` mutant is killed through many modes (best 1.4e-5) and
+every True-star and Center mode except Mardyks clears 5.5e-8, so that test is
+not leaning on one fit.
+
+Why SE rows with a 2e-8 degree (7.2e-5 arcsec) tolerance rather than the gate's
+1.0 arcsec ceiling: the ceiling is a release criterion sized so the fits pass
+with margin (measured worst case 0.057 arcsec), so it cannot see a `c3` sign
+flip of about 1e-7 degrees. The committed fits reproduce the T = 0 and T = 1
+rows to 6.7e-9 degrees, so the tighter bound is measured, not assumed, and the
+corpus file stays unchanged. **Both JDs are nodes of the fit grid** (T = 0 and
+the window edge T = 1); a refit with a different grid or window must re-measure
+these residuals before the tolerance is trusted.
 
 ### `offset_from_components` (degrees; tolerance 1e-12)
 
