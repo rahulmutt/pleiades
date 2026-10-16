@@ -104,9 +104,11 @@ byte-identical, and the lunar-point mode uses **3″**:
 
 Each turn's miss is logged on stderr, as now.
 
-**Non-finite guard.** The tool skips an isolated non-finite sample and aborts
-on two consecutive ones, as `se-stations-reference` does for Moshier. SWIEPH
-showed none, so this guards and never triggers.
+**Non-finite values.** SWIEPH returned no non-finite true-node longitude or
+speed anywhere over the span, including the scan and bisection calls. So the
+tool keeps its existing fail-closed assert in `state()`: a non-finite value
+aborts the run. Moshier's isolated-NaN skip from `se-stations-reference` would
+be dead code here.
 
 **Building.** As for the other SE tools: `devenv shell -- env
 CFLAGS=-std=gnu17 cargo build --release --offline --manifest-path
@@ -170,9 +172,9 @@ The blocking tier gains only the manifest check (milliseconds).
   doc, the `mise.toml` `gate-aspects` comment, `docs/status.md`,
   `docs/development.md` and the `AGENTS.md` CI-tier paragraph, wherever they
   list the gate's pairs.
-- The `pleiades-core` compatibility notes: an entry for the new gate, with
-  the profile bumped `0.7.37 → 0.7.38`. This follows the asteroid-gate
-  precedent; the plan checks whether #251 bumped it, and matches that.
+- No compatibility-profile change. The asteroid aspect gate (#251) added a
+  corpus without touching `pleiades-core`'s profile or notes, because a
+  validation corpus is not part of the published API. This change follows it.
 - **#168:**
   - (f) gains its lunar-point half: the true node is gated.
   - (c) gains the measured near-grazes, 3.6″ and 4.1″, now compared.
