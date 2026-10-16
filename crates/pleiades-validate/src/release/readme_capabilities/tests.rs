@@ -224,3 +224,132 @@ fn the_spk_block_never_loads_kernels() {
     assert!(matches!(spk.bodies, BodySource::Runtime(SPK_BODIES)));
     assert!((spk.metadata)().body_claims.is_empty());
 }
+
+use crate::release::workspace_audit::WorkspaceAuditViolation;
+use std::path::Path;
+
+const README: &str = "crates/pleiades-x/README.md";
+
+fn expected(id: &'static str, readme: &'static str, body: &str) -> RenderedBlock {
+    RenderedBlock {
+        readme,
+        backend_id: id,
+        body: body.to_string(),
+    }
+}
+
+fn audit(text: &str, blocks: &[RenderedBlock]) -> Vec<WorkspaceAuditViolation> {
+    audit_capability_blocks(Path::new(README), README, text, blocks)
+}
+
+fn rules(violations: &[WorkspaceAuditViolation]) -> Vec<&'static str> {
+    violations.iter().map(|violation| violation.rule).collect()
+}
+
+fn readme_with(id: &str, body: &str) -> String {
+    format!("# x\n\n## Capabilities\n\n<!-- audit:capabilities {id} -->{body}<!-- /audit:capabilities -->\n\n## License\n")
+}
+
+#[test]
+fn a_current_block_passes() {
+    let blocks = [expected("x", README, "\n- a\n- b\n")];
+    assert!(audit(&readme_with("x", "\n- a\n- b\n"), &blocks).is_empty());
+}
+
+#[test]
+fn a_registered_block_absent_from_its_readme_is_missing() {
+    let blocks = [expected("x", README, "\n- a\n")];
+    let violations = audit("# x\n", &blocks);
+    assert_eq!(rules(&violations), ["readme.capabilities-block-missing"]);
+    assert!(
+        violations[0].detail.contains("`x`"),
+        "{}",
+        violations[0].detail
+    );
+}
+
+#[test]
+fn a_changed_line_is_stale_and_named() {
+    let blocks = [expected("x", README, "\n- a\n- b\n")];
+    let violations = audit(&readme_with("x", "\n- a\n- c\n"), &blocks);
+    assert_eq!(rules(&violations), ["readme.capabilities-block-stale"]);
+    let detail = &violations[0].detail;
+    assert!(detail.contains("found `- c`"), "{detail}");
+    assert!(detail.contains("expected `- b`"), "{detail}");
+    assert!(detail.contains("mise run readme-capabilities"), "{detail}");
+}
+
+#[test]
+fn a_shorter_block_is_stale_at_its_end() {
+    let blocks = [expected("x", README, "\n- a\n- b\n")];
+    let violations = audit(&readme_with("x", "\n- a\n"), &blocks);
+    assert_eq!(rules(&violations), ["readme.capabilities-block-stale"]);
+    assert!(
+        violations[0].detail.contains("(end of block)"),
+        "{}",
+        violations[0].detail
+    );
+}
+
+#[test]
+fn a_crlf_block_is_stale_and_rewrites_clean() {
+    let blocks = [expected("x", README, "\n- a\n")];
+    let text = readme_with("x", "\r\n- a\r\n");
+    assert_eq!(
+        rules(&audit(&text, &blocks)),
+        ["readme.capabilities-block-stale"]
+    );
+}
+
+#[test]
+fn an_unregistered_id_is_unknown() {
+    let violations = audit(&readme_with("nope", "\n- a\n"), &[]);
+    assert_eq!(rules(&violations), ["readme.capabilities-block-unknown"]);
+}
+
+#[test]
+fn a_block_in_the_wrong_readme_is_unknown_and_missing_from_its_own() {
+    // Registered for another README: unknown here. Its own README is
+    // audited separately and reports it missing there.
+    let blocks = [expected("x", "crates/pleiades-y/README.md", "\n- a\n")];
+    let violations = audit(&readme_with("x", "\n- a\n"), &blocks);
+    assert_eq!(rules(&violations), ["readme.capabilities-block-unknown"]);
+    assert!(
+        violations[0].detail.contains("crates/pleiades-y/README.md"),
+        "{}",
+        violations[0].detail
+    );
+}
+
+#[test]
+fn malformed_markers_are_reported_once() {
+    let blocks = [expected("x", README, "\n- a\n")];
+    for text in [
+        "<!-- audit:capabilities x -->\n- a\n".to_string(),
+        "<!-- audit:capabilities x\n- a\n<!-- /audit:capabilities -->".to_string(),
+        "<!-- audit:capabilities x -->\n<!-- audit:capabilities y -->\n<!-- /audit:capabilities -->".to_string(),
+        "<!-- /audit:capabilities -->\n".to_string(),
+        format!("{}{}", readme_with("x", "\n- a\n"), readme_with("x", "\n- a\n")),
+    ] {
+        assert_eq!(rules(&audit(&text, &blocks)), ["readme.capabilities-block-malformed"], "{text:?}");
+    }
+}
+
+#[test]
+fn an_id_with_padding_is_trimmed() {
+    let blocks = [expected("x", README, "\n- a\n")];
+    let text = "<!-- audit:capabilities   x   -->\n- a\n<!-- /audit:capabilities -->";
+    assert!(audit(text, &blocks).is_empty());
+    // A different prefix is not a marker at all, so the block is missing.
+    // (No closing marker: a lone one would be reported as malformed instead.)
+    let text = "<!--  audit:capabilities x -->\n- a\n";
+    assert_eq!(
+        rules(&audit(text, &blocks)),
+        ["readme.capabilities-block-missing"]
+    );
+}
+
+#[test]
+fn a_readme_with_no_registered_block_and_no_markers_is_clean() {
+    assert!(audit("# x\n\nNo blocks here.\n", &[]).is_empty());
+}
