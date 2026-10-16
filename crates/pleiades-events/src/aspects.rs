@@ -546,8 +546,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// The first instant strictly after `after` at which the ecliptic
     /// separation of `first` and `second` equals any of `angles`.
     ///
-    /// The earliest of the [`EventEngine::next_aspect`] answers for each
-    /// angle, bit for bit, found in one scan that stops at the first event of
+    /// The earliest of the events [`EventEngine::next_aspect`] finds for each
+    /// angle, among the angles that have one, bit for bit, found in one scan that stops at the first event of
     /// any angle. [`EventError::OutOfWindow`] only when no angle has an event
     /// before the window's end. The meaning of `after` and the errors are
     /// those of [`EventEngine::next_aspect`] and
@@ -586,8 +586,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// The last instant at or before `before` at which the ecliptic
     /// separation of `first` and `second` equals any of `angles`.
     ///
-    /// The latest of the [`EventEngine::previous_aspect`] answers for each
-    /// angle, bit for bit, found in one backward walk that stops at the first
+    /// The latest of the events [`EventEngine::previous_aspect`] finds for each
+    /// angle, among the angles that have one, bit for bit, found in one backward walk that stops at the first
     /// chunk holding an event of any angle. [`EventError::OutOfWindow`] only
     /// when no angle has an event after the window's start. The meaning of
     /// `before` and the errors are those of [`EventEngine::previous_aspect`]

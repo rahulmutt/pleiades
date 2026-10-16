@@ -170,6 +170,73 @@ fn next_and_previous_are_the_nearest_of_the_single_angle_answers() {
     }
 }
 
+/// The events among the single-angle answers (an out-of-reach angle answers
+/// `Err(OutOfWindow)`, which is no event), picked by `pick` over their instants.
+fn single_nearest<B, F>(
+    engine: &EventEngine<B>,
+    case: &Case,
+    at: f64,
+    forward: bool,
+    pick: F,
+) -> Option<AspectEvent>
+where
+    B: pleiades_backend::EphemerisBackend,
+    F: Fn(&AspectEvent, &AspectEvent) -> std::cmp::Ordering,
+{
+    let answers = case.angles.iter().filter_map(|&angle| {
+        let (first, second) = (case.first.clone(), case.second.clone());
+        let (reference, at) = (case.reference.clone(), tdb(at));
+        if forward {
+            engine.next_aspect(first, second, angle, reference, at)
+        } else {
+            engine.previous_aspect(first, second, angle, reference, at)
+        }
+        .ok()
+        .flatten()
+    });
+    answers.min_by(pick)
+}
+
+#[test]
+fn next_and_previous_match_the_single_angle_answers_between_events() {
+    let engine = EventEngine::new(packaged_backend());
+    for case in cases() {
+        let label = format!("{}-{}", case.first, case.second);
+        let singles = merged_singles(&engine, &case);
+        let midpoints: Vec<f64> = singles
+            .windows(2)
+            .map(|pair| (jd(&pair[0]) + jd(&pair[1])) / 2.0)
+            .collect();
+        for at in std::iter::once(case.end).chain(midpoints.iter().copied()) {
+            let batch = engine
+                .previous_aspect_for_angles(
+                    case.first.clone(),
+                    case.second.clone(),
+                    &case.angles,
+                    case.reference.clone(),
+                    tdb(at),
+                )
+                .expect("previous");
+            // The latest answer: the minimum under the reversed order.
+            let latest = single_nearest(&engine, &case, at, false, |a, b| jd(b).total_cmp(&jd(a)));
+            assert_eq!(batch, latest, "{label} previous at {at}");
+        }
+        for at in std::iter::once(case.start).chain(midpoints.iter().copied()) {
+            let batch = engine
+                .next_aspect_for_angles(
+                    case.first.clone(),
+                    case.second.clone(),
+                    &case.angles,
+                    case.reference.clone(),
+                    tdb(at),
+                )
+                .expect("next");
+            let earliest = single_nearest(&engine, &case, at, true, |a, b| jd(a).total_cmp(&jd(b)));
+            assert_eq!(batch, earliest, "{label} next at {at}");
+        }
+    }
+}
+
 #[test]
 fn every_angle_out_of_reach_answers_as_one_does() {
     let engine = EventEngine::new(packaged_backend());

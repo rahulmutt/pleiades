@@ -202,6 +202,52 @@ fn each_root_carries_the_index_of_its_level() {
     assert_eq!(last, Some(roots[1]));
 }
 
+// The peak (T0 + 10.7, 0.0004 deg) clears both levels inside the 2-day step
+// T0+10 .. T0+12. `0.0004 - 0.01 x^2 = level` gives x = +-sqrt((0.0004 -
+// level) / 0.01): level 0.0 is crossed at +-0.2 d, level -0.0002 at
+// +-sqrt(0.06) = +-0.244949 d. In time order: level 1 (10.455051), level 0
+// (10.5), level 0 (10.9), level 1 (10.944949).
+#[test]
+fn two_levels_inside_one_step_around_a_turning_point_each_keep_their_tag() {
+    let centre = T0 + 10.7;
+    let levels = [0.0, -0.0002];
+    let spread = 0.06_f64.sqrt();
+    let roots = tagged_in_range(
+        parabola(centre, 0.0004),
+        &levels,
+        T0,
+        T0 + 30.0,
+        2.0,
+        UNBOUNDED,
+    )
+    .unwrap();
+    assert_eq!(
+        roots.iter().map(|&(_, level)| level).collect::<Vec<_>>(),
+        [1, 0, 0, 1]
+    );
+    let want = [centre - spread, centre - 0.2, centre + 0.2, centre + spread];
+    for (&(got, _), want) in roots.iter().zip(want) {
+        assert_settled(got, want);
+    }
+
+    // Each level scanned alone settles on the same instants, tagged 0.
+    for (level, positions) in [(0, [1, 2]), (1, [0, 3])] {
+        let alone = tagged_in_range(
+            parabola(centre, 0.0004),
+            &[levels[level]],
+            T0,
+            T0 + 30.0,
+            2.0,
+            UNBOUNDED,
+        )
+        .unwrap();
+        assert_eq!(
+            alone,
+            [(roots[positions[0]].0, 0), (roots[positions[1]].0, 0)]
+        );
+    }
+}
+
 #[test]
 fn first_after_is_the_first_in_range() {
     let centre = T0 + 10.7;
