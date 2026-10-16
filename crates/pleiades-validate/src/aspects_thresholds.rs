@@ -23,6 +23,10 @@
 //! spike, `docs/superpowers/specs/notes/2026-10-10-se-asteroid-agreement.md`),
 //! recorded beside them.
 //!
+//! The true-node pairs (issue #168) were measured on 2026-10-16 against the
+//! SWIEPH (sepl_18/semo_18) corpus: measured × 1.4, floored at 2.3"; the
+//! point itself agrees within 0.94" over 1900-2100.
+//!
 //! The longitude ceiling bounds the difference of either body's longitude
 //! at the event. It includes the body's motion over the time residual.
 
@@ -49,6 +53,10 @@ pub(crate) const MIN_ROWS_VALIDATED_MEAN_SUBSET: usize = 372;
 /// Fail-closed floor for the asteroid corpus: every row of `asteroids.csv`
 /// (10118, generated 2026-10-10), so a dropped event fails.
 pub(crate) const MIN_ROWS_VALIDATED_ASTEROIDS: usize = 10_118;
+
+/// Fail-closed floor for the true-node corpus: every row of
+/// `lunar-points.csv` (3424, generated 2026-10-16).
+pub(crate) const MIN_ROWS_VALIDATED_LUNAR_POINTS: usize = 3_424;
 
 /// Ceilings by corpus pair name (`"Mars-Saturn"`), or `None` for a pair the
 /// gate does not cover.
@@ -137,6 +145,44 @@ pub(crate) fn ceilings_for(pair: &str) -> Option<Ceilings> {
         "Jupiter-Ceres" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 13.0,
+        }),
+        // True node (Swiss Ephemeris SWIEPH sepl_18/semo_18 corpus): measured
+        // × 1.4, floored at 2.3"; the point itself agrees within 0.94" over
+        // 1900-2100.
+        // measured max 0.530", 0.783" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        "TrueNode-Sun" => Some(Ceilings {
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 0.861", 0.761" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        "TrueNode-Mars" => Some(Ceilings {
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 0.602", 0.767" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        "TrueNode-Jupiter" => Some(Ceilings {
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 0.641", 0.775" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        "TrueNode-Saturn" => Some(Ceilings {
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 0.513", 1.073" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        "TrueNode-Uranus" => Some(Ceilings {
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 0.719", 0.763" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        "TrueNode-Neptune" => Some(Ceilings {
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 0.528", 0.734" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        "TrueNode-Pluto" => Some(Ceilings {
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
         _ => None,
     }
