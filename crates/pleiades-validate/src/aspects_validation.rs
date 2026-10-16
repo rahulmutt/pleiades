@@ -9,25 +9,35 @@
 //! separation turns within 30 arcseconds of an angle, so no corpus event
 //! depends on the ephemeris. See `aspects_thresholds` for the ceilings.
 //!
-//! Tiers: the full gate (about 2 minutes as `mise run gate-aspects` on the
-//! 4-core nightly runner, planets and asteroids, 2026-10-15; see
+//! Tiers: the full gate (`mise run gate-aspects`: planets, asteroids and the
+//! true node; about 2 minutes on the 4-core nightly runner before the
+//! true-node pass (#168), 2026-10-15, not yet measured on it since, and about
+//! 19 minutes locally at load 13-15.6, 2026-10-16; see
 //! [`validate_aspects_corpus`]) runs in its own nightly job and in
 //! `release-gate`; the `mean` subset (about 16 s) runs in the release
 //! battery (`release-smoke`), after a scan-free checksum and row-count check
-//! of the asteroid corpus (issue #254).
+//! of the asteroid and true-node corpora (issue #254).
 //!
 //! Asteroids (issue #168): Sun–Ceres, Sun–Pallas, Sun–Juno, Sun–Vesta,
 //! Mars–Vesta and Jupiter–Ceres over 1900–2100 and Moon–Ceres over 1990–2030
 //! are compared event for event against `asteroids.csv`, generated with
 //! SWIEPH and seas_18 by the same tool's `--asteroids` mode, in the full gate
-//! only (the release battery checks only that file's manifest). A Sun or Moon pair's separation never turns; Mars–Vesta and
-//! Jupiter–Ceres turn 188 and 315 times, so the asteroids' retrograde loops
-//! reach the gate (issue #253). None of their turns comes within 209" of an
-//! angle, and no two events of one angle fall within one 2-day search step.
+//! only (the release battery checks only that file's manifest). A Sun or Moon
+//! pair's separation never turns; Mars–Vesta and Jupiter–Ceres turn 188 and
+//! 315 times, so the asteroids' retrograde loops reach the gate (issue #253).
+//! None of their turns comes within 209" of an angle, and no two events of
+//! one angle fall within one 2-day search step.
+//!
+//! True node (issue #168): the true node against the Sun, Mars, Jupiter,
+//! Saturn, Uranus, Neptune and Pluto over 1900–2100 (3424 events) is
+//! compared event for event against `lunar-points.csv`, generated with SWIEPH
+//! by `tools/se-aspects-reference --lunar-points`, in the full gate only (the
+//! release battery checks only that file's manifest too). The tool's 3"
+//! graze margin applies; the measured near-grazes are 3.6" and 4.1".
 
 use crate::aspects_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_ASTEROIDS,
-    MIN_ROWS_VALIDATED_MEAN_SUBSET,
+    MIN_ROWS_VALIDATED_LUNAR_POINTS, MIN_ROWS_VALIDATED_MEAN_SUBSET,
 };
 use pleiades_apparent::fnv1a64;
 use pleiades_data::packaged_backend;
@@ -49,6 +59,14 @@ const ASTEROID_CSV: &str = include_str!(concat!(
 const ASTEROID_MANIFEST: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/aspects-corpus/asteroids-manifest.txt"
+));
+const LUNAR_POINT_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/aspects-corpus/lunar-points.csv"
+));
+const LUNAR_POINT_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/aspects-corpus/lunar-points-manifest.txt"
 ));
 
 /// The spans `tools/se-aspects-reference` scanned (Julian days, TT). The
@@ -77,6 +95,9 @@ enum Scope {
     /// seas_18): the [`ASTEROID_PAIRS`]. Part of the full gate only (issue
     /// #168).
     Asteroids,
+    /// The true-node corpus (`lunar-points.csv`, Swiss Ephemeris SWIEPH), the
+    /// [`LUNAR_POINT_PAIRS`]. Part of the full gate only (issue #168).
+    LunarPoints,
 }
 
 impl Scope {
@@ -84,7 +105,7 @@ impl Scope {
         match self {
             Self::Full => true,
             Self::MeanSubset => group == Group::Mean,
-            Self::Asteroids => true,
+            Self::Asteroids | Self::LunarPoints => true,
         }
     }
 
@@ -93,6 +114,7 @@ impl Scope {
             Self::Full => MIN_ROWS_VALIDATED,
             Self::MeanSubset => MIN_ROWS_VALIDATED_MEAN_SUBSET,
             Self::Asteroids => MIN_ROWS_VALIDATED_ASTEROIDS,
+            Self::LunarPoints => MIN_ROWS_VALIDATED_LUNAR_POINTS,
         }
     }
 
@@ -102,6 +124,7 @@ impl Scope {
             Self::Full => "Aspects gate",
             Self::MeanSubset => "Aspects gate (mean subset)",
             Self::Asteroids => "Asteroid aspects",
+            Self::LunarPoints => "True-node aspects",
         }
     }
 
@@ -110,6 +133,7 @@ impl Scope {
         match self {
             Self::Full | Self::MeanSubset => &PAIRS,
             Self::Asteroids => &ASTEROID_PAIRS,
+            Self::LunarPoints => &LUNAR_POINT_PAIRS,
         }
     }
 }
@@ -199,6 +223,18 @@ const ASTEROID_PAIRS: [Pair; 7] = [
     pair(Group::Geo, "Jupiter", "Ceres", FULL_SPAN),
 ];
 
+/// The true-node corpus plan, mirroring the `--lunar-points` mode of
+/// `tools/se-aspects-reference`.
+const LUNAR_POINT_PAIRS: [Pair; 7] = [
+    pair(Group::Geo, "TrueNode", "Sun", FULL_SPAN),
+    pair(Group::Geo, "TrueNode", "Mars", FULL_SPAN),
+    pair(Group::Geo, "TrueNode", "Jupiter", FULL_SPAN),
+    pair(Group::Geo, "TrueNode", "Saturn", FULL_SPAN),
+    pair(Group::Geo, "TrueNode", "Uranus", FULL_SPAN),
+    pair(Group::Geo, "TrueNode", "Neptune", FULL_SPAN),
+    pair(Group::Geo, "TrueNode", "Pluto", FULL_SPAN),
+];
+
 fn body_from_name(name: &str) -> Option<CelestialBody> {
     Some(match name {
         "Sun" => CelestialBody::Sun,
@@ -208,11 +244,14 @@ fn body_from_name(name: &str) -> Option<CelestialBody> {
         "Mars" => CelestialBody::Mars,
         "Jupiter" => CelestialBody::Jupiter,
         "Saturn" => CelestialBody::Saturn,
+        "Uranus" => CelestialBody::Uranus,
+        "Neptune" => CelestialBody::Neptune,
         "Pluto" => CelestialBody::Pluto,
         "Ceres" => CelestialBody::Ceres,
         "Pallas" => CelestialBody::Pallas,
         "Juno" => CelestialBody::Juno,
         "Vesta" => CelestialBody::Vesta,
+        "TrueNode" => CelestialBody::TrueNode,
         _ => return None,
     })
 }
@@ -234,7 +273,7 @@ struct Expected {
 }
 
 /// One corpus row, with its pair and angle as indices into the corpus plan
-/// it was parsed against ([`PAIRS`] or [`ASTEROID_PAIRS`]) and into
+/// it was parsed against ([`PAIRS`], [`ASTEROID_PAIRS`] or [`LUNAR_POINT_PAIRS`]) and into
 /// [`ANGLES_DEG`].
 #[derive(Clone, Copy, Debug)]
 struct Row {
@@ -538,8 +577,8 @@ impl AspectsReport {
         &self.pair_lines
     }
 
-    /// The planet report followed by the asteroid report: rows summed, pair
-    /// lines in order, summary lines joined with "; ".
+    /// Chains the planet, asteroid and true-node reports in order: rows
+    /// summed, pair lines in order, summary lines joined with "; ".
     fn merged_with(self, other: AspectsReport) -> AspectsReport {
         let mut pair_lines = self.pair_lines;
         pair_lines.extend(other.pair_lines);
@@ -650,10 +689,10 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
         total.absorb(residuals);
     }
     check_floor(total.matched, scope.floor())?;
-    let source = if scope == Scope::Asteroids {
-        "Swiss Ephemeris SWIEPH (seas_18) corpus"
-    } else {
-        "Swiss Ephemeris corpus"
+    let source = match scope {
+        Scope::Asteroids => "Swiss Ephemeris SWIEPH (seas_18) corpus",
+        Scope::LunarPoints => "Swiss Ephemeris SWIEPH corpus",
+        Scope::Full | Scope::MeanSubset => "Swiss Ephemeris corpus",
     };
     let summary_line = format!(
         "{}: {} exact aspects validated across {} pairs vs {source} (event for event at 0, 60, 90, 120 and 180 degrees), max separation residual {:.3}\", max time {:.1} s, max lon {:.3}\"",
@@ -673,25 +712,32 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
 
 /// The full gate: every planet corpus pair at every angle (floor
 /// `MIN_ROWS_VALIDATED`, 10359 events), then the asteroid pairs (floor
-/// `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events). Run by `validate-aspects` /
-/// `mise run gate-aspects` (its own nightly job and a `release-gate`
-/// dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test.
+/// `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events), then the true node against
+/// seven planets (floor `MIN_ROWS_VALIDATED_LUNAR_POINTS`, 3424 events,
+/// SWIEPH, 3" graze margin, measured near-grazes of 3.6" and 4.1"). Run by
+/// `validate-aspects` / `mise run gate-aspects` (its own nightly job and a
+/// `release-gate` dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test.
 /// Measured on the 4-core nightly runner with both passes (five nightly
 /// runs at 3f5849db6, 2026-10-11..15, warm build): the gate command takes
 /// 77–151 s (median 114 s) and the whole `aspects-gate` job 2m00s–3m07s,
 /// against an 80-min step and 90-min job timeout. The gate does not time its
 /// passes; the planets-only command took 82 s at b23c6ca39 (2026-10-10, the
 /// run before #251), so the asteroid pass (`Scope::Asteroids`, seven pairs)
-/// is roughly 30 s there, less than the run-to-run spread above. On the 24-core dev
-/// box under load it took 54.5 s in the release profile (2026-10-10). The
-/// first measurements, 880 s as the command and 1110.8 s as the in-crate
-/// test (dev/test profile, 2026-10-02, planet pairs only), predate the
-/// event-engine speedups since and are why the gate left nightly
-/// `test-full`.
+/// is roughly 30 s there, less than the run-to-run spread above. On the
+/// 24-core dev box under load it took 54.5 s in the release profile
+/// (2026-10-10). The true-node pass took the local full gate to 18m56s at
+/// load 13–15.6 (2026-10-16), against 125–153 s before at load 5–12; it has
+/// not yet been measured on the nightly runner. If it pushes the nightly full
+/// gate past 15 minutes, the lunar pass is to be split into its own
+/// subcommand, as the spec's contingency says. The first measurements, 880 s
+/// as the command and 1110.8 s as the in-crate test (dev/test profile,
+/// 2026-10-02, planet pairs only), predate the event-engine speedups since
+/// and are why the gate left nightly `test-full`.
 pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
     let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;
-    Ok(planets.merged_with(asteroids))
+    let lunar_points = validate_scoped(LUNAR_POINT_CSV, LUNAR_POINT_MANIFEST, Scope::LunarPoints)?;
+    Ok(planets.merged_with(asteroids).merged_with(lunar_points))
 }
 
 /// The release-battery subset: verifies the checksum and row count of the
@@ -703,18 +749,27 @@ pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
 /// Before that it verifies the asteroid corpus's checksum and row count
 /// against its manifest, with no engine scan (issue #254), so a hand-edited
 /// `asteroids.csv` or a stale manifest fails the blocking tier rather than
-/// only the nightly full gate.
+/// only the nightly full gate. The true-node corpus (`lunar-points.csv`) is
+/// checked the same way.
 pub fn validate_aspects_corpus_subset() -> Result<AspectsReport, AspectsError> {
-    validate_subset(ASTEROID_CSV, ASTEROID_MANIFEST)
+    validate_subset(
+        ASTEROID_CSV,
+        ASTEROID_MANIFEST,
+        LUNAR_POINT_CSV,
+        LUNAR_POINT_MANIFEST,
+    )
 }
 
-/// [`validate_aspects_corpus_subset`] with the asteroid corpus passed in, so
-/// a test can hand it a tampered file or manifest.
+/// [`validate_aspects_corpus_subset`] with the asteroid and true-node corpora
+/// passed in, so a test can hand it a tampered file or manifest.
 fn validate_subset(
     asteroid_csv: &str,
     asteroid_manifest: &str,
+    lunar_csv: &str,
+    lunar_manifest: &str,
 ) -> Result<AspectsReport, AspectsError> {
     check_manifest(asteroid_csv, asteroid_manifest, &ASTEROID_PAIRS)?;
+    check_manifest(lunar_csv, lunar_manifest, &LUNAR_POINT_PAIRS)?;
     validate_scoped(CORPUS_CSV, MANIFEST, Scope::MeanSubset)
 }
 

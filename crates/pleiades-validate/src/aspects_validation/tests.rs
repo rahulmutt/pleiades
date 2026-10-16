@@ -381,10 +381,13 @@ fn aspects_gate_passes_within_ceilings() {
         eprintln!("{line}");
     }
     eprintln!("full gate: {:.1} s", started.elapsed().as_secs_f64());
-    assert!(report.rows_validated >= MIN_ROWS_VALIDATED + MIN_ROWS_VALIDATED_ASTEROIDS);
+    assert!(
+        report.rows_validated
+            >= MIN_ROWS_VALIDATED + MIN_ROWS_VALIDATED_ASTEROIDS + MIN_ROWS_VALIDATED_LUNAR_POINTS
+    );
     assert_eq!(
         report.pair_lines().len(),
-        PAIRS.len() + ASTEROID_PAIRS.len()
+        PAIRS.len() + ASTEROID_PAIRS.len() + LUNAR_POINT_PAIRS.len()
     );
 }
 
@@ -571,7 +574,12 @@ fn mean_subset_fails_a_tampered_asteroid_corpus() {
     let tampered = ASTEROID_CSV.replacen("geo,Sun,Ceres,", "geo,Sun,Ceres, ", 1);
     assert_ne!(tampered, ASTEROID_CSV);
     assert!(matches!(
-        validate_subset(&tampered, ASTEROID_MANIFEST),
+        validate_subset(
+            &tampered,
+            ASTEROID_MANIFEST,
+            LUNAR_POINT_CSV,
+            LUNAR_POINT_MANIFEST
+        ),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
 }
@@ -584,7 +592,12 @@ fn mean_subset_fails_an_asteroid_manifest_row_count_drift() {
         rows - 1
     );
     assert!(matches!(
-        validate_subset(ASTEROID_CSV, &drifted),
+        validate_subset(
+            ASTEROID_CSV,
+            &drifted,
+            LUNAR_POINT_CSV,
+            LUNAR_POINT_MANIFEST
+        ),
         Err(AspectsError::ManifestDrift { .. })
     ));
 }
@@ -621,6 +634,109 @@ fn asteroid_scope_floor_is_its_own() {
     assert_eq!(
         rows, MIN_ROWS_VALIDATED_ASTEROIDS,
         "every asteroid row is compared"
+    );
+}
+
+#[test]
+fn lunar_point_corpus_parses_into_the_seven_true_node_pairs() {
+    let rows = parse_corpus(LUNAR_POINT_CSV, &LUNAR_POINT_PAIRS).expect("lunar corpus parses");
+    let (rows_manifest, _) = parse_manifest(LUNAR_POINT_MANIFEST).unwrap();
+    assert_eq!(rows.len(), rows_manifest);
+    let names: Vec<String> = LUNAR_POINT_PAIRS
+        .iter()
+        .map(|pair| format!("{}-{}", pair.first, pair.second))
+        .collect();
+    assert_eq!(
+        names,
+        [
+            "TrueNode-Sun",
+            "TrueNode-Mars",
+            "TrueNode-Jupiter",
+            "TrueNode-Saturn",
+            "TrueNode-Uranus",
+            "TrueNode-Neptune",
+            "TrueNode-Pluto"
+        ]
+    );
+    let expected_counts = [1686, 990, 247, 166, 119, 109, 107];
+    for (index, pair) in LUNAR_POINT_PAIRS.iter().enumerate() {
+        assert_eq!(pair.group, Group::Geo);
+        let count = rows.iter().filter(|row| row.pair == index).count();
+        assert_eq!(count, expected_counts[index], "{}", names[index]);
+        assert!(body_from_name(pair.first).is_some(), "{}", pair.first);
+        assert!(body_from_name(pair.second).is_some(), "{}", pair.second);
+        assert!(ceilings_for(&names[index]).is_some(), "{}", names[index]);
+    }
+    assert!(rows.iter().all(|row| row.pair < LUNAR_POINT_PAIRS.len()));
+}
+
+#[test]
+fn lunar_point_corpus_tampering_fails_closed() {
+    let tampered = LUNAR_POINT_CSV.replacen("geo,TrueNode,Sun,", "geo,TrueNode,Sun, ", 1);
+    assert_ne!(tampered, LUNAR_POINT_CSV);
+    assert!(matches!(
+        validate_scoped(&tampered, LUNAR_POINT_MANIFEST, Scope::LunarPoints),
+        Err(AspectsError::ChecksumMismatch { .. })
+    ));
+    let (rows, checksum) = parse_manifest(LUNAR_POINT_MANIFEST).unwrap();
+    let drifted = format!(
+        "slice aspects-lunar-points file=lunar-points.csv role=aspects rows={} checksum={checksum}\n",
+        rows + 1
+    );
+    assert!(matches!(
+        validate_scoped(LUNAR_POINT_CSV, &drifted, Scope::LunarPoints),
+        Err(AspectsError::ManifestDrift { .. })
+    ));
+}
+
+#[test]
+fn committed_lunar_point_corpus_matches_its_manifest() {
+    let rows = check_manifest(LUNAR_POINT_CSV, LUNAR_POINT_MANIFEST, &LUNAR_POINT_PAIRS)
+        .expect("manifest matches");
+    assert_eq!(rows.len(), MIN_ROWS_VALIDATED_LUNAR_POINTS);
+}
+
+#[test]
+fn mean_subset_fails_a_tampered_lunar_point_corpus() {
+    let tampered = LUNAR_POINT_CSV.replacen("geo,TrueNode,Sun,", "geo,TrueNode,Sun, ", 1);
+    assert_ne!(tampered, LUNAR_POINT_CSV);
+    assert!(matches!(
+        validate_subset(
+            ASTEROID_CSV,
+            ASTEROID_MANIFEST,
+            &tampered,
+            LUNAR_POINT_MANIFEST
+        ),
+        Err(AspectsError::ChecksumMismatch { .. })
+    ));
+}
+
+#[test]
+fn mean_subset_fails_a_lunar_point_manifest_row_count_drift() {
+    let (rows, checksum) = parse_manifest(LUNAR_POINT_MANIFEST).unwrap();
+    let drifted = format!(
+        "slice aspects-lunar-points file=lunar-points.csv role=aspects rows={} checksum={checksum}\n",
+        rows - 1
+    );
+    assert!(matches!(
+        validate_subset(ASTEROID_CSV, ASTEROID_MANIFEST, LUNAR_POINT_CSV, &drifted),
+        Err(AspectsError::ManifestDrift { .. })
+    ));
+}
+
+// No missing-event test is repeated for this corpus: the count path is covered by
+// `a_corpus_missing_an_event_fails_the_count` and the `compare_exact` tests, while
+// scanning a true-node pair costs minutes at the 0.25 d step.
+
+#[test]
+fn lunar_point_scope_floor_is_its_own() {
+    assert_eq!(Scope::LunarPoints.floor(), MIN_ROWS_VALIDATED_LUNAR_POINTS);
+    assert!(Scope::LunarPoints.includes(Group::Geo));
+    assert_eq!(Scope::LunarPoints.pairs().len(), LUNAR_POINT_PAIRS.len());
+    let (rows, _) = parse_manifest(LUNAR_POINT_MANIFEST).unwrap();
+    assert_eq!(
+        rows, MIN_ROWS_VALIDATED_LUNAR_POINTS,
+        "every lunar-point row is compared"
     );
 }
 
