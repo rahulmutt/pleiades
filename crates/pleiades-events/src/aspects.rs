@@ -5,6 +5,9 @@
 //! of `d − angle` or of `d + angle`. The scan splits each step at the
 //! turning points of `d`, so two exact moments inside one step are both
 //! found.
+//!
+//! Several angles of one pair are found in one scan: each root carries the
+//! index of its level, and each level the index of its angle.
 
 use crate::crossings::{body_label, CrossingFrame, EventEngine};
 use crate::error::{
@@ -153,27 +156,51 @@ fn separation<B: EphemerisBackend>(
 /// The span the scanner may sample within: the 1900–2100 window.
 const WINDOW: Window = (WINDOW_START_JD, WINDOW_END_JD);
 
-/// What both finders settle before scanning.
+/// What the finders settle before scanning.
 struct Search {
+    /// The levels of every angle in reach, in the order of the angles.
     levels: Vec<f64>,
+    /// For each of `levels`, the index into the caller's angles of the angle
+    /// it belongs to.
+    owners: Vec<usize>,
     step: f64,
-    /// The pair never reaches the angle ([`separation_bound`]): the finders
-    /// answer after one read instead of scanning.
+    /// No angle is in reach ([`separation_bound`]): the finders answer after
+    /// one read instead of scanning.
     unreachable: bool,
 }
 
 impl<B: EphemerisBackend> EventEngine<B> {
-    /// Validates an aspect request. The angle is checked first, then the
-    /// bodies, the window, and the frame and zodiac for each body.
+    /// Validates an aspect request. The angles are checked first (at least
+    /// one, each a separation, none repeated), then the bodies, the window,
+    /// and the frame and zodiac for each body.
     fn aspect_search(
         &self,
         first: &CelestialBody,
         second: &CelestialBody,
-        angle: Angle,
+        angles: &[Angle],
         reference: &CrossingReference,
         instants_jd: [f64; 2],
     ) -> Result<Search, EventError> {
-        let levels = levels_for(angle)?;
+        if angles.is_empty() {
+            return Err(invalid(
+                "an aspect search needs at least one angle".to_string(),
+            ));
+        }
+        let per_angle = angles
+            .iter()
+            .map(|&angle| levels_for(angle))
+            .collect::<Result<Vec<_>, _>>()?;
+        for (index, angle) in angles.iter().enumerate() {
+            if angles[..index]
+                .iter()
+                .any(|earlier| earlier.degrees() == angle.degrees())
+            {
+                return Err(invalid(format!(
+                    "the angle {} degrees is given twice",
+                    angle.degrees()
+                )));
+            }
+        }
         if first == second {
             return Err(invalid(format!(
                 "an aspect needs two different bodies, got {} twice",
@@ -186,14 +213,24 @@ impl<B: EphemerisBackend> EventEngine<B> {
         check_supported(first, reference, instants_jd[0], "aspects are")?;
         check_supported(second, reference, instants_jd[0], "aspects are")?;
         let step = search_step(first, second);
-        let unreachable = separation_bound(first, second, reference.frame)
-            .is_some_and(|bound| angle.degrees() > bound);
+        let bound = separation_bound(first, second, reference.frame);
+        let mut levels = Vec::new();
+        let mut owners = Vec::new();
+        for (index, (angle, angle_levels)) in angles.iter().zip(per_angle).enumerate() {
+            if bound.is_some_and(|bound| angle.degrees() > bound) {
+                continue;
+            }
+            owners.extend(std::iter::repeat_n(index, angle_levels.len()));
+            levels.extend(angle_levels);
+        }
+        let unreachable = levels.is_empty();
         if unreachable {
             // The one read an empty range gets, for the same backend errors.
             separation(&self.backend, first, second, reference, instants_jd[0])?;
         }
         Ok(Search {
             levels,
+            owners,
             step,
             unreachable,
         })
@@ -286,6 +323,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// [`EventEngine::longitude_at`] for either body:
     /// [`EventError::OutOfWindow`], [`EventError::UnsupportedFrame`],
     /// [`EventError::MissingCoordinates`], [`EventError::Backend`].
+    ///
+    /// [`EventEngine::aspects_in_range_for_angles`] finds several angles in
+    /// one scan.
     pub fn aspects_in_range(
         &self,
         first: CelestialBody,
@@ -295,25 +335,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         start: Instant,
         end: Instant,
     ) -> Result<Vec<AspectEvent>, EventError> {
-        let reference = reference.into();
-        let start_jd = start.julian_day.days();
-        let end_jd = end.julian_day.days();
-        let search = self.aspect_search(&first, &second, angle, &reference, [start_jd, end_jd])?;
-        if search.unreachable {
-            return Ok(Vec::new());
-        }
-        let roots = level_crossings_in_range(
-            |jd| separation(&self.backend, &first, &second, &reference, jd),
-            &search.levels,
-            start_jd,
-            end_jd,
-            search.step,
-            WINDOW,
-        )?;
-        roots
-            .into_iter()
-            .map(|(jd, _)| self.aspect_at(&first, &second, angle, &reference, jd))
-            .collect()
+        self.aspects_in_range_for_angles(first, second, &[angle], reference, start, end)
     }
 
     /// The first instant strictly after `after` at which the ecliptic
@@ -335,6 +357,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     ///
     /// The meaning of `angle`, the accuracy, the limits and the errors are
     /// those of [`EventEngine::aspects_in_range`].
+    ///
+    /// [`EventEngine::next_aspect_for_angles`] finds several angles in one
+    /// scan.
     ///
     /// ```
     /// use pleiades_data::packaged_backend;
@@ -367,27 +392,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         reference: impl Into<CrossingReference>,
         after: Instant,
     ) -> Result<Option<AspectEvent>, EventError> {
-        let reference = reference.into();
-        let after_jd = after.julian_day.days();
-        let search =
-            self.aspect_search(&first, &second, angle, &reference, [after_jd, after_jd])?;
-        if search.unreachable {
-            return Err(past_window_end(search.step));
-        }
-        let root = first_level_crossing_after(
-            |jd| separation(&self.backend, &first, &second, &reference, jd),
-            &search.levels,
-            after_jd,
-            WINDOW_END_JD,
-            search.step,
-            WINDOW,
-        )?;
-        let jd = root
-            .map(|(jd, _)| jd)
-            .filter(|&jd| jd > after_jd)
-            .ok_or_else(|| past_window_end(search.step))?;
-        self.aspect_at(&first, &second, angle, &reference, jd)
-            .map(Some)
+        self.next_aspect_for_angles(first, second, &[angle], reference, after)
     }
 
     /// The last instant at or before `before` at which the ecliptic
@@ -423,6 +428,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
     /// The meaning of `angle`, the accuracy, the limits and the errors are
     /// those of [`EventEngine::aspects_in_range`].
     ///
+    /// [`EventEngine::previous_aspect_for_angles`] finds several angles in
+    /// one scan.
+    ///
     /// ```
     /// use pleiades_data::packaged_backend;
     /// use pleiades_events::{CrossingFrame, EventEngine};
@@ -452,10 +460,150 @@ impl<B: EphemerisBackend> EventEngine<B> {
         reference: impl Into<CrossingReference>,
         before: Instant,
     ) -> Result<Option<AspectEvent>, EventError> {
+        self.previous_aspect_for_angles(first, second, &[angle], reference, before)
+    }
+
+    /// All instants in `[start, end]` (TDB) at which the ecliptic separation
+    /// of `first` and `second` equals any of `angles`, ascending, in one scan
+    /// of the pair.
+    ///
+    /// Each event's [`AspectEvent::angle`] is the angle it belongs to. For
+    /// each angle the events are exactly those of
+    /// [`EventEngine::aspects_in_range`] for that angle, bit for bit: the
+    /// scan's brackets come from the separation alone, and each angle's
+    /// moments are refined on their own. Scanning the angles together saves
+    /// reading both bodies at every step once per angle.
+    ///
+    /// An angle beyond the pair's bound (Mercury and Venus seen from the
+    /// Earth, see [`EventEngine::aspects_in_range`]) contributes no events
+    /// and does not stop the others being found.
+    ///
+    /// The meaning of an angle, the range, the accuracy and the limits are
+    /// those of [`EventEngine::aspects_in_range`].
+    ///
+    /// ```
+    /// use pleiades_data::packaged_backend;
+    /// use pleiades_events::{CrossingFrame, EventEngine};
+    /// use pleiades_types::{Angle, CelestialBody, Instant, JulianDay, TimeScale};
+    ///
+    /// // The Moon's phases over January 2000: new, first quarter, full and
+    /// // last quarter, in time order.
+    /// let engine = EventEngine::new(packaged_backend());
+    /// let tdb = |jd: f64| Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
+    /// let quarters = [0.0, 90.0, 180.0].map(Angle::from_degrees);
+    /// let phases = engine
+    ///     .aspects_in_range_for_angles(
+    ///         CelestialBody::Sun,
+    ///         CelestialBody::Moon,
+    ///         &quarters,
+    ///         CrossingFrame::GeocentricApparentOfDate,
+    ///         tdb(2_451_545.0),
+    ///         tdb(2_451_574.0),
+    ///     )
+    ///     .unwrap();
+    /// let angles: Vec<f64> = phases.iter().map(|event| event.angle.degrees()).collect();
+    /// assert_eq!(angles, [0.0, 90.0, 180.0, 90.0]);
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// [`EventError::InvalidAspect`] for an empty `angles`, for any angle
+    /// [`EventEngine::aspects_in_range`] rejects, or for an angle given
+    /// twice; otherwise those of [`EventEngine::aspects_in_range`].
+    pub fn aspects_in_range_for_angles(
+        &self,
+        first: CelestialBody,
+        second: CelestialBody,
+        angles: &[Angle],
+        reference: impl Into<CrossingReference>,
+        start: Instant,
+        end: Instant,
+    ) -> Result<Vec<AspectEvent>, EventError> {
+        let reference = reference.into();
+        let start_jd = start.julian_day.days();
+        let end_jd = end.julian_day.days();
+        let search = self.aspect_search(&first, &second, angles, &reference, [start_jd, end_jd])?;
+        if search.unreachable {
+            return Ok(Vec::new());
+        }
+        let roots = level_crossings_in_range(
+            |jd| separation(&self.backend, &first, &second, &reference, jd),
+            &search.levels,
+            start_jd,
+            end_jd,
+            search.step,
+            WINDOW,
+        )?;
+        roots
+            .into_iter()
+            .map(|(jd, level)| {
+                let angle = angles[search.owners[level]];
+                self.aspect_at(&first, &second, angle, &reference, jd)
+            })
+            .collect()
+    }
+
+    /// The first instant strictly after `after` at which the ecliptic
+    /// separation of `first` and `second` equals any of `angles`.
+    ///
+    /// The earliest of the [`EventEngine::next_aspect`] answers for each
+    /// angle, bit for bit, found in one scan that stops at the first event of
+    /// any angle. [`EventError::OutOfWindow`] only when no angle has an event
+    /// before the window's end. The meaning of `after` and the errors are
+    /// those of [`EventEngine::next_aspect`] and
+    /// [`EventEngine::aspects_in_range_for_angles`].
+    pub fn next_aspect_for_angles(
+        &self,
+        first: CelestialBody,
+        second: CelestialBody,
+        angles: &[Angle],
+        reference: impl Into<CrossingReference>,
+        after: Instant,
+    ) -> Result<Option<AspectEvent>, EventError> {
+        let reference = reference.into();
+        let after_jd = after.julian_day.days();
+        let search =
+            self.aspect_search(&first, &second, angles, &reference, [after_jd, after_jd])?;
+        if search.unreachable {
+            return Err(past_window_end(search.step));
+        }
+        let root = first_level_crossing_after(
+            |jd| separation(&self.backend, &first, &second, &reference, jd),
+            &search.levels,
+            after_jd,
+            WINDOW_END_JD,
+            search.step,
+            WINDOW,
+        )?;
+        let (jd, level) = root
+            .filter(|&(jd, _)| jd > after_jd)
+            .ok_or_else(|| past_window_end(search.step))?;
+        let angle = angles[search.owners[level]];
+        self.aspect_at(&first, &second, angle, &reference, jd)
+            .map(Some)
+    }
+
+    /// The last instant at or before `before` at which the ecliptic
+    /// separation of `first` and `second` equals any of `angles`.
+    ///
+    /// The latest of the [`EventEngine::previous_aspect`] answers for each
+    /// angle, bit for bit, found in one backward walk that stops at the first
+    /// chunk holding an event of any angle. [`EventError::OutOfWindow`] only
+    /// when no angle has an event after the window's start. The meaning of
+    /// `before` and the errors are those of [`EventEngine::previous_aspect`]
+    /// and [`EventEngine::aspects_in_range_for_angles`].
+    pub fn previous_aspect_for_angles(
+        &self,
+        first: CelestialBody,
+        second: CelestialBody,
+        angles: &[Angle],
+        reference: impl Into<CrossingReference>,
+        before: Instant,
+    ) -> Result<Option<AspectEvent>, EventError> {
         let reference = reference.into();
         let before_jd = before.julian_day.days();
         let search =
-            self.aspect_search(&first, &second, angle, &reference, [before_jd, before_jd])?;
+            self.aspect_search(&first, &second, angles, &reference, [before_jd, before_jd])?;
         if search.unreachable {
             return Err(before_window_start(search.step));
         }
@@ -467,9 +615,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
             search.step,
             WINDOW,
         )?;
-        let jd = root
-            .map(|(jd, _)| jd)
-            .ok_or_else(|| before_window_start(search.step))?;
+        let (jd, level) = root.ok_or_else(|| before_window_start(search.step))?;
+        let angle = angles[search.owners[level]];
         self.aspect_at(&first, &second, angle, &reference, jd)
             .map(Some)
     }
