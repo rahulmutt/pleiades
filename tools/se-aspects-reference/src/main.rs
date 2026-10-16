@@ -53,7 +53,9 @@
 //! rather than refused (issue #168 (c)). Writes `<dir>/lunar-points.csv` and
 //! `<dir>/lunar-points-manifest.txt`. Build with
 //! `devenv shell -- env CFLAGS=-std=gnu17 cargo build --release --manifest-path tools/se-aspects-reference/Cargo.toml`
-//! or, outside devenv, `env CFLAGS=-std=gnu17 LIBCLANG_PATH=<clang lib dir> cargo build --release --offline --manifest-path tools/se-aspects-reference/Cargo.toml`;
+//! or, outside devenv, `env CFLAGS=-std=gnu17 LIBCLANG_PATH=<libclang> cargo build --release --offline --manifest-path tools/se-aspects-reference/Cargo.toml`,
+//! where `<libclang>` is the libclang `devenv.nix` provides (`LIBCLANG_PATH` =
+//! `${pkgs.libclang.lib}/lib`), for example `/nix/store/…-clang-<ver>-lib/lib`;
 //! run `tools/se-aspects-reference/target/release/se-aspects-reference --lunar-points --out crates/pleiades-validate/data/aspects-corpus`.
 //!
 //! Two build/run caveats: under devenv's gcc the build needs `CFLAGS=-std=gnu17`

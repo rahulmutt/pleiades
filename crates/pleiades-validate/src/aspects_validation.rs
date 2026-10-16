@@ -9,12 +9,14 @@
 //! separation turns within 30 arcseconds of an angle, so no corpus event
 //! depends on the ephemeris. See `aspects_thresholds` for the ceilings.
 //!
-//! Tiers: the full gate (about 2 minutes as `mise run gate-aspects` on the
-//! 4-core nightly runner, planets and asteroids, 2026-10-15; see
+//! Tiers: the full gate (`mise run gate-aspects`: planets, asteroids and the
+//! true node; about 2 minutes on the 4-core nightly runner before the
+//! true-node pass (#168), 2026-10-15, not yet measured on it since, and about
+//! 19 minutes locally at load 13-15.6, 2026-10-16; see
 //! [`validate_aspects_corpus`]) runs in its own nightly job and in
 //! `release-gate`; the `mean` subset (about 16 s) runs in the release
 //! battery (`release-smoke`), after a scan-free checksum and row-count check
-//! of the asteroid corpus (issue #254).
+//! of the asteroid and true-node corpora (issue #254).
 //!
 //! Asteroids (issue #168): Sun–Ceres, Sun–Pallas, Sun–Juno, Sun–Vesta,
 //! Mars–Vesta and Jupiter–Ceres over 1900–2100 and Moon–Ceres over 1990–2030

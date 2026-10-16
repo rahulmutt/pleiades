@@ -724,26 +724,9 @@ fn mean_subset_fails_a_lunar_point_manifest_row_count_drift() {
     ));
 }
 
-#[test]
-fn a_missing_lunar_point_aspect_fails_the_count() {
-    let mut lines: Vec<&str> = LUNAR_POINT_CSV.lines().collect();
-    let first_row = lines
-        .iter()
-        .position(|l| l.starts_with("geo,TrueNode,Jupiter,0,"))
-        .expect("a TrueNode-Jupiter conjunction row");
-    lines.remove(first_row);
-    let csv = lines.join("\n") + "\n";
-    let (rows, _) = parse_manifest(LUNAR_POINT_MANIFEST).unwrap();
-    let manifest = format!(
-        "slice aspects-lunar-points file=lunar-points.csv role=aspects rows={} checksum={}\n",
-        rows - 1,
-        fnv1a64(&csv)
-    );
-    assert!(matches!(
-        validate_scoped(&csv, &manifest, Scope::LunarPoints),
-        Err(AspectsError::CountMismatch { .. })
-    ));
-}
+// No missing-event test is repeated for this corpus: the count path is covered by
+// `a_corpus_missing_an_event_fails_the_count` and the `compare_exact` tests, while
+// scanning a true-node pair costs minutes at the 0.25 d step.
 
 #[test]
 fn lunar_point_scope_floor_is_its_own() {

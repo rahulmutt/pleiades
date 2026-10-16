@@ -224,6 +224,6 @@ other lunar points and the fictitious bodies are found but not gated.
 Asteroid aspects are gated against Swiss Ephemeris SWIEPH (`seas_18`): the
 Sun with Ceres, Pallas, Juno and Vesta, Mars–Vesta and Jupiter–Ceres over
 1900–2100, and Moon–Ceres over 1990–2030 (issue #168 (f)). Eros is searched
-across 1900-2100 but its aspects are not gated, because Swiss Ephemeris keeps
+across 1900–2100 but its aspects are not gated, because Swiss Ephemeris keeps
 it in a separate file that is not pinned; Apophis is snapshot-only, so its
 search returns the out-of-range error.

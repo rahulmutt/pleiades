@@ -148,40 +148,41 @@ pub(crate) fn ceilings_for(pair: &str) -> Option<Ceilings> {
         }),
         // True node (Swiss Ephemeris SWIEPH sepl_18/semo_18 corpus): measured
         // × 1.4, floored at 2.3"; the full gate measured overall maxima of
-        // 0.861" separation and 0.953" longitude (2026-10-16; longitude is the
-        // difference between the engine's instant and the reference instant).
+        // 0.861" separation and 0.953" longitude (2026-10-16; longitude: either
+        // body's longitude, the engine's at its instant against the corpus's at
+        // the reference instant).
         // The point itself agrees within 0.94" over 1900-2100.
-        // measured max 0.530", 0.77" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        // measured max 0.530", 0.77" (geo; SWIEPH sepl/semo, spike 2026-10-16)
         "TrueNode-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.861", 0.81" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        // measured max 0.861", 0.81" (geo; SWIEPH sepl/semo, spike 2026-10-16)
         "TrueNode-Mars" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.602", 0.79" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        // measured max 0.602", 0.79" (geo; SWIEPH sepl/semo, spike 2026-10-16)
         "TrueNode-Jupiter" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.641", 0.71" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        // measured max 0.641", 0.71" (geo; SWIEPH sepl/semo, spike 2026-10-16)
         "TrueNode-Saturn" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.513", 0.95" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        // measured max 0.513", 0.95" (geo; SWIEPH sepl/semo, spike 2026-10-16)
         "TrueNode-Uranus" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.719", 0.46" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        // measured max 0.719", 0.46" (geo; SWIEPH sepl/semo, spike 2026-10-16)
         "TrueNode-Neptune" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.528", 0.93" (geo; SWIEPH sepl/semo corpus, 2026-10-16)
+        // measured max 0.528", 0.93" (geo; SWIEPH sepl/semo, spike 2026-10-16)
         "TrueNode-Pluto" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
