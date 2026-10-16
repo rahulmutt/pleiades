@@ -430,7 +430,13 @@ pub(crate) fn render_aspects(args: &[&str]) -> Result<String, String> {
                 ))
             }
             "--pair" => pairs.push(parse_pair(iter.next())?),
-            "--angle" => angles.push(Angle::from_degrees(parse_f64(iter.next(), "--angle")?)),
+            "--angle" => {
+                let angle = Angle::from_degrees(parse_f64(iter.next(), "--angle")?);
+                if angles.iter().any(|seen| seen.degrees() == angle.degrees()) {
+                    return Err(format!("--angle {} given twice", angle.degrees()));
+                }
+                angles.push(angle);
+            }
             other => {
                 if !shared.take(other, &mut iter)? {
                     return Err(format!("unknown argument: {other}"));
@@ -450,29 +456,44 @@ pub(crate) fn render_aspects(args: &[&str]) -> Result<String, String> {
     let mut found: Vec<AspectEvent> = Vec::new();
     let mut notes: Vec<String> = Vec::new();
     for (first, second) in &pairs {
-        for &angle in &angles {
-            let label = format!("{first}–{second} {}°", angle.degrees());
-            let (first, second, reference) = (first.clone(), second.clone(), reference.clone());
-            match &search {
-                Search::Range { from, to } => found.extend(
-                    engine
-                        .aspects_in_range(first, second, angle, reference, *from, *to)
-                        .map_err(event_error)?,
-                ),
-                Search::Next(at) => found_or_note(
-                    engine.next_aspect(first, second, angle, reference, *at),
-                    Direction::Next,
-                    &mut found,
-                    &mut notes,
-                    &label,
-                )?,
-                Search::Previous(at) => found_or_note(
-                    engine.previous_aspect(first, second, angle, reference, *at),
-                    Direction::Previous,
-                    &mut found,
-                    &mut notes,
-                    &label,
-                )?,
+        match &search {
+            Search::Range { from, to } => found.extend(
+                engine
+                    .aspects_in_range_for_angles(
+                        first.clone(),
+                        second.clone(),
+                        &angles,
+                        reference.clone(),
+                        *from,
+                        *to,
+                    )
+                    .map_err(event_error)?,
+            ),
+            // One event per angle, as before: the batch call would give one
+            // in all.
+            Search::Next(at) | Search::Previous(at) => {
+                for &angle in &angles {
+                    let label = format!("{first}–{second} {}°", angle.degrees());
+                    let (first, second, reference) =
+                        (first.clone(), second.clone(), reference.clone());
+                    if matches!(search, Search::Next(_)) {
+                        found_or_note(
+                            engine.next_aspect(first, second, angle, reference, *at),
+                            Direction::Next,
+                            &mut found,
+                            &mut notes,
+                            &label,
+                        )?;
+                    } else {
+                        found_or_note(
+                            engine.previous_aspect(first, second, angle, reference, *at),
+                            Direction::Previous,
+                            &mut found,
+                            &mut notes,
+                            &label,
+                        )?;
+                    }
+                }
             }
         }
     }
