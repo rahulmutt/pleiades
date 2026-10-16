@@ -826,3 +826,51 @@ fn a_non_finite_instant_is_an_invalid_request() {
         assert!(error.message.contains("non-finite"), "{}", error.message);
     }
 }
+
+#[test]
+fn an_apparent_request_passes_a_backend_that_supports_apparent() {
+    let request = EphemerisRequest {
+        apparent: Apparentness::Apparent,
+        ..crate::test_support::toy_sun_request()
+    };
+    assert_eq!(
+        validate_request_policy(
+            &request,
+            "toy backend",
+            &[TimeScale::Tt],
+            &[CoordinateFrame::Ecliptic],
+            false,
+            true,
+        ),
+        Ok(())
+    );
+}
+
+#[test]
+fn a_single_sidereal_mode_is_named_in_the_rejection() {
+    // "tropical coordinates only" is reserved for a backend whose one
+    // supported mode is tropical; any other single mode is listed by name.
+    let request = crate::test_support::toy_sun_request();
+    let lahiri = ZodiacMode::Sidereal {
+        ayanamsa: pleiades_types::Ayanamsa::Lahiri,
+    };
+    let error = validate_zodiac_policy(&request, "toy backend", std::slice::from_ref(&lahiri))
+        .expect_err("a tropical request is not served by a sidereal-only backend");
+    assert_eq!(error.kind, EphemerisErrorKind::UnsupportedZodiacMode);
+    assert_eq!(
+        error.message,
+        format!("toy backend currently exposes [{lahiri}] zodiac coordinates only")
+    );
+}
+
+#[test]
+fn validate_against_metadata_rejects_what_the_metadata_does_not_serve() {
+    let request = EphemerisRequest {
+        body: CelestialBody::Mars,
+        ..crate::test_support::toy_sun_request()
+    };
+    let error = request
+        .validate_against_metadata(&crate::test_support::toy_metadata())
+        .expect_err("the toy metadata claims only the Sun");
+    assert_eq!(error.kind, EphemerisErrorKind::UnsupportedBody);
+}

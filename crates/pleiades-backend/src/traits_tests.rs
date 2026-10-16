@@ -1171,3 +1171,208 @@ fn routing_forwards_position_without_motion_and_falls_back() {
         free
     );
 }
+
+/// A provider built from explicit metadata. It advertises `body` only, but its
+/// `position` answers with `outcome` whatever the body, so a combinator that
+/// queries it without checking support is caught returning `Ok`.
+struct StubBackend {
+    metadata: BackendMetadata,
+    body: CelestialBody,
+    outcome: Result<&'static str, EphemerisErrorKind>,
+}
+
+impl StubBackend {
+    fn serving(id: &'static str, body: CelestialBody) -> Self {
+        Self {
+            metadata: crate::test_support::metadata_with_claims(id, vec![body.clone().into()]),
+            body,
+            outcome: Ok(id),
+        }
+    }
+
+    fn failing(body: CelestialBody, kind: EphemerisErrorKind) -> Self {
+        Self {
+            outcome: Err(kind),
+            ..Self::serving("failing", body)
+        }
+    }
+
+    fn with_metadata(mut self, edit: impl FnOnce(&mut BackendMetadata)) -> Self {
+        edit(&mut self.metadata);
+        self
+    }
+}
+
+impl EphemerisBackend for StubBackend {
+    fn metadata(&self) -> BackendMetadata {
+        self.metadata.clone()
+    }
+
+    fn supports_body(&self, body: CelestialBody) -> bool {
+        body == self.body
+    }
+
+    fn position(&self, req: &EphemerisRequest) -> Result<EphemerisResult, EphemerisError> {
+        match self.outcome {
+            Ok(id) => Ok(EphemerisResult::new(
+                BackendId::new(id),
+                req.body.clone(),
+                req.instant,
+                req.frame,
+                req.zodiac_mode.clone(),
+                req.apparent,
+            )),
+            Err(kind) => Err(EphemerisError::new(kind, "configured failure")),
+        }
+    }
+}
+
+fn every_capability(enabled: bool) -> BackendCapabilities {
+    BackendCapabilities {
+        geocentric: enabled,
+        topocentric: enabled,
+        apparent: enabled,
+        mean: enabled,
+        batch: enabled,
+        native_sidereal: enabled,
+    }
+}
+
+/// Every flag set, deterministic and offline: the provider that a merge must
+/// not let speak for the other.
+fn fully_capable(id: &'static str, body: CelestialBody) -> StubBackend {
+    StubBackend::serving(id, body).with_metadata(|metadata| {
+        metadata.capabilities = every_capability(true);
+        metadata.deterministic = true;
+        metadata.offline = true;
+        metadata.provenance.data_sources = vec!["alpha".to_string(), "shared".to_string()];
+        metadata.supported_frames = vec![CoordinateFrame::Ecliptic, CoordinateFrame::Equatorial];
+        metadata.supported_time_scales = vec![TimeScale::Tt, TimeScale::Tdb];
+    })
+}
+
+/// No flag set, neither deterministic nor offline.
+fn incapable(id: &'static str, body: CelestialBody) -> StubBackend {
+    StubBackend::serving(id, body).with_metadata(|metadata| {
+        metadata.capabilities = every_capability(false);
+        metadata.deterministic = false;
+        metadata.offline = false;
+        metadata.provenance.data_sources = vec!["shared".to_string(), "beta".to_string()];
+        metadata.supported_frames = vec![CoordinateFrame::Equatorial];
+        metadata.supported_time_scales = vec![TimeScale::Tdb];
+    })
+}
+
+/// A combined backend claims a capability only when every provider has it,
+/// lists each data source once in first-seen order, and keeps only the frames
+/// and time scales every provider supports.
+fn assert_merged_metadata(metadata: &BackendMetadata) {
+    assert_eq!(metadata.capabilities, every_capability(false));
+    assert!(!metadata.deterministic);
+    assert!(!metadata.offline);
+    assert_eq!(
+        metadata.provenance.data_sources,
+        ["alpha", "shared", "beta"].map(String::from)
+    );
+    assert_eq!(metadata.supported_frames, [CoordinateFrame::Equatorial]);
+    assert_eq!(metadata.supported_time_scales, [TimeScale::Tdb]);
+}
+
+#[test]
+fn composite_metadata_keeps_only_what_both_providers_offer() {
+    let composite = CompositeBackend::new(
+        fully_capable("primary", CelestialBody::Sun),
+        incapable("secondary", CelestialBody::Moon),
+    );
+    assert_merged_metadata(&composite.metadata());
+}
+
+#[test]
+fn routing_metadata_keeps_only_what_every_provider_offers() {
+    // The fold starts from the first provider's values, so the capable one
+    // goes first: `|=` in place of `&=` would then keep its `true`s.
+    let routing = RoutingBackend::new(vec![
+        Box::new(fully_capable("first", CelestialBody::Sun)),
+        Box::new(incapable("second", CelestialBody::Moon)),
+    ]);
+    assert_merged_metadata(&routing.metadata());
+}
+
+#[test]
+fn combinators_support_a_body_that_any_provider_supports() {
+    let composite = CompositeBackend::new(
+        StubBackend::serving("sun", CelestialBody::Sun),
+        StubBackend::serving("moon", CelestialBody::Moon),
+    );
+    let routing = RoutingBackend::new(vec![
+        Box::new(StubBackend::serving("sun", CelestialBody::Sun)),
+        Box::new(StubBackend::serving("moon", CelestialBody::Moon)),
+    ]);
+    for (body, expected) in [
+        (CelestialBody::Sun, true),
+        (CelestialBody::Moon, true),
+        (CelestialBody::Mars, false),
+    ] {
+        assert_eq!(composite.supports_body(body.clone()), expected, "{body}");
+        assert_eq!(routing.supports_body(body.clone()), expected, "{body}");
+    }
+}
+
+#[test]
+fn routing_backend_reports_its_provider_chain() {
+    let routing = RoutingBackend::new(vec![
+        Box::new(StubBackend::serving("sun", CelestialBody::Sun)),
+        Box::new(StubBackend::serving("moon", CelestialBody::Moon)),
+    ]);
+    assert!(!routing.is_empty());
+    let ids: Vec<String> = routing
+        .backends()
+        .iter()
+        .map(|backend| backend.metadata().id.as_str().to_string())
+        .collect();
+    assert_eq!(ids, ["sun", "moon"]);
+    assert!(RoutingBackend::new(Vec::new()).is_empty());
+}
+
+/// The two kinds that are about the data at a supported request, not about
+/// the request's shape, and so are not retried on the next provider.
+const NON_RETRYABLE: [EphemerisErrorKind; 2] = [
+    EphemerisErrorKind::OutOfRangeInstant,
+    EphemerisErrorKind::NumericalFailure,
+];
+
+#[test]
+fn composite_returns_a_non_retryable_primary_error() {
+    for kind in NON_RETRYABLE {
+        let composite = CompositeBackend::new(
+            StubBackend::failing(CelestialBody::Sun, kind),
+            StubBackend::serving("secondary", CelestialBody::Sun),
+        );
+        let error = composite.position(&sun_request()).unwrap_err();
+        assert_eq!(error.kind, kind);
+    }
+}
+
+#[test]
+fn composite_does_not_retry_on_a_secondary_without_the_body() {
+    // The secondary's `position` would answer `Ok`; only its missing support
+    // for the Sun keeps the composite from asking it.
+    let composite = CompositeBackend::new(
+        StubBackend::failing(CelestialBody::Sun, EphemerisErrorKind::MissingDataset),
+        StubBackend::serving("secondary", CelestialBody::Moon),
+    );
+    let error = composite.position(&sun_request()).unwrap_err();
+    assert_eq!(error.kind, EphemerisErrorKind::MissingDataset);
+}
+
+#[test]
+fn routing_stops_at_a_non_retryable_error() {
+    for kind in NON_RETRYABLE {
+        let routing = RoutingBackend::new(vec![
+            Box::new(StubBackend::failing(CelestialBody::Sun, kind)),
+            Box::new(StubBackend::serving("later", CelestialBody::Sun)),
+        ]);
+        let error = routing.position(&sun_request()).unwrap_err();
+        assert_eq!(error.kind, kind);
+    }
+}

@@ -14,7 +14,7 @@ cargo mutants -p <crate> --test-tool nextest --test-workspace=false --baseline r
 | Crate | Mutants | Missed | Caught | Unviable | Score |
 |-------|---------|--------|--------|----------|-------|
 | ~~`pleiades-apsides`~~ (triaged 2026-09-08) | 223 | ~~33~~ → 1 | ~~186~~ → 218 | 4 | ~~84.9%~~ → 99.5% |
-| `pleiades-backend` | 263 | 70 | 145 | 48 | 67.4% |
+| ~~`pleiades-backend`~~ (triaged 2026-10-16; re-measured 269 mutants, 53 unviable) | 263 | ~~70~~ → 1 | ~~145~~ → 215 | 48 | ~~67.4%~~ → 99.5% |
 | `pleiades-ayanamsa` | 305 | 85 | 196 | 24 | 69.8% |
 | `pleiades-fict`¹ | 308 | 148 | 147 | 11 | 49.5%¹ |
 | **Total** | **1099** | **336** | **674** | **87** | **66.6%**¹ |

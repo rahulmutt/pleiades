@@ -414,6 +414,9 @@ impl BackendMetadata {
 }
 
 /// Merges two claim lists, keeping the stronger-ranked tier on body collisions.
+///
+/// On an equal tier the claim from `a` is kept, as a router keeps its
+/// earlier provider.
 pub fn merge_body_claims(a: &[BodyClaim], b: &[BodyClaim]) -> Vec<BodyClaim> {
     let mut out: Vec<BodyClaim> = a.to_vec();
     for claim in b {

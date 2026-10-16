@@ -327,3 +327,59 @@ fn merge_body_claims_keeps_stronger_tier() {
     assert_eq!(merged.len(), 1);
     assert_eq!(merged[0].tier, BodyClaimTier::ReleaseGrade);
 }
+
+/// One claim per tier, so a filter that keeps the wrong tier, or every tier
+/// but the asked one, returns a different body set.
+fn claims_at_every_tier() -> Vec<BodyClaim> {
+    vec![
+        BodyClaim::release_grade(
+            CelestialBody::Sun,
+            AccuracyClass::High,
+            ClaimEvidence::ArtifactValidated,
+        ),
+        BodyClaim::constrained(
+            CelestialBody::Moon,
+            AccuracyClass::Moderate,
+            ClaimEvidence::AlgorithmicModel,
+        ),
+        BodyClaim::approximate(CelestialBody::Mars),
+        BodyClaim::unsupported(CelestialBody::Pluto),
+    ]
+}
+
+#[test]
+fn tier_queries_return_only_that_tier() {
+    let metadata = crate::test_support::metadata_with_claims("tiers", claims_at_every_tier());
+    assert_eq!(metadata.release_grade_bodies(), [CelestialBody::Sun]);
+    let bodies = |tier| -> Vec<CelestialBody> {
+        metadata
+            .claims_by_tier(tier)
+            .into_iter()
+            .map(|claim| claim.body.clone())
+            .collect()
+    };
+    assert_eq!(bodies(BodyClaimTier::ReleaseGrade), [CelestialBody::Sun]);
+    assert_eq!(bodies(BodyClaimTier::Constrained), [CelestialBody::Moon]);
+    assert_eq!(bodies(BodyClaimTier::Approximate), [CelestialBody::Mars]);
+    assert_eq!(bodies(BodyClaimTier::Unsupported), [CelestialBody::Pluto]);
+}
+
+#[test]
+fn merge_body_claims_keeps_the_first_claim_on_an_equal_tier() {
+    let first = BodyClaim::release_grade(
+        CelestialBody::Sun,
+        AccuracyClass::High,
+        ClaimEvidence::ArtifactValidated,
+    );
+    let second = BodyClaim::release_grade(
+        CelestialBody::Sun,
+        AccuracyClass::Exact,
+        ClaimEvidence::CorpusValidated {
+            source: "de440".to_string(),
+        },
+    );
+    assert_eq!(
+        merge_body_claims(std::slice::from_ref(&first), &[second]),
+        [first]
+    );
+}
