@@ -193,14 +193,21 @@ fn cartesian_to_ecliptic(x: f64, y: f64, z: f64) -> EclipticCoordinates {
 
 fn signed_longitude_delta(before: f64, after: f64) -> f64 {
     // `%` is exact and keeps the dividend's sign, so `d` is in (-360, 360).
-    // Same results as the former normalising loops on every finite input
-    // (both map into [-180, 180], keeping +-180 as is); an infinite or NaN
-    // delta gives NaN instead of hanging (issue #162).
-    let d = (after - before) % 360.0;
+    // The former normalising loops added or subtracted 360 exactly for
+    // |after - before| < 2^56 (every reachable input), ending at the same value
+    // in [-180, 180] (+-180 kept as is), so the results are bit-identical there.
+    // The one place `%` differs is a zero: a negative nonzero multiple of 360
+    // gives -0.0 from `%`, where the loops ended at +0.0; the explicit arm
+    // restores +0.0. A raw -0.0 stays -0.0, as before. An infinite or NaN delta
+    // gives NaN instead of hanging (issue #162).
+    let raw = after - before;
+    let d = raw % 360.0;
     if d > 180.0 {
         d - 360.0
     } else if d < -180.0 {
         d + 360.0
+    } else if d == 0.0 && raw != 0.0 {
+        0.0
     } else {
         d
     }

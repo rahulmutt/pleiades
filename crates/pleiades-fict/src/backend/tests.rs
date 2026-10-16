@@ -157,6 +157,22 @@ fn signed_longitude_delta_of_a_non_finite_difference_is_nan_not_a_hang() {
 }
 
 #[test]
+fn signed_longitude_delta_zero_keeps_the_sign_the_normalising_loops_gave() {
+    // The former loops ended at +0.0 for a nonzero multiple of 360 (x + -x
+    // rounds to +0) and left a raw -0.0 alone; `%` alone would give -0.0 for
+    // a negative multiple.
+    for after in [-360.0, 360.0, -720.0, 720.0] {
+        let d = signed_longitude_delta(0.0, after);
+        assert_eq!(d, 0.0, "{after}");
+        assert!(d.is_sign_positive(), "{after}");
+    }
+    let d = signed_longitude_delta(0.0, -0.0);
+    assert_eq!(d, 0.0);
+    assert!(d.is_sign_negative());
+    assert!(signed_longitude_delta(5.0, 5.0).is_sign_positive());
+}
+
+#[test]
 fn unsupported_body_fails_closed() {
     let b = FictitiousBackend::new(StubSun);
     let req = EphemerisRequest::new(
