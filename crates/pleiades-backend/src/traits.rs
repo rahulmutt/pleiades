@@ -62,7 +62,9 @@ pub trait EphemerisBackend: Send + Sync {
 /// A simple composite backend that routes requests to one of two providers.
 ///
 /// The primary backend is consulted first. If it does not advertise support for
-/// the requested body, the secondary backend is tried instead.
+/// the requested body, the secondary backend is tried instead. If it supports
+/// the body but fails with a retryable error, the secondary is tried when it
+/// supports the body too; see [`RoutingBackend`] for which errors are retryable.
 #[derive(Debug)]
 pub struct CompositeBackend<A, B> {
     primary: A,
@@ -188,6 +190,13 @@ impl<A: EphemerisBackend, B: EphemerisBackend> EphemerisBackend for CompositeBac
 /// backends when the earlier ones report a retryable routing error. This makes
 /// it convenient to compose packaged, algorithmic, and reference-data
 /// backends without nesting multiple binary composites.
+///
+/// An error is retryable when it is about the request's shape or the
+/// provider's coverage: [`EphemerisErrorKind::UnsupportedBody`],
+/// `UnsupportedCoordinateFrame`, `UnsupportedTimeScale`, `InvalidObserver`,
+/// `UnsupportedObserver`, `MissingDataset`, `UnsupportedApparentness`,
+/// `UnsupportedZodiacMode` and `InvalidRequest`. `OutOfRangeInstant` and
+/// `NumericalFailure` are returned at once, without asking later providers.
 #[derive(Default)]
 pub struct RoutingBackend {
     backends: Vec<Box<dyn EphemerisBackend>>,

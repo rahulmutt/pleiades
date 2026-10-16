@@ -64,3 +64,19 @@ fn backend_capabilities_validated_summary_line_rejects_missing_modes() {
         Err(BackendCapabilitiesValidationError::MissingPositionMode)
     );
 }
+
+#[test]
+fn one_value_mode_is_enough() {
+    for (apparent, mean) in [(true, false), (false, true)] {
+        let capabilities = BackendCapabilities {
+            apparent,
+            mean,
+            ..BackendCapabilities::default()
+        };
+        assert_eq!(
+            capabilities.validate(),
+            Ok(()),
+            "apparent {apparent}, mean {mean}"
+        );
+    }
+}

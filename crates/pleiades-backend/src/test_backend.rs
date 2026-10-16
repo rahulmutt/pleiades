@@ -134,3 +134,7 @@ impl EphemerisBackend for LinearSunMoon {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+#[path = "test_backend_tests.rs"]
+mod tests;

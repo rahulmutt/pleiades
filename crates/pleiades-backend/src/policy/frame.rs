@@ -69,3 +69,7 @@ impl fmt::Display for FrameTreatmentSummary {
         f.write_str(self.summary_line())
     }
 }
+
+#[cfg(test)]
+#[path = "frame_tests.rs"]
+mod tests;

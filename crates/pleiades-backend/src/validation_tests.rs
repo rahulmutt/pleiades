@@ -703,3 +703,20 @@ fn validate_requests_against_metadata_fails_fast_on_the_first_invalid_request() 
         "batch request 2: toy backend does not support Mars"
     );
 }
+
+#[test]
+fn validate_non_blank_rejects_empty_and_padded_text() {
+    use crate::metadata::BackendMetadataValidationError;
+    use crate::validation::validate_non_blank;
+
+    assert_eq!(validate_non_blank("version", "0.1.0"), Ok(()));
+    // An empty value is equal to its own trim, so only the blank check
+    // rejects it; a padded one is caught only by the trim comparison.
+    for value in ["", "   ", " 0.1.0", "0.1.0 "] {
+        assert_eq!(
+            validate_non_blank("version", value),
+            Err(BackendMetadataValidationError::BlankField { field: "version" }),
+            "{value:?}"
+        );
+    }
+}
