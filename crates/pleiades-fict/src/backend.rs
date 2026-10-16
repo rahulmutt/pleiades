@@ -192,14 +192,18 @@ fn cartesian_to_ecliptic(x: f64, y: f64, z: f64) -> EclipticCoordinates {
 }
 
 fn signed_longitude_delta(before: f64, after: f64) -> f64 {
-    let mut d = after - before;
-    while d > 180.0 {
-        d -= 360.0;
+    // `%` is exact and keeps the dividend's sign, so `d` is in (-360, 360).
+    // Same results as the former normalising loops on every finite input
+    // (both map into [-180, 180], keeping +-180 as is); an infinite or NaN
+    // delta gives NaN instead of hanging (issue #162).
+    let d = (after - before) % 360.0;
+    if d > 180.0 {
+        d - 360.0
+    } else if d < -180.0 {
+        d + 360.0
+    } else {
+        d
     }
-    while d < -180.0 {
-        d += 360.0;
-    }
-    d
 }
 
 impl<S: EphemerisBackend> EphemerisBackend for FictitiousBackend<S> {
@@ -374,6 +378,36 @@ mod tests {
             assert!(r.ecliptic.is_some());
             assert!(r.motion.is_some());
         }
+    }
+
+    #[test]
+    fn signed_longitude_delta_wraps_across_the_seam() {
+        // (before, after, expected): the shortest signed arc into [-180, 180].
+        for (before, after, expected) in [
+            (0.0, 179.0, 179.0),
+            (0.0, 181.0, -179.0),
+            (0.0, -181.0, 179.0),
+            (0.0, 180.0, 180.0),
+            (0.0, -180.0, -180.0),
+            (0.0, 540.0, 180.0),
+            (0.0, -540.0, -180.0),
+            (0.0, 719.0, -1.0),
+            (359.0, 1.0, 2.0),
+            (1.0, 359.0, -2.0),
+        ] {
+            assert_eq!(
+                signed_longitude_delta(before, after),
+                expected,
+                "{before} -> {after}"
+            );
+        }
+    }
+
+    #[test]
+    fn signed_longitude_delta_of_a_non_finite_difference_is_nan_not_a_hang() {
+        assert!(signed_longitude_delta(0.0, f64::NAN).is_nan());
+        assert!(signed_longitude_delta(0.0, f64::INFINITY).is_nan());
+        assert!(signed_longitude_delta(f64::NEG_INFINITY, 0.0).is_nan());
     }
 
     #[test]
