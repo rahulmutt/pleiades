@@ -312,7 +312,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
         )?;
         roots
             .into_iter()
-            .map(|jd| self.aspect_at(&first, &second, angle, &reference, jd))
+            .map(|(jd, _)| self.aspect_at(&first, &second, angle, &reference, jd))
             .collect()
     }
 
@@ -383,6 +383,7 @@ impl<B: EphemerisBackend> EventEngine<B> {
             WINDOW,
         )?;
         let jd = root
+            .map(|(jd, _)| jd)
             .filter(|&jd| jd > after_jd)
             .ok_or_else(|| past_window_end(search.step))?;
         self.aspect_at(&first, &second, angle, &reference, jd)
@@ -466,7 +467,9 @@ impl<B: EphemerisBackend> EventEngine<B> {
             search.step,
             WINDOW,
         )?;
-        let jd = root.ok_or_else(|| before_window_start(search.step))?;
+        let jd = root
+            .map(|(jd, _)| jd)
+            .ok_or_else(|| before_window_start(search.step))?;
         self.aspect_at(&first, &second, angle, &reference, jd)
             .map(Some)
     }
