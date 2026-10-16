@@ -4,17 +4,13 @@
 [![docs.rs](https://img.shields.io/docsrs/pleiades-data)](https://docs.rs/pleiades-data)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-Packaged offline ephemeris data (precomputed positions for the Sun, the Moon,
-Mercury through Pluto and five asteroids, derived from JPL public-domain ephemerides) and its
+Packaged offline ephemeris data (precomputed positions derived from JPL public-domain ephemerides) and its
 `EphemerisBackend` for the
 [pleiades](https://github.com/rahulmutt/pleiades) astrology workspace.
 
 The crate ships a compressed artifact covering 1900-01-01 through 2100-01-01,
 regenerated from the JPL de440 and `sb441-n373s` kernels (two kernels are required) and validated against a
-deterministic binary fixture. The backend serves the Sun, the Moon, Mercury
-through Pluto, and Ceres, Pallas, Juno, Vesta and `asteroid:433-Eros`, and
-falls back to other providers when callers request bodies outside the packaged
-slice.
+deterministic binary fixture. A routing chain falls back to other providers for bodies outside the packaged slice.
 
 The planets come from the JPL de440 planetary kernel; the five asteroids are
 dense heliocentric fits to the JPL `sb441-n373s` small-body kernel and are
@@ -44,10 +40,21 @@ lunar elements in `pleiades-apsides`). The mean apogee and perigee are the
 points on the inclined mean orbit, as Swiss Ephemeris reports `SE_MEAN_APOG`.
 All six are served only inside the packaged window.
 
+## Capabilities
+
+Generated from the backend's metadata (`mise run readme-capabilities`):
+
+<!-- audit:capabilities pleiades-data -->
+- Coordinates: mean geometric; apparent requests are rejected
+- Observer: geocentric; topocentric requests are rejected
+- Frames: ecliptic, equatorial · Time scales: TT, TDB
+- Window: JD 2415020.5 (TT) → JD 2488069.5 (TT)
+- Release-grade bodies (High): Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, True Apogee, True Perigee, True Node, Mean Node, Mean Apogee, Mean Perigee
+<!-- /audit:capabilities -->
+
 ## Status
 
-Experimental, pre-1.0: breaking changes can land in any minor release. This backend returns mean
-geometric coordinates and rejects apparent requests; the chart layer in
+Experimental, pre-1.0: breaking changes can land in any minor release. The chart layer in
 `pleiades-core` and the event engines in `pleiades-events` apply apparent
 place on top of it. See the
 [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full

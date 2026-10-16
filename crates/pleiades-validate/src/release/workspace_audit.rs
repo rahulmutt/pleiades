@@ -11,6 +11,7 @@ use pleiades_core::{EphemerisError, EphemerisErrorKind};
 use super::fuzz_toolchain_audit::audit_fuzz_nightly_text;
 use super::package_check_audit::audit_package_check_crate_list;
 use super::readme_audit::{audit_readme_crate_lists, audit_readme_release_series};
+use super::readme_capabilities::{audit_capability_blocks, rendered_blocks};
 
 /// A deterministic workspace audit that checks for mandatory native build hooks
 /// in the first-party crates, lockfile, and pinned tooling manifest, plus
@@ -1081,6 +1082,16 @@ pub fn workspace_audit_report() -> Result<WorkspaceAuditReport, std::io::Error> 
     Ok(report)
 }
 
+/// `path` relative to the workspace root, with `/` separators on every platform.
+fn workspace_relative(workspace_root: &Path, path: &Path) -> String {
+    path.strip_prefix(workspace_root)
+        .unwrap_or(path)
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
 fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Error> {
     let workspace_root = fs::canonicalize(workspace_root())?;
     let manifest_paths = workspace_manifest_paths(&workspace_root)?;
@@ -1117,6 +1128,7 @@ fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Er
         .filter_map(|(_, text)| manifest_package_name(text))
         .collect();
 
+    let capability_blocks = rendered_blocks();
     let workspace_readme_path = workspace_root.join("README.md");
     if workspace_readme_path.is_file() {
         let text = fs::read_to_string(&workspace_readme_path)?;
@@ -1127,6 +1139,12 @@ fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Er
             &unpublished_names,
         ));
         violations.extend(audit_readme_release_series(&workspace_readme_path, &text));
+        violations.extend(audit_capability_blocks(
+            &workspace_readme_path,
+            "README.md",
+            &text,
+            &capability_blocks,
+        ));
     } else {
         violations.push(WorkspaceAuditViolation {
             path: workspace_readme_path,
@@ -1146,6 +1164,12 @@ fn workspace_audit_report_uncached() -> Result<WorkspaceAuditReport, std::io::Er
             violations.extend(audit_readme_release_series(
                 &crate_readme_path,
                 &readme_text,
+            ));
+            violations.extend(audit_capability_blocks(
+                &crate_readme_path,
+                &workspace_relative(&workspace_root, &crate_readme_path),
+                &readme_text,
+                &capability_blocks,
             ));
         }
         violations.extend(audit_manifest_text(path, text));

@@ -21,9 +21,23 @@ floor; the `validate-true-node` gate holds it under 2′. The routed chart chain
 serves the packaged osculating node (arcsecond-class) from `pleiades-data`
 ahead of this one.
 
+## Capabilities
+
+Generated from the backend's metadata (`mise run readme-capabilities`):
+
+<!-- audit:capabilities pleiades-elp -->
+- Coordinates: mean geometric; apparent requests are rejected
+- Observer: geocentric; topocentric requests are rejected
+- Frames: ecliptic, equatorial · Time scales: TT, TDB
+- Window: no nominal limit
+- Release-grade bodies: none
+- Constrained bodies (Moderate): Moon, Mean Node, True Node, Mean Perigee, Mean Apogee
+- Unsupported bodies (Unknown): True Apogee, True Perigee
+<!-- /audit:capabilities -->
+
 ## Status
 
-Experimental, pre-1.0: breaking changes can land in any minor release. This backend returns mean geometric coordinates and rejects apparent and topocentric requests; the chart layer in `pleiades-core` applies those corrections on top of a backend. See the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
+Experimental, pre-1.0: breaking changes can land in any minor release. The chart layer in `pleiades-core` applies apparent place and the topocentric correction on top. See the [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full maturity posture.
 
 ## License
 
