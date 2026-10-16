@@ -202,9 +202,9 @@ description = "Mutation testing baseline over the pure-logic crates (report-only
 # the ENTIRE workspace suite per mutant by default, and pleiades-validate /
 # pleiades-cli carry individual tests of 300+ seconds (see
 # docs/superpowers/plans/test-timings.md). Without this flag one mutant costs
-# minutes, and the tier's 3,521 mutants (as of 2026-10-15: apparent 1,241,
-# houses 1,210, time 475, types 313, apsides 282) are unschedulable at any
-# cadence. Restricting to the mutated package's own tests is also the
+# minutes, and the tier's 3,790 mutants (as of 2026-10-16: apparent 1,241,
+# houses 1,210, time 475, types 313, apsides 282, backend 269) are
+# unschedulable at any cadence. Restricting to the mutated package's own tests is also the
 # semantically correct scope.
 # Exit code 2 (surviving mutants found) is an EXPECTED result here, not an error
 # — this tier is report-only. See .github/workflows/mutants.yml for the mapping.
@@ -223,7 +223,8 @@ cargo mutants \
   -p pleiades-time \
   -p pleiades-apparent \
   -p pleiades-houses \
-  -p pleiades-apsides
+  -p pleiades-apsides \
+  -p pleiades-backend
 """
 
 [tasks.mutants-crate]
