@@ -1,5 +1,7 @@
 use super::*;
 
+mod reference;
+
 #[test]
 fn table_has_all_nineteen_bodies() {
     assert_eq!(TABLE.len(), 19);

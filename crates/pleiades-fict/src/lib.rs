@@ -9,6 +9,9 @@ pub mod elements;
 pub mod frame;
 pub mod kepler;
 
+#[cfg(test)]
+mod test_support;
+
 pub use backend::{fictitious_bodies, fictitious_body_claims, FictitiousBackend};
 
 /// Crate/backend identifier used in backend metadata and results.

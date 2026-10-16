@@ -1,5 +1,7 @@
 use super::*;
 
+mod reference;
+
 // A trivial Sun source placing the Sun at 1 AU along +x (geocentric), i.e.
 // Earth at -1 AU heliocentric — enough to exercise the assembly path.
 #[derive(Debug, Clone)]
