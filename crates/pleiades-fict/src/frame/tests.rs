@@ -19,13 +19,23 @@ fn precession_preserves_distance() {
 
 #[test]
 fn an_equinox_within_a_microday_of_j2000_returns_the_vector_untouched() {
-    // The identity branch returns the input bit for bit; the precession path
-    // would round-trip it through longitude/latitude and change low bits.
-    for offset in [0.0, 5.0e-7, -5.0e-7] {
-        let got = rotate_ecliptic_to_j2000(1.2, -0.7, 0.4, crate::J2000_JD + offset);
-        assert_eq!(got, (1.2, -0.7, 0.4), "offset {offset}");
-        let got = rotate_ecliptic_to_j2000(-2.0, 1.5, -1.1, crate::J2000_JD + offset);
-        assert_eq!(got, (-2.0, 1.5, -1.1), "offset {offset}");
+    // The identity branch returns the input as is; the precession path would
+    // move it by about 7e-13 AU at +-9e-7 d (just inside the 1e-6 d window),
+    // far above the 1e-14 tolerance.
+    for offset in [0.0, 9.0e-7, -9.0e-7] {
+        let equinox = crate::J2000_JD + offset;
+        assert_xyz(
+            rotate_ecliptic_to_j2000(1.2, -0.7, 0.4, equinox),
+            [1.2, -0.7, 0.4],
+            1.0e-14,
+            "A",
+        );
+        assert_xyz(
+            rotate_ecliptic_to_j2000(-2.0, 1.5, -1.1, equinox),
+            [-2.0, 1.5, -1.1],
+            1.0e-14,
+            "B",
+        );
     }
 }
 

@@ -142,7 +142,9 @@ fn equinox_tokens_distinguish_jdate_from_fixed_equinoxes() {
 
 #[test]
 fn the_table_carries_the_transcribed_seorbel_rows() {
-    // The CSV's own comment quotes seorbel.txt line 28:
+    // Rows below are from tools/se-fictitious-reference/data/seorbel.txt
+    // (lines 44, 46, 48, 55, 57 quoted per body). The CSV's own comment quotes
+    // seorbel.txt line 28:
     //   "J1900, J1900, 163.7409, 40.99837, 0.00460, 171.4333, 129.8325, 1.0833, Cupido"
     // i.e. epoch, equinox, M0, a, e, argp, node, incl.
     let cupido = elements_for(CelestialBody::Cupido).unwrap();
@@ -157,6 +159,8 @@ fn the_table_carries_the_transcribed_seorbel_rows() {
     assert_eq!(cupido.center, Center::Heliocentric);
 
     // Transpluto (seorbel set 9): arbitrary-JD epoch and equinox.
+    // tools/se-fictitious-reference/data/seorbel.txt line 44:
+    //   "2368547.66, 2431456.5, 0.0, 77.775, 0.3, 0.7, 0, 0, Isis-Transpluto"
     let transpluto = elements_for(CelestialBody::Transpluto).unwrap();
     assert_eq!(transpluto.epoch_jd_tt, 2_368_547.66);
     assert_eq!(transpluto.equinox, Equinox::Fixed(2_431_456.5));
@@ -165,6 +169,8 @@ fn the_table_carries_the_transcribed_seorbel_rows() {
     assert_eq!(transpluto.arg_peri_deg[0], 0.7);
 
     // Nibiru (set 10): negative node, epoch == equinox.
+    // seorbel.txt line 46: "1856113.380954, 1856113.380954, 0.0, 234.8921,
+    //   0.981092, 103.966, -44.567, 158.708, Nibiru"
     let nibiru = elements_for(CelestialBody::Nibiru).unwrap();
     assert_eq!(nibiru.epoch_jd_tt, 1_856_113.380_954);
     assert_eq!(nibiru.equinox, Equinox::Fixed(1_856_113.380_954));
@@ -172,11 +178,15 @@ fn the_table_carries_the_transcribed_seorbel_rows() {
     assert_eq!(nibiru.e[0], 0.981092);
 
     // Harrington (set 11): numeric epoch, keyword equinox.
+    // seorbel.txt line 48: "2374696.5, J2000, 0.0, 101.2, 0.411, 208.5,
+    //   275.4, 32.4, Harrington"
     let harrington = elements_for(CelestialBody::Harrington).unwrap();
     assert_eq!(harrington.epoch_jd_tt, 2_374_696.5);
     assert_eq!(harrington.equinox, Equinox::Fixed(2_451_545.0));
 
     // Vulcan (set 16): JDATE equinox with T-terms in node, argp and M.
+    // seorbel.txt line 55: "J1900,JDATE, 252.8987988 + 707550.7341 * T,
+    //   0.13744, 0.019, 322.212069+1670.056*T, 47.787931-1670.056*T, 7.5, Vulcan"
     let vulcan = elements_for(CelestialBody::Vulcan).unwrap();
     assert_eq!(vulcan.equinox, Equinox::OfDate);
     assert_eq!(vulcan.node_deg, [47.787931, -1670.056, 0.0]);
@@ -184,6 +194,8 @@ fn the_table_carries_the_transcribed_seorbel_rows() {
     assert_eq!(vulcan.mean_anom_deg, [252.8987988, 707550.7341, 0.0]);
 
     // White Moon (set 17): Earth-centred, epoch J2000.
+    // seorbel.txt line 57: "J2000,JDATE, 242.2205555 + 5143.5418158 * T,
+    //   0.05280098949, 0.0, 0.0, 0.0, 0.0, Selena/White Moon, geo"
     let white_moon = elements_for(CelestialBody::WhiteMoon).unwrap();
     assert_eq!(white_moon.center, Center::Geocentric);
     assert_eq!(white_moon.epoch_jd_tt, 2_451_545.0);

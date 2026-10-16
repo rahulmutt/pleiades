@@ -430,7 +430,9 @@ fn geocentric_orbit_bodies_reproduce_corpus_rows() {
             .position(&EphemerisRequest::new(body.clone(), instant(jd)))
             .unwrap();
         let ecl = result.ecliptic.unwrap();
-        let dlon = signed_longitude_delta(lon, ecl.longitude.degrees());
+        // Shortest signed arc, computed here so the reference path does not
+        // depend on production code.
+        let dlon = (ecl.longitude.degrees() - lon + 540.0) % 360.0 - 180.0;
         assert!(dlon.abs() < LON_TOL, "{body:?} {jd} lon off by {dlon}");
         assert_close(
             ecl.latitude.degrees(),
