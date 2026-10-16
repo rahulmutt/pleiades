@@ -110,7 +110,7 @@ survivor count. The **Total** row is deliberately left at its as-measured
 live count; the live open-survivor total is 336 - 33 = **303** across the three
 crates below. (`99.5%` = 218 caught / 219 viable.) See the FU-9 "apsides" entry in `docs/follow-ups.md`.
 
-The **remaining queue is three crates**: `pleiades-backend` (70 missed),
+The **remaining queue is three crates** (superseded below): `pleiades-backend` (70 missed),
 `pleiades-ayanamsa` (85), and `pleiades-fict` (148, provisional — see the
 footnote above). Their survivor counts are still open and still accurate.
 `pleiades-apsides` has also joined the weekly report-only mutants tier in
@@ -119,7 +119,7 @@ footnote above). Their survivor counts are still open and still accurate.
 **Queue status (updated 2026-10-16).** `pleiades-fict` is **triaged and
 closed**: 5 missed (all documented equivalents), 0 timeouts, and it has joined
 the weekly mutants set. The two hangs came from the `while` loops in
-`signed_longitude_delta`; a loop-free rewrite (the one production change, value
-identical on every finite input except the sign of a zero for a delta that is a negative multiple of 360, which normalised longitudes cannot produce) removes them.
+`signed_longitude_delta`; a loop-free rewrite (the one production change, bit
+identical to the loops for |after - before| < 2^56, every reachable input) removes them.
 The footnote above describes the 2026-07-25 measurement and stays as history.
 See `docs/superpowers/specs/2026-10-16-fu9-fict-mutant-triage-design.md`.

@@ -42,11 +42,15 @@ sites from the two loops it replaced. All of its mutants are caught.
 The function used `while d > 180.0 { d -= 360.0 }` and
 `while d < -180.0 { d += 360.0 }`. A mutant that flips either comparison (`>`
 to `<`, `<` to `>`) never terminates, and so did any input of infinity. It is
-now `d = (after - before) % 360.0` followed by one `if/else if` that adds or
-subtracts 360.
+now `raw = after - before`, `d = raw % 360.0`, then an `if / else if` chain
+that adds or subtracts 360, with one extra arm that returns `+0.0` when `d` is
+a zero produced from a nonzero `raw`.
 
-**The results are the same as the loops on every finite input** (the equal
-values, and the same bits except for one signed-zero case below).
+**The results are bit-identical to the loops for `|raw| < 2^56`**, which covers
+every reachable input (longitudes are degrees in `[0, 360)`; the difference of
+two of them is below 360 in magnitude, and an unnormalised one is still far
+below 2^56). The old loop's `x -= 360` and `x += 360` steps are exact only up
+to that bound; beyond it the loop itself rounds, so it is not a reference.
 
 - *Each step is exact.* `x - 360` for `x > 180` has magnitude below `|x|` and
   `360` is a multiple of `ulp(x)` for `|x| < 2^56`, so it is representable
@@ -65,13 +69,15 @@ values, and the same bits except for one signed-zero case below).
   `-360 -> 0` in value, a tiny `d` (such as `1e-300`) is returned unchanged by
   both, and `d = 1e6` goes through about 2,778 exact subtractions in the loop and
   one exact `fmod` in the new code, both giving `1e6 - 360 * 2778`.
-- *The one difference: the sign of a zero.* For `d = -360 k` (`k >= 1`) the loop
-  ends at `+0.0` (`x + (-x)` rounds to `+0`), while `fmod(-360 k, 360)` is
-  `-0.0`. They compare equal, and the sign cannot reach the output in the
-  one caller: `motion` divides by a positive `full`, so `-0.0` only appears as
-  a `-0.0` speed, and `after - before` of longitudes normalised to `[0, 360)`
-  has magnitude below 360, so it never equals a multiple of 360 other than 0.
-  (`0 - 0` is `+0` under round to nearest.)
+- *The sign of a zero.* For `raw = -360 k` (`k >= 1`) the loop ends at `+0.0`
+  (`x + (-x)` rounds to `+0`), while `fmod(-360 k, 360)` is `-0.0`. This is
+  reachable: `(-1e-19).rem_euclid(360.0)` is exactly `360.0`, so two
+  normalised longitudes can differ by exactly -360. The arm
+  `else if d == 0.0 && raw != 0.0 { 0.0 }` restores `+0.0`. A raw `-0.0`
+  (for example `-0.0 - 0.0`) stays `-0.0`, which is what the loop did: it
+  never entered either loop body. `+360 k` gives `+0.0` from
+  `fmod` already. The earlier suggestion of adding `+ 0.0` was wrong, since it
+  would turn a raw `-0.0` into `+0.0`.
 - *Non-finite input.* Infinity looped forever; `inf % 360` is NaN and a NaN
   delta is NaN under both. The new code returns NaN rather than hanging.
 
@@ -86,7 +92,12 @@ Tests: `signed_longitude_delta_wraps_across_the_seam` (179 -> 179, 181 -> -179,
 -181 -> 179, 180 -> 180, -180 -> -180, 540 -> 180, -540 -> -180, 719 -> -1, and
 two real pairs across 0/360) and
 `signed_longitude_delta_of_a_non_finite_difference_is_nan_not_a_hang` (NaN,
-`+inf`, `-inf`).
+`+inf`, `-inf`), and
+`signed_longitude_delta_zero_keeps_the_sign_the_normalising_loops_gave`
+(`(0, -360)`, `(0, 360)`, `(0, -720)`, `(0, 720)` and `(5, 5)` are `+0.0`;
+`(0, -0.0)` is `-0.0`, checked with `is_sign_positive` and `is_sign_negative`).
+The extra arm adds mutants (`==`→`!=`, `&&`→`||`, `!=`→`==`); all are caught
+by those cases (focused run: 112 mutants, 103 caught, 9 unviable).
 
 ## Why the mutants survived
 
@@ -129,7 +140,7 @@ two real pairs across 0/360) and
 | 8 | `cartesian_to_ecliptic` | `cartesian_to_ecliptic_matches_the_hand_computed_spherical_triple`, `..._of_the_origin_is_latitude_zero_without_nan` | (1,2,2): r = 3, lon = atan2(2,1), lat = asin(2/3); mirrored and (3,-4,12) |
 | 1 | `solve_kepler` `<`→`>` (line 8) | `solve_kepler_converges_for_the_high_eccentricity_orbits` | Substitute `E - e sin E = M`; Nibiru's e = 0.981092 |
 | 4 | `orbital_plane_position` | `orbital_plane_position_is_a_cos_e_minus_e_and_a_sqrt_1_minus_e2_sin_e` | a = 2, e = 0.6, E = 1: x = 2 (cos 1 - 0.6), y = 1.6 sin 1 |
-| 11 | `rotate_ecliptic_to_j2000` | `precession_to_j2000_matches_the_meeus_ecliptic_reference`, `an_equinox_within_a_microday_of_j2000_returns_the_vector_untouched`, `a_distant_equinox_is_precessed` | Meeus ch. 21 ecliptic precession (eqs. 21.5, 21.7), independent of `pleiades_apparent`; bit-exact identity near J2000 |
+| 11 | `rotate_ecliptic_to_j2000` | `precession_to_j2000_matches_the_meeus_ecliptic_reference`, `an_equinox_within_a_microday_of_j2000_returns_the_vector_untouched`, `a_distant_equinox_is_precessed` | Meeus ch. 21 ecliptic precession (eqs. 21.5, 21.7), independent of `pleiades_apparent`; identity within 1e-14 near J2000 |
 | (guard) | Table rows and real orbits | `the_table_carries_the_transcribed_seorbel_rows`, `geocentric_orbit_bodies_reproduce_corpus_rows` | The `seorbel.txt` rows the CSV quotes; four rows of `fictitious.csv` (WhiteMoon, Waldemath at 2415020.5 and 2450285.534482758) within the gate ceilings 0.65", 0.09", 3.5e-6 AU |
 
 **What is not a corpus test.** The corpus
@@ -147,8 +158,10 @@ precession is covered separately.
 The Kepler/orientation references (`state_at`, `motion`, the assembled places)
 were produced by an independent script that shares no code with the crate:
 Kepler's equation solved by bisection (200 halvings), the textbook perifocal
-position, and explicit `Rz(node) Rx(i) Rz(argp)` matrices. The script is not
-committed; it reproduces from the formulas in the test comments. Spot values
+position, and explicit `Rz(node) Rx(i) Rz(argp)` matrices. The script is
+committed as `docs/superpowers/specs/notes/2026-10-16-fict-reference.py`, with the
+Meeus precession and the mutant-swap harness behind the displacement tables
+below. Spot values
 that can be checked by hand are in the tests (`2 (cos 1 - 0.6)`, `sqrt3`,
 `(1,2,2) -> r = 3`).
 
@@ -291,7 +304,13 @@ Best (largest) displacement over the test inputs (30,0,2), (60,30,2),
 | 174:23 `*`→`+` | 2.141 |
 | 174:23 `*`→`/` | 121.5 |
 | 175:11 `*`→`+` | 7 |
-| 27 constant tuples `(±1/0, ±1/0, ±1/0)` | at least 4 (the pole input is (0, 0, ±4)) |
+| 27 constant tuples `(±1/0, ±1/0, ±1/0)` | at least 4 (covering argument below) |
+
+Covering argument for the 27 constant-return mutants: the north-pole input
+(77, 90, 4) has reference z = +4 and the south-pole input (77, -90, 4) has z =
+-4, so for any constant z' in {-1, 0, 1} the larger of |z' - 4| and |z' + 4| is
+at least 4 (the script's weakest tuples all score exactly 4). Every tuple is
+therefore off by at least 4 on one of the two pole assertions.
 
 The true minimum is **1.366** (173:23 `*`→`+`).
 
@@ -322,7 +341,7 @@ reason for the (3,-4,12) input).
 
 The true minimum numeric displacement is **0.6163** (27:25).
 
-### `rotate_ecliptic_to_j2000` (AU; tolerance 1e-8 for the Meeus rows, bit-exact for the identity rows)
+### `rotate_ecliptic_to_j2000` (AU; tolerance 1e-8 for the Meeus rows, 1e-14 for the identity rows)
 
 Largest component displacement, over the four (vector, equinox) rows:
 
@@ -344,15 +363,14 @@ The identity-branch mutants (9:20 `-`→`+` and `-`→`/`, 9:45 `<`→`==` and `
 are killed two ways. For the `>` and `==` mutants the J1900 and B1950 rows turn
 into the identity, a displacement of **0.01463** (B1950 A) to **0.04894**
 (J1900 B). For the `-` mutants, which route J2000 through the precession path,
-the displacement at J2000 +- 5e-7 d is **3.99e-13 to 6.64e-13** AU (the
-precession shift of half a microday), asserted bit for bit by
-`an_equinox_within_a_microday_of_j2000_returns_the_vector_untouched`. At exactly
-J2000 the round trip alone moves the vector by at most 2.2e-16, so that input
-alone cannot kill them; the offset inputs are why the test exists. These kills
-rest on exact floating-point equality and are the least comfortable in this
-slice; they hold because IEEE arithmetic is deterministic, and the mutated
-path cannot reproduce `(1.2, -0.7, 0.4)` and `(-2.0, 1.5, -1.1)` to the bit at
-both offsets.
+the displacement at J2000 +- 9e-7 d is **7.19e-13 to 1.195e-12** AU, asserted
+within `1e-14` by `an_equinox_within_a_microday_of_j2000_returns_the_vector_untouched`
+(an earlier version used +-5e-7 d and an exact equality; the +-9e-7 d form with
+a 1e-14 tolerance keeps both kills, verified with a focused
+`cargo mutants --file frame.rs` run: 56 mutants, 55 caught, only 9:45 `<=` missed).
+At exactly J2000 the round trip alone moves the vector by at most 2.2e-16, so
+that input alone cannot kill them; the offset inputs are why the test exists.
+The margin is about 70x the tolerance.
 
 ### `solve_kepler` `<`→`>` (residual `|E - e sin E - M|`)
 
@@ -380,10 +398,20 @@ eccentricities. Residuals of the mutant on the test grid: **1.147e6** (e =
 - **`kepler.rs:16:24` `<`→`<=` and `<`→`==`.** The line is the stopping rule
   `delta.abs() < 1e-14`. `<=` differs only when `|delta|` is exactly `1e-14`, and
   the next step would then move `E` by about `delta^2 = 1e-28`, below an ulp.
-  `==` never stops early (only an exact zero step), so the loop runs all 64
-  iterations; at a converged `E` each further Newton step changes it by less
-  than the stopping tolerance, so the result differs by at most rounding noise
-  of order 1e-14 rad, which is the solver's own declared tolerance.
+  `==` stops only when `|delta|` is exactly `1e-14`, which essentially never
+  happens, so the loop runs all 64 iterations; at a converged `E` each further
+  Newton step changes it by rounding noise only.
+
+**Measured bound for all four Kepler survivors.** Over `e` in {0, 0.01 ... 0.79,
+0.8, 0.9, 0.981092, 0.99} and 721 values of `M`, the largest
+`|E_mutant - E_original|` is **8.0e-15 rad** (reviewer's wider grid, the `16:24`
+`==` mutant at e = 0.981092) and **3.6e-15 rad** on the grid in
+`2026-10-16-fict-reference.py kepler-equiv`. They are equivalent to within
+8.0e-15 rad, below the solver's own 1e-14 stopping tolerance, so no independent
+reference can distinguish them. (Newton's method from `E0 = pi` converges for
+every `e < 1`; see Charles and Tatum, "The convergence of Newton-Raphson
+iteration with Kepler's equation", Celestial Mechanics and Dynamical Astronomy
+69, 357-361, 1998.)
 
 All five are visible in the report (no `#[mutants::skip]`).
 
@@ -393,9 +421,7 @@ All five are visible in the report (no `#[mutants::skip]`).
   tolerances. Exposing the iteration count (`solve_kepler` returning the number
   of steps) would let a test pin them, at the cost of a production API for tests
   only; not done.
-- The independent reference script is not committed. If the references need
-  regeneration, rebuild them from the formulas cited in the test comments
-  (perifocal Kepler position, `Rz Rx Rz`, Meeus 21.5 and 21.7).
-- The signed-zero difference in §1 (`-360 k` gives `-0.0` rather than `+0.0`) is
-  unreachable from normalised longitudes. If a caller ever passes unnormalised
-  longitudes, add `+ 0.0` after the remainder to restore `+0.0`.
+- The reference script is committed at
+  `docs/superpowers/specs/notes/2026-10-16-fict-reference.py` (commands
+  `values`, `state-disp`, `other-disp`, `frame-disp`, `kepler-equiv`); rerun it
+  to regenerate any literal or displacement row in this note.
