@@ -16,7 +16,7 @@ cargo mutants -p <crate> --test-tool nextest --test-workspace=false --baseline r
 | ~~`pleiades-apsides`~~ (triaged 2026-09-08) | 223 | ~~33~~ → 1 | ~~186~~ → 218 | 4 | ~~84.9%~~ → 99.5% |
 | ~~`pleiades-backend`~~ (triaged 2026-10-16; re-measured 269 mutants, 53 unviable) | 263 | ~~70~~ → 1 | ~~145~~ → 215 | 48 | ~~67.4%~~ → 99.5% |
 | ~~`pleiades-ayanamsa`~~ (triaged 2026-10-16; re-measured 359 mutants, 53 unviable) | 305 | ~~85~~ → 2 | ~~196~~ → 304 | 24 | ~~69.8%~~ → 99.3% |
-| `pleiades-fict`¹ | 308 | 148 | 147 | 11 | 49.5%¹ |
+| ~~`pleiades-fict`~~¹ (triaged 2026-10-16; re-measured 312 mutants, 13 unviable, 0 timeouts) | 308 | ~~148~~ → 5 | ~~147~~ → 294 | 11 | ~~49.5%~~ → 98.3% |
 | **Total** | **1099** | **336** | **674** | **87** | **66.6%**¹ |
 
 Score = `caught / (tested - unviable)`, one decimal place on the percentage,
@@ -115,3 +115,11 @@ The **remaining queue is three crates**: `pleiades-backend` (70 missed),
 footnote above). Their survivor counts are still open and still accurate.
 `pleiades-apsides` has also joined the weekly report-only mutants tier in
 `mise.toml`'s `[tasks.mutants]`; the other three have not.
+
+**Queue status (updated 2026-10-16).** `pleiades-fict` is **triaged and
+closed**: 5 missed (all documented equivalents), 0 timeouts, and it has joined
+the weekly mutants set. The two hangs came from the `while` loops in
+`signed_longitude_delta`; a loop-free rewrite (the one production change, value
+identical on every finite input except the sign of a zero for a delta that is a negative multiple of 360, which normalised longitudes cannot produce) removes them.
+The footnote above describes the 2026-07-25 measurement and stays as history.
+See `docs/superpowers/specs/2026-10-16-fu9-fict-mutant-triage-design.md`.
