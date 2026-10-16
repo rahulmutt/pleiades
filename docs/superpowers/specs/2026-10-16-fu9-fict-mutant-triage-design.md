@@ -31,9 +31,9 @@ cargo mutants -p pleiades-fict --test-tool nextest --test-workspace=false \
 |------|---------|--------|--------|----------|----------|
 | 2026-07-25 roadmap | 308 | 148 | 147 | 11 | 2 |
 | 2026-10-16 before (0f7453fa) | 310 | 137 | 158 | 13 | 2 |
-| 2026-10-16 after | 312 | 5 | 294 | 13 | 0 |
+| 2026-10-16 after | 315 | 5 | 297 | 13 | 0 |
 
-The five survivors are the documented equivalents below. The count grows by two
+The five survivors are the documented equivalents below. The count grows by five
 because the rewritten `signed_longitude_delta` has a different set of mutation
 sites from the two loops it replaced. All of its mutants are caught.
 

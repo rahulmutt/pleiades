@@ -35,7 +35,7 @@ jobs:
     # pleiades-houses (2026-07), pleiades-apsides (2026-09-08) and
     # pleiades-backend (2026-10-16, 269 mutants, ~67 per shard; 3m locally
     # at -j4), pleiades-ayanamsa (2026-10-16, 359 mutants, ~90 per shard;
-    # 2m locally at -j4) and pleiades-fict (2026-10-16, 312 mutants, ~78 per
+    # 2m locally at -j4) and pleiades-fict (2026-10-16, 315 mutants, ~79 per
     # shard; 2m locally at -j4) joined later.
     #
     # 2026-10-15 (#258): the single-job run stopped fitting. Measured from the
