@@ -40,6 +40,22 @@
 //! `tools/se-aspects-reference/target/release/se-aspects-reference --asteroids --out crates/pleiades-validate/data/aspects-corpus`.
 //! The ephe directory is `$SE_EPHE_PATH`, else `--ephe`, else this tool's `data/`.
 //!
+//! Lunar-point mode (`--lunar-points --out <dir> [--ephe <dir>]`): `geo`
+//! aspects of the true node (SE_TRUE_NODE, id 11) with the Sun, Mars, Jupiter,
+//! Saturn, Uranus, Neptune and Pluto over the full span, with the `geo` flags
+//! but SEFLG_SWIEPH, from the `sepl_18`/`semo_18` files pinned in `pins.rs`.
+//! The true node's speed oscillates with a period of about two weeks and
+//! touches zero, so its separation from a slow planet turns thousands of
+//! times; the grid is 0.005 day. The graze margin is 3 arcseconds, not 30: it
+//! is 3.6 times the largest engine-minus-SE separation at a turning point
+//! measured for these pairs (0.82"), and below the closest turn to a level
+//! they have (TrueNode-Jupiter, 3.6"), so a measured near-graze is compared
+//! rather than refused (issue #168 (c)). Writes `<dir>/lunar-points.csv` and
+//! `<dir>/lunar-points-manifest.txt`. Build with
+//! `devenv shell -- env CFLAGS=-std=gnu17 cargo build --release --manifest-path tools/se-aspects-reference/Cargo.toml`
+//! or, outside devenv, `env CFLAGS=-std=gnu17 LIBCLANG_PATH=<clang lib dir> cargo build --release --offline --manifest-path tools/se-aspects-reference/Cargo.toml`;
+//! run `tools/se-aspects-reference/target/release/se-aspects-reference --lunar-points --out crates/pleiades-validate/data/aspects-corpus`.
+//!
 //! Two build/run caveats: under devenv's gcc the build needs `CFLAGS=-std=gnu17`
 //! (libswisseph-sys otherwise fails with a conflicting `getenv` declaration), and
 //! `devenv shell` prints a banner line to stdout that must be removed from the
@@ -83,11 +99,15 @@ const VENUS: Body = (3, "Venus");
 const MARS: Body = (4, "Mars");
 const JUPITER: Body = (5, "Jupiter");
 const SATURN: Body = (6, "Saturn");
+const URANUS: Body = (7, "Uranus");
+const NEPTUNE: Body = (8, "Neptune");
 const PLUTO: Body = (9, "Pluto");
 const CERES: Body = (17, "Ceres");
 const PALLAS: Body = (18, "Pallas");
 const JUNO: Body = (19, "Juno");
 const VESTA: Body = (20, "Vesta");
+/// SE_TRUE_NODE: the osculating (true) lunar ascending node.
+const TRUE_NODE: Body = (11, "TrueNode");
 
 /// The pleiades-events window (JD 2415020.5–2488069.5) less five days at each
 /// end, so neither side of the comparison meets the engine's edge clamp.
@@ -99,8 +119,9 @@ const GRID_DAYS: f64 = 0.05;
 const MOON_GRID_DAYS: f64 = 0.01;
 const BISECT_TOLERANCE_DAYS: f64 = 1e-7;
 /// 30 arcseconds: several times the largest difference between the Swiss
-/// Ephemeris (Moshier) and pleiades separations.
-const GRAZE_MARGIN_DEG: f64 = 30.0 / 3600.0;
+/// Ephemeris (Moshier or SWIEPH seas_18) and pleiades separations of the planet
+/// and asteroid pairs.
+const PLANET_GRAZE_MARGIN_DEG: f64 = 30.0 / 3600.0;
 const ANGLES: [f64; 5] = [0.0, 60.0, 90.0, 120.0, 180.0];
 
 /// The asteroid-mode pairs: `(first, second, span, grid)`, all `geo` with
@@ -114,6 +135,26 @@ const ASTEROID_PAIRS: [(Body, Body, (f64, f64), f64); 7] = [
     (MOON, CERES, SHORT_SPAN, MOON_GRID_DAYS),
     (MARS, VESTA, FULL_SPAN, GRID_DAYS),
     (JUPITER, CERES, FULL_SPAN, GRID_DAYS),
+];
+
+/// The lunar-point grid: the true node's speed oscillates with a period of
+/// about two weeks and touches zero, so its separation from a slow planet
+/// turns thousands of times over the span (2392 for Jupiter, 6600 for Pluto).
+const LUNAR_POINT_GRID_DAYS: f64 = 0.005;
+/// 3 arcseconds: 3.6 times the largest engine-minus-SE SWIEPH separation at a
+/// turning point measured for these pairs (0.82"), and below the closest turn
+/// to a level they have (TrueNode-Jupiter, 3.6"), so a measured near-graze is
+/// compared rather than refused (issue #168 (c)).
+const LUNAR_POINT_GRAZE_MARGIN_DEG: f64 = 3.0 / 3600.0;
+/// The lunar-point mode's pairs, all `geo` with `GEO_SWIEPH` over the full span.
+const LUNAR_POINT_PAIRS: [(Body, Body); 7] = [
+    (TRUE_NODE, SUN),
+    (TRUE_NODE, MARS),
+    (TRUE_NODE, JUPITER),
+    (TRUE_NODE, SATURN),
+    (TRUE_NODE, URANUS),
+    (TRUE_NODE, NEPTUNE),
+    (TRUE_NODE, PLUTO),
 ];
 
 /// `(longitude_deg in [0, 360), longitude_speed_deg_per_day)`.
@@ -208,6 +249,7 @@ fn scan(
     iflag: c_int,
     (lo, hi): (f64, f64),
     grid: f64,
+    graze_margin_deg: f64,
 ) {
     let at = |jd: f64| sample(jd, first, second, iflag);
     let mut events: Vec<Vec<Sample>> = vec![Vec::new(); ANGLES.len()];
@@ -233,13 +275,15 @@ fn scan(
                     let miss = wrap180(turn.separation - level).abs();
                     closest_miss = closest_miss.min(miss);
                     assert!(
-                        miss >= GRAZE_MARGIN_DEG,
+                        miss >= graze_margin_deg,
                         "graze: {group},{},{} turns {:.2} arcsec from the {angle} degree level \
-                         at jd_tt={:.5}; an event here would depend on the ephemeris",
+                         at jd_tt={:.5}, inside the {:.0} arcsec margin; an event here would \
+                         depend on the ephemeris",
                         first.1,
                         second.1,
                         miss * 3600.0,
-                        turn.jd
+                        turn.jd,
+                        graze_margin_deg * 3600.0
                     );
                 }
             }
@@ -295,6 +339,10 @@ fn main() {
         asteroids_main(&args);
         return;
     }
+    if args.iter().any(|a| a == "--lunar-points") {
+        lunar_points_main(&args);
+        return;
+    }
     let out = &mut |row: String| println!("{row}");
     println!("# Source: Swiss Ephemeris 2.10.03 (libswisseph-sys 0.1.2), Moshier (SEFLG_MOSEPH, no data files).");
     println!("# A row is an instant at which wrap180(lon(first) - lon(second)) of swe_calc(jd_tt, body, iflag|SEFLG_SPEED)");
@@ -310,7 +358,16 @@ fn main() {
     println!(
         "group,first,second,angle_deg,jd_tt,first_lon_deg,second_lon_deg,rel_speed_deg_per_day"
     );
-    scan(out, "geo", SUN, MOON, GEO, SHORT_SPAN, MOON_GRID_DAYS);
+    scan(
+        out,
+        "geo",
+        SUN,
+        MOON,
+        GEO,
+        SHORT_SPAN,
+        MOON_GRID_DAYS,
+        PLANET_GRAZE_MARGIN_DEG,
+    );
     for (first, second) in [
         (SUN, MERCURY),
         (MERCURY, VENUS),
@@ -320,15 +377,44 @@ fn main() {
         (JUPITER, SATURN),
         (SATURN, PLUTO),
     ] {
-        scan(out, "geo", first, second, GEO, FULL_SPAN, GRID_DAYS);
+        scan(
+            out,
+            "geo",
+            first,
+            second,
+            GEO,
+            FULL_SPAN,
+            GRID_DAYS,
+            PLANET_GRAZE_MARGIN_DEG,
+        );
     }
     for (first, second) in [(MERCURY, VENUS), (MARS, SATURN)] {
-        scan(out, "mean", first, second, MEAN, SHORT_SPAN, GRID_DAYS);
+        scan(
+            out,
+            "mean",
+            first,
+            second,
+            MEAN,
+            SHORT_SPAN,
+            GRID_DAYS,
+            PLANET_GRAZE_MARGIN_DEG,
+        );
     }
-    scan(out, "helio", MARS, JUPITER, HELIO, FULL_SPAN, GRID_DAYS);
+    scan(
+        out,
+        "helio",
+        MARS,
+        JUPITER,
+        HELIO,
+        FULL_SPAN,
+        GRID_DAYS,
+        PLANET_GRAZE_MARGIN_DEG,
+    );
 }
 
-fn asteroids_main(args: &[String]) {
+/// Reads `--out`, verifies the pinned SWIEPH files and points Swiss Ephemeris
+/// at them; returns the output directory.
+fn swieph_setup(args: &[String], mode: &str) -> String {
     let value_of = |flag: &str| {
         args.iter().position(|a| a == flag).map(|i| {
             args.get(i + 1)
@@ -336,7 +422,7 @@ fn asteroids_main(args: &[String]) {
                 .clone()
         })
     };
-    let out_dir = value_of("--out").expect("--asteroids needs --out <dir>");
+    let out_dir = value_of("--out").unwrap_or_else(|| panic!("{mode} needs --out <dir>"));
     let ephe_dir = std::env::var("SE_EPHE_PATH")
         .ok()
         .or_else(|| value_of("--ephe"))
@@ -347,7 +433,11 @@ fn asteroids_main(args: &[String]) {
     }
     let ephe = std::ffi::CString::new(ephe_dir).expect("ephe path has NUL");
     unsafe { swe_set_ephe_path(ephe.as_ptr()) };
+    out_dir
+}
 
+fn asteroids_main(args: &[String]) {
+    let out_dir = swieph_setup(args, "--asteroids");
     let mut csv = String::new();
     csv.push_str("# Source: Swiss Ephemeris 2.10.03 (libswisseph-sys 0.1.2), SEFLG_SWIEPH with seas_18/sepl_18/semo_18 (SHA-256 pinned in tools/se-aspects-reference/src/pins.rs).\n");
     csv.push_str("# A row is an instant at which wrap180(lon(first) - lon(second)) of swe_calc(jd_tt, body, iflag|SEFLG_SPEED)\n");
@@ -357,7 +447,9 @@ fn asteroids_main(args: &[String]) {
     csv.push_str("# Angles 0, 60, 90, 120, 180.\n");
     csv.push_str("# rel_speed_deg_per_day is the longitude speed of first less that of second at the row's instant.\n");
     csv.push_str("# No turning point of any pair's separation is within 30 arcsec of one of its levels (the tool fails otherwise).\n");
-    csv.push_str("group,first,second,angle_deg,jd_tt,first_lon_deg,second_lon_deg,rel_speed_deg_per_day\n");
+    csv.push_str(
+        "group,first,second,angle_deg,jd_tt,first_lon_deg,second_lon_deg,rel_speed_deg_per_day\n",
+    );
     let mut rows = 0usize;
     {
         let mut push = |row: String| {
@@ -365,7 +457,16 @@ fn asteroids_main(args: &[String]) {
             writeln!(csv, "{row}").unwrap();
         };
         for (first, second, span, grid) in ASTEROID_PAIRS {
-            scan(&mut push, "geo", first, second, GEO_SWIEPH, span, grid);
+            scan(
+                &mut push,
+                "geo",
+                first,
+                second,
+                GEO_SWIEPH,
+                span,
+                grid,
+                PLANET_GRAZE_MARGIN_DEG,
+            );
         }
     }
     let manifest = format!(
@@ -375,6 +476,54 @@ fn asteroids_main(args: &[String]) {
     std::fs::create_dir_all(&out_dir).unwrap_or_else(|e| panic!("create {out_dir}: {e}"));
     let csv_path = format!("{out_dir}/asteroids.csv");
     let manifest_path = format!("{out_dir}/asteroids-manifest.txt");
+    std::fs::write(&csv_path, &csv).unwrap_or_else(|e| panic!("write {csv_path}: {e}"));
+    std::fs::write(&manifest_path, &manifest)
+        .unwrap_or_else(|e| panic!("write {manifest_path}: {e}"));
+    eprintln!("wrote {csv_path} ({rows} rows) and {manifest_path}");
+}
+
+fn lunar_points_main(args: &[String]) {
+    let out_dir = swieph_setup(args, "--lunar-points");
+    let mut csv = String::new();
+    csv.push_str("# Source: Swiss Ephemeris 2.10.03 (libswisseph-sys 0.1.2), SEFLG_SWIEPH with sepl_18/semo_18 (SHA-256 pinned in tools/se-aspects-reference/src/pins.rs).\n");
+    csv.push_str("# A row is an instant at which wrap180(lon(first) - lon(second)) of swe_calc(jd_tt, body, iflag|SEFLG_SPEED)\n");
+    csv.push_str(
+        "# equals +angle or -angle, scanned on a 0.005-day grid, each step split at the zero\n",
+    );
+    csv.push_str("# of the relative longitude speed, and bisected to 1e-7 day. jd_tt is TT.\n");
+    csv.push_str("# geo: apparent, tropical, true equinox of date (default flags) with SEFLG_SWIEPH; TrueNode (SE_TRUE_NODE) with Sun, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, JD 2415025.5-2488064.5.\n");
+    csv.push_str("# Angles 0, 60, 90, 120, 180.\n");
+    csv.push_str("# rel_speed_deg_per_day is the longitude speed of first less that of second at the row's instant.\n");
+    csv.push_str("# No turning point of any pair's separation is within 3 arcsec of one of its levels (the tool fails otherwise).\n");
+    csv.push_str(
+        "group,first,second,angle_deg,jd_tt,first_lon_deg,second_lon_deg,rel_speed_deg_per_day\n",
+    );
+    let mut rows = 0usize;
+    {
+        let mut push = |row: String| {
+            rows += 1;
+            writeln!(csv, "{row}").unwrap();
+        };
+        for (first, second) in LUNAR_POINT_PAIRS {
+            scan(
+                &mut push,
+                "geo",
+                first,
+                second,
+                GEO_SWIEPH,
+                FULL_SPAN,
+                LUNAR_POINT_GRID_DAYS,
+                LUNAR_POINT_GRAZE_MARGIN_DEG,
+            );
+        }
+    }
+    let manifest = format!(
+        "slice aspects-lunar-points file=lunar-points.csv role=aspects rows={rows} checksum={}\n",
+        pins::fnv1a64(&csv)
+    );
+    std::fs::create_dir_all(&out_dir).unwrap_or_else(|e| panic!("create {out_dir}: {e}"));
+    let csv_path = format!("{out_dir}/lunar-points.csv");
+    let manifest_path = format!("{out_dir}/lunar-points-manifest.txt");
     std::fs::write(&csv_path, &csv).unwrap_or_else(|e| panic!("write {csv_path}: {e}"));
     std::fs::write(&manifest_path, &manifest)
         .unwrap_or_else(|e| panic!("write {manifest_path}: {e}"));
