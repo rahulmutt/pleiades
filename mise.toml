@@ -138,6 +138,10 @@ run = "RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps --all-featur
 [tasks.audit]
 run = "cargo run -q -p pleiades-validate -- workspace-audit"
 
+[tasks.readme-capabilities]
+description = "Regenerate the README capability blocks from backend metadata (issue #166); pass --check to verify only."
+run = "cargo run -q -p pleiades-validate -- readme-capabilities"
+
 [tasks.deny]
 run = "cargo deny check"
 

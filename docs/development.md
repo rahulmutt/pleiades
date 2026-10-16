@@ -42,6 +42,8 @@ mise run release-gate
 
 `release-smoke` runs the native dependency audit, validates the bundled compressed artifact, stages a release bundle, and verifies the bundle. `release-gate` runs formatting, clippy, tests, benchmark generation, the full exact-aspect gate (about 2 minutes on the nightly runner, `mise run gate-aspects`; planet pairs plus Sun–Ceres..Vesta, Moon–Ceres, Mars–Vesta and Jupiter–Ceres) and the full planetary-stations gate (planets, true node, and Ceres–Vesta; under a minute on the nightly runner, `mise run gate-stations`), then performs the same smoke checks itself; it does not run `release-smoke` as a separate step.
 
+`mise run audit` also checks the capability blocks in the backend READMEs (`<!-- audit:capabilities <backend-id> -->`): each must match what that backend's metadata renders. After a change to a backend's capabilities, body claims or window, run `mise run readme-capabilities` to regenerate them.
+
 The command-line tools behind these tasks are described in [cli.md](cli.md).
 
 ## Workspace layout

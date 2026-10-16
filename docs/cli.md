@@ -121,6 +121,9 @@ Stations (geocentric apparent; Tropical zodiac)
 # Native dependency / build-hook audit
 cargo run -q -p pleiades-validate -- workspace-audit
 
+# README capability blocks: regenerate from backend metadata, or --check
+cargo run -q -p pleiades-validate -- readme-capabilities --check
+
 # Compatibility profile verification
 cargo run -q -p pleiades-validate -- verify-compatibility-profile
 

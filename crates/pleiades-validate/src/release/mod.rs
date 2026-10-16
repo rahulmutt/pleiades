@@ -9,6 +9,7 @@ pub(crate) mod fuzz_toolchain_audit;
 pub(crate) mod notes;
 pub(crate) mod package_check_audit;
 pub(crate) mod readme_audit;
+pub(crate) mod readme_capabilities;
 pub(crate) mod workspace_audit;
 
 pub(crate) use notes::{

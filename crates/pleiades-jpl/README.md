@@ -37,6 +37,31 @@ the next orbit solution can move. To repeat the check, with network access:
 cargo run -p pleiades-jpl --features horizons-fetch --bin check-snapshot-fixtures
 ```
 
+## Capabilities
+
+Generated from each backend's metadata (`mise run readme-capabilities`).
+
+`JplSnapshotBackend`:
+
+<!-- audit:capabilities jpl-snapshot -->
+- Coordinates: mean geometric; apparent requests are rejected
+- Observer: geocentric; topocentric requests are rejected
+- Frames: ecliptic, equatorial · Time scales: TT, TDB
+- Window: JD 2378498.5 (TDB) → JD 2453000.5 (TDB)
+- Release-grade bodies: none
+- Constrained bodies (Unknown): Ceres, Pallas, Juno, Vesta, asteroid:433-Eros, asteroid:99942-Apophis, Sun, Moon, Mercury, Venus, Jupiter, Mars, Neptune, Pluto, Saturn, Uranus
+<!-- /audit:capabilities -->
+
+`SpkBackend`:
+
+<!-- audit:capabilities jpl-spk -->
+- Coordinates: mean geometric; apparent requests are rejected
+- Observer: geocentric; topocentric requests are rejected
+- Frames: ecliptic, equatorial · Time scales: TT, TDB
+- Window: no nominal limit
+- Bodies: those of the loaded SPK kernels (none without one)
+<!-- /audit:capabilities -->
+
 ## License
 
 MIT OR Apache-2.0
