@@ -300,28 +300,28 @@ where
 }
 
 /// Appends the roots of `d − level`, for each of `levels`, in the bracket
-/// `[a, b]`, ascending. Same sign test, wrap-seam guard and bisection as
-/// [`crossings_in_range`].
+/// `[a, b]`, ascending, each with the index of its level. Same sign test,
+/// wrap-seam guard and bisection as [`crossings_in_range`].
 fn level_roots_between<F>(
     d: &mut F,
     levels: &[f64],
     a: Sample,
     b: Sample,
-    out: &mut Vec<f64>,
+    out: &mut Vec<(f64, usize)>,
 ) -> Result<(), EventError>
 where
     F: FnMut(f64) -> Result<f64, EventError>,
 {
     let first_new = out.len();
-    for &level in levels {
+    for (index, &level) in levels.iter().enumerate() {
         let f_a = wrap180(a.1 - level);
         let f_b = wrap180(b.1 - level);
         if brackets_crossing(f_a, f_b) {
             let mut f = |jd: f64| Ok(wrap180(d(jd)? - level));
-            out.push(bisect(&mut f, a.0, f_a, b.0)?);
+            out.push((bisect(&mut f, a.0, f_a, b.0)?, index));
         }
     }
-    out[first_new..].sort_by(f64::total_cmp);
+    out[first_new..].sort_by(|x, y| x.0.total_cmp(&y.0));
     Ok(())
 }
 
@@ -333,7 +333,7 @@ fn drain_until<F>(
     levels: &[f64],
     pending: &mut Vec<Sample>,
     limit_jd: f64,
-    out: &mut Vec<f64>,
+    out: &mut Vec<(f64, usize)>,
 ) -> Result<(), EventError>
 where
     F: FnMut(f64) -> Result<f64, EventError>,
@@ -384,7 +384,7 @@ fn scan_levels<F>(
     step_days: f64,
     first_only: bool,
     window: Window,
-) -> Result<Vec<f64>, EventError>
+) -> Result<Vec<(f64, usize)>, EventError>
 where
     F: FnMut(f64) -> Result<f64, EventError>,
 {
@@ -456,8 +456,8 @@ where
 }
 
 /// Every instant in `(lo_jd, hi_jd]` at which the wrapped-degree function `d`
-/// crosses one of `levels`, ascending. Each is a settled instant, as from
-/// [`bisect`].
+/// crosses one of `levels`, ascending, each with the index into `levels` of
+/// the level it crosses. Each is a settled instant, as from [`bisect`].
 ///
 /// Unlike [`crossings_in_range`], each step is split at the turning points
 /// of `d`, so two crossings of a level inside one step are both found. `d`
@@ -482,7 +482,7 @@ pub(crate) fn level_crossings_in_range<F>(
     hi_jd: f64,
     step_days: f64,
     window: Window,
-) -> Result<Vec<f64>, EventError>
+) -> Result<Vec<(f64, usize)>, EventError>
 where
     F: FnMut(f64) -> Result<f64, EventError>,
 {
@@ -498,7 +498,7 @@ pub(crate) fn first_level_crossing_after<F>(
     hi_jd: f64,
     step_days: f64,
     window: Window,
-) -> Result<Option<f64>, EventError>
+) -> Result<Option<(f64, usize)>, EventError>
 where
     F: FnMut(f64) -> Result<f64, EventError>,
 {
@@ -542,7 +542,7 @@ pub(crate) fn last_level_crossing_before<F>(
     hi_jd: f64,
     step_days: f64,
     window: Window,
-) -> Result<Option<f64>, EventError>
+) -> Result<Option<(f64, usize)>, EventError>
 where
     F: FnMut(f64) -> Result<f64, EventError>,
 {

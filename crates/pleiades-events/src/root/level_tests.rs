@@ -1,11 +1,59 @@
 //! The level-crossing scanner on synthetic functions.
 
 use super::{
-    crossings_in_range, first_level_crossing_after, last_level_crossing_before,
-    level_crossings_in_range, wrap180, Window, LEVEL_CHUNK_STEPS, REFINE_TOLERANCE_DAYS,
+    crossings_in_range, first_level_crossing_after as tagged_first_after,
+    last_level_crossing_before as tagged_last_before, level_crossings_in_range as tagged_in_range,
+    wrap180, Window, LEVEL_CHUNK_STEPS, REFINE_TOLERANCE_DAYS,
 };
 use crate::error::EventError;
 use std::cell::Cell;
+
+// The scanners tag each root with its level (issue #168 (e)). Most tests
+// here are about instants only, so they go through these untagged views.
+fn level_crossings_in_range<F>(
+    d: F,
+    levels: &[f64],
+    lo_jd: f64,
+    hi_jd: f64,
+    step_days: f64,
+    window: Window,
+) -> Result<Vec<f64>, EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    tagged_in_range(d, levels, lo_jd, hi_jd, step_days, window)
+        .map(|roots| roots.into_iter().map(|(jd, _)| jd).collect())
+}
+
+fn first_level_crossing_after<F>(
+    d: F,
+    levels: &[f64],
+    lo_jd: f64,
+    hi_jd: f64,
+    step_days: f64,
+    window: Window,
+) -> Result<Option<f64>, EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    tagged_first_after(d, levels, lo_jd, hi_jd, step_days, window)
+        .map(|root| root.map(|(jd, _)| jd))
+}
+
+fn last_level_crossing_before<F>(
+    d: F,
+    levels: &[f64],
+    lo_jd: f64,
+    hi_jd: f64,
+    step_days: f64,
+    window: Window,
+) -> Result<Option<f64>, EventError>
+where
+    F: FnMut(f64) -> Result<f64, EventError>,
+{
+    tagged_last_before(d, levels, lo_jd, hi_jd, step_days, window)
+        .map(|root| root.map(|(jd, _)| jd))
+}
 
 const T0: f64 = 2_451_545.0;
 /// A window that never binds: the scanner's behaviour before windows.
@@ -127,6 +175,77 @@ fn two_levels_crossed_in_one_bracket_come_back_in_time_order() {
     let d = |jd: f64| Ok(jd - T0 - 10.5);
     let roots = level_crossings_in_range(d, &[0.3, -0.3], T0, T0 + 30.0, 2.0, UNBOUNDED).unwrap();
     assert_roots(&roots, &[T0 + 10.2, T0 + 10.8]);
+}
+
+#[test]
+fn each_root_carries_the_index_of_its_level() {
+    // Both levels are crossed inside one 2-day step, the later-listed level
+    // first: the tags follow the levels, the order follows time.
+    let d = |jd: f64| Ok(jd - T0 - 10.5);
+    let levels = [0.3, -0.3];
+    let roots = tagged_in_range(d, &levels, T0, T0 + 30.0, 2.0, UNBOUNDED).unwrap();
+    assert_eq!(
+        roots.iter().map(|&(_, level)| level).collect::<Vec<_>>(),
+        [1, 0]
+    );
+    assert_settled(roots[0].0, T0 + 10.2);
+    assert_settled(roots[1].0, T0 + 10.8);
+
+    // A level's instants do not depend on which other levels are scanned
+    // with it: the brackets come from `d` alone.
+    let alone = tagged_in_range(d, &[0.3], T0, T0 + 30.0, 2.0, UNBOUNDED).unwrap();
+    assert_eq!(alone, [(roots[1].0, 0)]);
+
+    let first = tagged_first_after(d, &levels, T0, T0 + 30.0, 2.0, UNBOUNDED).unwrap();
+    assert_eq!(first, Some(roots[0]));
+    let last = tagged_last_before(d, &levels, T0, T0 + 30.0, 2.0, UNBOUNDED).unwrap();
+    assert_eq!(last, Some(roots[1]));
+}
+
+// The peak (T0 + 10.7, 0.0004 deg) clears both levels inside the 2-day step
+// T0+10 .. T0+12. `0.0004 - 0.01 x^2 = level` gives x = +-sqrt((0.0004 -
+// level) / 0.01): level 0.0 is crossed at +-0.2 d, level -0.0002 at
+// +-sqrt(0.06) = +-0.244949 d. In time order: level 1 (10.455051), level 0
+// (10.5), level 0 (10.9), level 1 (10.944949).
+#[test]
+fn two_levels_inside_one_step_around_a_turning_point_each_keep_their_tag() {
+    let centre = T0 + 10.7;
+    let levels = [0.0, -0.0002];
+    let spread = 0.06_f64.sqrt();
+    let roots = tagged_in_range(
+        parabola(centre, 0.0004),
+        &levels,
+        T0,
+        T0 + 30.0,
+        2.0,
+        UNBOUNDED,
+    )
+    .unwrap();
+    assert_eq!(
+        roots.iter().map(|&(_, level)| level).collect::<Vec<_>>(),
+        [1, 0, 0, 1]
+    );
+    let want = [centre - spread, centre - 0.2, centre + 0.2, centre + spread];
+    for (&(got, _), want) in roots.iter().zip(want) {
+        assert_settled(got, want);
+    }
+
+    // Each level scanned alone settles on the same instants, tagged 0.
+    for (level, positions) in [(0, [1, 2]), (1, [0, 3])] {
+        let alone = tagged_in_range(
+            parabola(centre, 0.0004),
+            &[levels[level]],
+            T0,
+            T0 + 30.0,
+            2.0,
+            UNBOUNDED,
+        )
+        .unwrap();
+        assert_eq!(
+            alone,
+            [(roots[positions[0]].0, 0), (roots[positions[1]].0, 0)]
+        );
+    }
 }
 
 #[test]

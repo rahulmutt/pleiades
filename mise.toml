@@ -272,11 +272,15 @@ run = "cargo run -q -p pleiades-validate -- validate-corpus"
 # nightly runner (3f5849db6, 2026-10-11..15) the command takes 77-151 s
 # (median 114 s; planets alone 82 s at b23c6ca39, so the asteroid pass is
 # roughly 30 s) and the `aspects-gate` job 2m00s-3m07s, far inside its 80-min
-# step / 90-min job timeouts. It first measured ~15 min (2026-10-02, planets
+# step / 90-min job timeouts.
+# It first measured ~15 min (2026-10-02, planets
 # only, before later engine speedups), so it has its own nightly job
 # (.github/workflows/nightly.yml `aspects-gate`) and is a `release-gate`
 # dependency. The mean subset, and a scan-free checksum/row-count check of the
 # asteroid corpus (#254), run in the release battery (`release-smoke`).
+# #168 (e) scans each pair once for all five angles: on a local 24-core box at
+# load 5-12, 356-415 s before and 125-153 s after; the nightly figures above
+# predate it.
 run = "cargo run -q -p pleiades-validate -- validate-aspects"
 
 [tasks.gate-stations]

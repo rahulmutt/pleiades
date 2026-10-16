@@ -606,6 +606,17 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
         let (first, second) = (body(pair.first)?, body(pair.second)?);
         let mut residuals = Residuals::default();
         let mut counts = Vec::new();
+        let angles = ANGLES_DEG.map(Angle::from_degrees);
+        let events = engine
+            .aspects_in_range_for_angles(
+                first.clone(),
+                second.clone(),
+                &angles,
+                pair.group.reference(),
+                tdb(pair.span.0),
+                tdb(pair.span.1),
+            )
+            .map_err(|e| failed(&pair_label, e.to_string()))?;
         for (angle_index, angle_deg) in ANGLES_DEG.iter().enumerate() {
             let label = format!("{pair_label} {angle_deg:.0}");
             let corpus: Vec<Expected> = rows
@@ -613,17 +624,9 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
                 .filter(|row| row.pair == pair_index && row.angle == angle_index)
                 .map(|row| row.expected)
                 .collect();
-            let found: Vec<Found> = engine
-                .aspects_in_range(
-                    first.clone(),
-                    second.clone(),
-                    Angle::from_degrees(*angle_deg),
-                    pair.group.reference(),
-                    tdb(pair.span.0),
-                    tdb(pair.span.1),
-                )
-                .map_err(|e| failed(&label, e.to_string()))?
-                .into_iter()
+            let found: Vec<Found> = events
+                .iter()
+                .filter(|event| event.angle.degrees() == *angle_deg)
                 .map(|event| Found {
                     jd: event.instant.julian_day.days(),
                     first_lon_deg: event.first_longitude.degrees(),

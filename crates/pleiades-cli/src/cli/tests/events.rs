@@ -274,6 +274,24 @@ fn aspects_next_and_previous_give_one_event_per_pair_and_angle() {
 }
 
 #[test]
+fn aspects_rejects_a_repeated_angle() {
+    // Before #168 (e) a repeated angle printed every event twice.
+    for search in [
+        &["--from", J2000, "--to", END_OF_2000][..],
+        &["--next", "--at", J2000][..],
+    ] {
+        let mut args = vec![
+            "aspects", "--pair", "Sun,Moon", "--angle", "90", "--angle", "90",
+        ];
+        args.extend_from_slice(search);
+        assert!(
+            error(&args).contains("--angle 90 given twice"),
+            "{search:?}"
+        );
+    }
+}
+
+#[test]
 fn the_search_window_must_be_one_range_or_one_direction() {
     let stations = |tail: &[&str]| {
         let mut args = vec!["stations", "--body", "Mercury"];
