@@ -217,7 +217,9 @@ relative speed:
 | Saturn–Pluto | 109 | 1.565″ | 744.8 s | 1.662″ |
 
 The gate also covers Mercury–Venus and Mars–Saturn in the mean place and
-Mars–Jupiter from the Sun. Aspects of the lunar points and fictitious
-bodies are found but not gated. The packaged asteroids (Ceres, Pallas, Juno, Vesta,
+Mars–Jupiter from the Sun. Aspects of the true node are gated against
+Swiss Ephemeris SWIEPH for seven planets (Sun, Mars, Jupiter, Saturn, Uranus,
+Neptune, Pluto, 1900–2100), including turns 3.6″ and 4.1″ from an angle; the
+other lunar points and the fictitious bodies are found but not gated. The packaged asteroids (Ceres, Pallas, Juno, Vesta,
 Eros) are searched across 1900-2100 but their aspects are not gated (issue #168
 (f)); Apophis is snapshot-only, so its search returns the out-of-range error.

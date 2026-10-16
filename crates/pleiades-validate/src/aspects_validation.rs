@@ -20,15 +20,15 @@
 //! Mars–Vesta and Jupiter–Ceres over 1900–2100 and Moon–Ceres over 1990–2030
 //! are compared event for event against `asteroids.csv`, generated with
 //! SWIEPH and seas_18 by the same tool's `--asteroids` mode, in the full gate
-//! only (the release battery checks only that file's manifest). A Sun or Moon pair's separation never turns; Mars–Vesta and
-//! Jupiter–Ceres turn 188 and 315 times, so the asteroids' retrograde loops
+//! only (the release battery checks only that file's manifest). A Sun or Moon
+//! pair's separation never turns; Mars–Vesta and Jupiter–Ceres turn 188 and 315 times, so the asteroids' retrograde loops
 //! reach the gate (issue #253). None of their turns comes within 209" of an
 //! angle, and no two events of one angle fall within one 2-day search step.
 //!
 //! True node (issue #168): the true node against the Sun, Mars, Jupiter,
 //! Saturn, Uranus, Neptune and Pluto over 1900–2100 (3424 events) is
 //! compared event for event against `lunar-points.csv`, generated with SWIEPH
-//! by the same tool's `--lunar-points` mode, in the full gate only (the
+//! by `tools/se-aspects-reference --lunar-points`, in the full gate only (the
 //! release battery checks only that file's manifest too). The tool's 3"
 //! graze margin applies; the measured near-grazes are 3.6" and 4.1".
 
@@ -574,8 +574,8 @@ impl AspectsReport {
         &self.pair_lines
     }
 
-    /// One report followed by the next: rows summed, pair
-    /// lines in order, summary lines joined with "; ".
+    /// Chains the planet, asteroid and true-node reports in order: rows
+    /// summed, pair lines in order, summary lines joined with "; ".
     fn merged_with(self, other: AspectsReport) -> AspectsReport {
         let mut pair_lines = self.pair_lines;
         pair_lines.extend(other.pair_lines);
@@ -710,9 +710,9 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
 /// The full gate: every planet corpus pair at every angle (floor
 /// `MIN_ROWS_VALIDATED`, 10359 events), then the asteroid pairs (floor
 /// `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events), then the true node against
-/// seven planets (floor `MIN_ROWS_VALIDATED_LUNAR_POINTS`, 3424 events, SWIEPH,
-/// 3" graze margin, measured near-grazes of 3.6" and 4.1"). Run by `validate-aspects` /
-/// `mise run gate-aspects` (its own nightly job and a `release-gate`
+/// seven planets (floor `MIN_ROWS_VALIDATED_LUNAR_POINTS`, 3424 events,
+/// SWIEPH, 3" graze margin, measured near-grazes of 3.6" and 4.1"). Run by
+/// `validate-aspects` / `mise run gate-aspects` (its own nightly job and a `release-gate`
 /// dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test.
 /// Measured on the 4-core nightly runner with both passes (five nightly
 /// runs at 3f5849db6, 2026-10-11..15, warm build): the gate command takes
@@ -720,8 +720,13 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
 /// against an 80-min step and 90-min job timeout. The gate does not time its
 /// passes; the planets-only command took 82 s at b23c6ca39 (2026-10-10, the
 /// run before #251), so the asteroid pass (`Scope::Asteroids`, seven pairs)
-/// is roughly 30 s there, less than the run-to-run spread above. On the 24-core dev
-/// box under load it took 54.5 s in the release profile (2026-10-10). The
+/// is roughly 30 s there, less than the run-to-run spread above. On the
+/// 24-core dev box under load it took 54.5 s in the release profile
+/// (2026-10-10). The true-node pass took the local full gate to 18m56s at
+/// load 13–15.6 (2026-10-16), against 125–153 s before at load 5–12; it has
+/// not yet been measured on the nightly runner. If it pushes the nightly full
+/// gate past 15 minutes, the lunar pass is to be split into its own
+/// subcommand, as the spec's contingency says. The
 /// first measurements, 880 s as the command and 1110.8 s as the in-crate
 /// test (dev/test profile, 2026-10-02, planet pairs only), predate the
 /// event-engine speedups since and are why the gate left nightly
