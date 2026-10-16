@@ -12,7 +12,7 @@ The crate ships a compressed artifact covering 1900-01-01 through 2100-01-01,
 regenerated from the JPL de440 and `sb441-n373s` kernels (two kernels are required) and validated against a
 deterministic binary fixture. A routing chain falls back to other providers for bodies outside the packaged slice.
 
-The planets come from the JPL de440 planetary kernel; the five asteroids are
+The planets come from the JPL de440 planetary kernel; the five packaged asteroids (Ceres, Pallas, Juno, Vesta and 433 Eros) are
 dense heliocentric fits to the JPL `sb441-n373s` small-body kernel and are
 gated against the `sb441-n373s` rows of `asteroid_reference.csv` (row-gate
 maxima 0.2938″ longitude, 0.2646″ latitude; dense 0.5-day sampling against the
@@ -56,7 +56,7 @@ Generated from the backend's metadata (`mise run readme-capabilities`):
 
 Experimental, pre-1.0: breaking changes can land in any minor release. The chart layer in
 `pleiades-core` and the event engines in `pleiades-events` apply apparent
-place on top of it. See the
+place on top of this backend. See the
 [workspace README](https://github.com/rahulmutt/pleiades#readme) for the full
 maturity posture.
 

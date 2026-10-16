@@ -27,8 +27,7 @@ pub(crate) struct RenderedBlock {
     pub body: String,
 }
 
-/// Every registered block. A README's blocks must be listed next to each
-/// other: `readme_capabilities_at` groups READMEs with `dedup`.
+/// Every registered block.
 pub(crate) fn capability_blocks() -> Vec<CapabilityBlock> {
     vec![
         CapabilityBlock {

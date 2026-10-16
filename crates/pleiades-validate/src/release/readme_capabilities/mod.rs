@@ -202,8 +202,9 @@ pub(crate) fn readme_capabilities_at(
     expected: &[RenderedBlock],
     check: bool,
 ) -> Result<String, String> {
-    // Relies on the registry listing a README's blocks next to each other.
+    // Sorted so that `dedup` collapses a README whose blocks are not adjacent.
     let mut readmes: Vec<&str> = expected.iter().map(|block| block.readme).collect();
+    readmes.sort_unstable();
     readmes.dedup();
     let mut report = Vec::new();
     let mut violations = Vec::new();

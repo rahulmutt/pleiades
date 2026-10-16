@@ -112,6 +112,65 @@ fn an_apparent_topocentric_bounded_backend_renders_both_modes_and_its_window() {
 }
 
 #[test]
+fn a_topocentric_only_backend_rejects_geocentric_requests() {
+    let mut metadata = mean_geocentric_metadata();
+    metadata.capabilities.geocentric = false;
+    metadata.capabilities.topocentric = true;
+    assert_eq!(
+        lines(&metadata, &BodySource::Metadata)[1],
+        "Observer: topocentric; geocentric requests are rejected"
+    );
+}
+
+#[test]
+fn an_apparent_only_backend_rejects_mean_requests() {
+    let mut metadata = mean_geocentric_metadata();
+    metadata.capabilities.mean = false;
+    metadata.capabilities.apparent = true;
+    assert_eq!(
+        lines(&metadata, &BodySource::Metadata)[0],
+        "Coordinates: apparent; mean requests are rejected"
+    );
+}
+
+#[test]
+fn a_backend_with_neither_coordinate_mode_says_none() {
+    let mut metadata = mean_geocentric_metadata();
+    metadata.capabilities.mean = false;
+    assert_eq!(
+        lines(&metadata, &BodySource::Metadata)[0],
+        "Coordinates: none"
+    );
+}
+
+#[test]
+fn an_approximate_tier_claim_is_listed_with_its_class() {
+    let mut metadata = mean_geocentric_metadata();
+    metadata.body_claims = vec![claim(
+        CelestialBody::Sun,
+        BodyClaimTier::Approximate,
+        AccuracyClass::Approximate,
+    )];
+    let rendered = lines(&metadata, &BodySource::Metadata);
+    assert!(
+        rendered.contains(&"Approximate bodies (Approximate): Sun".to_string()),
+        "{rendered:?}"
+    );
+}
+
+#[test]
+fn every_registered_readme_path_exists() {
+    let root = crate::release::workspace_audit::workspace_root();
+    for block in capability_blocks() {
+        assert!(
+            root.join(block.readme).is_file(),
+            "registry README missing: {}",
+            block.readme
+        );
+    }
+}
+
+#[test]
 fn a_tier_with_mixed_accuracy_names_no_class() {
     let mut metadata = mean_geocentric_metadata();
     metadata.body_claims = vec![
@@ -294,7 +353,7 @@ fn a_shorter_block_is_stale_at_its_end() {
 }
 
 #[test]
-fn a_crlf_block_is_stale_and_rewrites_clean() {
+fn a_crlf_block_is_stale() {
     let blocks = [expected("x", README, "\n- a\n")];
     let text = readme_with("x", "\r\n- a\r\n");
     assert_eq!(
@@ -348,6 +407,12 @@ fn an_id_with_padding_is_trimmed() {
     assert_eq!(
         rules(&audit(text, &blocks)),
         ["readme.capabilities-block-missing"]
+    );
+    // With a real closer after it, the mistyped opener leaves the closer lone.
+    let text = "<!--  audit:capabilities x -->\n- a\n<!-- /audit:capabilities -->";
+    assert_eq!(
+        rules(&audit(text, &blocks)),
+        ["readme.capabilities-block-malformed"]
     );
 }
 

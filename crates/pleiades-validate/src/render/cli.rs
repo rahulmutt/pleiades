@@ -3063,6 +3063,12 @@ mod claims_audit_tests {
         let err = render_cli(&["claims-audit", "--bad"]).unwrap_err();
         assert!(err.contains("claims-audit") && err.contains("does not accept extra arguments"));
     }
+
+    #[test]
+    fn readme_capabilities_rejects_unknown_flag() {
+        let err = render_cli(&["readme-capabilities", "--bogus"]).unwrap_err();
+        assert!(err.contains("--check") && err.contains("--bogus"), "{err}");
+    }
 }
 
 #[cfg(test)]
