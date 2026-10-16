@@ -7,8 +7,7 @@
 mod registry;
 mod render;
 
-pub(crate) use registry::{capability_blocks, rendered_blocks, RenderedBlock, SPK_BODIES};
-pub(crate) use render::{render_block_body, render_capability_lines, BodySource};
+pub(crate) use registry::{rendered_blocks, RenderedBlock};
 
 use std::ops::Range;
 use std::path::Path;
@@ -166,6 +165,87 @@ fn first_difference(found: &str, expected: &str) -> Option<String> {
                 ));
             }
         }
+    }
+}
+
+/// `text` with each block registered for `readme` replaced by its rendering.
+/// Blocks of other ids are left for the audit to report. Malformed markers
+/// are an error: nothing is rewritten.
+pub(crate) fn rewrite_capability_blocks(
+    readme: &str,
+    text: &str,
+    expected: &[RenderedBlock],
+) -> Result<String, String> {
+    let parsed = parse_blocks(text)?;
+    let mut out = String::with_capacity(text.len());
+    let mut copied = 0;
+    for block in &parsed {
+        let Some(candidate) = expected
+            .iter()
+            .find(|candidate| candidate.backend_id == block.id && candidate.readme == readme)
+        else {
+            continue;
+        };
+        out.push_str(&text[copied..block.body.start]);
+        out.push_str(&candidate.body);
+        copied = block.body.end;
+    }
+    out.push_str(&text[copied..]);
+    Ok(out)
+}
+
+/// The `readme-capabilities` command over the workspace at `root`.
+/// Rewrites every registered README's blocks, or with `check` writes nothing
+/// and fails on any violation. Either way a missing block fails.
+pub(crate) fn readme_capabilities_at(
+    root: &Path,
+    expected: &[RenderedBlock],
+    check: bool,
+) -> Result<String, String> {
+    // Relies on the registry listing a README's blocks next to each other.
+    let mut readmes: Vec<&str> = expected.iter().map(|block| block.readme).collect();
+    readmes.dedup();
+    let mut report = Vec::new();
+    let mut violations = Vec::new();
+    for readme in readmes {
+        let path = root.join(readme);
+        let text = std::fs::read_to_string(&path).map_err(|error| format!("{readme}: {error}"))?;
+        if check {
+            violations.extend(audit_capability_blocks(&path, readme, &text, expected));
+            continue;
+        }
+        let rewritten = rewrite_capability_blocks(readme, &text, expected)
+            .map_err(|detail| format!("{readme}: {detail}"))?;
+        if rewritten == text {
+            report.push(format!("unchanged {readme}"));
+        } else {
+            std::fs::write(&path, &rewritten).map_err(|error| format!("{readme}: {error}"))?;
+            report.push(format!("updated {readme}"));
+        }
+        violations.extend(audit_capability_blocks(&path, readme, &rewritten, expected));
+    }
+    if violations.is_empty() {
+        report.push(format!(
+            "README capability blocks: OK ({} blocks)",
+            expected.len()
+        ));
+        Ok(report.join("\n"))
+    } else {
+        let lines: Vec<String> = violations
+            .iter()
+            .map(|violation| {
+                format!(
+                    "{} [{}]: {}",
+                    violation.path.display(),
+                    violation.rule,
+                    violation.detail
+                )
+            })
+            .collect();
+        Err(format!(
+            "README capability blocks failed:\n{}",
+            lines.join("\n")
+        ))
     }
 }
 

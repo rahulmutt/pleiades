@@ -1,6 +1,8 @@
 //! README capability blocks (issue #166): rendering, the registry, marker
 //! parsing, the audit rules and the rewrite.
 
+use super::registry::{capability_blocks, SPK_BODIES};
+use super::render::{render_block_body, render_capability_lines, BodySource};
 use super::*;
 use pleiades_backend::{
     AccuracyClass, BackendCapabilities, BackendFamily, BackendId, BackendMetadata,
@@ -352,4 +354,96 @@ fn an_id_with_padding_is_trimmed() {
 #[test]
 fn a_readme_with_no_registered_block_and_no_markers_is_clean() {
     assert!(audit("# x\n\nNo blocks here.\n", &[]).is_empty());
+}
+
+#[test]
+fn rewriting_fixes_a_stale_block_and_nothing_else() {
+    let blocks = [expected("x", README, "\n- a\n- b\n")];
+    let before = "# x  \n\ntrailing spaces kept  \n<!-- audit:capabilities x -->\n- old\n<!-- /audit:capabilities -->\nno final newline";
+    let after = rewrite_capability_blocks(README, before, &blocks).expect("rewrite");
+    assert_eq!(
+        after,
+        "# x  \n\ntrailing spaces kept  \n<!-- audit:capabilities x -->\n- a\n- b\n<!-- /audit:capabilities -->\nno final newline"
+    );
+    assert!(audit(&after, &blocks).is_empty());
+    assert_eq!(
+        rewrite_capability_blocks(README, &after, &blocks).expect("again"),
+        after
+    );
+}
+
+#[test]
+fn rewriting_a_crlf_block_gives_a_clean_one() {
+    let blocks = [expected("x", README, "\n- a\n")];
+    let after = rewrite_capability_blocks(README, &readme_with("x", "\r\n- a\r\n"), &blocks)
+        .expect("rewrite");
+    assert_eq!(after, readme_with("x", "\n- a\n"));
+}
+
+#[test]
+fn rewriting_leaves_unknown_blocks_and_refuses_malformed_markers() {
+    let blocks = [expected("x", README, "\n- a\n")];
+    let unknown = readme_with("nope", "\n- keep\n");
+    assert_eq!(
+        rewrite_capability_blocks(README, &unknown, &blocks).expect("rewrite"),
+        unknown
+    );
+    assert!(rewrite_capability_blocks(README, "<!-- audit:capabilities x -->\n", &blocks).is_err());
+}
+
+fn temp_root(name: &str) -> std::path::PathBuf {
+    let root = std::env::temp_dir().join(format!(
+        "pleiades-readme-capabilities-{name}-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("crates/pleiades-x")).expect("temp dir");
+    root
+}
+
+#[test]
+fn the_command_rewrites_in_place_and_check_writes_nothing() {
+    let root = temp_root("command");
+    let path = root.join(README);
+    let blocks = [expected("x", README, "\n- a\n")];
+    std::fs::write(&path, readme_with("x", "\n- old\n")).expect("write");
+
+    let error = readme_capabilities_at(&root, &blocks, true).expect_err("stale fails --check");
+    assert!(error.contains("readme.capabilities-block-stale"), "{error}");
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        readme_with("x", "\n- old\n")
+    );
+
+    let report = readme_capabilities_at(&root, &blocks, false).expect("rewrite");
+    assert!(
+        report.contains("updated crates/pleiades-x/README.md"),
+        "{report}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        readme_with("x", "\n- a\n")
+    );
+    assert!(readme_capabilities_at(&root, &blocks, true).is_ok());
+    let report = readme_capabilities_at(&root, &blocks, false).expect("idempotent");
+    assert!(
+        report.contains("unchanged crates/pleiades-x/README.md"),
+        "{report}"
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn the_command_reports_a_missing_block_without_creating_it() {
+    let root = temp_root("missing");
+    let path = root.join(README);
+    std::fs::write(&path, "# x\n").expect("write");
+    let blocks = [expected("x", README, "\n- a\n")];
+    let error = readme_capabilities_at(&root, &blocks, false).expect_err("missing fails");
+    assert!(
+        error.contains("readme.capabilities-block-missing"),
+        "{error}"
+    );
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "# x\n");
+    let _ = std::fs::remove_dir_all(&root);
 }
