@@ -1,3 +1,7 @@
+mod model_guards;
+mod numeric;
+mod zero_points;
+
 use pleiades_types::{Angle, Ayanamsa, CustomAyanamsa, Instant, JulianDay, TimeScale};
 
 use crate::lookup::validate_ayanamsa_catalog_entries;
