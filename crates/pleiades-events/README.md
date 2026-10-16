@@ -220,6 +220,10 @@ The gate also covers Mercury–Venus and Mars–Saturn in the mean place and
 Mars–Jupiter from the Sun. Aspects of the true node are gated against
 Swiss Ephemeris SWIEPH for seven planets (Sun, Mars, Jupiter, Saturn, Uranus,
 Neptune, Pluto, 1900–2100), including turns 3.6″ and 4.1″ from an angle; the
-other lunar points and the fictitious bodies are found but not gated. The packaged asteroids (Ceres, Pallas, Juno, Vesta,
-Eros) are searched across 1900-2100 but their aspects are not gated (issue #168
-(f)); Apophis is snapshot-only, so its search returns the out-of-range error.
+other lunar points and the fictitious bodies are found but not gated.
+Asteroid aspects are gated against Swiss Ephemeris SWIEPH (`seas_18`): the
+Sun with Ceres, Pallas, Juno and Vesta, Mars–Vesta and Jupiter–Ceres over
+1900–2100, and Moon–Ceres over 1990–2030 (issue #168 (f)). Eros is searched
+across 1900-2100 but its aspects are not gated, because Swiss Ephemeris keeps
+it in a separate file that is not pinned; Apophis is snapshot-only, so its
+search returns the out-of-range error.

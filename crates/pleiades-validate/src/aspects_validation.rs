@@ -21,9 +21,10 @@
 //! are compared event for event against `asteroids.csv`, generated with
 //! SWIEPH and seas_18 by the same tool's `--asteroids` mode, in the full gate
 //! only (the release battery checks only that file's manifest). A Sun or Moon
-//! pair's separation never turns; Mars–Vesta and Jupiter–Ceres turn 188 and 315 times, so the asteroids' retrograde loops
-//! reach the gate (issue #253). None of their turns comes within 209" of an
-//! angle, and no two events of one angle fall within one 2-day search step.
+//! pair's separation never turns; Mars–Vesta and Jupiter–Ceres turn 188 and
+//! 315 times, so the asteroids' retrograde loops reach the gate (issue #253).
+//! None of their turns comes within 209" of an angle, and no two events of
+//! one angle fall within one 2-day search step.
 //!
 //! True node (issue #168): the true node against the Sun, Mars, Jupiter,
 //! Saturn, Uranus, Neptune and Pluto over 1900–2100 (3424 events) is
@@ -712,8 +713,8 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
 /// `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events), then the true node against
 /// seven planets (floor `MIN_ROWS_VALIDATED_LUNAR_POINTS`, 3424 events,
 /// SWIEPH, 3" graze margin, measured near-grazes of 3.6" and 4.1"). Run by
-/// `validate-aspects` / `mise run gate-aspects` (its own nightly job and a `release-gate`
-/// dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test.
+/// `validate-aspects` / `mise run gate-aspects` (its own nightly job and a
+/// `release-gate` dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test.
 /// Measured on the 4-core nightly runner with both passes (five nightly
 /// runs at 3f5849db6, 2026-10-11..15, warm build): the gate command takes
 /// 77–151 s (median 114 s) and the whole `aspects-gate` job 2m00s–3m07s,
@@ -726,11 +727,10 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
 /// load 13–15.6 (2026-10-16), against 125–153 s before at load 5–12; it has
 /// not yet been measured on the nightly runner. If it pushes the nightly full
 /// gate past 15 minutes, the lunar pass is to be split into its own
-/// subcommand, as the spec's contingency says. The
-/// first measurements, 880 s as the command and 1110.8 s as the in-crate
-/// test (dev/test profile, 2026-10-02, planet pairs only), predate the
-/// event-engine speedups since and are why the gate left nightly
-/// `test-full`.
+/// subcommand, as the spec's contingency says. The first measurements, 880 s
+/// as the command and 1110.8 s as the in-crate test (dev/test profile,
+/// 2026-10-02, planet pairs only), predate the event-engine speedups since
+/// and are why the gate left nightly `test-full`.
 pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
     let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;
