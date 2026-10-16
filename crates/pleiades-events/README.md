@@ -171,6 +171,13 @@ returned instant it gives that same event back, so step back a second to
 reach the event before it. Each end of a range is decided by the separation
 there, so two ranges that share an end hold each event exactly once.
 
+`EventEngine::aspects_in_range_for_angles`, `next_aspect_for_angles` and
+`previous_aspect_for_angles` take several angles for one pair and scan the
+pair once. Each event's `angle` says which angle it belongs to. For each angle
+the events are exactly those of the single-angle call, bit for bit, and next
+and previous return the nearest event of any angle. An empty angle list or an
+angle given twice is `EventError::InvalidAspect`.
+
 A pair that approaches an angle and turns back before reaching it has no
 event in a range; a `next_aspect` or `previous_aspect` search that reaches the
 window's end without one is `EventError::OutOfWindow`. Seen from the Earth,

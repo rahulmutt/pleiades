@@ -106,6 +106,7 @@ Stations (geocentric apparent; Tropical zodiac)
 
 - An instant (`--from`, `--to`, `--at`) is a TDB Julian day, or a civil `YYYY-MM-DDTHH:MM:SS` datetime read as UTC from 1972 on and as UT1 before.
 - `--from`/`--to` list every event in the range. `--next` or `--previous` with `--at` give one event per body (`stations`) or per pair and angle (`aspects`).
+- A range search scans each pair once for all its angles. Giving the same `--angle` twice is an error.
 - A `--next` or `--previous` search that reaches the end of the 1900–2100 window first prints a note for that body (or pair and angle), such as `Mercury: none before the window's end (2100-01-01)`, and the others still print. An `--at` outside the window is an error, not a note. A pair that never reaches an angle (the Sun and Mercury at 60°) gets that note.
 - Events from every `--body`, or every `--pair` and `--angle`, are merged in time order. Each line gives the civil time (UTC from 1972, UT1 before), the TDB Julian day, and the event; an aspect line ends with the two longitudes.
 - `--frame geo|mean|helio` picks the apparent geocentric (default), mean geocentric of date, or heliocentric frame. `--ayanamsa <name>` reads longitudes in a sidereal zodiac, which moves a slow planet's station by minutes to hours. `--star-place mean|apparent` applies as for `chart`; `--star-place apparent` needs the apparent geocentric frame and is rejected with `--frame mean` or `--frame helio`.
