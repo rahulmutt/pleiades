@@ -16,7 +16,7 @@ cargo mutants -p <crate> --test-tool nextest --test-workspace=false --baseline r
 | ~~`pleiades-apsides`~~ (triaged 2026-09-08) | 223 | ~~33~~ → 1 | ~~186~~ → 218 | 4 | ~~84.9%~~ → 99.5% |
 | ~~`pleiades-backend`~~ (triaged 2026-10-16; re-measured 269 mutants, 53 unviable) | 263 | ~~70~~ → 1 | ~~145~~ → 215 | 48 | ~~67.4%~~ → 99.5% |
 | ~~`pleiades-ayanamsa`~~ (triaged 2026-10-16; re-measured 359 mutants, 53 unviable) | 305 | ~~85~~ → 2 | ~~196~~ → 304 | 24 | ~~69.8%~~ → 99.3% |
-| `pleiades-fict`¹ | 308 | 148 | 147 | 11 | 49.5%¹ |
+| ~~`pleiades-fict`~~¹ (triaged 2026-10-16; re-measured 315 mutants, 13 unviable, 0 timeouts) | 308 | ~~148~~ → 5 | ~~147~~ → 297 | 11 | ~~49.5%~~ → 98.3% |
 | **Total** | **1099** | **336** | **674** | **87** | **66.6%**¹ |
 
 Score = `caught / (tested - unviable)`, one decimal place on the percentage,
@@ -110,8 +110,16 @@ survivor count. The **Total** row is deliberately left at its as-measured
 live count; the live open-survivor total is 336 - 33 = **303** across the three
 crates below. (`99.5%` = 218 caught / 219 viable.) See the FU-9 "apsides" entry in `docs/follow-ups.md`.
 
-The **remaining queue is three crates**: `pleiades-backend` (70 missed),
+The **remaining queue is three crates** (superseded below): `pleiades-backend` (70 missed),
 `pleiades-ayanamsa` (85), and `pleiades-fict` (148, provisional — see the
 footnote above). Their survivor counts are still open and still accurate.
 `pleiades-apsides` has also joined the weekly report-only mutants tier in
 `mise.toml`'s `[tasks.mutants]`; the other three have not.
+
+**Queue status (updated 2026-10-16).** `pleiades-fict` is **triaged and
+closed**: 5 missed (all documented equivalents), 0 timeouts, and it has joined
+the weekly mutants set. The two hangs came from the `while` loops in
+`signed_longitude_delta`; a loop-free rewrite (the one production change, bit
+identical to the loops for |after - before| < 2^56, every reachable input) removes them.
+The footnote above describes the 2026-07-25 measurement and stays as history.
+See `docs/superpowers/specs/2026-10-16-fu9-fict-mutant-triage-design.md`.

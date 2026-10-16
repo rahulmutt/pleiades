@@ -206,8 +206,9 @@ description = "Mutation testing baseline over the pure-logic crates (report-only
 # the ENTIRE workspace suite per mutant by default, and pleiades-validate /
 # pleiades-cli carry individual tests of 300+ seconds (see
 # docs/superpowers/plans/test-timings.md). Without this flag one mutant costs
-# minutes, and the tier's 4,149 mutants (as of 2026-10-16: apparent 1,241,
-# houses 1,210, time 475, types 313, apsides 282, backend 269, ayanamsa 359) are
+# minutes, and the tier's 4,464 mutants (as of 2026-10-16: apparent 1,241,
+# houses 1,210, time 475, types 313, apsides 282, backend 269, ayanamsa 359,
+# fict 315) are
 # unschedulable at any cadence. Restricting to the mutated package's own tests is also the
 # semantically correct scope.
 # Exit code 2 (surviving mutants found) is an EXPECTED result here, not an error
@@ -229,7 +230,8 @@ cargo mutants \
   -p pleiades-houses \
   -p pleiades-apsides \
   -p pleiades-backend \
-  -p pleiades-ayanamsa
+  -p pleiades-ayanamsa \
+  -p pleiades-fict
 """
 
 [tasks.mutants-crate]
