@@ -60,6 +60,22 @@
 //! `${pkgs.libclang.lib}/lib`), for example `/nix/store/…-clang-<ver>-lib/lib`;
 //! run `tools/se-aspects-reference/target/release/se-aspects-reference --lunar-points --out crates/pleiades-validate/data/aspects-corpus`.
 //!
+//! Fictitious mode (`--fictitious --out <dir> [--ephe <dir>] [--grid-divisor <n>]`):
+//! `mean` aspects of the 19 fictitious bodies (SE ids 40-58) with the Sun, and
+//! of Cupido, Hades, Zeus, Kronos, Apollon, Admetos, Vulkanus, Poseidon and
+//! Transpluto with Saturn, over the full span, with `SEFLG_SWIEPH` and the
+//! `mean` flags (geometric, mean equinox of date). The mean frame is used
+//! because SE's light-time correction for fictitious bodies jumps by up to
+//! about 5 arcseconds at isolated instants in the apparent frame (issue #168).
+//! The grid is 0.05 day (0.01 for Vulcan-Sun, which turns 7460 times);
+//! `--grid-divisor n` divides every grid, for a convergence check. A turn
+//! within 3 arcseconds of a level is recorded as a graze window. The elements
+//! come from `seorbel.txt` in the ephemeris directory, pinned in `pins.rs`
+//! (without it SE silently uses built-in elements, so the tool refuses to run).
+//! Writes `<dir>/fictitious.csv`, `<dir>/fictitious-manifest.txt`,
+//! `<dir>/fictitious-grazes.csv` and `<dir>/fictitious-grazes-manifest.txt`.
+//! Run `tools/se-aspects-reference/target/release/se-aspects-reference --fictitious --out crates/pleiades-validate/data/aspects-corpus --ephe <dir holding sepl_18, semo_18, seorbel.txt>`.
+//!
 //! Two build/run caveats: under devenv's gcc the build needs `CFLAGS=-std=gnu17`
 //! (libswisseph-sys otherwise fails with a conflicting `getenv` declaration), and
 //! `devenv shell` prints a banner line to stdout that must be removed from the
@@ -194,6 +210,76 @@ const LUNAR_POINT_PAIRS: [(Body, Body); 22] = [
     (MEAN_APOGEE, JUPITER),
     (MEAN_APOGEE, SATURN),
     (MEAN_APOGEE, PLUTO),
+];
+
+/// The planet `mean` group's flags on the SWIEPH files: geometric (no
+/// light-time), no aberration, no deflection, mean equinox of date.
+/// Fictitious bodies are gated in this frame because Swiss Ephemeris's
+/// light-time correction for them jumps by up to about 5" at isolated
+/// instants in the apparent frame (spike 2026-10-17, issue #168).
+const MEAN_SWIEPH: c_int = (MEAN & !SEFLG_MOSEPH) | SEFLG_SWIEPH;
+
+const CUPIDO: Body = (40, "Cupido");
+const HADES: Body = (41, "Hades");
+const ZEUS: Body = (42, "Zeus");
+const KRONOS: Body = (43, "Kronos");
+const APOLLON: Body = (44, "Apollon");
+const ADMETOS: Body = (45, "Admetos");
+const VULKANUS: Body = (46, "Vulkanus");
+const POSEIDON: Body = (47, "Poseidon");
+const TRANSPLUTO: Body = (48, "Transpluto");
+const NIBIRU: Body = (49, "Nibiru");
+const HARRINGTON: Body = (50, "Harrington");
+const NEPTUNE_LEVERRIER: Body = (51, "NeptuneLeverrier");
+const NEPTUNE_ADAMS: Body = (52, "NeptuneAdams");
+const PLUTO_LOWELL: Body = (53, "PlutoLowell");
+const PLUTO_PICKERING: Body = (54, "PlutoPickering");
+const VULCAN: Body = (55, "Vulcan");
+const WHITE_MOON: Body = (56, "WhiteMoon");
+const PROSERPINA: Body = (57, "Proserpina");
+const WALDEMATH: Body = (58, "Waldemath");
+
+/// 3 arcseconds: at least 1.9 times the largest engine-minus-SE difference of
+/// any fictitious body in the mean frame (Nibiru, 1.57", a steady +1.26"
+/// offset) and 3.9 times every other body's (0.76").
+const FICTITIOUS_GRAZE_MARGIN_DEG: f64 = 3.0 / 3600.0;
+/// Vulcan circles inside Mercury's orbit, so its separation from the Sun
+/// turns about 37 times a year (7460 turns over the span); the other pairs
+/// use the planet grid.
+const VULCAN_SUN_GRID_DAYS: f64 = 0.01;
+
+/// The fictitious mode's pairs, all `mean` with `MEAN_SWIEPH` over the full
+/// span: every body with the Sun, then the Uranian bodies and Transpluto with
+/// Saturn, whose separations turn 386 times.
+const FICTITIOUS_PAIRS: [(Body, Body, f64); 28] = [
+    (CUPIDO, SUN, GRID_DAYS),
+    (HADES, SUN, GRID_DAYS),
+    (ZEUS, SUN, GRID_DAYS),
+    (KRONOS, SUN, GRID_DAYS),
+    (APOLLON, SUN, GRID_DAYS),
+    (ADMETOS, SUN, GRID_DAYS),
+    (VULKANUS, SUN, GRID_DAYS),
+    (POSEIDON, SUN, GRID_DAYS),
+    (TRANSPLUTO, SUN, GRID_DAYS),
+    (NIBIRU, SUN, GRID_DAYS),
+    (HARRINGTON, SUN, GRID_DAYS),
+    (NEPTUNE_LEVERRIER, SUN, GRID_DAYS),
+    (NEPTUNE_ADAMS, SUN, GRID_DAYS),
+    (PLUTO_LOWELL, SUN, GRID_DAYS),
+    (PLUTO_PICKERING, SUN, GRID_DAYS),
+    (VULCAN, SUN, VULCAN_SUN_GRID_DAYS),
+    (WHITE_MOON, SUN, GRID_DAYS),
+    (PROSERPINA, SUN, GRID_DAYS),
+    (WALDEMATH, SUN, GRID_DAYS),
+    (CUPIDO, SATURN, GRID_DAYS),
+    (HADES, SATURN, GRID_DAYS),
+    (ZEUS, SATURN, GRID_DAYS),
+    (KRONOS, SATURN, GRID_DAYS),
+    (APOLLON, SATURN, GRID_DAYS),
+    (ADMETOS, SATURN, GRID_DAYS),
+    (VULKANUS, SATURN, GRID_DAYS),
+    (POSEIDON, SATURN, GRID_DAYS),
+    (TRANSPLUTO, SATURN, GRID_DAYS),
 ];
 
 /// `(longitude_deg in [0, 360), longitude_speed_deg_per_day)`.
@@ -517,6 +603,10 @@ fn main() {
         lunar_points_main(&args);
         return;
     }
+    if args.iter().any(|a| a == "--fictitious") {
+        fictitious_main(&args);
+        return;
+    }
     let out = &mut |row: String| println!("{row}");
     println!("# Source: Swiss Ephemeris 2.10.03 (libswisseph-sys 0.1.2), Moshier (SEFLG_MOSEPH, no data files).");
     println!("# A row is an instant at which wrap180(lon(first) - lon(second)) of swe_calc(jd_tt, body, iflag|SEFLG_SPEED)");
@@ -589,6 +679,18 @@ fn main() {
 /// Reads `--out`, verifies the pinned SWIEPH files and points Swiss Ephemeris
 /// at them; returns the output directory.
 fn swieph_setup(args: &[String], mode: &str) -> String {
+    ephe_setup(args, mode, pins::verify_swieph_files)
+}
+
+/// As [`swieph_setup`], but verifies the planet and Moon files plus the pinned
+/// `seorbel.txt` the fictitious bodies need.
+fn fictitious_setup(args: &[String]) -> String {
+    ephe_setup(args, "--fictitious", pins::verify_fictitious_files)
+}
+
+/// Reads `--out` and `--ephe`, runs `verify` on the ephemeris directory (exit 1
+/// on failure) and points Swiss Ephemeris at it; returns the output directory.
+fn ephe_setup(args: &[String], mode: &str, verify: fn(&str) -> Result<(), String>) -> String {
     let value_of = |flag: &str| {
         args.iter().position(|a| a == flag).map(|i| {
             args.get(i + 1)
@@ -601,7 +703,7 @@ fn swieph_setup(args: &[String], mode: &str) -> String {
         .ok()
         .or_else(|| value_of("--ephe"))
         .unwrap_or_else(|| DEFAULT_EPHE_DIR.to_string());
-    if let Err(e) = pins::verify_swieph_files(&ephe_dir) {
+    if let Err(e) = verify(&ephe_dir) {
         eprintln!("{e}");
         std::process::exit(1);
     }
@@ -710,26 +812,113 @@ fn lunar_points_main(args: &[String]) {
             );
         }
     }
+    write_corpus_with_grazes(
+        &out_dir,
+        "lunar-points",
+        (&csv, rows),
+        (&grazes, graze_rows),
+    );
+}
+
+/// Writes `<stem>.csv`, `<stem>-manifest.txt`, `<stem>-grazes.csv` and
+/// `<stem>-grazes-manifest.txt` into `out_dir`; each text is paired with its
+/// row count. The manifests name the slices `aspects-<stem>` and
+/// `aspects-<stem>-grazes`.
+fn write_corpus_with_grazes(
+    out_dir: &str,
+    stem: &str,
+    (csv, rows): (&str, usize),
+    (grazes, graze_rows): (&str, usize),
+) {
     let manifest = format!(
-        "slice aspects-lunar-points file=lunar-points.csv role=aspects rows={rows} checksum={}\n",
-        pins::fnv1a64(&csv)
+        "slice aspects-{stem} file={stem}.csv role=aspects rows={rows} checksum={}\n",
+        pins::fnv1a64(csv)
     );
     let grazes_manifest = format!(
-        "slice aspects-lunar-points-grazes file=lunar-points-grazes.csv role=grazes rows={graze_rows} checksum={}\n",
-        pins::fnv1a64(&grazes)
+        "slice aspects-{stem}-grazes file={stem}-grazes.csv role=grazes rows={graze_rows} checksum={}\n",
+        pins::fnv1a64(grazes)
     );
-    std::fs::create_dir_all(&out_dir).unwrap_or_else(|e| panic!("create {out_dir}: {e}"));
-    let csv_path = format!("{out_dir}/lunar-points.csv");
-    let manifest_path = format!("{out_dir}/lunar-points-manifest.txt");
-    let grazes_path = format!("{out_dir}/lunar-points-grazes.csv");
-    let grazes_manifest_path = format!("{out_dir}/lunar-points-grazes-manifest.txt");
-    std::fs::write(&csv_path, &csv).unwrap_or_else(|e| panic!("write {csv_path}: {e}"));
+    std::fs::create_dir_all(out_dir).unwrap_or_else(|e| panic!("create {out_dir}: {e}"));
+    let csv_path = format!("{out_dir}/{stem}.csv");
+    let manifest_path = format!("{out_dir}/{stem}-manifest.txt");
+    let grazes_path = format!("{out_dir}/{stem}-grazes.csv");
+    let grazes_manifest_path = format!("{out_dir}/{stem}-grazes-manifest.txt");
+    std::fs::write(&csv_path, csv).unwrap_or_else(|e| panic!("write {csv_path}: {e}"));
     std::fs::write(&manifest_path, &manifest)
         .unwrap_or_else(|e| panic!("write {manifest_path}: {e}"));
-    std::fs::write(&grazes_path, &grazes).unwrap_or_else(|e| panic!("write {grazes_path}: {e}"));
+    std::fs::write(&grazes_path, grazes).unwrap_or_else(|e| panic!("write {grazes_path}: {e}"));
     std::fs::write(&grazes_manifest_path, &grazes_manifest)
         .unwrap_or_else(|e| panic!("write {grazes_manifest_path}: {e}"));
     eprintln!(
         "wrote {csv_path} ({rows} rows), {grazes_path} ({graze_rows} windows) and their manifests"
+    );
+}
+
+fn fictitious_main(args: &[String]) {
+    let out_dir = fictitious_setup(args);
+    let divisor: u32 = match args.iter().position(|a| a == "--grid-divisor") {
+        None => 1,
+        Some(i) => args
+            .get(i + 1)
+            .and_then(|v| v.parse::<u32>().ok())
+            .filter(|n| *n > 0)
+            .unwrap_or_else(|| panic!("--grid-divisor needs a positive integer")),
+    };
+    let mut csv = String::new();
+    csv.push_str("# Source: Swiss Ephemeris 2.10.03 (libswisseph-sys 0.1.2), SEFLG_SWIEPH with sepl_18/semo_18 and seorbel.txt (SHA-256 pinned in tools/se-aspects-reference/src/pins.rs).\n");
+    csv.push_str("# A row is an instant at which wrap180(lon(first) - lon(second)) of swe_calc(jd_tt, body, iflag|SEFLG_SPEED)\n");
+    csv.push_str("# equals +angle or -angle, scanned on a 0.05-day grid (0.01 day for Vulcan-Sun), each step split at the zero\n");
+    csv.push_str("# of the relative longitude speed, and bisected to 1e-7 day. jd_tt is TT.\n");
+    csv.push_str("# mean: SEFLG_SWIEPH|SEFLG_TRUEPOS|SEFLG_NOABERR|SEFLG_NOGDEFL|SEFLG_NONUT (geometric, mean equinox of date); the 19 fictitious bodies (SE 40-58) with the Sun, and Cupido..Poseidon and Transpluto with Saturn, JD 2415025.5-2488064.5.\n");
+    csv.push_str("# The apparent frame is not used: SE's light-time correction for fictitious bodies jumps by up to about 5 arcsec at isolated instants.\n");
+    csv.push_str("# Angles 0, 60, 90, 120, 180.\n");
+    csv.push_str("# rel_speed_deg_per_day is the longitude speed of first less that of second at the row's instant.\n");
+    csv.push_str("# A turning point within 3 arcsec of a level is a graze window in fictitious-grazes.csv; events inside a window may exist in one ephemeris only.\n");
+    csv.push_str(
+        "group,first,second,angle_deg,jd_tt,first_lon_deg,second_lon_deg,rel_speed_deg_per_day\n",
+    );
+    let mut grazes = String::new();
+    grazes.push_str("# Source: as fictitious.csv (Swiss Ephemeris 2.10.03, SEFLG_SWIEPH, sepl_18/semo_18 and seorbel.txt SHA-256 pinned).\n");
+    grazes.push_str("# One row per graze window of a fictitious pair and angle: a turning point of the separation within the pair's\n");
+    grazes.push_str("# margin of a level (3 arcsec for every pair). lo_jd_tt and hi_jd_tt are the first\n");
+    grazes.push_str("# scan grid instants on each side at which |separation - level| >= 2 x margin; overlapping windows are merged and\n");
+    grazes.push_str("# turn_jd_tt/miss_arcsec are the closest turn. se_events counts fictitious.csv rows of the pair and angle inside [lo, hi]\n");
+    grazes.push_str("# (even when both edges lie on one side of the level, odd when they straddle it). Events inside a window may exist\n");
+    grazes.push_str("# in one ephemeris only; the gate requires each side's count to have se_events' parity (issue #168 (c)).\n");
+    grazes.push_str(
+        "group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events\n",
+    );
+    let mut rows = 0usize;
+    let mut graze_rows = 0usize;
+    {
+        let mut push = |row: String| {
+            rows += 1;
+            writeln!(csv, "{row}").unwrap();
+        };
+        let mut push_graze = |row: String| {
+            graze_rows += 1;
+            writeln!(grazes, "{row}").unwrap();
+        };
+        for (first, second, grid) in FICTITIOUS_PAIRS {
+            scan(
+                &mut push,
+                "mean",
+                first,
+                second,
+                MEAN_SWIEPH,
+                FULL_SPAN,
+                grid / f64::from(divisor),
+                Graze::Window {
+                    margin_deg: FICTITIOUS_GRAZE_MARGIN_DEG,
+                    out: &mut push_graze,
+                },
+            );
+        }
+    }
+    write_corpus_with_grazes(
+        &out_dir,
+        "fictitious",
+        (&csv, rows),
+        (&grazes, graze_rows),
     );
 }
