@@ -35,7 +35,7 @@
 //! compared event for event against `lunar-points.csv`, generated with SWIEPH
 //! by `tools/se-aspects-reference --lunar-points`, in the full gate only (the
 //! release battery checks only that file's manifest too, and
-//! `lunar-points-grazes.csv`'s). The tool's 3" graze margin applies.
+//! `lunar-points-grazes.csv`'s). The tool's graze margin applies: 3" (12" for the osculating apogee).
 //! Wherever a pair's separation turns within the tool's graze margin of a
 //! level it records a graze window in `lunar-points-grazes.csv`; there an
 //! event pair may exist in one ephemeris only, so the gate checks that the
@@ -587,7 +587,17 @@ fn residual_parts(got: &Found, want: &Expected) -> (f64, f64, f64, f64) {
 /// maximum: `(sep_arcsec, signed_time_s, max_lon_arcsec)`.
 fn residuals_of(got: &Found, want: &Expected) -> (f64, f64, f64) {
     let (sep, time_s, first, second) = residual_parts(got, want);
-    (sep, time_s, first.max(second))
+    (sep, time_s, max_nan(first, second))
+}
+
+/// The larger of two values, NaN if either is NaN (`f64::max` would drop it),
+/// so report-only statistics make a NaN residual visible.
+fn max_nan(a: f64, b: f64) -> f64 {
+    if a.is_nan() || b.is_nan() {
+        f64::NAN
+    } else {
+        a.max(b)
+    }
 }
 
 /// The two lists must agree event for event: the same length and, for an
@@ -798,7 +808,7 @@ fn validate_scoped(
             )?);
         }
         let mut line = format!(
-            "{pair_label}: {} compared ({}), max sep {:.3}\", max time {:.1} s, mean signed time {:+.1} s, max lon {:.3}\"",
+            "{pair_label}: {} compared (engine events found {}), max sep {:.3}\", max time {:.1} s, mean signed time {:+.1} s, max lon {:.3}\"",
             residuals.matched,
             counts.join(", "),
             residuals.max_sep_arcsec,
@@ -846,7 +856,7 @@ fn validate_scoped(
 /// `MIN_ROWS_VALIDATED`, 10359 events), then the asteroid pairs (floor
 /// `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events), then the 22 lunar-point
 /// pairs (floor `MIN_ROWS_VALIDATED_LUNAR_POINTS`, 22596 events outside the
-/// graze windows, SWIEPH, 3" graze margin). Run by
+/// graze windows, SWIEPH, 3" graze margin, 12" for the osculating apogee). Run by
 /// `validate-aspects` / `mise run gate-aspects` (its own nightly job and a
 /// `release-gate` dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test.
 /// Measured on the 4-core nightly runner with the planet and asteroid passes

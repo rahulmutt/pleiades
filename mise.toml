@@ -292,8 +292,9 @@ run = "cargo run -q -p pleiades-validate -- validate-corpus"
 # load 5-12, 356-415 s before and 125-153 s after; the nightly figures above
 # predate it. With the true-node pass the nightly runner measured the gate at
 # 5m58s (2026-10-16, run 38971941852, before the apogee and mean points); the
-# full lunar gate took 927 s locally (release, load 8-14, 2026-10-17), so no
-# split is made.
+# full gate took 927 s locally (release, load 8-14, 2026-10-17), about 5 min
+# nightly predicted at the ~3.2 local:nightly ratio of the true-node pass, so
+# the lunar pass is not split out.
 run = "cargo run -q -p pleiades-validate -- validate-aspects"
 
 [tasks.gate-stations]

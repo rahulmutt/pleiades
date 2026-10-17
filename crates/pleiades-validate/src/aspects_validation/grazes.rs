@@ -6,8 +6,8 @@
 //! window by count parity, and everything outside strictly.
 
 use super::{
-    fnv1a64, parse_manifest, residuals_of, AspectsError, Expected, Found, Group, Pair, Row,
-    ANGLES_DEG,
+    fnv1a64, max_nan, parse_manifest, residuals_of, AspectsError, Expected, Found, Group, Pair,
+    Row, ANGLES_DEG,
 };
 
 /// One graze window: indices into the corpus plan and [`ANGLES_DEG`], and the
@@ -47,9 +47,9 @@ impl WindowStats {
         self.windows += other.windows;
         self.differing += other.differing;
         self.compared += other.compared;
-        self.max_sep_arcsec = self.max_sep_arcsec.max(other.max_sep_arcsec);
-        self.max_time_s = self.max_time_s.max(other.max_time_s);
-        self.max_lon_arcsec = self.max_lon_arcsec.max(other.max_lon_arcsec);
+        self.max_sep_arcsec = max_nan(self.max_sep_arcsec, other.max_sep_arcsec);
+        self.max_time_s = max_nan(self.max_time_s, other.max_time_s);
+        self.max_lon_arcsec = max_nan(self.max_lon_arcsec, other.max_lon_arcsec);
     }
 }
 
@@ -224,9 +224,9 @@ pub(super) fn split_windows(
         for (g, e) in got.iter().zip(&want) {
             let (sep, time_s, lon) = residuals_of(g, e);
             stats.compared += 1;
-            stats.max_sep_arcsec = stats.max_sep_arcsec.max(sep);
-            stats.max_time_s = stats.max_time_s.max(time_s.abs());
-            stats.max_lon_arcsec = stats.max_lon_arcsec.max(lon);
+            stats.max_sep_arcsec = max_nan(stats.max_sep_arcsec, sep);
+            stats.max_time_s = max_nan(stats.max_time_s, time_s.abs());
+            stats.max_lon_arcsec = max_nan(stats.max_lon_arcsec, lon);
         }
     }
     let outside = |jd: f64| !windows.iter().any(|w| w.contains(jd));

@@ -946,6 +946,21 @@ fn a_graze_window_accepts_any_even_split() {
 }
 
 #[test]
+fn a_nan_residual_inside_a_graze_window_is_reported_not_dropped() {
+    let w = [GrazeWindow {
+        se_events: 2,
+        ..window(1, 10.0, 12.0)
+    }];
+    let corpus = sextiles_from(10.5, 2);
+    let mut engine = engine_of(&corpus);
+    engine[1].first_lon_deg = f64::NAN;
+    engine[1].second_lon_deg = f64::NAN;
+    let (_, _, stats) = split_windows("t", &w, &engine, &corpus).expect("report-only");
+    assert_eq!(stats.compared, 2);
+    assert!(stats.max_lon_arcsec.is_nan());
+}
+
+#[test]
 fn a_count_of_the_wrong_parity_in_a_graze_window_fails() {
     // An even window (se_events 2): an odd count on either side fails.
     let even = [GrazeWindow {
