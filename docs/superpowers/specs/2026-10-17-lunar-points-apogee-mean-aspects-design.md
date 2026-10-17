@@ -98,9 +98,20 @@ lies within the pair's margin of a level no longer asserts. The tool:
 2. Merges the window with any overlapping window of the same pair and angle.
 3. Counts SE's events of that pair and angle inside the merged window.
 
-Away from a graze turn the separation returns to the turn's far side at both
-ends. So both window edges lie on the same side of the level, and SE's count
-inside is even. The tool asserts that, so an odd count aborts the run.
+The window's **parity** is set by its edges. Both edges are at least
+2 × margin from the level, so they lie on one side of it or on opposite
+sides:
+- For an isolated turn, both edges are on the turn's far side, and the count
+  is even.
+- A point whose speed oscillates can wiggle near the level while its overall
+  trend carries it across. Then the edges are on opposite sides, and the
+  count is odd: 1 or 3.
+
+The tool asserts that SE's count has the parity its edges imply. By the
+intermediate value theorem it always does, unless a root was missed, so the
+check is a sanity assert. (Ruling, 2026-10-17: the first design said "always
+even"; a smoke run at a widened margin found a TrueNode–Jupiter window
+holding 1 event.)
 
 It writes `lunar-points-grazes.csv`, one row per merged window:
 
@@ -153,9 +164,12 @@ its angle, e.g. ±60°:
 3. **Outside: strict, unchanged.** `compare_exact` on the outside events of
    both sides: equal counts, side checks and ceilings, as today.
 4. **Inside: one check per window.**
-   - Each side's count must be **even**; an odd count fails
-     (`AspectsError::GrazeWindowOdd`).
-   - Any even split is accepted (0/0, 0/2, 2/0, 2/2, 4/2 …).
+   - Each side's count must have the window's parity, `se_events % 2`. The
+     engine shares the edge signs, because the edges are at least
+     2 × margin from the level and that exceeds the engine–SE difference.
+     A count of the wrong parity fails (`AspectsError::GrazeWindowParity`).
+   - Any split of the right parity is accepted: 0/2, 2/0, 2/2 or 4/2 in an
+     even window, and 1/1, 1/3 or 3/1 in an odd one.
    - When both counts are equal and non-zero, the events pair in order and
      their separation, time and longitude residuals are **reported, not
      checked** against ceilings.
@@ -184,8 +198,8 @@ rows, and the window consistency check (item 1, no engine call).
 **Tests** (`aspects_validation/tests.rs`). The window matcher is a pure
 function over `Found`/`Expected` slices and window bounds, unit-tested with
 synthetic rows:
-- 0/2, 2/0 and 2/2 accepted;
-- 1/2 and 2/1 rejected;
+- in an even window, 0/2, 2/0 and 2/2 accepted, and 1/2 and 2/1 rejected;
+- in an odd window, 1/1, 1/3 and 3/1 accepted, and 2/1 and 0/1 rejected;
 - an event just outside a window held to the strict count;
 - two windows of one pair and angle;
 - a window of one angle that does not affect another angle;

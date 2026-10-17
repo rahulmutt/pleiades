@@ -6,7 +6,7 @@
 
 **Architecture:**
 - `tools/se-aspects-reference` gets a `Graze` policy for `scan`. `Refuse(margin)` keeps today's assert for the planet and asteroid modes. `Window { margin, out }` records each turn inside the margin as a window in a new `lunar-points-grazes.csv`.
-- `pleiades-validate` gets a `aspects_validation/grazes.rs` submodule, which parses and checks the windows and splits each series into a strict outside part and per-window even-count checks. `validate_scoped` gains an optional grazes input, used only by `Scope::LunarPoints`.
+- `pleiades-validate` gets a `aspects_validation/grazes.rs` submodule, which parses and checks the windows and splits each series into a strict outside part and per-window parity checks. `validate_scoped` gains an optional grazes input, used only by `Scope::LunarPoints`.
 
 **Tech Stack:** Rust; Swiss Ephemeris via `libswisseph-sys` 0.1.2 (the tool only); the pleiades packaged backend.
 
@@ -31,12 +31,12 @@
   - lunar mode: TrueApogee 12″; TrueNode, MeanNode and MeanApogee 3″. A turn inside the margin becomes a window.
 - **Window rule (tool):** walk outward from the turn on the scan's grid instants, `span.0 + k as f64 * grid`, to the first instant on each side where `|wrap180(separation − level)| ≥ 2 × margin`.
   - Merge overlapping windows of one pair and angle.
-  - Count SE's events of that pair and angle inside `[lo, hi]` and assert the count is even.
+  - Count SE's events of that pair and angle inside `[lo, hi]`, and assert the count's parity matches the window's edges: even when both edges lie on one side of the level, odd when they straddle it. (Ruling 2026-10-17: a speed-oscillating point can wiggle near a level while its trend crosses it; the Task 1 smoke found a 1-event window.)
   - A window that reaches the span's edge aborts the run.
 - **Grazes CSV schema:** `group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events`. Format: `{turn:.7},{miss_arcsec:.3},{lo:.7},{hi:.7},{n}`.
 - **Grazes manifest:** `lunar-points-grazes-manifest.txt`, containing `slice aspects-lunar-points-grazes file=lunar-points-grazes.csv role=grazes rows=N checksum=<fnv1a64>`.
 - **Expected TrueApogee counts** (spike, 2026-10-17): Sun 3555, Jupiter 3438, Saturn 3485, Pluto 3421. The TrueNode rows must regenerate byte-identically to the committed ones. Any difference is investigated, never accepted silently.
-- **Gate window rule:** outside windows, strict `compare_exact` as today. Inside, each side's count must be even, any even split is accepted, and equal non-zero counts are paired and their residuals reported, not ceiling-checked.
+- **Gate window rule:** outside windows, strict `compare_exact` as today. Inside, each side's count must have the window's parity (`se_events % 2`), any split of that parity is accepted, and equal non-zero counts are paired and their residuals reported, not ceiling-checked.
 - **Floor:** `MIN_ROWS_VALIDATED_LUNAR_POINTS` = the corpus rows outside windows.
 - **Ceilings:** ×1.4 of the measured outside-window maximum, rounded up to two significant figures, floored at 2.3″. A pair whose outside-window longitude maximum exceeds 10″ is a finding to stop on, not a ceiling to set.
 - **No changes to:** `devenv.nix`, the compatibility profile, or any engine crate.
@@ -202,9 +202,10 @@ Then add the function below `scan`:
 /// Turns each close turn into a window `[lo, hi]` on the scan's grid: the first
 /// grid instant on each side at which the separation is at least twice the
 /// margin from the level. Merges overlapping windows of one angle, counts the
-/// angle's events inside, and writes one grazes row per merged window. Away
-/// from the turn the separation returns to the turn's far side at both ends, so
-/// the count is even; an odd count, or a window reaching the span's edge, aborts.
+/// angle's events inside, and writes one grazes row per merged window. The
+/// count's parity is set by the edges: even when both lie on one side of the
+/// level, odd when they straddle it (a wiggle on a crossing trend). A count of
+/// the other parity (a missed root), or a window reaching the span's edge, aborts.
 #[allow(clippy::too_many_arguments)]
 fn write_graze_windows(
     out: &mut dyn FnMut(String),
@@ -218,8 +219,9 @@ fn write_graze_windows(
 ) {
     let steps = ((span_hi - span_lo) / grid).floor() as i64;
     let instant = |k: i64| span_lo + k as f64 * grid;
-    // (lo, hi, turn_jd, miss_deg) per angle.
-    let mut windows: Vec<Vec<(f64, f64, f64, f64)>> = vec![Vec::new(); ANGLES.len()];
+    // (lo, hi, turn_jd, miss_deg, level) per angle. The two levels of one angle
+    // are at least 120 degrees apart, so overlapping windows share their level.
+    let mut windows: Vec<Vec<(f64, f64, f64, f64, f64)>> = vec![Vec::new(); ANGLES.len()];
     for &(index, level, turn_jd, miss) in close_turns {
         let far = |k: i64| wrap180(at(instant(k)).separation - level).abs() >= 2.0 * margin_deg;
         let mut k_lo = ((turn_jd - span_lo) / grid).floor() as i64;
@@ -236,12 +238,12 @@ fn write_graze_windows(
             first.1,
             second.1
         );
-        windows[index].push((instant(k_lo), instant(k_hi), turn_jd, miss));
+        windows[index].push((instant(k_lo), instant(k_hi), turn_jd, miss, level));
     }
     for (index, angle) in ANGLES.iter().enumerate() {
         let mut list = std::mem::take(&mut windows[index]);
         list.sort_by(|x, y| x.0.total_cmp(&y.0));
-        let mut merged: Vec<(f64, f64, f64, f64)> = Vec::new();
+        let mut merged: Vec<(f64, f64, f64, f64, f64)> = Vec::new();
         for w in list {
             match merged.last_mut() {
                 Some(last) if w.0 <= last.1 => {
@@ -254,16 +256,19 @@ fn write_graze_windows(
                 _ => merged.push(w),
             }
         }
-        for (lo, hi, turn_jd, miss) in merged {
+        for (lo, hi, turn_jd, miss, level) in merged {
             let inside = events[index]
                 .iter()
                 .filter(|e| lo <= e.jd && e.jd <= hi)
                 .count();
+            let above = |jd: f64| wrap180(at(jd).separation - level) > 0.0;
+            let straddles = above(lo) != above(hi);
             assert!(
-                inside % 2 == 0,
-                "graze window of {group},{},{},{angle:.0} [{lo:.7}, {hi:.7}] holds {inside} SE events, an odd count",
+                inside % 2 == usize::from(straddles),
+                "graze window of {group},{},{},{angle:.0} [{lo:.7}, {hi:.7}] holds {inside} SE events, but its edges imply an {} count",
                 first.1,
-                second.1
+                second.1,
+                if straddles { "odd" } else { "even" }
             );
             eprintln!(
                 "{group},{},{},{angle:.0}: graze window [{lo:.5}, {hi:.5}], closest turn {:.2} arcsec at {turn_jd:.5}, {inside} SE events",
@@ -308,7 +313,8 @@ The grazes file starts with:
     grazes.push_str("# margin of a level (TrueApogee 12 arcsec, TrueNode/MeanNode/MeanApogee 3 arcsec). lo_jd_tt and hi_jd_tt are the first\n");
     grazes.push_str("# 0.005-day grid instants on each side at which |separation - level| >= 2 x margin; overlapping windows are merged and\n");
     grazes.push_str("# turn_jd_tt/miss_arcsec are the closest turn. se_events counts lunar-points.csv rows of the pair and angle inside [lo, hi]\n");
-    grazes.push_str("# (always even). Events inside a window may exist in one ephemeris only (issue #168 (c)).\n");
+    grazes.push_str("# (even when both edges lie on one side of the level, odd when they straddle it). Events inside a window may exist\n");
+    grazes.push_str("# in one ephemeris only; the gate requires each side's count to have se_events' parity (issue #168 (c)).\n");
     grazes.push_str("group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events\n");
 ```
 
@@ -405,7 +411,7 @@ fn sextiles_from(start: f64, n: usize) -> Vec<Expected> {
 
 #[test]
 fn a_graze_window_accepts_any_even_split() {
-    let w = [window(1, 10.0, 12.0)];
+    let w = [GrazeWindow { se_events: 2, ..window(1, 10.0, 12.0) }];
     for (got, want) in [(0, 2), (2, 0), (2, 2), (4, 2), (0, 0)] {
         let mut corpus = sextiles_from(10.5, want);
         corpus.push(expected(20.0, 60.0, 0.0, 0.5));
@@ -423,15 +429,38 @@ fn a_graze_window_accepts_any_even_split() {
 }
 
 #[test]
-fn an_odd_count_in_a_graze_window_fails() {
-    let w = [window(1, 10.0, 12.0)];
+fn a_count_of_the_wrong_parity_in_a_graze_window_fails() {
+    // An even window (se_events 2): an odd count on either side fails.
+    let even = [GrazeWindow { se_events: 2, ..window(1, 10.0, 12.0) }];
     for (got, want) in [(1, 2), (2, 1), (3, 0)] {
         let corpus = sextiles_from(10.5, want);
         let engine = engine_of(&sextiles_from(10.5, got));
         assert!(matches!(
-            split_windows("t", &w, &engine, &corpus),
-            Err(AspectsError::GrazeWindowOdd { .. })
+            split_windows("t", &even, &engine, &corpus),
+            Err(AspectsError::GrazeWindowParity { .. })
         ));
+    }
+    // An odd window (se_events 1, edges straddling the level): an even count fails.
+    let odd = [GrazeWindow { se_events: 1, ..window(1, 10.0, 12.0) }];
+    for (got, want) in [(2, 1), (0, 1), (1, 2)] {
+        let corpus = sextiles_from(10.5, want);
+        let engine = engine_of(&sextiles_from(10.5, got));
+        assert!(matches!(
+            split_windows("t", &odd, &engine, &corpus),
+            Err(AspectsError::GrazeWindowParity { .. })
+        ));
+    }
+}
+
+#[test]
+fn an_odd_window_accepts_any_odd_split() {
+    let w = [GrazeWindow { se_events: 1, ..window(1, 10.0, 12.0) }];
+    for (got, want) in [(1, 1), (3, 1), (1, 3)] {
+        let corpus = sextiles_from(10.5, want);
+        let engine = engine_of(&sextiles_from(10.5, got));
+        let (_, _, stats) =
+            split_windows("t", &w, &engine, &corpus).expect("odd split in an odd window");
+        assert_eq!(stats.differing, usize::from(got != want));
     }
 }
 
@@ -472,14 +501,17 @@ fn equal_window_counts_report_residuals_without_ceilings() {
 
 #[test]
 fn two_windows_of_one_series_are_checked_separately() {
-    let w = [window(1, 10.0, 12.0), window(1, 30.0, 32.0)];
+    let w = [
+        GrazeWindow { se_events: 2, ..window(1, 10.0, 12.0) },
+        GrazeWindow { se_events: 2, ..window(1, 30.0, 32.0) },
+    ];
     let mut corpus = sextiles_from(10.5, 2);
     corpus.extend(sextiles_from(30.5, 2));
     // 0 in the first window, 3 in the second: the second fails on its own.
     let engine = engine_of(&sextiles_from(30.5, 3));
     assert!(matches!(
         split_windows("t", &w, &engine, &corpus),
-        Err(AspectsError::GrazeWindowOdd { .. })
+        Err(AspectsError::GrazeWindowParity { .. })
     ));
     let engine = engine_of(&sextiles_from(30.5, 2));
     let (_, _, stats) = split_windows("t", &w, &engine, &corpus).unwrap();
@@ -537,8 +569,6 @@ fn graze_rows_parse_and_reject_bad_windows() {
         "geo,TrueApogee,Mars,60,2420750.8,1.8,2420750.5,2420751.1,2",
         // angle not in the plan
         "geo,TrueApogee,Jupiter,45,2420750.8,1.8,2420750.5,2420751.1,2",
-        // odd se_events
-        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1,1",
         // wrong field count
         "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1",
     ] {
@@ -608,7 +638,8 @@ impl GrazeWindow {
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(super) struct WindowStats {
     pub(super) windows: usize,
-    /// Windows whose engine and corpus counts differ (allowed when both even).
+    /// Windows whose engine and corpus counts differ (allowed when both have
+    /// the window's parity).
     pub(super) differing: usize,
     /// Events paired inside windows whose counts agree (not ceiling-checked).
     pub(super) compared: usize,
@@ -629,7 +660,7 @@ impl WindowStats {
 }
 
 /// Parses the grazes CSV against the corpus plan `pairs`. Every window has
-/// `lo < hi`, holds its turn, has an even `se_events`, and does not overlap
+/// `lo < hi`, holds its turn, and does not overlap
 /// the previous window of its pair and angle (rows ascend by `lo`).
 pub(super) fn parse_grazes(csv: &str, pairs: &[Pair]) -> Result<Vec<GrazeWindow>, AspectsError> {
     let malformed = |what: String| AspectsError::MalformedGrazes(what);
@@ -668,9 +699,6 @@ pub(super) fn parse_grazes(csv: &str, pairs: &[Pair]) -> Result<Vec<GrazeWindow>
             .map_err(|_| malformed(format!("se_events is not a count in {line}")))?;
         if !(lo < hi && lo <= turn && turn <= hi) {
             return Err(malformed(format!("window does not hold its turn, or lo >= hi, in {line}")));
-        }
-        if se_events % 2 != 0 {
-            return Err(malformed(format!("odd se_events in {line}")));
         }
         if let Some(prev) = windows.iter().rev().find(|w| w.pair == pair && w.angle == angle) {
             if lo <= prev.hi {
@@ -739,7 +767,8 @@ pub(super) fn windows_of(windows: &[GrazeWindow], pair: usize, angle: usize) -> 
 
 /// Splits one series at its `windows`: returns the engine events and corpus
 /// rows outside every window, for the strict comparison, and what the windows
-/// held. Inside each window both counts must be even; equal non-zero counts
+/// held. Inside each window both counts must have the window's parity
+/// (`se_events % 2`, set by whether its edges straddle the level); equal non-zero counts
 /// are paired in order and their residuals recorded, without ceilings.
 pub(super) fn split_windows(
     label: &str,
@@ -751,14 +780,16 @@ pub(super) fn split_windows(
     for w in windows {
         let got: Vec<&Found> = engine.iter().filter(|f| w.contains(f.jd)).collect();
         let want: Vec<&Expected> = corpus.iter().filter(|e| w.contains(e.found.jd)).collect();
+        let parity = w.se_events % 2;
         for (side, count) in [("engine", got.len()), ("corpus", want.len())] {
-            if count % 2 != 0 {
-                return Err(AspectsError::GrazeWindowOdd {
+            if count % 2 != parity {
+                return Err(AspectsError::GrazeWindowParity {
                     series: label.to_string(),
                     lo: w.lo,
                     hi: w.hi,
                     side,
                     count,
+                    se_events: w.se_events,
                 });
             }
         }
@@ -801,13 +832,14 @@ If `first_is_ahead`, `ARCSEC_PER_DEG` or `SECONDS_PER_DAY` end up unused in `gra
         recorded: usize,
         corpus: usize,
     },
-    /// A graze window holds an odd number of events on one side.
-    GrazeWindowOdd {
+    /// A graze window holds a count of the wrong parity on one side.
+    GrazeWindowParity {
         series: String,
         lo: f64,
         hi: f64,
         side: &'static str,
         count: usize,
+        se_events: usize,
     },
 ```
 
@@ -817,9 +849,9 @@ If `first_is_ahead`, `ARCSEC_PER_DEG` or `SECONDS_PER_DAY` end up unused in `gra
                 f,
                 "graze window [{lo}, {hi}] of pair {pair} at {angle_deg} degrees records {recorded} SE events, the corpus has {corpus}"
             ),
-            Self::GrazeWindowOdd { series, lo, hi, side, count } => write!(
+            Self::GrazeWindowParity { series, lo, hi, side, count, se_events } => write!(
                 f,
-                "{series}: graze window [{lo}, {hi}] holds {count} {side} events, an odd count"
+                "{series}: graze window [{lo}, {hi}] holds {count} {side} events; its parity must match the {se_events} SE events'"
             ),
 ```
 
@@ -951,7 +983,7 @@ git commit -m "test(validate): measured ceilings for the TrueApogee, MeanNode an
   - Otherwise make no structural change.
   - Write the decision and the numbers in the task report.
 
-- [ ] **Step 2: Update the docs.** Wherever the gated lunar pairs are listed, name TrueNode with seven planets, TrueApogee with four, MeanNode with seven and MeanApogee with four. State the graze-window rule in one sentence: within a window, events may exist in one ephemeris only, and are compared by even count.
+- [ ] **Step 2: Update the docs.** Wherever the gated lunar pairs are listed, name TrueNode with seven planets, TrueApogee with four, MeanNode with seven and MeanApogee with four. State the graze-window rule in one sentence: within a window, events may exist in one ephemeris only, and are compared by count parity.
   - Replace "not yet measured on it since" and similar text with the nightly figure: "5m58s on the nightly runner, 2026-10-16, run 38971941852, before the apogee and mean points".
   - Add the new local figure from Task 4.
   - `crates/pleiades-events/README.md`: the fictitious bodies and the mean and osculating perigees are the remaining ungated aspect bodies.
