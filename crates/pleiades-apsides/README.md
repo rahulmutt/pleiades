@@ -7,7 +7,9 @@ and perigee as ecliptic longitude/latitude with geocentric distance (plus the
 osculating ellipse's eccentricity and semi-major axis). Used by `pleiades-data`
 to derive release-grade `TrueApogee` and `TruePerigee` positions from the
 packaged Moon state; that end-to-end path is gated against Swiss Ephemeris
-`SE_OSCU_APOG` by `validate-lilith` (max longitude residual ~306″). The same Kepler helpers serve the osculating true node (`TrueNode`) through `PackagedDataBackend`, gated by `validate-true-node`.
+`SE_OSCU_APOG` by `validate-lilith` (max longitude residual ~253″, almost all
+of it the Moshier-versus-DE440 Moon difference; against Swiss Ephemeris SWIEPH
+the apogee agrees to 1.8″ over 1900–2100). The same Kepler helpers serve the osculating true node (`TrueNode`) through `PackagedDataBackend`, gated by `validate-true-node`.
 
 The crate also owns the **mean** lunar orbit: the Meeus mean node and mean
 perigee longitudes (mean equinox of date) and the Moon's mean inclination,

@@ -26,6 +26,10 @@ use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 /// that used to make a third backend query is interpolated between the first
 /// two, moving 21 Mercury-to-Pluto rows by at most 8.8e-10° in place and
 /// 2.6e-10 °/day in speed.
+/// Issue #168 re-pinned it from `0x5130_1cd4_b86b_e31b`: correcting the apsides μ moved
+/// the true node's distance (by 1.6e-5 relative) and distance speed, and the
+/// last bits of its near-zero latitude and latitude speed; no longitude bit
+/// moved, because the node direction does not depend on μ.
 ///
 /// Re-pin it only in a change that intentionally moves positions or speeds,
 /// like the crossings golden: run `cargo test -p pleiades-core --lib apparent_chart_outputs_are_pinned`,
@@ -33,7 +37,7 @@ use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 /// pinned bit, for a diff against the old run), and state the re-pin and its
 /// reason in the commit message. The value hashes `libm` output and is pinned
 /// on Linux CI; another platform's libm may differ in the last bit.
-const CHART_CHECKSUM: u64 = 0x5130_1cd4_b86b_e31b;
+const CHART_CHECKSUM: u64 = 0xd626_5b6c_3ea9_849d;
 
 fn eleven_bodies() -> Vec<CelestialBody> {
     vec![

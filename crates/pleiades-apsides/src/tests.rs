@@ -606,22 +606,24 @@ fn apsides_eccentricity_floor_is_exclusive() {
     );
 }
 
-/// Documents the provenance of MU_EARTH_MOON_AU3_PER_DAY2 by recomputing it
-/// from the published constants it cites, outside the code.
+/// Pins MU_EARTH_MOON_AU3_PER_DAY2 against values computed outside the code.
 ///
 /// No mutant is attached to this constant (cargo-mutants does not mutate
-/// consts); this test exists so the tuned value cannot drift from its
-/// documented derivation unnoticed. The 2e-5 tolerance is the *measured*
-/// 1.43e-5 gap between the pure derivation and the shipped value, which the
-/// rustdoc attributes to tuning against the validate-lilith gate. It is not a
-/// tolerance chosen to make the assertion pass.
+/// consts). The first literal is (398600.4418 + 4902.800) km³/s² × 86400² s² /
+/// 149597870.7³ km³ evaluated in Python. The second is the μ Swiss Ephemeris
+/// uses for its osculating apogee (`sweph.c` `lunar_osc_elem`:
+/// `GEOGCONST * (1 + 1/EARTH_MOON_MRAT)` with GM⊕ = 3.98600448e14 m³/s² and
+/// the DE431 mass ratio 81.30056907419062), which differs by 1.6e-8 relative.
+/// The former literal 8.99714e-10 was 1.43e-5 off and fails both (#168).
 #[test]
 fn mu_matches_its_published_derivation() {
-    const GM_EARTH_KM3_S2: f64 = 398_600.441_8;
-    const GM_MOON_KM3_S2: f64 = 4_902.800;
-    const AU_KM: f64 = 149_597_870.7;
-    const DAY_S: f64 = 86_400.0;
-    let derived = (GM_EARTH_KM3_S2 + GM_MOON_KM3_S2) * DAY_S * DAY_S / (AU_KM * AU_KM * AU_KM);
-    let rel = (MU_EARTH_MOON_AU3_PER_DAY2 / derived - 1.0).abs();
-    assert!(rel < 2e-5, "mu drifted from its derivation: rel {rel:e}");
+    const DERIVED: f64 = 8.997_011_530_622_141e-10;
+    const SWISS_EPHEMERIS_GMSM: f64 = 8.997_011_674e-10;
+    let rel = (MU_EARTH_MOON_AU3_PER_DAY2 / DERIVED - 1.0).abs();
+    assert!(rel < 1e-15, "mu drifted from its derivation: rel {rel:e}");
+    let rel_se = (MU_EARTH_MOON_AU3_PER_DAY2 / SWISS_EPHEMERIS_GMSM - 1.0).abs();
+    assert!(
+        rel_se < 1e-7,
+        "mu disagrees with Swiss Ephemeris: rel {rel_se:e}"
+    );
 }

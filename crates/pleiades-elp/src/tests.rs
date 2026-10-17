@@ -1002,7 +1002,8 @@ fn true_node_anchor_matches_the_osculating_node_at_1913() {
     let distance = ecliptic
         .distance_au
         .expect("the osculating node carries the orbit radius at the node");
-    assert!((distance - 0.002_691_726_712).abs() < 1e-9);
+    // Re-captured when the apsides μ was corrected (#168).
+    assert!((distance - 0.002_691_734_842).abs() < 1e-9);
     assert!(motion
         .longitude_deg_per_day
         .expect("longitude speed should exist")
