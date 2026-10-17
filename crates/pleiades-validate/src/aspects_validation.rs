@@ -9,7 +9,8 @@
 //! separation turns within 30 arcseconds of an angle, so no corpus event
 //! depends on the ephemeris. See `aspects_thresholds` for the ceilings.
 //!
-//! Tiers: the full gate (`mise run gate-aspects`: planets and asteroids; see
+//! Tiers: the full gate (`mise run gate-aspects`: planets, asteroids and
+//! fictitious bodies; see
 //! [`validate_aspects_corpus`]) and the lunar-point gate (`mise run
 //! gate-aspects-lunar`; see [`validate_lunar_point_aspects_corpus`]; split
 //! out because the combined step took 15m40s nightly on 2026-10-17) each run
@@ -43,6 +44,15 @@
 //! parity of the window's recorded SE count, compares equal counts without
 //! ceilings (reporting their residuals), and compares every event outside a
 //! window strictly. See `grazes`.
+//!
+//! Fictitious bodies (issue #168): the 19 bodies with the Sun, and Cupido to
+//! Poseidon and Transpluto with Saturn (28 pairs, 38733 events), over
+//! 1900–2100 in the geometric mean-of-date frame, are compared event for event
+//! against `fictitious.csv`, generated with SWIEPH and a pinned `seorbel.txt`
+//! by `tools/se-aspects-reference --fictitious`, in the full gate (and alone
+//! as `validate-aspects-fictitious`). The corpus has no graze windows. The
+//! apparent frame is not gated: SE's light-time correction for fictitious
+//! bodies jumps by up to about 5" at isolated instants.
 
 use crate::aspects_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_ASTEROIDS,
@@ -959,9 +969,12 @@ fn compare_scope<B: EphemerisBackend>(
     })
 }
 
-/// The full planet and asteroid gate: every planet corpus pair at every angle
-/// (floor `MIN_ROWS_VALIDATED`, 10359 events), then the asteroid pairs (floor
-/// `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events). The lunar points run
+/// The full planet, asteroid and fictitious-body gate: every planet corpus pair
+/// at every angle (floor `MIN_ROWS_VALIDATED`, 10359 events), then the asteroid
+/// pairs (floor `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events), then the
+/// fictitious-body pairs in the mean-of-date frame (floor
+/// `MIN_ROWS_VALIDATED_FICTITIOUS`, 38733 events; see
+/// [`validate_fictitious_aspects_corpus`]). The lunar points run
 /// separately, in [`validate_lunar_point_aspects_corpus`]. Run by
 /// `validate-aspects` / `mise run gate-aspects` (its own nightly job and a
 /// `release-gate` dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test.
@@ -977,7 +990,10 @@ fn compare_scope<B: EphemerisBackend>(
 /// the combined gate at 5m58s (2026-10-16, run 38971941852); with the apogee
 /// and mean points it measured 15m40s for the step (2026-10-17, run
 /// 39039081162), over the 15-minute threshold, so the lunar points were split
-/// out; on its own this gate's step then took 53 s (run 39041130704).
+/// out; on its own this gate's step then took 53 s (run 39041130704). With the
+/// fictitious pass the step took 1m35s (branch run 39052564875, 2026-10-17),
+/// so that pass costs about 42 s there (32.3 s locally in release at load
+/// 11-12), and it stays in this gate rather than splitting out.
 /// The first measurements, 880 s
 /// as the command and 1110.8 s as the in-crate test (dev/test profile,
 /// 2026-10-02, planet pairs only), predate the event-engine speedups since

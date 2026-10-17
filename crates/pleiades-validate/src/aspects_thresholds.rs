@@ -37,8 +37,9 @@
 //! light-time correction for fictitious bodies jumps by up to about 5" at
 //! isolated instants. Each ceiling is the measured maximum times 1.4, rounded
 //! up to two significant figures and floored at 2.3", set separately for
-//! separation and longitude. Nibiru's pairs carry their own ceilings: a steady
-//! +1.26" offset against SE.
+//! separation and longitude. Nibiru's measured maxima are larger (1.284" separation,
+//! 1.578" longitude) because of a steady +1.26" offset against SE, but still
+//! fall under the same 2.3" floor.
 //!
 //! The longitude ceiling bounds the difference of either body's longitude
 //! at the event. It includes the body's motion over the time residual.
