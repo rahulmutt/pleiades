@@ -30,20 +30,25 @@ const MANIFEST: &str = include_str!(concat!(
 // difference amplified by 1/sin(i) in the node direction (i ≈ 5.1°). Latitude
 // is ~0 by construction (nodes lie on the ecliptic and only longitude gets
 // precession/nutation applied), so the measured max is floating-point noise.
-// max measured: lon 52.851", lat 6.30e-11", dist_rel 1.5809e-4
+// Distance re-measured 2026-10-17 after the apsides μ was corrected (#168;
+// before: 1.5809e-4); the node direction does not depend on μ.
+// max measured: lon 52.851", lat 6.30e-11", dist_rel 1.30e-4
 const LON_CEILING_ARCSEC: f64 = 80.0; // measured max 52.851"
 const LAT_CEILING_ARCSEC: f64 = 1.0; // measured max 6.30e-11" (fp noise; lat is 0 by construction)
-const DIST_CEILING_REL: f64 = 2.38e-4; // measured max 1.5809e-4
+const DIST_CEILING_REL: f64 = 1.95e-4; // measured max 1.30e-4
 
 // ELP channel ceilings — ceil(measured_max * 1.5), measured 2026-10-04 over the
 // same 3177 rows (issue #127). The residual is set by the truncated Meeus Moon
 // series feeding the differenced velocity, amplified by 1/sin(i); it has no
 // drift across the window (p50 0.19', p90 0.51', p99 0.84'). The Meeus Ch. 47
 // periodic-term node this channel replaced measured 17.37' max on this corpus.
-// max measured: lon 78.0" (1.30'), lat 6.87e-11", dist_rel 4.189e-4
+// The distance max rose from 4.189e-4 to 4.45e-4 when the apsides μ was
+// corrected (#168), re-measured 2026-10-17; this channel's distance error is
+// dominated by the truncated series' velocity, not by μ.
+// max measured: lon 77.809", lat 6.87e-11", dist_rel 4.45e-4
 const ELP_LON_CEILING_ARCSEC: f64 = 120.0; // measured max 78.0"
 const ELP_LAT_CEILING_ARCSEC: f64 = 1.0; // measured max 6.87e-11" (fp noise)
-const ELP_DIST_CEILING_REL: f64 = 6.4e-4; // measured max 4.189e-4
+const ELP_DIST_CEILING_REL: f64 = 6.7e-4; // measured max 4.45e-4
 
 /// Fail-closed floor on validated rows per channel (corpus is 3177 rows; every
 /// row lies inside the packaged window, so skips should be zero).

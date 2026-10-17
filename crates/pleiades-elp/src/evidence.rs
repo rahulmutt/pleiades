@@ -127,7 +127,8 @@ pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
             // (14.5″ away here through the Δψ path).
             longitude_deg: 123.953_153_545,
             latitude_deg: 0.0,
-            distance_au: Some(0.002_445_209_430),
+            // Distance re-captured when the apsides μ was corrected (#168).
+            distance_au: Some(0.002_445_248_455),
             note: "J2000 osculating true node anchor for the lunar point model (regression anchor; Swiss Ephemeris SE_TRUE_NODE rows pin it independently)",
         },
         LunarReferenceSample {
@@ -185,7 +186,8 @@ pub fn lunar_reference_evidence() -> &'static [LunarReferenceSample] {
             // 2.085_852_606 (published of-date 0.876_3), 0.055° away.
             longitude_deg: 2.030_621_625,
             latitude_deg: 0.001_367_995,
-            distance_au: Some(0.002_691_726_712),
+            // Distance re-captured when the apsides μ was corrected (#168).
+            distance_au: Some(0.002_691_734_842),
             note: "1913-05-27 osculating true ascending node anchor at the epoch of the published mean-node example (regression anchor)",
         },
     ];

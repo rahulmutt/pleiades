@@ -25,11 +25,21 @@ pub use mean::{
     MOON_MEAN_SEMI_MAJOR_AU,
 };
 
-/// `G(M⊕ + M☾)` in AU³/day². Derived from GM⊕ = 398600.4418 km³/s² and
+/// `G(M⊕ + M☾)` in AU³/day², computed from GM⊕ = 398600.4418 km³/s² and
 /// GM☾ = 4902.800 km³/s² (sum 403503.2418) with 1 AU = 149597870.7 km and
-/// 1 day = 86400 s. Starting value; tuned against the `validate-lilith` gate
-/// (the apse *direction* depends on μ, so it is the dominant parity knob).
-pub const MU_EARTH_MOON_AU3_PER_DAY2: f64 = 8.997_14e-10;
+/// 1 day = 86400 s: about 8.99701e-10.
+///
+/// The apse *direction* depends on μ: a relative error of 1.4e-5 moves the
+/// osculating apogee by up to 86″ over an anomalistic month. Until #168 this
+/// constant was the literal `8.997_14e-10`, which is that far off.
+pub const MU_EARTH_MOON_AU3_PER_DAY2: f64 =
+    (GM_EARTH_KM3_PER_S2 + GM_MOON_KM3_PER_S2) * SECONDS_PER_DAY * SECONDS_PER_DAY
+        / (AU_KM * AU_KM * AU_KM);
+
+const GM_EARTH_KM3_PER_S2: f64 = 398_600.441_8;
+const GM_MOON_KM3_PER_S2: f64 = 4_902.800;
+const AU_KM: f64 = 149_597_870.7;
+const SECONDS_PER_DAY: f64 = 86_400.0;
 
 /// One apsis expressed in the input frame's ecliptic longitude/latitude (deg)
 /// and geocentric distance (AU).

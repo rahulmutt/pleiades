@@ -17,12 +17,14 @@ const MANIFEST: &str = include_str!(concat!(
     "/data/lilith-corpus/manifest.txt"
 ));
 
-// Ceilings — set to ceil(measured_max * 1.5), measured 2026-06-30 over 3176 rows.
-// The dominant residual is the Moshier(SE corpus) vs DE440(our packaged Moon) difference.
-// max measured: lon 306.442", lat 53.007", dist_rel 1.56e-4
-const LON_CEILING_ARCSEC: f64 = 460.0; // measured max 306.442"
-const LAT_CEILING_ARCSEC: f64 = 80.0; // measured max 53.007"
-const DIST_CEILING_REL: f64 = 2.34e-4; // measured max 1.56e-4
+// Ceilings — set to ceil(measured_max * 1.5), re-measured 2026-10-17 over 3177
+// rows after the apsides μ was corrected (#168; before: lon 307.199", lat
+// 23.189", dist_rel 1.56e-4). The dominant residual is the Moshier(SE corpus)
+// vs DE440(our packaged Moon) difference.
+// max measured: lon 253.494", lat 20.107", dist_rel 1.33e-4
+const LON_CEILING_ARCSEC: f64 = 381.0; // measured max 253.494"
+const LAT_CEILING_ARCSEC: f64 = 31.0; // measured max 20.107"
+const DIST_CEILING_REL: f64 = 2.0e-4; // measured max 1.33e-4
 
 /// Fail-closed floor on validated rows (corpus is 3177 rows; every row lies
 /// inside the packaged window, so skips should be zero).
