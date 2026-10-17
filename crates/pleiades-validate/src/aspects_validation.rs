@@ -870,7 +870,8 @@ fn validate_scoped(
 /// the combined gate at 5m58s (2026-10-16, run 38971941852); with the apogee
 /// and mean points it measured 15m40s for the step (2026-10-17, run
 /// 39039081162), over the 15-minute threshold, so the lunar points were split
-/// out. The first measurements, 880 s
+/// out; on its own this gate's step then took 53 s (run 39041130704).
+/// The first measurements, 880 s
 /// as the command and 1110.8 s as the in-crate test (dev/test profile,
 /// 2026-10-02, planet pairs only), predate the event-engine speedups since
 /// and are why the gate left nightly `test-full`.
@@ -890,8 +891,9 @@ pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
 /// job and a `release-gate` dependency) and by the opt-in
 /// `PLEIADES_FULL_ASPECTS_GATE=1` test. The combined planet, asteroid and
 /// lunar step took 15m40s on the nightly runner before the split (2026-10-17,
-/// run 39039081162); this gate's own figure is measured at the first nightly
-/// run.
+/// run 39039081162); after it, on a branch run of the same day (run
+/// 39041130704), this gate's step took 15m53s and the planet and asteroid
+/// gate's 53 s.
 pub fn validate_lunar_point_aspects_corpus() -> Result<AspectsReport, AspectsError> {
     validate_scoped(
         LUNAR_POINT_CSV,

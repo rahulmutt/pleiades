@@ -291,7 +291,7 @@ run = "cargo run -q -p pleiades-validate -- validate-corpus"
 # predate it. With the true-node pass the nightly runner measured the combined
 # gate at 5m58s (2026-10-16, run 38971941852); with the apogee and mean points
 # the combined step took 15m40s (2026-10-17, run 39039081162), so the lunar
-# points were split out.
+# points were split out; this gate's step then took 53 s (run 39041130704).
 run = "cargo run -q -p pleiades-validate -- validate-aspects"
 
 [tasks.gate-aspects-lunar]
@@ -301,7 +301,8 @@ run = "cargo run -q -p pleiades-validate -- validate-aspects"
 # parity. Split out of `gate-aspects` because the combined step took 15m40s on
 # the nightly runner on 2026-10-17 (run 39039081162), over the 15-minute
 # threshold; it has its own nightly job (.github/workflows/nightly.yml
-# `aspects-lunar-gate`) and is a `release-gate` dependency.
+# `aspects-lunar-gate`) and is a `release-gate` dependency. Its step took
+# 15m53s on the nightly runner (2026-10-17, run 39041130704).
 run = "cargo run -q -p pleiades-validate -- validate-aspects-lunar"
 
 [tasks.gate-stations]
