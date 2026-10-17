@@ -219,7 +219,8 @@ pub use artifact::{
     ArtifactLookupBenchmarkReportValidationError,
 };
 pub use aspects_validation::{
-    validate_aspects_corpus, validate_aspects_corpus_subset, AspectsError, AspectsReport,
+    validate_aspects_corpus, validate_aspects_corpus_subset, validate_lunar_point_aspects_corpus,
+    AspectsError, AspectsReport,
 };
 pub use ayanamsa_apparent_validation::{
     validate_ayanamsa_apparent_corpus, AyanamsaApparentError, AyanamsaApparentReport,

@@ -9,11 +9,11 @@
 //! separation turns within 30 arcseconds of an angle, so no corpus event
 //! depends on the ephemeris. See `aspects_thresholds` for the ceilings.
 //!
-//! Tiers: the full gate (`mise run gate-aspects`: planets, asteroids and the
-//! lunar points; 5m58s on the 4-core nightly runner, 2026-10-16, before the
-//! apogee and mean points, and 927 s locally at load 8-14, 2026-10-17; see
-//! [`validate_aspects_corpus`]) runs in its own nightly job and in
-//! `release-gate`; the `mean` subset (about 16 s) runs in the release
+//! Tiers: the full gate (`mise run gate-aspects`: planets and asteroids; see
+//! [`validate_aspects_corpus`]) and the lunar-point gate (`mise run
+//! gate-aspects-lunar`; see [`validate_lunar_point_aspects_corpus`]; split
+//! out because the combined step took 15m40s nightly on 2026-10-17) each run
+//! in their own nightly job and in `release-gate`; the `mean` subset (about 16 s) runs in the release
 //! battery (`release-smoke`), after a scan-free checksum and row-count check
 //! of the asteroid and lunar-point corpora and a check of the graze-window
 //! file against its manifest and the corpus (issue #254).
@@ -852,11 +852,10 @@ fn validate_scoped(
     })
 }
 
-/// The full gate: every planet corpus pair at every angle (floor
-/// `MIN_ROWS_VALIDATED`, 10359 events), then the asteroid pairs (floor
-/// `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events), then the 22 lunar-point
-/// pairs (floor `MIN_ROWS_VALIDATED_LUNAR_POINTS`, 22596 events outside the
-/// graze windows, SWIEPH, 3" graze margin, 12" for the osculating apogee). Run by
+/// The full planet and asteroid gate: every planet corpus pair at every angle
+/// (floor `MIN_ROWS_VALIDATED`, 10359 events), then the asteroid pairs (floor
+/// `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events). The lunar points run
+/// separately, in [`validate_lunar_point_aspects_corpus`]. Run by
 /// `validate-aspects` / `mise run gate-aspects` (its own nightly job and a
 /// `release-gate` dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test.
 /// Measured on the 4-core nightly runner with the planet and asteroid passes
@@ -867,26 +866,39 @@ fn validate_scoped(
 /// run before #251), so the asteroid pass (`Scope::Asteroids`, seven pairs)
 /// is roughly 30 s there, less than the run-to-run spread above. On the
 /// 24-core dev box under load it took 54.5 s in the release profile
-/// (2026-10-10). The true-node pass took the local full gate to 18m56s at
-/// load 13–15.6 (2026-10-16), against 125–153 s before at load 5–12; the
-/// nightly runner then measured the full gate at 5m58s (2026-10-16, run
-/// 38971941852, before the apogee and mean points). With the apogee and mean
-/// points the local full gate took 927 s (release, load 8–14, 2026-10-17),
-/// about 5 minutes nightly at the measured local-to-nightly ratio of about
-/// 3.2, so the lunar pass is not split out. The first measurements, 880 s
+/// (2026-10-10). With the true node merged in, the nightly runner measured
+/// the combined gate at 5m58s (2026-10-16, run 38971941852); with the apogee
+/// and mean points it measured 15m40s for the step (2026-10-17, run
+/// 39039081162), over the 15-minute threshold, so the lunar points were split
+/// out. The first measurements, 880 s
 /// as the command and 1110.8 s as the in-crate test (dev/test profile,
 /// 2026-10-02, planet pairs only), predate the event-engine speedups since
 /// and are why the gate left nightly `test-full`.
 pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
     let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids, None)?;
-    let lunar_points = validate_scoped(
+    Ok(planets.merged_with(asteroids))
+}
+
+/// The lunar-point gate: the 22 pairs of the true node and mean node (against
+/// the Sun, Mars, Jupiter, Saturn, Uranus, Neptune and Pluto) and of the true
+/// apogee and mean apogee (Sun, Jupiter, Saturn, Pluto), floor
+/// `MIN_ROWS_VALIDATED_LUNAR_POINTS` (22596 events outside the graze windows;
+/// SWIEPH, 3" graze margin, 12" for the osculating apogee). Inside a graze
+/// window only the parity of the event counts is checked. Run by
+/// `validate-aspects-lunar` / `mise run gate-aspects-lunar` (its own nightly
+/// job and a `release-gate` dependency) and by the opt-in
+/// `PLEIADES_FULL_ASPECTS_GATE=1` test. The combined planet, asteroid and
+/// lunar step took 15m40s on the nightly runner before the split (2026-10-17,
+/// run 39039081162); this gate's own figure is measured at the first nightly
+/// run.
+pub fn validate_lunar_point_aspects_corpus() -> Result<AspectsReport, AspectsError> {
+    validate_scoped(
         LUNAR_POINT_CSV,
         LUNAR_POINT_MANIFEST,
         Scope::LunarPoints,
         Some((LUNAR_POINT_GRAZES_CSV, LUNAR_POINT_GRAZES_MANIFEST)),
-    )?;
-    Ok(planets.merged_with(asteroids).merged_with(lunar_points))
+    )
 }
 
 /// The release-battery subset: verifies the checksum and row count of the

@@ -382,14 +382,33 @@ fn aspects_gate_passes_within_ceilings() {
         eprintln!("{line}");
     }
     eprintln!("full gate: {:.1} s", started.elapsed().as_secs_f64());
-    assert!(
-        report.rows_validated
-            >= MIN_ROWS_VALIDATED + MIN_ROWS_VALIDATED_ASTEROIDS + MIN_ROWS_VALIDATED_LUNAR_POINTS
-    );
+    assert!(report.rows_validated >= MIN_ROWS_VALIDATED + MIN_ROWS_VALIDATED_ASTEROIDS);
     assert_eq!(
         report.pair_lines().len(),
-        PAIRS.len() + ASTEROID_PAIRS.len() + LUNAR_POINT_PAIRS.len()
+        PAIRS.len() + ASTEROID_PAIRS.len()
     );
+}
+
+// Opt-in like the gate above: the lunar-point pass is the long half of the
+// exact-aspect gate (`mise run gate-aspects-lunar`, its own nightly job and a
+// `release-gate` dependency).
+#[test]
+fn lunar_point_aspects_gate_passes_within_ceilings() {
+    if std::env::var("PLEIADES_FULL_ASPECTS_GATE").as_deref() != Ok("1") {
+        eprintln!(
+            "lunar_point_aspects_gate_passes_within_ceilings: skipped; set PLEIADES_FULL_ASPECTS_GATE=1 to run the lunar-point gate"
+        );
+        return;
+    }
+    let started = std::time::Instant::now();
+    let report = validate_lunar_point_aspects_corpus().expect("lunar-point aspects gate passes");
+    eprintln!("{}", report.summary_line());
+    for line in report.pair_lines() {
+        eprintln!("{line}");
+    }
+    eprintln!("lunar-point gate: {:.1} s", started.elapsed().as_secs_f64());
+    assert!(report.rows_validated >= MIN_ROWS_VALIDATED_LUNAR_POINTS);
+    assert_eq!(report.pair_lines().len(), LUNAR_POINT_PAIRS.len());
 }
 
 #[test]

@@ -180,6 +180,77 @@ jobs:
                 [ -n "$n" ] && gh issue close "$n" --comment "Aspects gate green again on ${{ github.sha }}."
               done
 
+  # The lunar-point pass is split out of `aspects-gate`: the combined step
+  # took 15m40s on 2026-10-17 (run 39039081162), over the 15-minute threshold.
+  aspects-lunar-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # cargo-cache-mtimes.sh diffs against the cached build's commit
+
+      - name: Set up mise
+        uses: jdx/mise-action@v2
+        with:
+          install: false
+
+      # Same tools cache as the other jobs. The gate's only build, the
+      # pleiades-validate binary, is part of every blocking run's `target`,
+      # so this job restores that cache and does not save one of its own.
+      - name: Cache Rust toolchain, Cargo, and mise tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.rustup
+            ~/.cargo
+            ~/.local/share/mise
+          key: ${{ runner.os }}-tools-${{ hashFiles('mise.toml', 'Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-tools-
+
+      - name: Restore cached workspace builds
+        uses: actions/cache/restore@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-target-${{ hashFiles('mise.toml', 'Cargo.lock') }}-
+            ${{ runner.os }}-target-
+
+      - name: Install mise-managed tools
+        run: mise install
+
+      - name: Reuse cached workspace builds
+        run: .github/scripts/cargo-cache-mtimes.sh
+
+      # Step timeout below the job's 90 so an overrun fails loud (see `nightly`).
+      - name: Run lunar-point aspects gate
+        timeout-minutes: 80
+        run: mise run gate-aspects-lunar
+
+      - name: Open/update tracking issue on failure
+        if: failure()
+        uses: JasonEtco/create-an-issue@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          filename: .github/aspects-lunar-gate-failure-issue.md
+          update_existing: true
+          search_existing: open
+
+      - name: Close tracking issue on success
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue list --label aspects-lunar-gate-failure --state open --json number --jq '.[].number' \
+            | while read -r n; do
+                [ -n "$n" ] && gh issue close "$n" --comment "Lunar-point aspects gate green again on ${{ github.sha }}."
+              done
+
   # The full stations gate was `test-full-validate`'s long pole (FU-23 (u));
   # it runs here, in parallel with the nightly tier, like `aspects-gate`.
   stations-gate:

@@ -2,7 +2,7 @@
 title: "Aspects gate failing"
 labels: aspects-gate-failure
 ---
-The scheduled **full exact-aspect gate** (`mise run gate-aspects`; planet pairs, the asteroid pairs and the lunar-point pairs) failed.
+The scheduled **full exact-aspect gate** (`mise run gate-aspects`; planet pairs and asteroid pairs) failed.
 
 - Failing run: {{ env.RUN_URL }}
 - Commit: {{ sha }}

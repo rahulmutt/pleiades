@@ -218,7 +218,7 @@ relative speed:
 
 The gate also covers Mercury–Venus and Mars–Saturn in the mean place and
 Mars–Jupiter from the Sun. Aspects of the lunar points are gated against
-Swiss Ephemeris SWIEPH, 1900–2100: TrueNode and MeanNode with seven planets
+Swiss Ephemeris SWIEPH, 1900–2100 (`validate-aspects-lunar`, split from `validate-aspects`): TrueNode and MeanNode with seven planets
 (Sun, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto), TrueApogee and
 MeanApogee with four (Sun, Jupiter, Saturn, Pluto), event for event. Near-tangent
 turns are graze windows (`lunar-points-grazes.csv`; four, all TrueApogee):
