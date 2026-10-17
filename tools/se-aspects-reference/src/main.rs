@@ -301,6 +301,8 @@ impl Graze<'_> {
 
 /// Hands every exact aspect of the pair in `[lo, hi]`, for each angle, to `out`
 /// as a CSV row.
+// Mirrors write_graze_windows: the scan's inputs are all independent.
+#[allow(clippy::too_many_arguments)]
 fn scan(
     out: &mut dyn FnMut(String),
     group: &str,
@@ -415,12 +417,16 @@ fn scan(
     }
 }
 
+/// `(lo, hi, turn_jd, miss_deg, level)` of one graze window.
+type Window = (f64, f64, f64, f64, f64);
+
 /// Turns each close turn into a window `[lo, hi]` on the scan's grid: the first
 /// grid instant on each side at which the separation is at least twice the
 /// margin from the level. Merges overlapping windows of one angle, counts the
-/// angle's events inside, and writes one grazes row per merged window. Away
-/// from the turn the separation returns to the turn's far side at both ends, so
-/// the count is even; an odd count, or a window reaching the span's edge, aborts.
+/// angle's events inside, and writes one grazes row per merged window. The
+/// count's parity is set by the edges: even when both lie on one side of the
+/// level, odd when they straddle it (a wiggle on a crossing trend). A count of
+/// the other parity (a missed root), or a window reaching the span's edge, aborts.
 #[allow(clippy::too_many_arguments)]
 fn write_graze_windows(
     out: &mut dyn FnMut(String),
@@ -434,8 +440,9 @@ fn write_graze_windows(
 ) {
     let steps = ((span_hi - span_lo) / grid).floor() as i64;
     let instant = |k: i64| span_lo + k as f64 * grid;
-    // (lo, hi, turn_jd, miss_deg) per angle.
-    let mut windows: Vec<Vec<(f64, f64, f64, f64)>> = vec![Vec::new(); ANGLES.len()];
+    // (lo, hi, turn_jd, miss_deg, level) per angle. The two levels of one angle
+    // are at least 120 degrees apart, so overlapping windows share their level.
+    let mut windows: Vec<Vec<Window>> = vec![Vec::new(); ANGLES.len()];
     for &(index, level, turn_jd, miss) in close_turns {
         let far = |k: i64| wrap180(at(instant(k)).separation - level).abs() >= 2.0 * margin_deg;
         let mut k_lo = ((turn_jd - span_lo) / grid).floor() as i64;
@@ -452,12 +459,12 @@ fn write_graze_windows(
             first.1,
             second.1
         );
-        windows[index].push((instant(k_lo), instant(k_hi), turn_jd, miss));
+        windows[index].push((instant(k_lo), instant(k_hi), turn_jd, miss, level));
     }
     for (index, angle) in ANGLES.iter().enumerate() {
         let mut list = std::mem::take(&mut windows[index]);
         list.sort_by(|x, y| x.0.total_cmp(&y.0));
-        let mut merged: Vec<(f64, f64, f64, f64)> = Vec::new();
+        let mut merged: Vec<Window> = Vec::new();
         for w in list {
             match merged.last_mut() {
                 Some(last) if w.0 <= last.1 => {
@@ -470,16 +477,19 @@ fn write_graze_windows(
                 _ => merged.push(w),
             }
         }
-        for (lo, hi, turn_jd, miss) in merged {
+        for (lo, hi, turn_jd, miss, level) in merged {
             let inside = events[index]
                 .iter()
                 .filter(|e| lo <= e.jd && e.jd <= hi)
                 .count();
+            let above = |jd: f64| wrap180(at(jd).separation - level) > 0.0;
+            let straddles = above(lo) != above(hi);
             assert!(
-                inside % 2 == 0,
-                "graze window of {group},{},{},{angle:.0} [{lo:.7}, {hi:.7}] holds {inside} SE events, an odd count",
+                inside % 2 == usize::from(straddles),
+                "graze window of {group},{},{},{angle:.0} [{lo:.7}, {hi:.7}] holds {inside} SE events, but its edges imply an {} count",
                 first.1,
-                second.1
+                second.1,
+                if straddles { "odd" } else { "even" }
             );
             eprintln!(
                 "{group},{},{},{angle:.0}: graze window [{lo:.5}, {hi:.5}], closest turn {:.2} arcsec at {turn_jd:.5}, {inside} SE events",
@@ -668,7 +678,8 @@ fn lunar_points_main(args: &[String]) {
     grazes.push_str("# margin of a level (TrueApogee 12 arcsec, TrueNode/MeanNode/MeanApogee 3 arcsec). lo_jd_tt and hi_jd_tt are the first\n");
     grazes.push_str("# 0.005-day grid instants on each side at which |separation - level| >= 2 x margin; overlapping windows are merged and\n");
     grazes.push_str("# turn_jd_tt/miss_arcsec are the closest turn. se_events counts lunar-points.csv rows of the pair and angle inside [lo, hi]\n");
-    grazes.push_str("# (always even). Events inside a window may exist in one ephemeris only (issue #168 (c)).\n");
+    grazes.push_str("# (even when both edges lie on one side of the level, odd when they straddle it). Events inside a window may exist\n");
+    grazes.push_str("# in one ephemeris only; the gate requires each side's count to have se_events' parity (issue #168 (c)).\n");
     grazes.push_str(
         "group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events\n",
     );

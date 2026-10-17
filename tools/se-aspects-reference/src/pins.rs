@@ -80,7 +80,8 @@ pub fn sha256_hex(data: &[u8]) -> String {
         msg.push(0);
     }
     msg.extend_from_slice(&bit_len.to_be_bytes());
-    for chunk in msg.chunks_exact(64) {
+    let (blocks, _) = msg.as_chunks::<64>();
+    for chunk in blocks {
         let mut w = [0u32; 64];
         for (i, word) in w.iter_mut().take(16).enumerate() {
             *word = u32::from_be_bytes([
@@ -156,7 +157,10 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("se-pins-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let dir_str = dir.to_str().unwrap();
-        assert!(verify_swieph_files(dir_str).is_err(), "missing files must fail");
+        assert!(
+            verify_swieph_files(dir_str).is_err(),
+            "missing files must fail"
+        );
         for (name, _) in PINNED_FILES {
             std::fs::write(dir.join(name), b"not the real file").unwrap();
         }
