@@ -83,7 +83,7 @@ Non-goals:
 
 | Point | Margin | Measured engine−SE sep at turns |
 |---|---|---|
-| TrueNode, MeanNode, MeanApogee | 3″ | 0.82″ (TrueNode); MeanNode and MeanApogee are measured by the plan, which must find them ≤ 1″ |
+| TrueNode, MeanNode, MeanApogee | 3″ | 0.82″ (TrueNode); MeanNode and MeanApogee are measured by the plan as the gate's maximum separation residual over their pairs, which must be ≤ 1″ |
 | TrueApogee | 12″ | 3.6″ |
 
 If the plan measures a mean point above 1″ at turns, its margin becomes
@@ -112,8 +112,10 @@ group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events
 - The file has a header comment like the other corpora: source, pins, the
   margin table, and the window rule.
 
-The manifest `lunar-points-manifest.txt` gains a second line:
+It has its own one-line manifest, `lunar-points-grazes-manifest.txt`:
 `slice aspects-lunar-points-grazes file=lunar-points-grazes.csv role=grazes rows=N checksum=<fnv1a64>`.
+(The shared `corpus_manifest::slice_entry` reads one `slice` line per file,
+so a separate file keeps that parser unchanged.)
 
 **Stderr.** Each turn's miss is still logged per pair, and each window is
 logged as it is written.
@@ -131,8 +133,9 @@ logged as it is written.
 ## Gate (`crates/pleiades-validate`, `Scope::LunarPoints`)
 
 **Data:**
-- the committed `lunar-points-grazes.csv`, read with `include_str!`;
-- the manifest's second line, checked like the first (rows, checksum).
+- the committed `lunar-points-grazes.csv` and
+  `lunar-points-grazes-manifest.txt`, read with `include_str!` and checked
+  like the corpus (rows, checksum).
 
 **Bodies:** `body_from_name` gains `TrueApogee`, `MeanNode` and `MeanApogee`.
 `LUNAR_POINT_PAIRS` grows to the same 22 pairs, in the tool's order.
@@ -169,8 +172,9 @@ its angle, e.g. ±60°:
 - A pair whose outside-window longitude residual exceeds 10″ is a finding to
   investigate, not a ceiling to set.
 
-**Floors:** `MIN_ROWS_VALIDATED_LUNAR_POINTS` becomes the regenerated row
-count. TrueApogee's per-pair counts must equal the spike's table above; a
+**Floors:** `MIN_ROWS_VALIDATED_LUNAR_POINTS` becomes the regenerated count
+of corpus rows **outside** graze windows. Those rows are always compared;
+window rows may legitimately go uncompared (a 0/2 window). TrueApogee's per-pair counts must equal the spike's table above; a
 difference is investigated, not accepted.
 
 **Blocking tier:** `validate_aspects_corpus_subset()` already checks the
