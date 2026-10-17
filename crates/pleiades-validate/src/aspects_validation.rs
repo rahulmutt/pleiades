@@ -46,16 +46,18 @@
 
 use crate::aspects_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_ASTEROIDS,
-    MIN_ROWS_VALIDATED_LUNAR_POINTS, MIN_ROWS_VALIDATED_MEAN_SUBSET,
+    MIN_ROWS_VALIDATED_FICTITIOUS, MIN_ROWS_VALIDATED_LUNAR_POINTS, MIN_ROWS_VALIDATED_MEAN_SUBSET,
 };
 use pleiades_apparent::fnv1a64;
-use pleiades_data::packaged_backend;
+use pleiades_backend::{EphemerisBackend, RoutingBackend};
+use pleiades_data::{packaged_backend, PackagedDataBackend};
 use pleiades_events::{CrossingFrame, CrossingReference, EventEngine};
+use pleiades_fict::FictitiousBackend;
 use pleiades_types::{Angle, CelestialBody, Instant, JulianDay, TimeScale};
 
 mod grazes;
 
-use grazes::{check_grazes, split_windows, windows_of, WindowStats};
+use grazes::{check_grazes, split_windows, windows_of, GrazeWindow, WindowStats};
 
 const CORPUS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -89,6 +91,22 @@ const LUNAR_POINT_GRAZES_MANIFEST: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/aspects-corpus/lunar-points-grazes-manifest.txt"
 ));
+const FICTITIOUS_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/aspects-corpus/fictitious.csv"
+));
+const FICTITIOUS_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/aspects-corpus/fictitious-manifest.txt"
+));
+const FICTITIOUS_GRAZES_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/aspects-corpus/fictitious-grazes.csv"
+));
+const FICTITIOUS_GRAZES_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/aspects-corpus/fictitious-grazes-manifest.txt"
+));
 
 /// The spans `tools/se-aspects-reference` scanned (Julian days, TT). The
 /// full span is the engine's window less five days at each end, so neither
@@ -121,6 +139,13 @@ enum Scope {
     /// [`LUNAR_POINT_PAIRS`], with graze windows compared by count parity
     /// (`lunar-points-grazes.csv`). Part of the full gate only (issue #168).
     LunarPoints,
+    /// The fictitious-body corpus (`fictitious.csv`, Swiss Ephemeris SWIEPH with
+    /// `seorbel.txt`, mean-of-date frame): the 19 fictitious bodies against the
+    /// Sun and nine of them against Saturn ([`FICTITIOUS_PAIRS`]), served by the
+    /// fictitious backend routed beside the packaged one, with graze windows
+    /// compared by count parity (`fictitious-grazes.csv`). Part of the full gate
+    /// and its own command (issue #168).
+    Fictitious,
 }
 
 impl Scope {
@@ -128,7 +153,7 @@ impl Scope {
         match self {
             Self::Full => true,
             Self::MeanSubset => group == Group::Mean,
-            Self::Asteroids | Self::LunarPoints => true,
+            Self::Asteroids | Self::LunarPoints | Self::Fictitious => true,
         }
     }
 
@@ -138,6 +163,7 @@ impl Scope {
             Self::MeanSubset => MIN_ROWS_VALIDATED_MEAN_SUBSET,
             Self::Asteroids => MIN_ROWS_VALIDATED_ASTEROIDS,
             Self::LunarPoints => MIN_ROWS_VALIDATED_LUNAR_POINTS,
+            Self::Fictitious => MIN_ROWS_VALIDATED_FICTITIOUS,
         }
     }
 
@@ -148,6 +174,7 @@ impl Scope {
             Self::MeanSubset => "Aspects gate (mean subset)",
             Self::Asteroids => "Asteroid aspects",
             Self::LunarPoints => "Lunar-point aspects",
+            Self::Fictitious => "Fictitious-body aspects",
         }
     }
 
@@ -157,6 +184,7 @@ impl Scope {
             Self::Full | Self::MeanSubset => &PAIRS,
             Self::Asteroids => &ASTEROID_PAIRS,
             Self::LunarPoints => &LUNAR_POINT_PAIRS,
+            Self::Fictitious => &FICTITIOUS_PAIRS,
         }
     }
 }
@@ -273,6 +301,39 @@ const LUNAR_POINT_PAIRS: [Pair; 22] = [
     pair(Group::Geo, "MeanApogee", "Pluto", FULL_SPAN),
 ];
 
+/// The fictitious-body corpus plan, mirroring the `--fictitious` mode of
+/// `tools/se-aspects-reference`.
+const FICTITIOUS_PAIRS: [Pair; 28] = [
+    pair(Group::Mean, "Cupido", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Hades", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Zeus", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Kronos", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Apollon", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Admetos", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Vulkanus", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Poseidon", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Transpluto", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Nibiru", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Harrington", "Sun", FULL_SPAN),
+    pair(Group::Mean, "NeptuneLeverrier", "Sun", FULL_SPAN),
+    pair(Group::Mean, "NeptuneAdams", "Sun", FULL_SPAN),
+    pair(Group::Mean, "PlutoLowell", "Sun", FULL_SPAN),
+    pair(Group::Mean, "PlutoPickering", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Vulcan", "Sun", FULL_SPAN),
+    pair(Group::Mean, "WhiteMoon", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Proserpina", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Waldemath", "Sun", FULL_SPAN),
+    pair(Group::Mean, "Cupido", "Saturn", FULL_SPAN),
+    pair(Group::Mean, "Hades", "Saturn", FULL_SPAN),
+    pair(Group::Mean, "Zeus", "Saturn", FULL_SPAN),
+    pair(Group::Mean, "Kronos", "Saturn", FULL_SPAN),
+    pair(Group::Mean, "Apollon", "Saturn", FULL_SPAN),
+    pair(Group::Mean, "Admetos", "Saturn", FULL_SPAN),
+    pair(Group::Mean, "Vulkanus", "Saturn", FULL_SPAN),
+    pair(Group::Mean, "Poseidon", "Saturn", FULL_SPAN),
+    pair(Group::Mean, "Transpluto", "Saturn", FULL_SPAN),
+];
+
 fn body_from_name(name: &str) -> Option<CelestialBody> {
     Some(match name {
         "Sun" => CelestialBody::Sun,
@@ -293,6 +354,25 @@ fn body_from_name(name: &str) -> Option<CelestialBody> {
         "TrueApogee" => CelestialBody::TrueApogee,
         "MeanNode" => CelestialBody::MeanNode,
         "MeanApogee" => CelestialBody::MeanApogee,
+        "Cupido" => CelestialBody::Cupido,
+        "Hades" => CelestialBody::Hades,
+        "Zeus" => CelestialBody::Zeus,
+        "Kronos" => CelestialBody::Kronos,
+        "Apollon" => CelestialBody::Apollon,
+        "Admetos" => CelestialBody::Admetos,
+        "Vulkanus" => CelestialBody::Vulkanus,
+        "Poseidon" => CelestialBody::Poseidon,
+        "Transpluto" => CelestialBody::Transpluto,
+        "Nibiru" => CelestialBody::Nibiru,
+        "Harrington" => CelestialBody::Harrington,
+        "NeptuneLeverrier" => CelestialBody::NeptuneLeverrier,
+        "NeptuneAdams" => CelestialBody::NeptuneAdams,
+        "PlutoLowell" => CelestialBody::PlutoLowell,
+        "PlutoPickering" => CelestialBody::PlutoPickering,
+        "Vulcan" => CelestialBody::Vulcan,
+        "WhiteMoon" => CelestialBody::WhiteMoon,
+        "Proserpina" => CelestialBody::Proserpina,
+        "Waldemath" => CelestialBody::Waldemath,
         _ => return None,
     })
 }
@@ -314,7 +394,7 @@ struct Expected {
 }
 
 /// One corpus row, with its pair and angle as indices into the corpus plan
-/// it was parsed against ([`PAIRS`], [`ASTEROID_PAIRS`] or [`LUNAR_POINT_PAIRS`]) and into
+/// it was parsed against ([`PAIRS`], [`ASTEROID_PAIRS`], [`LUNAR_POINT_PAIRS`] or [`FICTITIOUS_PAIRS`]) and into
 /// [`ANGLES_DEG`].
 #[derive(Clone, Copy, Debug)]
 struct Row {
@@ -725,7 +805,7 @@ fn check_manifest(csv: &str, manifest: &str, pairs: &[Pair]) -> Result<Vec<Row>,
 }
 
 /// `grazes` is the graze-window file and its manifest, for the lunar-point
-/// scope; every other scope passes `None`.
+/// and fictitious scopes; every other scope passes `None`.
 fn validate_scoped(
     csv: &str,
     manifest: &str,
@@ -740,7 +820,33 @@ fn validate_scoped(
         None => Vec::new(),
     };
 
-    let engine = EventEngine::new(packaged_backend());
+    // The fictitious bodies are served by their own backend, routed beside the
+    // packaged one for the planets; every other scope needs the packaged one.
+    match scope {
+        Scope::Fictitious => {
+            let engine = EventEngine::new(RoutingBackend::new(vec![
+                Box::new(PackagedDataBackend::new()),
+                Box::new(FictitiousBackend::new(PackagedDataBackend::new())),
+            ]));
+            compare_scope(&engine, scope, &rows, &windows)
+        }
+        _ => compare_scope(
+            &EventEngine::new(packaged_backend()),
+            scope,
+            &rows,
+            &windows,
+        ),
+    }
+}
+
+/// Compares every in-scope pair of `rows` (and the graze `windows`) with the
+/// events `engine` finds.
+fn compare_scope<B: EphemerisBackend>(
+    engine: &EventEngine<B>,
+    scope: Scope,
+    rows: &[Row],
+    windows: &[GrazeWindow],
+) -> Result<AspectsReport, AspectsError> {
     // The corpus epoch is TT; the engine reads the Julian day as TDB. The two
     // differ by under 2 ms, far below every ceiling here.
     let tdb = |jd: f64| Instant::new(JulianDay::from_days(jd), TimeScale::Tdb);
@@ -798,7 +904,7 @@ fn validate_scoped(
             counts.push(format!("{angle_deg:.0}°: {}", found.len()));
             let (found, corpus, stats) = split_windows(
                 &label,
-                &windows_of(&windows, pair_index, angle_index),
+                &windows_of(windows, pair_index, angle_index),
                 &found,
                 &corpus,
             )?;
@@ -816,7 +922,7 @@ fn validate_scoped(
             residuals.mean_signed_time_s(),
             residuals.max_lon_arcsec,
         );
-        if scope == Scope::LunarPoints {
+        if matches!(scope, Scope::LunarPoints | Scope::Fictitious) {
             line.push_str(&format!(
                 ", graze windows {} ({} differing, {} events compared inside, max sep {:.3}\", max time {:.1} s, max lon {:.3}\")",
                 window_stats.windows,
@@ -834,6 +940,7 @@ fn validate_scoped(
     let source = match scope {
         Scope::Asteroids => "Swiss Ephemeris SWIEPH (seas_18) corpus",
         Scope::LunarPoints => "Swiss Ephemeris SWIEPH corpus",
+        Scope::Fictitious => "Swiss Ephemeris SWIEPH corpus (mean of date)",
         Scope::Full | Scope::MeanSubset => "Swiss Ephemeris corpus",
     };
     let summary_line = format!(
@@ -878,7 +985,24 @@ fn validate_scoped(
 pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
     let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids, None)?;
-    Ok(planets.merged_with(asteroids))
+    let fictitious = validate_fictitious_aspects_corpus()?;
+    Ok(planets.merged_with(asteroids).merged_with(fictitious))
+}
+
+/// The fictitious-body gate: the 19 fictitious bodies against the Sun and
+/// Cupido to Poseidon and Transpluto against Saturn (28 pairs), in the
+/// mean-of-date frame (SWIEPH with `seorbel.txt`), floor
+/// `MIN_ROWS_VALIDATED_FICTITIOUS` (every corpus row outside a graze window).
+/// Inside a graze window only the parity of the event counts is checked. Run
+/// by `validate-aspects-fictitious` and, with the planets and asteroids, by
+/// `validate-aspects`.
+pub fn validate_fictitious_aspects_corpus() -> Result<AspectsReport, AspectsError> {
+    validate_scoped(
+        FICTITIOUS_CSV,
+        FICTITIOUS_MANIFEST,
+        Scope::Fictitious,
+        Some((FICTITIOUS_GRAZES_CSV, FICTITIOUS_GRAZES_MANIFEST)),
+    )
 }
 
 /// The lunar-point gate: the 22 pairs of the true node and mean node (against
@@ -914,7 +1038,8 @@ pub fn validate_lunar_point_aspects_corpus() -> Result<AspectsReport, AspectsErr
 /// `asteroids.csv` or a stale manifest fails the blocking tier rather than
 /// only the nightly full gate. The lunar-point corpus (`lunar-points.csv`) is
 /// checked the same way, and the graze-window file (`lunar-points-grazes.csv`)
-/// is checked against its manifest and the lunar-point corpus.
+/// is checked against its manifest and the lunar-point corpus. The
+/// fictitious-body corpus and its graze windows are checked the same way.
 pub fn validate_aspects_corpus_subset() -> Result<AspectsReport, AspectsError> {
     validate_subset(
         ASTEROID_CSV,
@@ -923,12 +1048,19 @@ pub fn validate_aspects_corpus_subset() -> Result<AspectsReport, AspectsError> {
         LUNAR_POINT_MANIFEST,
         LUNAR_POINT_GRAZES_CSV,
         LUNAR_POINT_GRAZES_MANIFEST,
+        FICTITIOUS_CSV,
+        FICTITIOUS_MANIFEST,
+        FICTITIOUS_GRAZES_CSV,
+        FICTITIOUS_GRAZES_MANIFEST,
     )
 }
 
-/// [`validate_aspects_corpus_subset`] with the asteroid, lunar-point and
-/// graze-window files passed in, so a test can hand it a tampered file or
+/// [`validate_aspects_corpus_subset`] with the asteroid, lunar-point,
+/// fictitious-body and graze-window files passed in, so a test can hand it a tampered file or
 /// manifest.
+// One (corpus, manifest) pair per checked file is the point of this seam: a test
+// hands it one tampered file among the otherwise committed ones.
+#[allow(clippy::too_many_arguments)]
 fn validate_subset(
     asteroid_csv: &str,
     asteroid_manifest: &str,
@@ -936,10 +1068,21 @@ fn validate_subset(
     lunar_manifest: &str,
     grazes_csv: &str,
     grazes_manifest: &str,
+    fictitious_csv: &str,
+    fictitious_manifest: &str,
+    fictitious_grazes_csv: &str,
+    fictitious_grazes_manifest: &str,
 ) -> Result<AspectsReport, AspectsError> {
     check_manifest(asteroid_csv, asteroid_manifest, &ASTEROID_PAIRS)?;
     let lunar_rows = check_manifest(lunar_csv, lunar_manifest, &LUNAR_POINT_PAIRS)?;
     check_grazes(grazes_csv, grazes_manifest, &LUNAR_POINT_PAIRS, &lunar_rows)?;
+    let fictitious_rows = check_manifest(fictitious_csv, fictitious_manifest, &FICTITIOUS_PAIRS)?;
+    check_grazes(
+        fictitious_grazes_csv,
+        fictitious_grazes_manifest,
+        &FICTITIOUS_PAIRS,
+        &fictitious_rows,
+    )?;
     validate_scoped(CORPUS_CSV, MANIFEST, Scope::MeanSubset, None)
 }
 

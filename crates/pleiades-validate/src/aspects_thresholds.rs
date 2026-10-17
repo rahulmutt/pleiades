@@ -63,6 +63,12 @@ pub(crate) const MIN_ROWS_VALIDATED_ASTEROIDS: usize = 10_118;
 /// `lunar-points-grazes.csv` hold).
 pub(crate) const MIN_ROWS_VALIDATED_LUNAR_POINTS: usize = 22_596;
 
+/// Fail-closed floor for the fictitious-body corpus: the rows of
+/// `fictitious.csv` (38733) outside its graze windows, which are compared by
+/// count parity and not counted here. `fictitious-grazes.csv` holds no windows,
+/// so every row is compared.
+pub(crate) const MIN_ROWS_VALIDATED_FICTITIOUS: usize = 38_733;
+
 /// Ceilings by corpus pair name (`"Mars-Saturn"`), or `None` for a pair the
 /// gate does not cover.
 pub(crate) fn ceilings_for(pair: &str) -> Option<Ceilings> {
@@ -274,6 +280,146 @@ pub(crate) fn ceilings_for(pair: &str) -> Option<Ceilings> {
         "MeanApogee-Pluto" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Cupido-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Hades-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Zeus-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Kronos-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Apollon-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Admetos-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Vulkanus-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Poseidon-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Transpluto-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Nibiru-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Harrington-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "NeptuneLeverrier-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "NeptuneAdams-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "PlutoLowell-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "PlutoPickering-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Vulcan-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "WhiteMoon-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Proserpina-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Waldemath-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Cupido-Saturn" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Hades-Saturn" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Zeus-Saturn" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Kronos-Saturn" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Apollon-Saturn" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Admetos-Saturn" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Vulkanus-Saturn" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Poseidon-Saturn" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        "Transpluto-Saturn" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
         }),
         _ => None,
     }
