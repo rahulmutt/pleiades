@@ -217,10 +217,17 @@ relative speed:
 | Saturn–Pluto | 109 | 1.565″ | 744.8 s | 1.662″ |
 
 The gate also covers Mercury–Venus and Mars–Saturn in the mean place and
-Mars–Jupiter from the Sun. Aspects of the true node are gated against
-Swiss Ephemeris SWIEPH for seven planets (Sun, Mars, Jupiter, Saturn, Uranus,
-Neptune, Pluto, 1900–2100), including turns 3.6″ and 4.1″ from an angle; the
-other lunar points and the fictitious bodies are found but not gated.
+Mars–Jupiter from the Sun. Aspects of the lunar points are gated against
+Swiss Ephemeris SWIEPH, 1900–2100: TrueNode and MeanNode with seven planets
+(Sun, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto), TrueApogee and
+MeanApogee with four (Sun, Jupiter, Saturn, Pluto), event for event. Near-tangent
+turns are graze windows (`lunar-points-grazes.csv`; four, all TrueApogee):
+inside a window events may exist in one ephemeris only and are compared by
+count parity, outside it strictly. The lunar corpus has 22600 rows, 22596
+compared strictly; outside the windows the separation is within 3.113″
+(TrueApogee–Saturn) and the longitude within 2.232″ (MeanApogee–Saturn), and the
+closest gated turn is a 1.84″ TrueApogee–Jupiter graze, inside a window. The
+fictitious bodies and the mean and osculating perigees are found but not gated.
 Asteroid aspects are gated against Swiss Ephemeris SWIEPH (`seas_18`): the
 Sun with Ceres, Pallas, Juno and Vesta, Mars–Vesta and Jupiter–Ceres over
 1900–2100, and Moon–Ceres over 1990–2030 (issue #168 (f)). Eros is searched

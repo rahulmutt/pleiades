@@ -25,7 +25,7 @@
 //!
 //! The true-node pairs (issue #168) were measured on 2026-10-16 against the
 //! SWIEPH (sepl_18/semo_18) corpus: measured × 1.4, floored at 2.3"; the
-//! point itself agrees within 0.94" over 1900-2100. The true-apogee and
+//! point itself agrees within 0.94" over 1900-2100. The osculating-apogee,
 //! mean-node and mean-apogee pairs (issue #168) were measured on 2026-10-17
 //! against the same SWIEPH (sepl/semo) corpus, under the same × 1.4 and 2.3"
 //! rule. Events inside a graze window are reported, not ceiling-checked.

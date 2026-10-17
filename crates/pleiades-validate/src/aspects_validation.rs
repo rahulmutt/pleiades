@@ -10,13 +10,13 @@
 //! depends on the ephemeris. See `aspects_thresholds` for the ceilings.
 //!
 //! Tiers: the full gate (`mise run gate-aspects`: planets, asteroids and the
-//! true node; about 2 minutes on the 4-core nightly runner before the
-//! lunar-point pass (#168), 2026-10-15, not yet measured on it since, and about
-//! 19 minutes locally at load 13-15.6, 2026-10-16; see
+//! lunar points; 5m58s on the 4-core nightly runner, 2026-10-16, before the
+//! apogee and mean points, and 927 s locally at load 8-14, 2026-10-17; see
 //! [`validate_aspects_corpus`]) runs in its own nightly job and in
 //! `release-gate`; the `mean` subset (about 16 s) runs in the release
 //! battery (`release-smoke`), after a scan-free checksum and row-count check
-//! of the asteroid and true-node corpora (issue #254).
+//! of the asteroid and lunar-point corpora and a check of the graze-window
+//! file against its manifest and the corpus (issue #254).
 //!
 //! Asteroids (issue #168): Sun–Ceres, Sun–Pallas, Sun–Juno, Sun–Vesta,
 //! Mars–Vesta and Jupiter–Ceres over 1900–2100 and Moon–Ceres over 1990–2030
@@ -849,19 +849,21 @@ fn validate_scoped(
 /// graze windows, SWIEPH, 3" graze margin). Run by
 /// `validate-aspects` / `mise run gate-aspects` (its own nightly job and a
 /// `release-gate` dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test.
-/// Measured on the 4-core nightly runner with both passes (five nightly
-/// runs at 3f5849db6, 2026-10-11..15, warm build): the gate command takes
-/// 77–151 s (median 114 s) and the whole `aspects-gate` job 2m00s–3m07s,
-/// against an 80-min step and 90-min job timeout. The gate does not time its
+/// Measured on the 4-core nightly runner with the planet and asteroid passes
+/// (five nightly runs at 3f5849db6, 2026-10-11..15, warm build): the gate
+/// command takes 77–151 s (median 114 s) and the whole `aspects-gate` job
+/// 2m00s–3m07s, against an 80-min step and 90-min job timeout. The gate does not time its
 /// passes; the planets-only command took 82 s at b23c6ca39 (2026-10-10, the
 /// run before #251), so the asteroid pass (`Scope::Asteroids`, seven pairs)
 /// is roughly 30 s there, less than the run-to-run spread above. On the
 /// 24-core dev box under load it took 54.5 s in the release profile
 /// (2026-10-10). The true-node pass took the local full gate to 18m56s at
-/// load 13–15.6 (2026-10-16), against 125–153 s before at load 5–12; it has
-/// not yet been measured on the nightly runner. If it pushes the nightly full
-/// gate past 15 minutes, the lunar pass is to be split into its own
-/// subcommand, as the spec's contingency says. The first measurements, 880 s
+/// load 13–15.6 (2026-10-16), against 125–153 s before at load 5–12; the
+/// nightly runner then measured the full gate at 5m58s (2026-10-16, run
+/// 38971941852, before the apogee and mean points). With the apogee and mean
+/// points the local full gate took 927 s (release, load 8–14, 2026-10-17),
+/// about 5 minutes nightly at the measured local-to-nightly ratio of about
+/// 3.2, so the lunar pass is not split out. The first measurements, 880 s
 /// as the command and 1110.8 s as the in-crate test (dev/test profile,
 /// 2026-10-02, planet pairs only), predate the event-engine speedups since
 /// and are why the gate left nightly `test-full`.
@@ -886,8 +888,9 @@ pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
 /// Before that it verifies the asteroid corpus's checksum and row count
 /// against its manifest, with no engine scan (issue #254), so a hand-edited
 /// `asteroids.csv` or a stale manifest fails the blocking tier rather than
-/// only the nightly full gate. The true-node corpus (`lunar-points.csv`) is
-/// checked the same way.
+/// only the nightly full gate. The lunar-point corpus (`lunar-points.csv`) is
+/// checked the same way, and the graze-window file (`lunar-points-grazes.csv`)
+/// is checked against its manifest and the lunar-point corpus.
 pub fn validate_aspects_corpus_subset() -> Result<AspectsReport, AspectsError> {
     validate_subset(
         ASTEROID_CSV,

@@ -807,6 +807,28 @@ fn mean_subset_fails_tampered_graze_windows() {
 }
 
 #[test]
+fn mean_subset_fails_a_window_whose_se_events_disagree() {
+    let tampered = LUNAR_POINT_GRAZES_CSV.replacen(",2\n", ",4\n", 1);
+    assert_ne!(tampered, LUNAR_POINT_GRAZES_CSV);
+    let (rows, _) = parse_manifest(LUNAR_POINT_GRAZES_MANIFEST).unwrap();
+    let manifest = format!(
+        "slice aspects-lunar-points-grazes file=lunar-points-grazes.csv role=grazes rows={rows} checksum={}\n",
+        fnv1a64(&tampered)
+    );
+    assert!(matches!(
+        validate_subset(
+            ASTEROID_CSV,
+            ASTEROID_MANIFEST,
+            LUNAR_POINT_CSV,
+            LUNAR_POINT_MANIFEST,
+            &tampered,
+            &manifest
+        ),
+        Err(AspectsError::GrazeEventCount { .. })
+    ));
+}
+
+#[test]
 fn mean_subset_fails_a_graze_manifest_row_count_drift() {
     let (rows, checksum) = parse_manifest(LUNAR_POINT_GRAZES_MANIFEST).unwrap();
     let drifted = format!(
