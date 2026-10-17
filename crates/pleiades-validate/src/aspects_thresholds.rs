@@ -30,6 +30,16 @@
 //! against the same SWIEPH (sepl/semo) corpus, under the same × 1.4 and 2.3"
 //! rule. Events inside a graze window are reported, not ceiling-checked.
 //!
+//! The fictitious-body pairs (issue #168) were measured on 2026-10-17 against
+//! the SWIEPH (sepl/semo) fictitious corpus: 28 pairs and 38733 events, with no
+//! graze windows, so every event is ceiling-checked. They are gated in the
+//! mean-of-date frame, geometric with no light-time correction, because SE's
+//! light-time correction for fictitious bodies jumps by up to about 5" at
+//! isolated instants. Each ceiling is the measured maximum times 1.4, rounded
+//! up to two significant figures and floored at 2.3", set separately for
+//! separation and longitude. Nibiru's pairs carry their own ceilings: a steady
+//! +1.26" offset against SE.
+//!
 //! The longitude ceiling bounds the difference of either body's longitude
 //! at the event. It includes the body's motion over the time residual.
 
@@ -281,145 +291,150 @@ pub(crate) fn ceilings_for(pair: &str) -> Option<Ceilings> {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // Fictitious bodies are gated in the mean-of-date frame: geometric, with no
+        // light-time correction, because SE's light-time correction for fictitious
+        // bodies jumps by up to about 5" at isolated instants. Ceilings are measured
+        // × 1.4 rounded up to two significant figures, floored at 2.3"; Nibiru carries
+        // a steady +1.26" offset against SE.
+        // measured max 0.322", 0.613" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Cupido-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.322", 0.612" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Hades-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.321", 0.612" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Zeus-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.320", 0.612" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Kronos-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.320", 0.612" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Apollon-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.319", 0.608" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Admetos-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.319", 0.611" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Vulkanus-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.319", 0.611" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Poseidon-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.186", 0.482" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Transpluto-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 1.284", 1.578" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Nibiru-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.024", 0.317" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Harrington-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.481", 0.765" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "NeptuneLeverrier-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.479", 0.765" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "NeptuneAdams-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.234", 0.525" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "PlutoLowell-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.234", 0.525" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "PlutoPickering-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.095", 0.355" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Vulcan-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.308", 0.061" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "WhiteMoon-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.316", 0.014" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Proserpina-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.309", 0.545" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Waldemath-Sun" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.311", 0.864" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Cupido-Saturn" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.309", 0.703" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Hades-Saturn" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.309", 0.698" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Zeus-Saturn" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.308", 0.776" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Kronos-Saturn" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.308", 0.649" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Apollon-Saturn" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.309", 0.630" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Admetos-Saturn" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.308", 0.656" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Vulkanus-Saturn" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.308", 0.696" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Poseidon-Saturn" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
-        // PROVISIONAL (Task 3 of the 2026-10-17 fictitious plan); measured in Task 4
+        // measured max 0.175", 0.488" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
         "Transpluto-Saturn" => Some(Ceilings {
-            sep_arcsec: 5.0,
-            lon_arcsec: 5.0,
+            sep_arcsec: 2.3,
+            lon_arcsec: 2.3,
         }),
         _ => None,
     }
