@@ -1,7 +1,7 @@
 [package]
 name = "pleiades-events"
 description = "Ephemeris event-finding for the pleiades astrology workspace: longitude crossings (solcross / mooncross / general-body / heliocentric helio_cross), ecliptic positions, planetary stations and exact aspects, derived from pleiades' validated body positions."
-version = "0.9.0"
+version = "0.9.1"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true

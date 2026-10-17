@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.6.2] - 2026-10-17
+
+### Added
+
+- Generate README capability blocks from backend metadata and audit them ([#166](https://github.com/rahulmutt/pleiades/pull/166)) ([#267](https://github.com/rahulmutt/pleiades/pull/267)) ([feb59f6](https://github.com/rahulmutt/pleiades/commit/feb59f628ebd0ccfe57a54b96e478de54bc6fa72))
+
 ## [0.6.1] - 2026-10-07
 
 ### Fixed

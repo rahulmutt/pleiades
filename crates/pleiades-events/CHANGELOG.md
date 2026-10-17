@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.9.1] - 2026-10-17
+
+### Added
+
+- Find aspects at several angles in one scan (#168 (e)) ([#266](https://github.com/rahulmutt/pleiades/pull/266)) ([18a0163](https://github.com/rahulmutt/pleiades/commit/18a016317bb4514d8bc46191bdc6091e10191a86))
+- Gate true-node aspects against Swiss Ephemeris SWIEPH ([#168](https://github.com/rahulmutt/pleiades/pull/168)) ([#269](https://github.com/rahulmutt/pleiades/pull/269)) ([0f7453f](https://github.com/rahulmutt/pleiades/commit/0f7453fa8f096c772593f0dcccc5b94e2423c5bd))
+- Gate osculating-apogee and mean-point aspects against SWIEPH, with graze windows and their own nightly job ([#168](https://github.com/rahulmutt/pleiades/pull/168)) ([#272](https://github.com/rahulmutt/pleiades/pull/272)) ([a12ec90](https://github.com/rahulmutt/pleiades/commit/a12ec909d9224ebe8af218db9fc60f9efaf97342))
+- Gate fictitious-body aspects against SWIEPH in the mean-of-date frame ([#168](https://github.com/rahulmutt/pleiades/pull/168)) ([#273](https://github.com/rahulmutt/pleiades/pull/273)) ([44e1f14](https://github.com/rahulmutt/pleiades/commit/44e1f14d65625efabe5c9965aa7cc20e82e7a40e))
+
+### Fixed
+
+- Compute the Earth-Moon μ from its derivation; the osculating apogee now matches Swiss Ephemeris to 1.8″ ([#168](https://github.com/rahulmutt/pleiades/pull/168)) ([#271](https://github.com/rahulmutt/pleiades/pull/271)) ([fbce23b](https://github.com/rahulmutt/pleiades/commit/fbce23b341aeeba1e610ae3473b754161e73450a))
+
+### Performance
+
+- Interpolate the third light-time step instead of querying the backend ([#247](https://github.com/rahulmutt/pleiades/pull/247)) ([#248](https://github.com/rahulmutt/pleiades/pull/248)) ([cc8e20b](https://github.com/rahulmutt/pleiades/commit/cc8e20bb3447d779002f82a16b76b5c65cc8a300))
+
 ## [0.9.0] - 2026-10-08
 
 ### Breaking Changes
