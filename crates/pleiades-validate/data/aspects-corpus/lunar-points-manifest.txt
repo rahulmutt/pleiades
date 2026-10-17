@@ -1,1 +1,1 @@
-slice aspects-lunar-points file=lunar-points.csv role=aspects rows=3424 checksum=10985784358451353158
+slice aspects-lunar-points file=lunar-points.csv role=aspects rows=22600 checksum=17431195134162698173

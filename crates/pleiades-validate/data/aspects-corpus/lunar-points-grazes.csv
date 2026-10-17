@@ -1,0 +1,12 @@
+# Source: as lunar-points.csv (Swiss Ephemeris 2.10.03, SEFLG_SWIEPH, sepl_18/semo_18 SHA-256 pinned).
+# One row per graze window of a lunar-point pair and angle: a turning point of the separation within the pair's
+# margin of a level (TrueApogee 12 arcsec, TrueNode/MeanNode/MeanApogee 3 arcsec). lo_jd_tt and hi_jd_tt are the first
+# 0.005-day grid instants on each side at which |separation - level| >= 2 x margin; overlapping windows are merged and
+# turn_jd_tt/miss_arcsec are the closest turn. se_events counts lunar-points.csv rows of the pair and angle inside [lo, hi]
+# (even when both edges lie on one side of the level, odd when they straddle it). Events inside a window may exist
+# in one ephemeris only; the gate requires each side's count to have se_events' parity (issue #168 (c)).
+group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events
+geo,TrueApogee,Sun,120,2436820.4509404,8.765,2436820.2900000,2436820.6100000,2
+geo,TrueApogee,Jupiter,60,2420750.8221828,1.843,2420750.7000000,2420750.9450000,2
+geo,TrueApogee,Jupiter,60,2470546.8581345,5.364,2470546.7650000,2470546.9550000,0
+geo,TrueApogee,Pluto,0,2461421.1716167,7.470,2461421.0850000,2461421.2600000,0
