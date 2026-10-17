@@ -224,6 +224,13 @@ nightly job (`aspects-lunar-gate`). It then also becomes a `release-gate`
 dependency. That is a conditional plan step. Otherwise nothing moves, and
 the first nightly run after merge is reported on #168.
 
+**Outcome (2026-10-17):** the prediction was about 5 minutes (927 s local ÷ 3.2),
+but a nightly run dispatched on the branch measured the combined gate step at
+**15m40s** (run 39039081162). The local-to-nightly ratio of the true-node pass
+did not carry over to the apogee pairs. So the split was made: the subcommand
+`validate-aspects-lunar`, the mise task `gate-aspects-lunar`, and the nightly
+job `aspects-lunar-gate`, which is a `release-gate` dependency.
+
 ## Documentation
 
 - `crates/pleiades-events/README.md`, which says which aspects are gated:
