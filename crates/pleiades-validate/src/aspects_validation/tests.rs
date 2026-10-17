@@ -1,3 +1,4 @@
+use super::grazes::{parse_grazes, split_windows, GrazeWindow};
 use super::*;
 
 const CEILINGS: Ceilings = Ceilings {
@@ -381,14 +382,33 @@ fn aspects_gate_passes_within_ceilings() {
         eprintln!("{line}");
     }
     eprintln!("full gate: {:.1} s", started.elapsed().as_secs_f64());
-    assert!(
-        report.rows_validated
-            >= MIN_ROWS_VALIDATED + MIN_ROWS_VALIDATED_ASTEROIDS + MIN_ROWS_VALIDATED_LUNAR_POINTS
-    );
+    assert!(report.rows_validated >= MIN_ROWS_VALIDATED + MIN_ROWS_VALIDATED_ASTEROIDS);
     assert_eq!(
         report.pair_lines().len(),
-        PAIRS.len() + ASTEROID_PAIRS.len() + LUNAR_POINT_PAIRS.len()
+        PAIRS.len() + ASTEROID_PAIRS.len()
     );
+}
+
+// Opt-in like the gate above: the lunar-point pass is the long half of the
+// exact-aspect gate (`mise run gate-aspects-lunar`, its own nightly job and a
+// `release-gate` dependency).
+#[test]
+fn lunar_point_aspects_gate_passes_within_ceilings() {
+    if std::env::var("PLEIADES_FULL_ASPECTS_GATE").as_deref() != Ok("1") {
+        eprintln!(
+            "lunar_point_aspects_gate_passes_within_ceilings: skipped; set PLEIADES_FULL_ASPECTS_GATE=1 to run the lunar-point gate"
+        );
+        return;
+    }
+    let started = std::time::Instant::now();
+    let report = validate_lunar_point_aspects_corpus().expect("lunar-point aspects gate passes");
+    eprintln!("{}", report.summary_line());
+    for line in report.pair_lines() {
+        eprintln!("{line}");
+    }
+    eprintln!("lunar-point gate: {:.1} s", started.elapsed().as_secs_f64());
+    assert!(report.rows_validated >= MIN_ROWS_VALIDATED_LUNAR_POINTS);
+    assert_eq!(report.pair_lines().len(), LUNAR_POINT_PAIRS.len());
 }
 
 #[test]
@@ -427,7 +447,7 @@ fn a_tampered_corpus_fails_the_checksum_in_either_scope() {
         Err(AspectsError::ChecksumMismatch { .. })
     ));
     assert!(matches!(
-        validate_scoped(&tampered, MANIFEST, Scope::MeanSubset),
+        validate_scoped(&tampered, MANIFEST, Scope::MeanSubset, None),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
 }
@@ -440,7 +460,7 @@ fn manifest_row_count_drift_fails_closed() {
         rows + 1
     );
     assert!(matches!(
-        validate_scoped(CORPUS_CSV, &manifest, Scope::MeanSubset),
+        validate_scoped(CORPUS_CSV, &manifest, Scope::MeanSubset, None),
         Err(AspectsError::ManifestDrift { .. })
     ));
 }
@@ -450,7 +470,7 @@ fn a_corpus_missing_an_event_fails_the_count() {
     let line = first_mean_mars_saturn_conjunction();
     let without = CORPUS_CSV.replacen(&format!("{line}\n"), "", 1);
     assert_ne!(without, CORPUS_CSV);
-    match validate_scoped(&without, &manifest_for(&without), Scope::MeanSubset) {
+    match validate_scoped(&without, &manifest_for(&without), Scope::MeanSubset, None) {
         Err(AspectsError::CountMismatch { series, got, want }) => {
             assert_eq!(series, "mean Mars-Saturn 0");
             assert_eq!(got, want + 1);
@@ -469,7 +489,7 @@ fn a_shifted_reference_instant_exceeds_the_separation_ceiling() {
     fields[4] = format!("{:.7}", jd + 0.05);
     let shifted = CORPUS_CSV.replacen(line, &fields.join(","), 1);
     assert_ne!(shifted, CORPUS_CSV);
-    match validate_scoped(&shifted, &manifest_for(&shifted), Scope::MeanSubset) {
+    match validate_scoped(&shifted, &manifest_for(&shifted), Scope::MeanSubset, None) {
         Err(AspectsError::CeilingExceeded { series, kind, .. }) => {
             assert_eq!(series, "mean Mars-Saturn 0");
             assert_eq!(kind, "separation_arcsec");
@@ -546,7 +566,7 @@ fn asteroid_corpus_tampering_fails_closed() {
     let tampered = ASTEROID_CSV.replacen("geo,Sun,Ceres,", "geo,Sun,Ceres, ", 1);
     assert_ne!(tampered, ASTEROID_CSV);
     assert!(matches!(
-        validate_scoped(&tampered, ASTEROID_MANIFEST, Scope::Asteroids),
+        validate_scoped(&tampered, ASTEROID_MANIFEST, Scope::Asteroids, None),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
     let (rows, checksum) = parse_manifest(ASTEROID_MANIFEST).unwrap();
@@ -555,7 +575,7 @@ fn asteroid_corpus_tampering_fails_closed() {
         rows + 1
     );
     assert!(matches!(
-        validate_scoped(ASTEROID_CSV, &drifted, Scope::Asteroids),
+        validate_scoped(ASTEROID_CSV, &drifted, Scope::Asteroids, None),
         Err(AspectsError::ManifestDrift { .. })
     ));
 }
@@ -578,7 +598,9 @@ fn mean_subset_fails_a_tampered_asteroid_corpus() {
             &tampered,
             ASTEROID_MANIFEST,
             LUNAR_POINT_CSV,
-            LUNAR_POINT_MANIFEST
+            LUNAR_POINT_MANIFEST,
+            LUNAR_POINT_GRAZES_CSV,
+            LUNAR_POINT_GRAZES_MANIFEST
         ),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
@@ -596,7 +618,9 @@ fn mean_subset_fails_an_asteroid_manifest_row_count_drift() {
             ASTEROID_CSV,
             &drifted,
             LUNAR_POINT_CSV,
-            LUNAR_POINT_MANIFEST
+            LUNAR_POINT_MANIFEST,
+            LUNAR_POINT_GRAZES_CSV,
+            LUNAR_POINT_GRAZES_MANIFEST
         ),
         Err(AspectsError::ManifestDrift { .. })
     ));
@@ -618,7 +642,7 @@ fn a_missing_asteroid_aspect_fails_the_count() {
         fnv1a64(&csv)
     );
     assert!(matches!(
-        validate_scoped(&csv, &manifest, Scope::Asteroids),
+        validate_scoped(&csv, &manifest, Scope::Asteroids, None),
         Err(AspectsError::CountMismatch { .. })
     ));
 }
@@ -638,7 +662,7 @@ fn asteroid_scope_floor_is_its_own() {
 }
 
 #[test]
-fn lunar_point_corpus_parses_into_the_seven_true_node_pairs() {
+fn lunar_point_corpus_parses_into_the_twenty_two_lunar_pairs() {
     let rows = parse_corpus(LUNAR_POINT_CSV, &LUNAR_POINT_PAIRS).expect("lunar corpus parses");
     let (rows_manifest, _) = parse_manifest(LUNAR_POINT_MANIFEST).unwrap();
     assert_eq!(rows.len(), rows_manifest);
@@ -655,10 +679,28 @@ fn lunar_point_corpus_parses_into_the_seven_true_node_pairs() {
             "TrueNode-Saturn",
             "TrueNode-Uranus",
             "TrueNode-Neptune",
-            "TrueNode-Pluto"
+            "TrueNode-Pluto",
+            "TrueApogee-Sun",
+            "TrueApogee-Jupiter",
+            "TrueApogee-Saturn",
+            "TrueApogee-Pluto",
+            "MeanNode-Sun",
+            "MeanNode-Mars",
+            "MeanNode-Jupiter",
+            "MeanNode-Saturn",
+            "MeanNode-Uranus",
+            "MeanNode-Neptune",
+            "MeanNode-Pluto",
+            "MeanApogee-Sun",
+            "MeanApogee-Jupiter",
+            "MeanApogee-Saturn",
+            "MeanApogee-Pluto"
         ]
     );
-    let expected_counts = [1686, 990, 247, 166, 119, 109, 107];
+    let expected_counts = [
+        1686, 990, 247, 166, 119, 109, 107, 3555, 3438, 3485, 3421, 1686, 996, 255, 152, 105, 95,
+        93, 1418, 173, 130, 174,
+    ];
     for (index, pair) in LUNAR_POINT_PAIRS.iter().enumerate() {
         assert_eq!(pair.group, Group::Geo);
         let count = rows.iter().filter(|row| row.pair == index).count();
@@ -675,7 +717,7 @@ fn lunar_point_corpus_tampering_fails_closed() {
     let tampered = LUNAR_POINT_CSV.replacen("geo,TrueNode,Sun,", "geo,TrueNode,Sun, ", 1);
     assert_ne!(tampered, LUNAR_POINT_CSV);
     assert!(matches!(
-        validate_scoped(&tampered, LUNAR_POINT_MANIFEST, Scope::LunarPoints),
+        validate_scoped(&tampered, LUNAR_POINT_MANIFEST, Scope::LunarPoints, None),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
     let (rows, checksum) = parse_manifest(LUNAR_POINT_MANIFEST).unwrap();
@@ -684,7 +726,7 @@ fn lunar_point_corpus_tampering_fails_closed() {
         rows + 1
     );
     assert!(matches!(
-        validate_scoped(LUNAR_POINT_CSV, &drifted, Scope::LunarPoints),
+        validate_scoped(LUNAR_POINT_CSV, &drifted, Scope::LunarPoints, None),
         Err(AspectsError::ManifestDrift { .. })
     ));
 }
@@ -693,7 +735,15 @@ fn lunar_point_corpus_tampering_fails_closed() {
 fn committed_lunar_point_corpus_matches_its_manifest() {
     let rows = check_manifest(LUNAR_POINT_CSV, LUNAR_POINT_MANIFEST, &LUNAR_POINT_PAIRS)
         .expect("manifest matches");
-    assert_eq!(rows.len(), MIN_ROWS_VALIDATED_LUNAR_POINTS);
+    let windows = check_grazes(
+        LUNAR_POINT_GRAZES_CSV,
+        LUNAR_POINT_GRAZES_MANIFEST,
+        &LUNAR_POINT_PAIRS,
+        &rows,
+    )
+    .expect("graze windows match their manifest");
+    let in_windows: usize = windows.iter().map(|w| w.se_events).sum();
+    assert_eq!(rows.len() - in_windows, MIN_ROWS_VALIDATED_LUNAR_POINTS);
 }
 
 #[test]
@@ -705,7 +755,9 @@ fn mean_subset_fails_a_tampered_lunar_point_corpus() {
             ASTEROID_CSV,
             ASTEROID_MANIFEST,
             &tampered,
-            LUNAR_POINT_MANIFEST
+            LUNAR_POINT_MANIFEST,
+            LUNAR_POINT_GRAZES_CSV,
+            LUNAR_POINT_GRAZES_MANIFEST
         ),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
@@ -719,9 +771,116 @@ fn mean_subset_fails_a_lunar_point_manifest_row_count_drift() {
         rows - 1
     );
     assert!(matches!(
-        validate_subset(ASTEROID_CSV, ASTEROID_MANIFEST, LUNAR_POINT_CSV, &drifted),
+        validate_subset(
+            ASTEROID_CSV,
+            ASTEROID_MANIFEST,
+            LUNAR_POINT_CSV,
+            &drifted,
+            LUNAR_POINT_GRAZES_CSV,
+            LUNAR_POINT_GRAZES_MANIFEST
+        ),
         Err(AspectsError::ManifestDrift { .. })
     ));
+}
+
+#[test]
+fn committed_graze_windows_match_their_manifest_and_corpus() {
+    let rows = check_manifest(LUNAR_POINT_CSV, LUNAR_POINT_MANIFEST, &LUNAR_POINT_PAIRS)
+        .expect("lunar corpus matches its manifest");
+    let windows = check_grazes(
+        LUNAR_POINT_GRAZES_CSV,
+        LUNAR_POINT_GRAZES_MANIFEST,
+        &LUNAR_POINT_PAIRS,
+        &rows,
+    )
+    .expect("graze windows match their manifest and the corpus");
+    assert!(!windows.is_empty());
+    // The spike's 1.84" TrueApogee-Jupiter turn; the spike did not record its angle.
+    assert!(windows.iter().any(|w| {
+        let pair = &LUNAR_POINT_PAIRS[w.pair];
+        pair.first == "TrueApogee"
+            && pair.second == "Jupiter"
+            && w.lo <= 2_420_750.82
+            && 2_420_750.82 <= w.hi
+    }));
+    assert!(windows.iter().all(
+        |w| ["TrueApogee", "MeanNode", "MeanApogee"].contains(&LUNAR_POINT_PAIRS[w.pair].first)
+    ));
+}
+
+#[test]
+fn mean_subset_fails_tampered_graze_windows() {
+    let tampered = LUNAR_POINT_GRAZES_CSV.replacen(",2\n", ",4\n", 1);
+    assert_ne!(tampered, LUNAR_POINT_GRAZES_CSV);
+    assert!(matches!(
+        validate_subset(
+            ASTEROID_CSV,
+            ASTEROID_MANIFEST,
+            LUNAR_POINT_CSV,
+            LUNAR_POINT_MANIFEST,
+            &tampered,
+            LUNAR_POINT_GRAZES_MANIFEST
+        ),
+        Err(AspectsError::ChecksumMismatch { .. })
+    ));
+}
+
+#[test]
+fn mean_subset_fails_a_window_whose_se_events_disagree() {
+    let tampered = LUNAR_POINT_GRAZES_CSV.replacen(",2\n", ",4\n", 1);
+    assert_ne!(tampered, LUNAR_POINT_GRAZES_CSV);
+    let (rows, _) = parse_manifest(LUNAR_POINT_GRAZES_MANIFEST).unwrap();
+    let manifest = format!(
+        "slice aspects-lunar-points-grazes file=lunar-points-grazes.csv role=grazes rows={rows} checksum={}\n",
+        fnv1a64(&tampered)
+    );
+    assert!(matches!(
+        validate_subset(
+            ASTEROID_CSV,
+            ASTEROID_MANIFEST,
+            LUNAR_POINT_CSV,
+            LUNAR_POINT_MANIFEST,
+            &tampered,
+            &manifest
+        ),
+        Err(AspectsError::GrazeEventCount { .. })
+    ));
+}
+
+#[test]
+fn mean_subset_fails_a_graze_manifest_row_count_drift() {
+    let (rows, checksum) = parse_manifest(LUNAR_POINT_GRAZES_MANIFEST).unwrap();
+    let drifted = format!(
+        "slice aspects-lunar-points-grazes file=lunar-points-grazes.csv role=grazes rows={} checksum={checksum}\n",
+        rows - 1
+    );
+    assert!(matches!(
+        validate_subset(
+            ASTEROID_CSV,
+            ASTEROID_MANIFEST,
+            LUNAR_POINT_CSV,
+            LUNAR_POINT_MANIFEST,
+            LUNAR_POINT_GRAZES_CSV,
+            &drifted
+        ),
+        Err(AspectsError::ManifestDrift { .. })
+    ));
+}
+
+#[test]
+#[ignore = "slow: full lunar-point scan"]
+fn the_full_report_lists_graze_windows_on_lunar_lines() {
+    let report = validate_scoped(
+        LUNAR_POINT_CSV,
+        LUNAR_POINT_MANIFEST,
+        Scope::LunarPoints,
+        Some((LUNAR_POINT_GRAZES_CSV, LUNAR_POINT_GRAZES_MANIFEST)),
+    )
+    .expect("lunar-point gate passes");
+    assert!(report
+        .pair_lines()
+        .iter()
+        .all(|line| line.contains("graze windows ")));
 }
 
 // No missing-event test is repeated for this corpus: the count path is covered by
@@ -734,9 +893,12 @@ fn lunar_point_scope_floor_is_its_own() {
     assert!(Scope::LunarPoints.includes(Group::Geo));
     assert_eq!(Scope::LunarPoints.pairs().len(), LUNAR_POINT_PAIRS.len());
     let (rows, _) = parse_manifest(LUNAR_POINT_MANIFEST).unwrap();
+    let windows = parse_grazes(LUNAR_POINT_GRAZES_CSV, &LUNAR_POINT_PAIRS).unwrap();
+    let in_windows: usize = windows.iter().map(|w| w.se_events).sum();
     assert_eq!(
-        rows, MIN_ROWS_VALIDATED_LUNAR_POINTS,
-        "every lunar-point row is compared"
+        rows - in_windows,
+        MIN_ROWS_VALIDATED_LUNAR_POINTS,
+        "every lunar-point row outside a graze window is compared"
     );
 }
 
@@ -761,4 +923,291 @@ fn full_report_keeps_the_planet_summary_prefix() {
     assert!(merged
         .summary_line
         .ends_with("Asteroid aspects: 3 exact aspects validated"));
+}
+
+fn window(angle: usize, lo: f64, hi: f64) -> GrazeWindow {
+    GrazeWindow {
+        pair: 0,
+        angle,
+        lo,
+        hi,
+        se_events: 0,
+    }
+}
+
+/// `n` events at 60 degrees, spaced 0.1 day from `start`, first body ahead.
+fn sextiles_from(start: f64, n: usize) -> Vec<Expected> {
+    (0..n)
+        .map(|i| expected(start + 0.1 * i as f64, 60.0, 0.0, 0.5))
+        .collect()
+}
+
+#[test]
+fn a_graze_window_accepts_any_even_split() {
+    let w = [GrazeWindow {
+        se_events: 2,
+        ..window(1, 10.0, 12.0)
+    }];
+    for (got, want) in [(0, 2), (2, 0), (2, 2), (4, 2), (0, 0)] {
+        let mut corpus = sextiles_from(10.5, want);
+        corpus.push(expected(20.0, 60.0, 0.0, 0.5));
+        let mut engine = engine_of(&sextiles_from(10.5, got));
+        engine.push(found(20.0, 60.0, 0.0));
+        let (eng_out, cor_out, stats) =
+            split_windows("t", &w, &engine, &corpus).expect("even split is accepted");
+        assert_eq!(eng_out, vec![found(20.0, 60.0, 0.0)]);
+        assert_eq!(cor_out.len(), 1);
+        assert_eq!(stats.windows, 1);
+        assert_eq!(stats.differing, usize::from(got != want));
+        let compared = if got == want { got } else { 0 };
+        assert_eq!(stats.compared, compared);
+    }
+}
+
+#[test]
+fn a_nan_residual_inside_a_graze_window_is_reported_not_dropped() {
+    let w = [GrazeWindow {
+        se_events: 2,
+        ..window(1, 10.0, 12.0)
+    }];
+    let corpus = sextiles_from(10.5, 2);
+    let mut engine = engine_of(&corpus);
+    engine[1].first_lon_deg = f64::NAN;
+    engine[1].second_lon_deg = f64::NAN;
+    let (_, _, stats) = split_windows("t", &w, &engine, &corpus).expect("report-only");
+    assert_eq!(stats.compared, 2);
+    assert!(stats.max_lon_arcsec.is_nan());
+}
+
+#[test]
+fn a_count_of_the_wrong_parity_in_a_graze_window_fails() {
+    // An even window (se_events 2): an odd count on either side fails.
+    let even = [GrazeWindow {
+        se_events: 2,
+        ..window(1, 10.0, 12.0)
+    }];
+    for (got, want) in [(1, 2), (2, 1), (3, 0)] {
+        let corpus = sextiles_from(10.5, want);
+        let engine = engine_of(&sextiles_from(10.5, got));
+        assert!(matches!(
+            split_windows("t", &even, &engine, &corpus),
+            Err(AspectsError::GrazeWindowParity { .. })
+        ));
+    }
+    // An odd window (se_events 1, edges straddling the level): an even count fails.
+    let odd = [GrazeWindow {
+        se_events: 1,
+        ..window(1, 10.0, 12.0)
+    }];
+    for (got, want) in [(2, 1), (0, 1), (1, 2)] {
+        let corpus = sextiles_from(10.5, want);
+        let engine = engine_of(&sextiles_from(10.5, got));
+        assert!(matches!(
+            split_windows("t", &odd, &engine, &corpus),
+            Err(AspectsError::GrazeWindowParity { .. })
+        ));
+    }
+}
+
+#[test]
+fn an_odd_window_accepts_any_odd_split() {
+    let w = [GrazeWindow {
+        se_events: 1,
+        ..window(1, 10.0, 12.0)
+    }];
+    for (got, want) in [(1, 1), (3, 1), (1, 3)] {
+        let corpus = sextiles_from(10.5, want);
+        let engine = engine_of(&sextiles_from(10.5, got));
+        let (_, _, stats) =
+            split_windows("t", &w, &engine, &corpus).expect("odd split in an odd window");
+        assert_eq!(stats.differing, usize::from(got != want));
+    }
+}
+
+#[test]
+fn an_event_just_outside_a_window_stays_strict() {
+    let w = [window(1, 10.0, 12.0)];
+    let corpus = vec![expected(12.000_001, 60.0, 0.0, 0.5)];
+    let (eng_out, cor_out, stats) = split_windows("t", &w, &[], &corpus).unwrap();
+    assert!(eng_out.is_empty());
+    assert_eq!(cor_out.len(), 1, "an event past hi is not excused");
+    assert_eq!(stats.windows, 1);
+    let ceilings = Ceilings {
+        sep_arcsec: 1.0,
+        lon_arcsec: 1.0,
+    };
+    assert!(matches!(
+        compare_exact("t", 60.0, &eng_out, &cor_out, ceilings),
+        Err(AspectsError::CountMismatch { .. })
+    ));
+    // Both window edges are inside.
+    let edges = vec![
+        expected(10.0, 60.0, 0.0, 0.5),
+        expected(12.0, 60.0, 0.0, 0.5),
+    ];
+    let (_, cor_out, _) = split_windows("t", &w, &[], &edges).unwrap();
+    assert!(cor_out.is_empty());
+}
+
+#[test]
+fn equal_window_counts_report_residuals_without_ceilings() {
+    let w = [window(1, 10.0, 12.0)];
+    let corpus = sextiles_from(10.5, 2);
+    // 600 s late and 40" off in longitude: far past any ceiling, still accepted.
+    let engine: Vec<Found> = corpus
+        .iter()
+        .map(|e| found(e.found.jd + 600.0 / 86_400.0, 60.0 + 40.0 / 3600.0, 0.0))
+        .collect();
+    let (_, _, stats) = split_windows("t", &w, &engine, &corpus).unwrap();
+    assert_eq!(stats.compared, 2);
+    assert!((stats.max_time_s - 600.0).abs() < 1e-3);
+    assert!((stats.max_lon_arcsec - 40.0).abs() < 1e-6);
+    assert!(stats.max_sep_arcsec > 0.0);
+}
+
+#[test]
+fn two_windows_of_one_series_are_checked_separately() {
+    let w = [
+        GrazeWindow {
+            se_events: 2,
+            ..window(1, 10.0, 12.0)
+        },
+        GrazeWindow {
+            se_events: 2,
+            ..window(1, 30.0, 32.0)
+        },
+    ];
+    let mut corpus = sextiles_from(10.5, 2);
+    corpus.extend(sextiles_from(30.5, 2));
+    // 0 in the first window, 3 in the second: the second fails on its own.
+    let engine = engine_of(&sextiles_from(30.5, 3));
+    assert!(matches!(
+        split_windows("t", &w, &engine, &corpus),
+        Err(AspectsError::GrazeWindowParity { .. })
+    ));
+    let engine = engine_of(&sextiles_from(30.5, 2));
+    let (_, _, stats) = split_windows("t", &w, &engine, &corpus).unwrap();
+    assert_eq!((stats.windows, stats.differing, stats.compared), (2, 1, 2));
+}
+
+#[test]
+fn a_window_applies_only_to_its_own_series() {
+    // A 60-degree window of pair 0 must not excuse a 90-degree row, or a row of
+    // pair 1, at the same instant.
+    let rows = [
+        Row {
+            pair: 0,
+            angle: 1,
+            expected: expected(10.5, 60.0, 0.0, 0.5),
+        },
+        Row {
+            pair: 0,
+            angle: 1,
+            expected: expected(10.6, 60.0, 0.0, 0.5),
+        },
+        Row {
+            pair: 0,
+            angle: 2,
+            expected: expected(10.55, 90.0, 0.0, 0.5),
+        },
+        Row {
+            pair: 1,
+            angle: 1,
+            expected: expected(10.55, 60.0, 0.0, 0.5),
+        },
+    ];
+    let windows = [GrazeWindow {
+        pair: 0,
+        angle: 1,
+        lo: 10.0,
+        hi: 12.0,
+        se_events: 2,
+    }];
+    let of_series = super::grazes::windows_of(&windows, 0, 2);
+    assert!(of_series.is_empty());
+    let of_series = super::grazes::windows_of(&windows, 1, 1);
+    assert!(of_series.is_empty());
+    assert_eq!(super::grazes::windows_of(&windows, 0, 1).len(), 1);
+    assert!(super::grazes::check_window_counts(&windows, &rows).is_ok());
+}
+
+fn grazes_csv(rows: &[&str]) -> String {
+    let mut csv = String::from(
+        "# test\ngroup,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events\n",
+    );
+    for row in rows {
+        csv.push_str(row);
+        csv.push('\n');
+    }
+    csv
+}
+
+#[test]
+fn graze_rows_parse_and_reject_bad_windows() {
+    let ok = grazes_csv(&[
+        "geo,TrueApogee,Jupiter,60,2420750.8200000,1.840,2420750.5000000,2420751.1000000,2",
+    ]);
+    let windows = parse_grazes(&ok, &LUNAR_POINT_PAIRS).expect("parses");
+    assert_eq!(windows.len(), 1);
+    assert_eq!(windows[0].angle, 1);
+    assert_eq!(windows[0].se_events, 2);
+    for bad in [
+        // lo >= hi
+        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420751.1,2420750.5,2",
+        // turn outside the window
+        "geo,TrueApogee,Jupiter,60,2420752.0,1.8,2420750.5,2420751.1,2",
+        // unknown pair
+        "geo,TrueApogee,Mars,60,2420750.8,1.8,2420750.5,2420751.1,2",
+        // angle not in the plan
+        "geo,TrueApogee,Jupiter,45,2420750.8,1.8,2420750.5,2420751.1,2",
+        // wrong field count
+        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1",
+    ] {
+        assert!(
+            matches!(
+                parse_grazes(&grazes_csv(&[bad]), &LUNAR_POINT_PAIRS),
+                Err(AspectsError::MalformedGrazes(_))
+            ),
+            "{bad}"
+        );
+    }
+    let overlapping = grazes_csv(&[
+        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1,2",
+        "geo,TrueApogee,Jupiter,60,2420751.0,2.0,2420750.9,2420751.4,0",
+    ]);
+    assert!(matches!(
+        parse_grazes(&overlapping, &LUNAR_POINT_PAIRS),
+        Err(AspectsError::MalformedGrazes(_))
+    ));
+}
+
+#[test]
+fn a_window_whose_se_events_disagree_with_the_corpus_fails() {
+    let rows = [
+        Row {
+            pair: 0,
+            angle: 1,
+            expected: expected(10.5, 60.0, 0.0, 0.5),
+        },
+        Row {
+            pair: 0,
+            angle: 1,
+            expected: expected(10.6, 60.0, 0.0, 0.5),
+        },
+    ];
+    let windows = [GrazeWindow {
+        pair: 0,
+        angle: 1,
+        lo: 10.0,
+        hi: 12.0,
+        se_events: 0,
+    }];
+    assert!(matches!(
+        super::grazes::check_window_counts(&windows, &rows),
+        Err(AspectsError::GrazeEventCount {
+            recorded: 0,
+            corpus: 2,
+            ..
+        })
+    ));
 }
