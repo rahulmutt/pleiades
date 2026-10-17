@@ -296,8 +296,10 @@ run = "cargo run -q -p pleiades-validate -- validate-corpus"
 # It also runs the fictitious-body pass (#168): the 19 fictitious bodies with
 # the Sun, and Cupido..Poseidon and Transpluto with Saturn, 28 pairs and 38733
 # events in the mean-of-date frame, which brought the step to 1m35s on the
-# nightly runner (2026-10-17, run 39052564875), so about 42 s for that pass; it
-# did not need a split. `validate-aspects-fictitious` runs it alone.
+# nightly runner (2026-10-17, run 39052564875), against 53 s without it (run
+# 39041130704): about 42 s for that pass, the difference of two single runs on
+# different commits; measured directly it took 32.3 s locally in release at load
+# 11-12. It did not need a split. `gate-aspects-fictitious` runs it alone.
 run = "cargo run -q -p pleiades-validate -- validate-aspects"
 
 [tasks.gate-aspects-lunar]
@@ -310,6 +312,11 @@ run = "cargo run -q -p pleiades-validate -- validate-aspects"
 # `aspects-lunar-gate`) and is a `release-gate` dependency. Its step took
 # 15m53s on the nightly runner (2026-10-17, run 39041130704).
 run = "cargo run -q -p pleiades-validate -- validate-aspects-lunar"
+
+[tasks.gate-aspects-fictitious]
+# The 28 fictitious-body pairs in the mean-of-date frame (#168). Also part of
+# `gate-aspects`; this task runs that pass alone.
+run = "cargo run -q -p pleiades-validate -- validate-aspects-fictitious"
 
 [tasks.gate-stations]
 # Full planetary-stations gate (every corpus series, including Ceres–Vesta).

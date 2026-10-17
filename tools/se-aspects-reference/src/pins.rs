@@ -55,10 +55,10 @@ pub const PINNED_SEORBEL: (&str, &str) = (
 /// [`verify_swieph_files`]'s planet and Moon files plus `seorbel.txt`.
 /// `seas_18` is not needed for fictitious bodies, so it is not checked here.
 pub fn verify_fictitious_files(ephe_dir: &str) -> Result<(), String> {
-    for (name, want) in PINNED_FILES
-        .iter()
-        .filter(|(n, _)| *n != "seas_18.se1")
-        .chain([&PINNED_SEORBEL])
+    // seorbel.txt first: it is the file that distinguishes this mode.
+    for (name, want) in [&PINNED_SEORBEL]
+        .into_iter()
+        .chain(PINNED_FILES.iter().filter(|(n, _)| *n != "seas_18.se1"))
     {
         let path = format!("{ephe_dir}/{name}");
         let bytes = std::fs::read(&path).map_err(|e| {
@@ -208,12 +208,26 @@ mod tests {
     }
 
     #[test]
-    fn fictitious_verification_fails_closed_on_a_wrong_seorbel_and_missing_planet_files() {
-        let dir = std::env::temp_dir().join(format!("se-pins-fict-test-{}", std::process::id()));
+    fn fictitious_verification_rejects_a_seorbel_with_the_wrong_content() {
+        let dir = std::env::temp_dir().join(format!("se-pins-fict-wrong-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join(PINNED_SEORBEL.0), b"not the real elements").unwrap();
         let err = verify_fictitious_files(dir.to_str().unwrap()).unwrap_err();
-        assert!(err.contains(".se1") || err.contains("seorbel.txt"), "{err}");
+        assert!(err.contains("SHA-256 mismatch"), "{err}");
+        assert!(err.contains("seorbel.txt"), "{err}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn fictitious_verification_rejects_a_missing_seorbel_with_the_copy_hint() {
+        let dir = std::env::temp_dir().join(format!("se-pins-fict-missing-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let err = verify_fictitious_files(dir.to_str().unwrap()).unwrap_err();
+        assert!(err.contains("seorbel.txt"), "{err}");
+        assert!(
+            err.contains("cp tools/se-fictitious-reference/data/seorbel.txt"),
+            "{err}"
+        );
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

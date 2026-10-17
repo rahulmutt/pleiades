@@ -992,8 +992,10 @@ fn compare_scope<B: EphemerisBackend>(
 /// 39039081162), over the 15-minute threshold, so the lunar points were split
 /// out; on its own this gate's step then took 53 s (run 39041130704). With the
 /// fictitious pass the step took 1m35s (branch run 39052564875, 2026-10-17),
-/// so that pass costs about 42 s there (32.3 s locally in release at load
-/// 11-12), and it stays in this gate rather than splitting out.
+/// so that pass costs about 42 s there, the difference of two single runs on
+/// different commits (53 s, run 39041130704; 1m35s, run 39052564875); measured
+/// directly it took 32.3 s locally in release at load 11-12. It stays in this
+/// gate rather than splitting out.
 /// The first measurements, 880 s
 /// as the command and 1110.8 s as the in-crate test (dev/test profile,
 /// 2026-10-02, planet pairs only), predate the event-engine speedups since
