@@ -41,17 +41,19 @@
 //! The ephe directory is `$SE_EPHE_PATH`, else `--ephe`, else this tool's `data/`.
 //!
 //! Lunar-point mode (`--lunar-points --out <dir> [--ephe <dir>]`): `geo`
-//! aspects of the true node (SE_TRUE_NODE, id 11) with the Sun, Mars, Jupiter,
-//! Saturn, Uranus, Neptune and Pluto over the full span, with the `geo` flags
+//! aspects of the true node (SE_TRUE_NODE, id 11) and the mean node (id 10)
+//! with the Sun, Mars, Jupiter, Saturn, Uranus, Neptune and Pluto, and of the
+//! osculating apogee (SE_OSCU_APOG, id 13) and the mean apogee (id 12) with the
+//! Sun, Jupiter, Saturn and Pluto, over the full span, with the `geo` flags
 //! but SEFLG_SWIEPH, from the `sepl_18`/`semo_18` files pinned in `pins.rs`.
 //! The true node's speed oscillates with a period of about two weeks and
 //! touches zero, so its separation from a slow planet turns thousands of
-//! times; the grid is 0.005 day. The graze margin is 3 arcseconds, not 30: it
-//! is 3.6 times the largest engine-minus-SE separation at a turning point
-//! measured for these pairs (0.82"), and below the closest turn to a level
-//! they have (TrueNode-Jupiter, 3.6"), so a measured near-graze is compared
-//! rather than refused (issue #168 (c)). Writes `<dir>/lunar-points.csv` and
-//! `<dir>/lunar-points-manifest.txt`. Build with
+//! times; the grid is 0.005 day. Unlike the planet and asteroid modes, a turn
+//! within the pair's graze margin of a level (3 arcseconds; 12 for the
+//! osculating apogee) is not refused but recorded as a graze window on the
+//! grid (issue #168 (c)). Writes `<dir>/lunar-points.csv`,
+//! `<dir>/lunar-points-manifest.txt`, `<dir>/lunar-points-grazes.csv` and
+//! `<dir>/lunar-points-grazes-manifest.txt`. Build with
 //! `devenv shell -- env CFLAGS=-std=gnu17 cargo build --release --manifest-path tools/se-aspects-reference/Cargo.toml`
 //! or, outside devenv, `env CFLAGS=-std=gnu17 LIBCLANG_PATH=<libclang> cargo build --release --offline --manifest-path tools/se-aspects-reference/Cargo.toml`,
 //! where `<libclang>` is the libclang `devenv.nix` provides (`LIBCLANG_PATH` =
@@ -110,6 +112,12 @@ const JUNO: Body = (19, "Juno");
 const VESTA: Body = (20, "Vesta");
 /// SE_TRUE_NODE: the osculating (true) lunar ascending node.
 const TRUE_NODE: Body = (11, "TrueNode");
+/// SE_OSCU_APOG: the osculating lunar apogee ("true Lilith").
+const TRUE_APOGEE: Body = (13, "TrueApogee");
+/// SE_MEAN_NODE: the mean lunar ascending node (analytic).
+const MEAN_NODE: Body = (10, "MeanNode");
+/// SE_MEAN_APOG: the mean lunar apogee (analytic).
+const MEAN_APOGEE: Body = (12, "MeanApogee");
 
 /// The pleiades-events window (JD 2415020.5–2488069.5) less five days at each
 /// end, so neither side of the comparison meets the engine's edge clamp.
@@ -143,13 +151,27 @@ const ASTEROID_PAIRS: [(Body, Body, (f64, f64), f64); 7] = [
 /// about two weeks and touches zero, so its separation from a slow planet
 /// turns thousands of times over the span (2392 for Jupiter, 6600 for Pluto).
 const LUNAR_POINT_GRID_DAYS: f64 = 0.005;
-/// 3 arcseconds: 3.6 times the largest engine-minus-SE SWIEPH separation at a
-/// turning point measured for these pairs (0.82"), and below the closest turn
-/// to a level they have (TrueNode-Jupiter, 3.6"), so a measured near-graze is
-/// compared rather than refused (issue #168 (c)).
+/// 3 arcseconds, for the true node and the mean points: 3.6 times the largest
+/// engine-minus-SE SWIEPH separation at a turning point measured for the true
+/// node (0.82"). A turn this close to a level becomes a graze window, not an
+/// error (issue #168 (c)).
 const LUNAR_POINT_GRAZE_MARGIN_DEG: f64 = 3.0 / 3600.0;
+/// 12 arcseconds, for the osculating apogee: 3.3 times the largest
+/// engine-minus-SE SWIEPH separation at its turning points (3.6", spike
+/// 2026-10-17, after the apsides mu fix of #271).
+const TRUE_APOGEE_GRAZE_MARGIN_DEG: f64 = 12.0 / 3600.0;
+
+/// The graze margin of a lunar-point pair, chosen by its first body.
+fn lunar_point_margin_deg(first: Body) -> f64 {
+    if first.0 == TRUE_APOGEE.0 {
+        TRUE_APOGEE_GRAZE_MARGIN_DEG
+    } else {
+        LUNAR_POINT_GRAZE_MARGIN_DEG
+    }
+}
+
 /// The lunar-point mode's pairs, all `geo` with `GEO_SWIEPH` over the full span.
-const LUNAR_POINT_PAIRS: [(Body, Body); 7] = [
+const LUNAR_POINT_PAIRS: [(Body, Body); 22] = [
     (TRUE_NODE, SUN),
     (TRUE_NODE, MARS),
     (TRUE_NODE, JUPITER),
@@ -157,6 +179,21 @@ const LUNAR_POINT_PAIRS: [(Body, Body); 7] = [
     (TRUE_NODE, URANUS),
     (TRUE_NODE, NEPTUNE),
     (TRUE_NODE, PLUTO),
+    (TRUE_APOGEE, SUN),
+    (TRUE_APOGEE, JUPITER),
+    (TRUE_APOGEE, SATURN),
+    (TRUE_APOGEE, PLUTO),
+    (MEAN_NODE, SUN),
+    (MEAN_NODE, MARS),
+    (MEAN_NODE, JUPITER),
+    (MEAN_NODE, SATURN),
+    (MEAN_NODE, URANUS),
+    (MEAN_NODE, NEPTUNE),
+    (MEAN_NODE, PLUTO),
+    (MEAN_APOGEE, SUN),
+    (MEAN_APOGEE, JUPITER),
+    (MEAN_APOGEE, SATURN),
+    (MEAN_APOGEE, PLUTO),
 ];
 
 /// `(longitude_deg in [0, 360), longitude_speed_deg_per_day)`.
@@ -241,6 +278,27 @@ fn bisect(f: impl Fn(f64) -> f64, mut a: f64, mut f_a: f64, mut b: f64) -> f64 {
     0.5 * (a + b)
 }
 
+/// What `scan` does with a turning point inside the margin of a level.
+enum Graze<'a> {
+    /// Abort the run: an event there would depend on the ephemeris
+    /// (planet and asteroid modes).
+    Refuse(f64),
+    /// Record a graze window in `out` (lunar-point mode, issue #168 (c)).
+    Window {
+        margin_deg: f64,
+        out: &'a mut dyn FnMut(String),
+    },
+}
+
+impl Graze<'_> {
+    fn margin_deg(&self) -> f64 {
+        match self {
+            Self::Refuse(margin) => *margin,
+            Self::Window { margin_deg, .. } => *margin_deg,
+        }
+    }
+}
+
 /// Hands every exact aspect of the pair in `[lo, hi]`, for each angle, to `out`
 /// as a CSV row.
 fn scan(
@@ -251,8 +309,11 @@ fn scan(
     iflag: c_int,
     (lo, hi): (f64, f64),
     grid: f64,
-    graze_margin_deg: f64,
+    graze: Graze,
 ) {
+    let margin_deg = graze.margin_deg();
+    // (angle index, level, turn jd, miss deg) of each turn inside the margin.
+    let mut close_turns: Vec<(usize, f64, f64, f64)> = Vec::new();
     let at = |jd: f64| sample(jd, first, second, iflag);
     let mut events: Vec<Vec<Sample>> = vec![Vec::new(); ANGLES.len()];
     let steps = ((hi - lo) / grid).floor() as u64;
@@ -272,21 +333,25 @@ fn scan(
                 cur.jd,
             ));
             turns += 1;
-            for angle in ANGLES {
-                for level in levels(angle) {
+            for (index, angle) in ANGLES.iter().enumerate() {
+                for level in levels(*angle) {
                     let miss = wrap180(turn.separation - level).abs();
                     closest_miss = closest_miss.min(miss);
-                    assert!(
-                        miss >= graze_margin_deg,
-                        "graze: {group},{},{} turns {:.2} arcsec from the {angle} degree level \
-                         at jd_tt={:.5}, inside the {:.0} arcsec margin; an event here would \
-                         depend on the ephemeris",
-                        first.1,
-                        second.1,
-                        miss * 3600.0,
-                        turn.jd,
-                        graze_margin_deg * 3600.0
-                    );
+                    if let Graze::Refuse(_) = graze {
+                        assert!(
+                            miss >= margin_deg,
+                            "graze: {group},{},{} turns {:.2} arcsec from the {angle} degree level \
+                             at jd_tt={:.5}, inside the {:.0} arcsec margin; an event here would \
+                             depend on the ephemeris",
+                            first.1,
+                            second.1,
+                            miss * 3600.0,
+                            turn.jd,
+                            margin_deg * 3600.0
+                        );
+                    } else if miss < margin_deg {
+                        close_turns.push((index, level, turn.jd, miss));
+                    }
                 }
             }
             points.push(turn);
@@ -333,6 +398,103 @@ fn scan(
             ));
         }
     }
+    if let Graze::Window {
+        out: windows_out, ..
+    } = graze
+    {
+        write_graze_windows(
+            windows_out,
+            (group, first, second),
+            &at,
+            &events,
+            &close_turns,
+            (lo, hi),
+            grid,
+            margin_deg,
+        );
+    }
+}
+
+/// Turns each close turn into a window `[lo, hi]` on the scan's grid: the first
+/// grid instant on each side at which the separation is at least twice the
+/// margin from the level. Merges overlapping windows of one angle, counts the
+/// angle's events inside, and writes one grazes row per merged window. Away
+/// from the turn the separation returns to the turn's far side at both ends, so
+/// the count is even; an odd count, or a window reaching the span's edge, aborts.
+#[allow(clippy::too_many_arguments)]
+fn write_graze_windows(
+    out: &mut dyn FnMut(String),
+    (group, first, second): (&str, Body, Body),
+    at: &dyn Fn(f64) -> Sample,
+    events: &[Vec<Sample>],
+    close_turns: &[(usize, f64, f64, f64)],
+    (span_lo, span_hi): (f64, f64),
+    grid: f64,
+    margin_deg: f64,
+) {
+    let steps = ((span_hi - span_lo) / grid).floor() as i64;
+    let instant = |k: i64| span_lo + k as f64 * grid;
+    // (lo, hi, turn_jd, miss_deg) per angle.
+    let mut windows: Vec<Vec<(f64, f64, f64, f64)>> = vec![Vec::new(); ANGLES.len()];
+    for &(index, level, turn_jd, miss) in close_turns {
+        let far = |k: i64| wrap180(at(instant(k)).separation - level).abs() >= 2.0 * margin_deg;
+        let mut k_lo = ((turn_jd - span_lo) / grid).floor() as i64;
+        while k_lo > 0 && !far(k_lo) {
+            k_lo -= 1;
+        }
+        let mut k_hi = k_lo + 1;
+        while k_hi < steps && !far(k_hi) {
+            k_hi += 1;
+        }
+        assert!(
+            far(k_lo) && far(k_hi),
+            "graze window of {group},{},{} at jd_tt={turn_jd:.5} reaches the span's edge",
+            first.1,
+            second.1
+        );
+        windows[index].push((instant(k_lo), instant(k_hi), turn_jd, miss));
+    }
+    for (index, angle) in ANGLES.iter().enumerate() {
+        let mut list = std::mem::take(&mut windows[index]);
+        list.sort_by(|x, y| x.0.total_cmp(&y.0));
+        let mut merged: Vec<(f64, f64, f64, f64)> = Vec::new();
+        for w in list {
+            match merged.last_mut() {
+                Some(last) if w.0 <= last.1 => {
+                    last.1 = last.1.max(w.1);
+                    if w.3 < last.3 {
+                        last.2 = w.2;
+                        last.3 = w.3;
+                    }
+                }
+                _ => merged.push(w),
+            }
+        }
+        for (lo, hi, turn_jd, miss) in merged {
+            let inside = events[index]
+                .iter()
+                .filter(|e| lo <= e.jd && e.jd <= hi)
+                .count();
+            assert!(
+                inside % 2 == 0,
+                "graze window of {group},{},{},{angle:.0} [{lo:.7}, {hi:.7}] holds {inside} SE events, an odd count",
+                first.1,
+                second.1
+            );
+            eprintln!(
+                "{group},{},{},{angle:.0}: graze window [{lo:.5}, {hi:.5}], closest turn {:.2} arcsec at {turn_jd:.5}, {inside} SE events",
+                first.1,
+                second.1,
+                miss * 3600.0
+            );
+            out(format!(
+                "{group},{},{},{angle:.0},{turn_jd:.7},{:.3},{lo:.7},{hi:.7},{inside}",
+                first.1,
+                second.1,
+                miss * 3600.0
+            ));
+        }
+    }
 }
 
 fn main() {
@@ -368,7 +530,7 @@ fn main() {
         GEO,
         SHORT_SPAN,
         MOON_GRID_DAYS,
-        PLANET_GRAZE_MARGIN_DEG,
+        Graze::Refuse(PLANET_GRAZE_MARGIN_DEG),
     );
     for (first, second) in [
         (SUN, MERCURY),
@@ -387,7 +549,7 @@ fn main() {
             GEO,
             FULL_SPAN,
             GRID_DAYS,
-            PLANET_GRAZE_MARGIN_DEG,
+            Graze::Refuse(PLANET_GRAZE_MARGIN_DEG),
         );
     }
     for (first, second) in [(MERCURY, VENUS), (MARS, SATURN)] {
@@ -399,7 +561,7 @@ fn main() {
             MEAN,
             SHORT_SPAN,
             GRID_DAYS,
-            PLANET_GRAZE_MARGIN_DEG,
+            Graze::Refuse(PLANET_GRAZE_MARGIN_DEG),
         );
     }
     scan(
@@ -410,7 +572,7 @@ fn main() {
         HELIO,
         FULL_SPAN,
         GRID_DAYS,
-        PLANET_GRAZE_MARGIN_DEG,
+        Graze::Refuse(PLANET_GRAZE_MARGIN_DEG),
     );
 }
 
@@ -467,7 +629,7 @@ fn asteroids_main(args: &[String]) {
                 GEO_SWIEPH,
                 span,
                 grid,
-                PLANET_GRAZE_MARGIN_DEG,
+                Graze::Refuse(PLANET_GRAZE_MARGIN_DEG),
             );
         }
     }
@@ -493,18 +655,33 @@ fn lunar_points_main(args: &[String]) {
         "# equals +angle or -angle, scanned on a 0.005-day grid, each step split at the zero\n",
     );
     csv.push_str("# of the relative longitude speed, and bisected to 1e-7 day. jd_tt is TT.\n");
-    csv.push_str("# geo: apparent, tropical, true equinox of date (default flags) with SEFLG_SWIEPH; TrueNode (SE_TRUE_NODE) with Sun, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, JD 2415025.5-2488064.5.\n");
+    csv.push_str("# geo: apparent, tropical, true equinox of date (default flags) with SEFLG_SWIEPH; TrueNode (SE_TRUE_NODE) with Sun, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto; TrueApogee (SE_OSCU_APOG) with Sun, Jupiter, Saturn, Pluto; MeanNode (SE_MEAN_NODE) with the TrueNode planets; MeanApogee (SE_MEAN_APOG) with the TrueApogee planets; JD 2415025.5-2488064.5.\n");
     csv.push_str("# Angles 0, 60, 90, 120, 180.\n");
     csv.push_str("# rel_speed_deg_per_day is the longitude speed of first less that of second at the row's instant.\n");
-    csv.push_str("# No turning point of any pair's separation is within 3 arcsec of one of its levels (the tool fails otherwise).\n");
+    csv.push_str("# A turning point within the pair's graze margin of a level (TrueApogee 12 arcsec, the other points 3 arcsec) is a graze window in lunar-points-grazes.csv; events inside a window may exist in one ephemeris only.\n");
     csv.push_str(
         "group,first,second,angle_deg,jd_tt,first_lon_deg,second_lon_deg,rel_speed_deg_per_day\n",
     );
+    let mut grazes = String::new();
+    grazes.push_str("# Source: as lunar-points.csv (Swiss Ephemeris 2.10.03, SEFLG_SWIEPH, sepl_18/semo_18 SHA-256 pinned).\n");
+    grazes.push_str("# One row per graze window of a lunar-point pair and angle: a turning point of the separation within the pair's\n");
+    grazes.push_str("# margin of a level (TrueApogee 12 arcsec, TrueNode/MeanNode/MeanApogee 3 arcsec). lo_jd_tt and hi_jd_tt are the first\n");
+    grazes.push_str("# 0.005-day grid instants on each side at which |separation - level| >= 2 x margin; overlapping windows are merged and\n");
+    grazes.push_str("# turn_jd_tt/miss_arcsec are the closest turn. se_events counts lunar-points.csv rows of the pair and angle inside [lo, hi]\n");
+    grazes.push_str("# (always even). Events inside a window may exist in one ephemeris only (issue #168 (c)).\n");
+    grazes.push_str(
+        "group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events\n",
+    );
     let mut rows = 0usize;
+    let mut graze_rows = 0usize;
     {
         let mut push = |row: String| {
             rows += 1;
             writeln!(csv, "{row}").unwrap();
+        };
+        let mut push_graze = |row: String| {
+            graze_rows += 1;
+            writeln!(grazes, "{row}").unwrap();
         };
         for (first, second) in LUNAR_POINT_PAIRS {
             scan(
@@ -515,7 +692,10 @@ fn lunar_points_main(args: &[String]) {
                 GEO_SWIEPH,
                 FULL_SPAN,
                 LUNAR_POINT_GRID_DAYS,
-                LUNAR_POINT_GRAZE_MARGIN_DEG,
+                Graze::Window {
+                    margin_deg: lunar_point_margin_deg(first),
+                    out: &mut push_graze,
+                },
             );
         }
     }
@@ -523,11 +703,22 @@ fn lunar_points_main(args: &[String]) {
         "slice aspects-lunar-points file=lunar-points.csv role=aspects rows={rows} checksum={}\n",
         pins::fnv1a64(&csv)
     );
+    let grazes_manifest = format!(
+        "slice aspects-lunar-points-grazes file=lunar-points-grazes.csv role=grazes rows={graze_rows} checksum={}\n",
+        pins::fnv1a64(&grazes)
+    );
     std::fs::create_dir_all(&out_dir).unwrap_or_else(|e| panic!("create {out_dir}: {e}"));
     let csv_path = format!("{out_dir}/lunar-points.csv");
     let manifest_path = format!("{out_dir}/lunar-points-manifest.txt");
+    let grazes_path = format!("{out_dir}/lunar-points-grazes.csv");
+    let grazes_manifest_path = format!("{out_dir}/lunar-points-grazes-manifest.txt");
     std::fs::write(&csv_path, &csv).unwrap_or_else(|e| panic!("write {csv_path}: {e}"));
     std::fs::write(&manifest_path, &manifest)
         .unwrap_or_else(|e| panic!("write {manifest_path}: {e}"));
-    eprintln!("wrote {csv_path} ({rows} rows) and {manifest_path}");
+    std::fs::write(&grazes_path, &grazes).unwrap_or_else(|e| panic!("write {grazes_path}: {e}"));
+    std::fs::write(&grazes_manifest_path, &grazes_manifest)
+        .unwrap_or_else(|e| panic!("write {grazes_manifest_path}: {e}"));
+    eprintln!(
+        "wrote {csv_path} ({rows} rows), {grazes_path} ({graze_rows} windows) and their manifests"
+    );
 }
