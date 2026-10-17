@@ -1,0 +1,8 @@
+# Source: as fictitious.csv (Swiss Ephemeris 2.10.03, SEFLG_SWIEPH, sepl_18/semo_18 and seorbel.txt SHA-256 pinned).
+# One row per graze window of a fictitious pair and angle: a turning point of the separation within the pair's
+# margin of a level (3 arcsec for every pair). lo_jd_tt and hi_jd_tt are the first
+# scan grid instants on each side at which |separation - level| >= 2 x margin; overlapping windows are merged and
+# turn_jd_tt/miss_arcsec are the closest turn. se_events counts fictitious.csv rows of the pair and angle inside [lo, hi]
+# (even when both edges lie on one side of the level, odd when they straddle it). Events inside a window may exist
+# in one ephemeris only; the gate requires each side's count to have se_events' parity (issue #168 (c)).
+group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events

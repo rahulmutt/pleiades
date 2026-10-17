@@ -382,10 +382,13 @@ fn aspects_gate_passes_within_ceilings() {
         eprintln!("{line}");
     }
     eprintln!("full gate: {:.1} s", started.elapsed().as_secs_f64());
-    assert!(report.rows_validated >= MIN_ROWS_VALIDATED + MIN_ROWS_VALIDATED_ASTEROIDS);
+    assert!(
+        report.rows_validated
+            >= MIN_ROWS_VALIDATED + MIN_ROWS_VALIDATED_ASTEROIDS + MIN_ROWS_VALIDATED_FICTITIOUS
+    );
     assert_eq!(
         report.pair_lines().len(),
-        PAIRS.len() + ASTEROID_PAIRS.len()
+        PAIRS.len() + ASTEROID_PAIRS.len() + FICTITIOUS_PAIRS.len()
     );
 }
 
@@ -409,6 +412,213 @@ fn lunar_point_aspects_gate_passes_within_ceilings() {
     eprintln!("lunar-point gate: {:.1} s", started.elapsed().as_secs_f64());
     assert!(report.rows_validated >= MIN_ROWS_VALIDATED_LUNAR_POINTS);
     assert_eq!(report.pair_lines().len(), LUNAR_POINT_PAIRS.len());
+}
+
+// Opt-in like the gates above (`mise run gate-aspects` runs the fictitious
+// pass too, as part of `validate_aspects_corpus`).
+#[test]
+fn fictitious_aspects_gate_passes_within_ceilings() {
+    if std::env::var("PLEIADES_FULL_ASPECTS_GATE").as_deref() != Ok("1") {
+        eprintln!(
+            "fictitious_aspects_gate_passes_within_ceilings: skipped; set PLEIADES_FULL_ASPECTS_GATE=1 to run the fictitious-body gate"
+        );
+        return;
+    }
+    let started = std::time::Instant::now();
+    let report = validate_fictitious_aspects_corpus().expect("fictitious-body aspects gate passes");
+    eprintln!("{}", report.summary_line());
+    for line in report.pair_lines() {
+        eprintln!("{line}");
+    }
+    eprintln!(
+        "fictitious-body gate: {:.1} s",
+        started.elapsed().as_secs_f64()
+    );
+    assert!(report.rows_validated >= MIN_ROWS_VALIDATED_FICTITIOUS);
+    assert_eq!(report.pair_lines().len(), FICTITIOUS_PAIRS.len());
+}
+
+#[test]
+fn fictitious_corpus_parses_into_the_twenty_eight_pairs() {
+    let rows = parse_corpus(FICTITIOUS_CSV, &FICTITIOUS_PAIRS).expect("fictitious corpus parses");
+    let (rows_manifest, _) = parse_manifest(FICTITIOUS_MANIFEST).unwrap();
+    assert_eq!(rows.len(), rows_manifest);
+    let names: Vec<String> = FICTITIOUS_PAIRS
+        .iter()
+        .map(|pair| format!("{}-{}", pair.first, pair.second))
+        .collect();
+    assert_eq!(
+        names,
+        [
+            "Cupido-Sun",
+            "Hades-Sun",
+            "Zeus-Sun",
+            "Kronos-Sun",
+            "Apollon-Sun",
+            "Admetos-Sun",
+            "Vulkanus-Sun",
+            "Poseidon-Sun",
+            "Transpluto-Sun",
+            "Nibiru-Sun",
+            "Harrington-Sun",
+            "NeptuneLeverrier-Sun",
+            "NeptuneAdams-Sun",
+            "PlutoLowell-Sun",
+            "PlutoPickering-Sun",
+            "Vulcan-Sun",
+            "WhiteMoon-Sun",
+            "Proserpina-Sun",
+            "Waldemath-Sun",
+            "Cupido-Saturn",
+            "Hades-Saturn",
+            "Zeus-Saturn",
+            "Kronos-Saturn",
+            "Apollon-Saturn",
+            "Admetos-Saturn",
+            "Vulkanus-Saturn",
+            "Poseidon-Saturn",
+            "Transpluto-Saturn"
+        ]
+    );
+    let expected_counts = [
+        1593, 1595, 1596, 1597, 1597, 1597, 1598, 1598, 1598, 1600, 1599, 1593, 1593, 1594, 1597,
+        7461, 1371, 1598, 3300, 125, 118, 112, 107, 112, 126, 120, 119, 119,
+    ];
+    for (index, pair) in FICTITIOUS_PAIRS.iter().enumerate() {
+        assert_eq!(pair.group, Group::Mean);
+        assert_eq!(pair.span, FULL_SPAN);
+        let count = rows.iter().filter(|row| row.pair == index).count();
+        assert_eq!(count, expected_counts[index], "{}", names[index]);
+        assert!(body_from_name(pair.first).is_some(), "{}", pair.first);
+        assert!(body_from_name(pair.second).is_some(), "{}", pair.second);
+        assert!(ceilings_for(&names[index]).is_some(), "{}", names[index]);
+    }
+    assert!(rows.iter().all(|row| row.pair < FICTITIOUS_PAIRS.len()));
+}
+
+#[test]
+fn committed_fictitious_corpus_matches_its_manifest() {
+    let rows = check_manifest(FICTITIOUS_CSV, FICTITIOUS_MANIFEST, &FICTITIOUS_PAIRS)
+        .expect("manifest matches");
+    let windows = check_grazes(
+        FICTITIOUS_GRAZES_CSV,
+        FICTITIOUS_GRAZES_MANIFEST,
+        &FICTITIOUS_PAIRS,
+        &rows,
+    )
+    .expect("graze windows match their manifest");
+    let in_windows: usize = windows.iter().map(|w| w.se_events).sum();
+    assert_eq!(rows.len() - in_windows, MIN_ROWS_VALIDATED_FICTITIOUS);
+}
+
+#[test]
+fn committed_fictitious_graze_windows_match_their_manifest_and_corpus() {
+    let rows = check_manifest(FICTITIOUS_CSV, FICTITIOUS_MANIFEST, &FICTITIOUS_PAIRS)
+        .expect("fictitious corpus matches its manifest");
+    let windows = check_grazes(
+        FICTITIOUS_GRAZES_CSV,
+        FICTITIOUS_GRAZES_MANIFEST,
+        &FICTITIOUS_PAIRS,
+        &rows,
+    )
+    .expect("graze windows match their manifest and the corpus");
+    let (manifest_rows, _) = parse_manifest(FICTITIOUS_GRAZES_MANIFEST).unwrap();
+    assert_eq!(windows.len(), manifest_rows);
+    assert!(windows.iter().all(|w| w.pair < FICTITIOUS_PAIRS.len()));
+}
+
+#[test]
+fn fictitious_scope_floor_is_its_own() {
+    assert_eq!(Scope::Fictitious.floor(), MIN_ROWS_VALIDATED_FICTITIOUS);
+    assert!(Scope::Fictitious.includes(Group::Mean));
+    assert_eq!(Scope::Fictitious.pairs().len(), FICTITIOUS_PAIRS.len());
+    let (rows, _) = parse_manifest(FICTITIOUS_MANIFEST).unwrap();
+    let windows = parse_grazes(FICTITIOUS_GRAZES_CSV, &FICTITIOUS_PAIRS).unwrap();
+    let in_windows: usize = windows.iter().map(|w| w.se_events).sum();
+    assert_eq!(
+        rows - in_windows,
+        MIN_ROWS_VALIDATED_FICTITIOUS,
+        "every fictitious-body row outside a graze window is compared"
+    );
+}
+
+#[test]
+fn mean_subset_fails_a_tampered_fictitious_corpus() {
+    let tampered = FICTITIOUS_CSV.replacen("mean,Cupido,Sun,", "mean,Cupido,Sun, ", 1);
+    assert_ne!(tampered, FICTITIOUS_CSV);
+    assert!(matches!(
+        validate_subset(
+            ASTEROID_CSV,
+            ASTEROID_MANIFEST,
+            LUNAR_POINT_CSV,
+            LUNAR_POINT_MANIFEST,
+            LUNAR_POINT_GRAZES_CSV,
+            LUNAR_POINT_GRAZES_MANIFEST,
+            &tampered,
+            FICTITIOUS_MANIFEST,
+            FICTITIOUS_GRAZES_CSV,
+            FICTITIOUS_GRAZES_MANIFEST
+        ),
+        Err(AspectsError::ChecksumMismatch { .. })
+    ));
+}
+
+#[test]
+fn mean_subset_fails_tampered_fictitious_graze_windows() {
+    // The committed file holds no windows, so the tamper lands on its header
+    // comment; the checksum still binds the whole file.
+    let (manifest_rows, _) = parse_manifest(FICTITIOUS_GRAZES_MANIFEST).unwrap();
+    let tampered = if manifest_rows == 0 {
+        assert!(
+            FICTITIOUS_GRAZES_CSV
+                .lines()
+                .all(|line| line.starts_with('#') || line.starts_with("group,")),
+            "the file holds only its header and comments"
+        );
+        FICTITIOUS_GRAZES_CSV.replacen("# Source: as", "# Source: As", 1)
+    } else {
+        FICTITIOUS_GRAZES_CSV.replacen(",2\n", ",4\n", 1)
+    };
+    assert_ne!(tampered, FICTITIOUS_GRAZES_CSV);
+    assert!(matches!(
+        validate_subset(
+            ASTEROID_CSV,
+            ASTEROID_MANIFEST,
+            LUNAR_POINT_CSV,
+            LUNAR_POINT_MANIFEST,
+            LUNAR_POINT_GRAZES_CSV,
+            LUNAR_POINT_GRAZES_MANIFEST,
+            FICTITIOUS_CSV,
+            FICTITIOUS_MANIFEST,
+            &tampered,
+            FICTITIOUS_GRAZES_MANIFEST
+        ),
+        Err(AspectsError::ChecksumMismatch { .. })
+    ));
+}
+
+#[test]
+fn mean_subset_fails_a_fictitious_manifest_row_count_drift() {
+    let (rows, checksum) = parse_manifest(FICTITIOUS_MANIFEST).unwrap();
+    let drifted = format!(
+        "slice aspects-fictitious file=fictitious.csv role=aspects rows={} checksum={checksum}\n",
+        rows - 1
+    );
+    assert!(matches!(
+        validate_subset(
+            ASTEROID_CSV,
+            ASTEROID_MANIFEST,
+            LUNAR_POINT_CSV,
+            LUNAR_POINT_MANIFEST,
+            LUNAR_POINT_GRAZES_CSV,
+            LUNAR_POINT_GRAZES_MANIFEST,
+            FICTITIOUS_CSV,
+            &drifted,
+            FICTITIOUS_GRAZES_CSV,
+            FICTITIOUS_GRAZES_MANIFEST
+        ),
+        Err(AspectsError::ManifestDrift { .. })
+    ));
 }
 
 #[test]
@@ -600,7 +810,11 @@ fn mean_subset_fails_a_tampered_asteroid_corpus() {
             LUNAR_POINT_CSV,
             LUNAR_POINT_MANIFEST,
             LUNAR_POINT_GRAZES_CSV,
-            LUNAR_POINT_GRAZES_MANIFEST
+            LUNAR_POINT_GRAZES_MANIFEST,
+            FICTITIOUS_CSV,
+            FICTITIOUS_MANIFEST,
+            FICTITIOUS_GRAZES_CSV,
+            FICTITIOUS_GRAZES_MANIFEST
         ),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
@@ -620,7 +834,11 @@ fn mean_subset_fails_an_asteroid_manifest_row_count_drift() {
             LUNAR_POINT_CSV,
             LUNAR_POINT_MANIFEST,
             LUNAR_POINT_GRAZES_CSV,
-            LUNAR_POINT_GRAZES_MANIFEST
+            LUNAR_POINT_GRAZES_MANIFEST,
+            FICTITIOUS_CSV,
+            FICTITIOUS_MANIFEST,
+            FICTITIOUS_GRAZES_CSV,
+            FICTITIOUS_GRAZES_MANIFEST
         ),
         Err(AspectsError::ManifestDrift { .. })
     ));
@@ -757,7 +975,11 @@ fn mean_subset_fails_a_tampered_lunar_point_corpus() {
             &tampered,
             LUNAR_POINT_MANIFEST,
             LUNAR_POINT_GRAZES_CSV,
-            LUNAR_POINT_GRAZES_MANIFEST
+            LUNAR_POINT_GRAZES_MANIFEST,
+            FICTITIOUS_CSV,
+            FICTITIOUS_MANIFEST,
+            FICTITIOUS_GRAZES_CSV,
+            FICTITIOUS_GRAZES_MANIFEST
         ),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
@@ -777,7 +999,11 @@ fn mean_subset_fails_a_lunar_point_manifest_row_count_drift() {
             LUNAR_POINT_CSV,
             &drifted,
             LUNAR_POINT_GRAZES_CSV,
-            LUNAR_POINT_GRAZES_MANIFEST
+            LUNAR_POINT_GRAZES_MANIFEST,
+            FICTITIOUS_CSV,
+            FICTITIOUS_MANIFEST,
+            FICTITIOUS_GRAZES_CSV,
+            FICTITIOUS_GRAZES_MANIFEST
         ),
         Err(AspectsError::ManifestDrift { .. })
     ));
@@ -819,7 +1045,11 @@ fn mean_subset_fails_tampered_graze_windows() {
             LUNAR_POINT_CSV,
             LUNAR_POINT_MANIFEST,
             &tampered,
-            LUNAR_POINT_GRAZES_MANIFEST
+            LUNAR_POINT_GRAZES_MANIFEST,
+            FICTITIOUS_CSV,
+            FICTITIOUS_MANIFEST,
+            FICTITIOUS_GRAZES_CSV,
+            FICTITIOUS_GRAZES_MANIFEST
         ),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
@@ -841,7 +1071,11 @@ fn mean_subset_fails_a_window_whose_se_events_disagree() {
             LUNAR_POINT_CSV,
             LUNAR_POINT_MANIFEST,
             &tampered,
-            &manifest
+            &manifest,
+            FICTITIOUS_CSV,
+            FICTITIOUS_MANIFEST,
+            FICTITIOUS_GRAZES_CSV,
+            FICTITIOUS_GRAZES_MANIFEST
         ),
         Err(AspectsError::GrazeEventCount { .. })
     ));
@@ -861,7 +1095,11 @@ fn mean_subset_fails_a_graze_manifest_row_count_drift() {
             LUNAR_POINT_CSV,
             LUNAR_POINT_MANIFEST,
             LUNAR_POINT_GRAZES_CSV,
-            &drifted
+            &drifted,
+            FICTITIOUS_CSV,
+            FICTITIOUS_MANIFEST,
+            FICTITIOUS_GRAZES_CSV,
+            FICTITIOUS_GRAZES_MANIFEST
         ),
         Err(AspectsError::ManifestDrift { .. })
     ));

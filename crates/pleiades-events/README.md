@@ -227,7 +227,17 @@ count parity, outside it strictly. The lunar corpus has 22600 rows, 22596
 compared strictly; outside the windows the separation is within 3.113″
 (TrueApogee–Saturn) and the longitude within 2.232″ (MeanApogee–Saturn), and the
 closest gated turn is a 1.84″ TrueApogee–Jupiter graze, inside a window. The
-fictitious bodies and the mean and osculating perigees are found but not gated.
+fictitious bodies are gated in the geometric mean-of-date frame against SWIEPH
+with `seorbel.txt` (`validate-aspects`, also `validate-aspects-fictitious`):
+each of the 19 with the Sun, and Cupido, Hades, Zeus, Kronos, Apollon,
+Admetos, Vulkanus, Poseidon and Transpluto with Saturn, 28 pairs and 38733
+events, no graze windows (the closest turn is 43.3″, Admetos–Saturn). The
+separation is within 1.284″ and the longitude within 1.578″ (Nibiru–Sun, which
+carries a steady +1.26″ offset against SE; every other pair is within 0.87″).
+The apparent frame is not gated for them, because SE's light-time correction
+for fictitious bodies jumps by up to about 5″ at isolated instants while the
+engine's series is smooth. The mean and osculating perigees are found but not
+gated.
 Asteroid aspects are gated against Swiss Ephemeris SWIEPH (`seas_18`): the
 Sun with Ceres, Pallas, Juno and Vesta, Mars–Vesta and Jupiter–Ceres over
 1900–2100, and Moon–Ceres over 1990–2030 (issue #168 (f)). Eros is searched
