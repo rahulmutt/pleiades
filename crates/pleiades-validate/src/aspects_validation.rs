@@ -11,7 +11,7 @@
 //!
 //! Tiers: the full gate (`mise run gate-aspects`: planets, asteroids and the
 //! true node; about 2 minutes on the 4-core nightly runner before the
-//! true-node pass (#168), 2026-10-15, not yet measured on it since, and about
+//! lunar-point pass (#168), 2026-10-15, not yet measured on it since, and about
 //! 19 minutes locally at load 13-15.6, 2026-10-16; see
 //! [`validate_aspects_corpus`]) runs in its own nightly job and in
 //! `release-gate`; the `mean` subset (about 16 s) runs in the release
@@ -28,12 +28,21 @@
 //! None of their turns comes within 209" of an angle, and no two events of
 //! one angle fall within one 2-day search step.
 //!
-//! True node (issue #168): the true node against the Sun, Mars, Jupiter,
-//! Saturn, Uranus, Neptune and Pluto over 1900–2100 (3424 events) is
+//! Lunar points (issue #168): the true node (against the Sun, Mars, Jupiter,
+//! Saturn, Uranus, Neptune and Pluto), the osculating (true) apogee (Sun,
+//! Jupiter, Saturn, Pluto), the mean node (the seven planets of the true
+//! node) and the mean apogee (Sun, Jupiter, Saturn, Pluto) over 1900–2100 are
 //! compared event for event against `lunar-points.csv`, generated with SWIEPH
 //! by `tools/se-aspects-reference --lunar-points`, in the full gate only (the
-//! release battery checks only that file's manifest too). The tool's 3"
-//! graze margin applies; the measured near-grazes are 3.6" and 4.1".
+//! release battery checks only that file's manifest too, and
+//! `lunar-points-grazes.csv`'s). The tool's 3" graze margin applies.
+//! Wherever a pair's separation turns within the tool's graze margin of a
+//! level it records a graze window in `lunar-points-grazes.csv`; there an
+//! event pair may exist in one ephemeris only, so the gate checks that the
+//! engine's and the corpus's event counts in the window both have the
+//! parity of the window's recorded SE count, compares equal counts without
+//! ceilings (reporting their residuals), and compares every event outside a
+//! window strictly. See `grazes`.
 
 use crate::aspects_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_ASTEROIDS,
@@ -43,6 +52,10 @@ use pleiades_apparent::fnv1a64;
 use pleiades_data::packaged_backend;
 use pleiades_events::{CrossingFrame, CrossingReference, EventEngine};
 use pleiades_types::{Angle, CelestialBody, Instant, JulianDay, TimeScale};
+
+mod grazes;
+
+use grazes::{check_grazes, split_windows, windows_of, WindowStats};
 
 const CORPUS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -67,6 +80,14 @@ const LUNAR_POINT_CSV: &str = include_str!(concat!(
 const LUNAR_POINT_MANIFEST: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/aspects-corpus/lunar-points-manifest.txt"
+));
+const LUNAR_POINT_GRAZES_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/aspects-corpus/lunar-points-grazes.csv"
+));
+const LUNAR_POINT_GRAZES_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/aspects-corpus/lunar-points-grazes-manifest.txt"
 ));
 
 /// The spans `tools/se-aspects-reference` scanned (Julian days, TT). The
@@ -95,8 +116,10 @@ enum Scope {
     /// seas_18): the [`ASTEROID_PAIRS`]. Part of the full gate only (issue
     /// #168).
     Asteroids,
-    /// The true-node corpus (`lunar-points.csv`, Swiss Ephemeris SWIEPH), the
-    /// [`LUNAR_POINT_PAIRS`]. Part of the full gate only (issue #168).
+    /// The lunar-point corpus (`lunar-points.csv`, Swiss Ephemeris SWIEPH): the
+    /// true node, osculating apogee, mean node and mean apogee against the
+    /// [`LUNAR_POINT_PAIRS`], with graze windows compared by count parity
+    /// (`lunar-points-grazes.csv`). Part of the full gate only (issue #168).
     LunarPoints,
 }
 
@@ -124,7 +147,7 @@ impl Scope {
             Self::Full => "Aspects gate",
             Self::MeanSubset => "Aspects gate (mean subset)",
             Self::Asteroids => "Asteroid aspects",
-            Self::LunarPoints => "True-node aspects",
+            Self::LunarPoints => "Lunar-point aspects",
         }
     }
 
@@ -223,9 +246,9 @@ const ASTEROID_PAIRS: [Pair; 7] = [
     pair(Group::Geo, "Jupiter", "Ceres", FULL_SPAN),
 ];
 
-/// The true-node corpus plan, mirroring the `--lunar-points` mode of
+/// The lunar-point corpus plan, mirroring the `--lunar-points` mode of
 /// `tools/se-aspects-reference`.
-const LUNAR_POINT_PAIRS: [Pair; 7] = [
+const LUNAR_POINT_PAIRS: [Pair; 22] = [
     pair(Group::Geo, "TrueNode", "Sun", FULL_SPAN),
     pair(Group::Geo, "TrueNode", "Mars", FULL_SPAN),
     pair(Group::Geo, "TrueNode", "Jupiter", FULL_SPAN),
@@ -233,6 +256,21 @@ const LUNAR_POINT_PAIRS: [Pair; 7] = [
     pair(Group::Geo, "TrueNode", "Uranus", FULL_SPAN),
     pair(Group::Geo, "TrueNode", "Neptune", FULL_SPAN),
     pair(Group::Geo, "TrueNode", "Pluto", FULL_SPAN),
+    pair(Group::Geo, "TrueApogee", "Sun", FULL_SPAN),
+    pair(Group::Geo, "TrueApogee", "Jupiter", FULL_SPAN),
+    pair(Group::Geo, "TrueApogee", "Saturn", FULL_SPAN),
+    pair(Group::Geo, "TrueApogee", "Pluto", FULL_SPAN),
+    pair(Group::Geo, "MeanNode", "Sun", FULL_SPAN),
+    pair(Group::Geo, "MeanNode", "Mars", FULL_SPAN),
+    pair(Group::Geo, "MeanNode", "Jupiter", FULL_SPAN),
+    pair(Group::Geo, "MeanNode", "Saturn", FULL_SPAN),
+    pair(Group::Geo, "MeanNode", "Uranus", FULL_SPAN),
+    pair(Group::Geo, "MeanNode", "Neptune", FULL_SPAN),
+    pair(Group::Geo, "MeanNode", "Pluto", FULL_SPAN),
+    pair(Group::Geo, "MeanApogee", "Sun", FULL_SPAN),
+    pair(Group::Geo, "MeanApogee", "Jupiter", FULL_SPAN),
+    pair(Group::Geo, "MeanApogee", "Saturn", FULL_SPAN),
+    pair(Group::Geo, "MeanApogee", "Pluto", FULL_SPAN),
 ];
 
 fn body_from_name(name: &str) -> Option<CelestialBody> {
@@ -252,6 +290,9 @@ fn body_from_name(name: &str) -> Option<CelestialBody> {
         "Juno" => CelestialBody::Juno,
         "Vesta" => CelestialBody::Vesta,
         "TrueNode" => CelestialBody::TrueNode,
+        "TrueApogee" => CelestialBody::TrueApogee,
+        "MeanNode" => CelestialBody::MeanNode,
+        "MeanApogee" => CelestialBody::MeanApogee,
         _ => return None,
     })
 }
@@ -321,6 +362,26 @@ pub enum AspectsError {
         residual: f64,
         ceiling: f64,
     },
+    /// The grazes file is malformed (issue #168 (c)).
+    MalformedGrazes(String),
+    /// A graze window's recorded SE count disagrees with the corpus.
+    GrazeEventCount {
+        pair: usize,
+        angle_deg: f64,
+        lo: f64,
+        hi: f64,
+        recorded: usize,
+        corpus: usize,
+    },
+    /// A graze window holds a count of the wrong parity on one side.
+    GrazeWindowParity {
+        series: String,
+        lo: f64,
+        hi: f64,
+        side: &'static str,
+        count: usize,
+        se_events: usize,
+    },
 }
 
 impl std::fmt::Display for AspectsError {
@@ -365,6 +426,29 @@ impl std::fmt::Display for AspectsError {
             } => write!(
                 f,
                 "{series} {kind} ceiling exceeded at jd_tt={jd_tt}: residual {residual:.6e} > ceiling {ceiling:.6e}"
+            ),
+            Self::MalformedGrazes(s) => write!(f, "malformed grazes row: {s}"),
+            Self::GrazeEventCount {
+                pair,
+                angle_deg,
+                lo,
+                hi,
+                recorded,
+                corpus,
+            } => write!(
+                f,
+                "graze window [{lo}, {hi}] of pair {pair} at {angle_deg} degrees records {recorded} SE events, the corpus has {corpus}"
+            ),
+            Self::GrazeWindowParity {
+                series,
+                lo,
+                hi,
+                side,
+                count,
+                se_events,
+            } => write!(
+                f,
+                "{series}: graze window [{lo}, {hi}] holds {count} {side} events; its parity must match the {se_events} SE events'"
             ),
         }
     }
@@ -487,6 +571,25 @@ fn first_is_ahead(found: &Found) -> bool {
     wrap180(found.first_lon_deg - found.second_lon_deg) > 0.0
 }
 
+/// The residuals of one engine event against its corpus event: separation
+/// (arcseconds), signed time (engine − corpus, seconds), and the first and
+/// second body's longitude (arcseconds).
+fn residual_parts(got: &Found, want: &Expected) -> (f64, f64, f64, f64) {
+    let signed_time_s = (got.jd - want.found.jd) * SECONDS_PER_DAY;
+    let sep_arcsec =
+        (got.jd - want.found.jd).abs() * want.rel_speed_deg_per_day.abs() * ARCSEC_PER_DEG;
+    let first_arcsec = lon_residual_arcsec(got.first_lon_deg, want.found.first_lon_deg);
+    let second_arcsec = lon_residual_arcsec(got.second_lon_deg, want.found.second_lon_deg);
+    (sep_arcsec, signed_time_s, first_arcsec, second_arcsec)
+}
+
+/// [`residual_parts`] with the two longitude residuals folded into their
+/// maximum: `(sep_arcsec, signed_time_s, max_lon_arcsec)`.
+fn residuals_of(got: &Found, want: &Expected) -> (f64, f64, f64) {
+    let (sep, time_s, first, second) = residual_parts(got, want);
+    (sep, time_s, first.max(second))
+}
+
 /// The two lists must agree event for event: the same length and, for an
 /// angle strictly between 0 and 180 degrees, the same side in order; then
 /// every residual within its ceiling. A NaN residual fails closed.
@@ -514,11 +617,7 @@ fn compare_exact(
                 jd_tt: want.found.jd,
             });
         }
-        let signed_time_s = (got.jd - want.found.jd) * SECONDS_PER_DAY;
-        let sep_arcsec =
-            (got.jd - want.found.jd).abs() * want.rel_speed_deg_per_day.abs() * ARCSEC_PER_DEG;
-        let first_arcsec = lon_residual_arcsec(got.first_lon_deg, want.found.first_lon_deg);
-        let second_arcsec = lon_residual_arcsec(got.second_lon_deg, want.found.second_lon_deg);
+        let (sep_arcsec, signed_time_s, first_arcsec, second_arcsec) = residual_parts(got, want);
         let checks = [
             ("separation_arcsec", sep_arcsec, ceilings.sep_arcsec),
             ("first_longitude_arcsec", first_arcsec, ceilings.lon_arcsec),
@@ -591,7 +690,7 @@ impl AspectsReport {
 }
 
 fn validate(csv: &str, manifest: &str) -> Result<AspectsReport, AspectsError> {
-    validate_scoped(csv, manifest, Scope::Full)
+    validate_scoped(csv, manifest, Scope::Full, None)
 }
 
 /// Ties a corpus to its manifest without scanning: the checksum, the parse
@@ -615,8 +714,21 @@ fn check_manifest(csv: &str, manifest: &str, pairs: &[Pair]) -> Result<Vec<Row>,
     Ok(rows)
 }
 
-fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsReport, AspectsError> {
+/// `grazes` is the graze-window file and its manifest, for the lunar-point
+/// scope; every other scope passes `None`.
+fn validate_scoped(
+    csv: &str,
+    manifest: &str,
+    scope: Scope,
+    grazes: Option<(&str, &str)>,
+) -> Result<AspectsReport, AspectsError> {
     let rows = check_manifest(csv, manifest, scope.pairs())?;
+    let windows = match grazes {
+        Some((grazes_csv, grazes_manifest)) => {
+            check_grazes(grazes_csv, grazes_manifest, scope.pairs(), &rows)?
+        }
+        None => Vec::new(),
+    };
 
     let engine = EventEngine::new(packaged_backend());
     // The corpus epoch is TT; the engine reads the Julian day as TDB. The two
@@ -644,6 +756,7 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
         };
         let (first, second) = (body(pair.first)?, body(pair.second)?);
         let mut residuals = Residuals::default();
+        let mut window_stats = WindowStats::default();
         let mut counts = Vec::new();
         let angles = ANGLES_DEG.map(Angle::from_degrees);
         let events = engine
@@ -672,12 +785,19 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
                     second_lon_deg: event.second_longitude.degrees(),
                 })
                 .collect();
+            counts.push(format!("{angle_deg:.0}°: {}", found.len()));
+            let (found, corpus, stats) = split_windows(
+                &label,
+                &windows_of(&windows, pair_index, angle_index),
+                &found,
+                &corpus,
+            )?;
+            window_stats.absorb(stats);
             residuals.absorb(compare_exact(
                 &label, *angle_deg, &found, &corpus, ceilings,
             )?);
-            counts.push(format!("{angle_deg:.0}°: {}", found.len()));
         }
-        pair_lines.push(format!(
+        let mut line = format!(
             "{pair_label}: {} compared ({}), max sep {:.3}\", max time {:.1} s, mean signed time {:+.1} s, max lon {:.3}\"",
             residuals.matched,
             counts.join(", "),
@@ -685,7 +805,19 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
             residuals.max_time_s,
             residuals.mean_signed_time_s(),
             residuals.max_lon_arcsec,
-        ));
+        );
+        if scope == Scope::LunarPoints {
+            line.push_str(&format!(
+                ", graze windows {} ({} differing, {} events compared inside, max sep {:.3}\", max time {:.1} s, max lon {:.3}\")",
+                window_stats.windows,
+                window_stats.differing,
+                window_stats.compared,
+                window_stats.max_sep_arcsec,
+                window_stats.max_time_s,
+                window_stats.max_lon_arcsec,
+            ));
+        }
+        pair_lines.push(line);
         total.absorb(residuals);
     }
     check_floor(total.matched, scope.floor())?;
@@ -712,9 +844,9 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
 
 /// The full gate: every planet corpus pair at every angle (floor
 /// `MIN_ROWS_VALIDATED`, 10359 events), then the asteroid pairs (floor
-/// `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events), then the true node against
-/// seven planets (floor `MIN_ROWS_VALIDATED_LUNAR_POINTS`, 3424 events,
-/// SWIEPH, 3" graze margin, measured near-grazes of 3.6" and 4.1"). Run by
+/// `MIN_ROWS_VALIDATED_ASTEROIDS`, 10118 events), then the 22 lunar-point
+/// pairs (floor `MIN_ROWS_VALIDATED_LUNAR_POINTS`, 22596 events outside the
+/// graze windows, SWIEPH, 3" graze margin). Run by
 /// `validate-aspects` / `mise run gate-aspects` (its own nightly job and a
 /// `release-gate` dependency) and by the opt-in `PLEIADES_FULL_ASPECTS_GATE=1` test.
 /// Measured on the 4-core nightly runner with both passes (five nightly
@@ -735,8 +867,13 @@ fn validate_scoped(csv: &str, manifest: &str, scope: Scope) -> Result<AspectsRep
 /// and are why the gate left nightly `test-full`.
 pub fn validate_aspects_corpus() -> Result<AspectsReport, AspectsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
-    let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;
-    let lunar_points = validate_scoped(LUNAR_POINT_CSV, LUNAR_POINT_MANIFEST, Scope::LunarPoints)?;
+    let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids, None)?;
+    let lunar_points = validate_scoped(
+        LUNAR_POINT_CSV,
+        LUNAR_POINT_MANIFEST,
+        Scope::LunarPoints,
+        Some((LUNAR_POINT_GRAZES_CSV, LUNAR_POINT_GRAZES_MANIFEST)),
+    )?;
     Ok(planets.merged_with(asteroids).merged_with(lunar_points))
 }
 
@@ -757,20 +894,26 @@ pub fn validate_aspects_corpus_subset() -> Result<AspectsReport, AspectsError> {
         ASTEROID_MANIFEST,
         LUNAR_POINT_CSV,
         LUNAR_POINT_MANIFEST,
+        LUNAR_POINT_GRAZES_CSV,
+        LUNAR_POINT_GRAZES_MANIFEST,
     )
 }
 
-/// [`validate_aspects_corpus_subset`] with the asteroid and true-node corpora
-/// passed in, so a test can hand it a tampered file or manifest.
+/// [`validate_aspects_corpus_subset`] with the asteroid, lunar-point and
+/// graze-window files passed in, so a test can hand it a tampered file or
+/// manifest.
 fn validate_subset(
     asteroid_csv: &str,
     asteroid_manifest: &str,
     lunar_csv: &str,
     lunar_manifest: &str,
+    grazes_csv: &str,
+    grazes_manifest: &str,
 ) -> Result<AspectsReport, AspectsError> {
     check_manifest(asteroid_csv, asteroid_manifest, &ASTEROID_PAIRS)?;
-    check_manifest(lunar_csv, lunar_manifest, &LUNAR_POINT_PAIRS)?;
-    validate_scoped(CORPUS_CSV, MANIFEST, Scope::MeanSubset)
+    let lunar_rows = check_manifest(lunar_csv, lunar_manifest, &LUNAR_POINT_PAIRS)?;
+    check_grazes(grazes_csv, grazes_manifest, &LUNAR_POINT_PAIRS, &lunar_rows)?;
+    validate_scoped(CORPUS_CSV, MANIFEST, Scope::MeanSubset, None)
 }
 
 #[cfg(test)]

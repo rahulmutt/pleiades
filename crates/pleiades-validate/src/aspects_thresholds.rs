@@ -54,9 +54,11 @@ pub(crate) const MIN_ROWS_VALIDATED_MEAN_SUBSET: usize = 372;
 /// (10118, generated 2026-10-10), so a dropped event fails.
 pub(crate) const MIN_ROWS_VALIDATED_ASTEROIDS: usize = 10_118;
 
-/// Fail-closed floor for the true-node corpus: every row of
-/// `lunar-points.csv` (3424, generated 2026-10-16).
-pub(crate) const MIN_ROWS_VALIDATED_LUNAR_POINTS: usize = 3_424;
+/// Fail-closed floor for the lunar-point corpus: the rows of
+/// `lunar-points.csv` (22600) outside its graze windows, which are compared by
+/// count parity and not counted here (22600 less the 4 rows the windows of
+/// `lunar-points-grazes.csv` hold).
+pub(crate) const MIN_ROWS_VALIDATED_LUNAR_POINTS: usize = 22_596;
 
 /// Ceilings by corpus pair name (`"Mars-Saturn"`), or `None` for a pair the
 /// gate does not cover.
@@ -186,6 +188,81 @@ pub(crate) fn ceilings_for(pair: &str) -> Option<Ceilings> {
         "TrueNode-Pluto" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "TrueApogee-Sun" => Some(Ceilings {
+            sep_arcsec: 10.0,
+            lon_arcsec: 60.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "TrueApogee-Jupiter" => Some(Ceilings {
+            sep_arcsec: 10.0,
+            lon_arcsec: 60.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "TrueApogee-Saturn" => Some(Ceilings {
+            sep_arcsec: 10.0,
+            lon_arcsec: 60.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "TrueApogee-Pluto" => Some(Ceilings {
+            sep_arcsec: 10.0,
+            lon_arcsec: 60.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "MeanNode-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "MeanNode-Mars" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "MeanNode-Jupiter" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "MeanNode-Saturn" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "MeanNode-Uranus" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "MeanNode-Neptune" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "MeanNode-Pluto" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "MeanApogee-Sun" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "MeanApogee-Jupiter" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "MeanApogee-Saturn" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
+        }),
+        // PROVISIONAL (Task 3 of the 2026-10-17 plan); measured in Task 4
+        "MeanApogee-Pluto" => Some(Ceilings {
+            sep_arcsec: 5.0,
+            lon_arcsec: 5.0,
         }),
         _ => None,
     }
