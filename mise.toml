@@ -319,11 +319,14 @@ run = "cargo run -q -p pleiades-validate -- validate-aspects-lunar"
 run = "cargo run -q -p pleiades-validate -- validate-aspects-fictitious"
 
 [tasks.gate-stations]
-# Full planetary-stations gate (every corpus series, including Ceres–Vesta).
-# On the 4-core nightly runner (3f5849db6, 2026-10-11..15) the command takes
-# 28-29 s and the `stations-gate` job 1m06s-1m27s, far inside its 20-min step /
-# 30-min job timeouts; the asteroid pass is within runner noise (planets alone
-# took 29 s before #250). It was nightly `test-full-validate`'s long pole
+# Full planetary-stations gate (every corpus series, including Ceres–Vesta, the
+# osculating apogee and the 17 stationing fictitious bodies, #167).
+# On the 4-core nightly runner the command took 28-29 s and the `stations-gate`
+# job 1m06s-1m27s before the apogee and fictitious passes (3f5849db6,
+# 2026-10-11..15); with all four passes the "Run full stations gate" step took
+# 2m14s and the job 2m55s (one run, 39101104860, 2026-10-18). Both are far
+# inside the 20-min step / 30-min job timeouts; the asteroid pass is within
+# runner noise (planets alone took 29 s before #250). It was nightly `test-full-validate`'s long pole
 # (FU-23 (u)), so it has its own nightly job (.github/workflows/nightly.yml
 # `stations-gate`) and is a `release-gate` dependency. The mean/sid subset, and
 # a scan-free checksum/row-count check of the asteroid corpus (#254), run in

@@ -28,11 +28,26 @@
 //! speed is the speed 4.32 s earlier and its zero lands 4.32 s late. The
 //! shift is included in the measured maxima; the gate does not compensate
 //! for it. For the slower planets the mean is dominated by scatter (Venus
-//! -1.3 s, Saturn -2.8 s, Neptune +11.0 s), and Pluto's -56.6 s mean
-//! (turning retrograde about -65 s, turning direct about -48 s in the
-//! probe) is not explained by the 4.32 s convention. It is well inside
-//! Pluto's 2000 s ceiling and is recorded as an open observation (issue #167,
-//! item (f)).
+//! -1.3 s, Saturn -2.8 s, Neptune +11.0 s). Pluto's -56.6 s mean (turning
+//! retrograde about -65 s, turning direct about -48 s in the probe) is not
+//! the 4.32 s convention either; it comes from SE's reported apparent speed,
+//! which omits part of the rate of nutation (about 2.5e-7 degrees/day; with
+//! SEFLG_NONUT the gap falls to about +-3 s). Against the zeros of the
+//! derivative of SE's own longitudes the engine is at -6 s (SWIEPH), within
+//! the 198 s rms scatter (issue #167 (f), measured 2026-10-18).
+//!
+//! The osculating-apogee and fictitious-body corpora (issue #167 (d)) use a
+//! different reference convention: a station is a sign change of the central
+//! difference `wrap180(lon(t+h) - lon(t-h)) / 2h` of SE longitudes (h = 0.001
+//! d apogee, 0.01 d fictitious; grid 0.01 d and 0.25 d, offset 0.00137 d;
+//! each body scanned twice, with h and 1.3 h, and a station found by one scan
+//! only is dropped when it forms a retrograde/direct pair under 3 h apart).
+//! SE's osculating-apogee speed jumps at isolated instants and has step
+//! discontinuities, and its Proserpina speed is inconsistent with its own
+//! positions (zeros about 4.4 h from those of its longitude's derivative), so
+//! SE's reported speed is not a usable reference for them. Measured maxima:
+//! apogee 663.1 s and 1.873″ (ceiling 930 s / 2.7″); fictitious bodies 94.3 s
+//! (Vulcan) and 1.565″ (Nibiru), every other body at most 40.6 s.
 //!
 //! True node. Its speed hovers near zero for days, so a station instant is
 //! ill-conditioned, and whether a graze crosses zero depends on the
@@ -90,6 +105,16 @@ pub(crate) const MIN_ROWS_VALIDATED_MEAN_SID_SUBSET: usize = 734;
 /// Fail-closed floor for the asteroid corpus: every row of `asteroids.csv`
 /// (1225, generated 2026-10-10), so a dropped station fails.
 pub(crate) const MIN_ROWS_VALIDATED_ASTEROIDS: usize = 1225;
+
+/// Fail-closed floor for the osculating-apogee corpus: the rows of
+/// `true-apogee.csv` outside its speed-graze windows (4776 less the 2 inside,
+/// generated 2026-10-18), so a dropped station fails.
+pub(crate) const MIN_ROWS_VALIDATED_TRUE_APOGEE: usize = 4774;
+
+/// Fail-closed floor for the fictitious-body corpus: the rows of
+/// `fictitious.csv` outside its speed-graze windows (all 13845; it has no
+/// windows, generated 2026-10-18).
+pub(crate) const MIN_ROWS_VALIDATED_FICTITIOUS: usize = 13845;
 
 /// Ceilings by corpus body name, or `None` for a body the gate does not cover.
 pub(crate) fn ceilings_for(body_name: &str) -> Option<Ceilings> {
@@ -170,6 +195,101 @@ pub(crate) fn ceilings_for(body_name: &str) -> Option<Ceilings> {
         "Vesta" => Some(Ceilings {
             time_s: 85.0,
             lon_arcsec: 2.4,
+        }),
+        // Osculating apogee and fictitious bodies (issue #167 (d)): measured x
+        // 1.4, rounded up to two significant figures; `lon_arcsec` never below
+        // 2.3". Measured by the full gate against the SWIEPH central-difference
+        // corpora (true-apogee.csv, h = 0.001 d; fictitious.csv, h = 0.01 d),
+        // 2026-10-18.
+        // measured max 663.1 s, 1.873" (geo); 1.873" x 1.4 = 2.62" rounds up to 2.7"
+        "TrueApogee" => Some(Ceilings {
+            time_s: 930.0,
+            lon_arcsec: 2.7,
+        }),
+        // measured max 22.5 s, 0.600" (mean)
+        "Cupido" => Some(Ceilings {
+            time_s: 32.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 18.9 s, 0.600" (mean)
+        "Hades" => Some(Ceilings {
+            time_s: 27.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 21.3 s, 0.600" (mean)
+        "Zeus" => Some(Ceilings {
+            time_s: 30.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 17.2 s, 0.601" (mean)
+        "Kronos" => Some(Ceilings {
+            time_s: 25.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 21.2 s, 0.600" (mean)
+        "Apollon" => Some(Ceilings {
+            time_s: 30.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 18.6 s, 0.600" (mean)
+        "Admetos" => Some(Ceilings {
+            time_s: 27.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 16.6 s, 0.601" (mean)
+        "Vulkanus" => Some(Ceilings {
+            time_s: 24.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 21.8 s, 0.600" (mean)
+        "Poseidon" => Some(Ceilings {
+            time_s: 31.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 13.1 s, 0.470" (mean)
+        "Transpluto" => Some(Ceilings {
+            time_s: 19.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 40.6 s, 1.565" (mean)
+        "Nibiru" => Some(Ceilings {
+            time_s: 57.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 12.9 s, 0.305" (mean)
+        "Harrington" => Some(Ceilings {
+            time_s: 19.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 26.2 s, 0.752" (mean)
+        "NeptuneLeverrier" => Some(Ceilings {
+            time_s: 37.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 25.9 s, 0.752" (mean)
+        "NeptuneAdams" => Some(Ceilings {
+            time_s: 37.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 19.7 s, 0.514" (mean)
+        "PlutoLowell" => Some(Ceilings {
+            time_s: 28.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 15.8 s, 0.514" (mean)
+        "PlutoPickering" => Some(Ceilings {
+            time_s: 23.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 94.3 s, 0.323" (mean)
+        "Vulcan" => Some(Ceilings {
+            time_s: 140.0,
+            lon_arcsec: 2.3,
+        }),
+        // measured max 19.0 s, 0.001" (mean)
+        "Proserpina" => Some(Ceilings {
+            time_s: 27.0,
+            lon_arcsec: 2.3,
         }),
         _ => None,
     }

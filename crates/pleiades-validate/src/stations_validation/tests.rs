@@ -1,3 +1,6 @@
+use super::windows::{
+    check_window_edges, check_windows, parse_windows, split_windows, SpeedWindow,
+};
 use super::*;
 
 const D: StationKind = StationKind::TurnsDirect;
@@ -255,7 +258,7 @@ fn malformed_rows_are_rejected() {
         "geo,Mercury,2451596.1,17.5",
         "geo,Mercury,2451596.1,17.5,R,extra",
         "helio,Mercury,2451596.1,17.5,R",
-        "geo,Vulcan,2451596.1,17.5,R",
+        "geo,Chiron,2451596.1,17.5,R",
         "geo,Mercury,NaN,17.5,R",
         "geo,Mercury,2451596.1,inf,R",
         "geo,Mercury,2451596.1,17.5,X",
@@ -307,7 +310,23 @@ fn stations_gate_passes_within_ceilings() {
     for line in report.series_lines() {
         eprintln!("{line}");
     }
-    assert!(report.rows_validated >= MIN_ROWS_VALIDATED + MIN_ROWS_VALIDATED_ASTEROIDS);
+    assert!(
+        report.rows_validated
+            >= MIN_ROWS_VALIDATED
+                + MIN_ROWS_VALIDATED_ASTEROIDS
+                + MIN_ROWS_VALIDATED_TRUE_APOGEE
+                + MIN_ROWS_VALIDATED_FICTITIOUS
+    );
+    assert!(report.summary_line.contains("Apogee stations"));
+    assert!(report.summary_line.contains("Fictitious-body stations"));
+    assert!(report
+        .series_lines
+        .iter()
+        .any(|l| l.starts_with("geo TrueApogee:")));
+    assert!(report
+        .series_lines
+        .iter()
+        .any(|l| l.starts_with("mean Proserpina:")));
 }
 
 #[test]
@@ -562,7 +581,10 @@ fn mean_sid_subset_fails_a_tampered_asteroid_corpus() {
     let tampered = ASTEROID_CSV.replacen(",R\n", ",D\n", 1);
     assert_ne!(tampered, ASTEROID_CSV);
     assert!(matches!(
-        validate_subset(&tampered, ASTEROID_MANIFEST),
+        validate_subset(&SubsetFiles {
+            asteroid_csv: &tampered,
+            ..SubsetFiles::committed()
+        }),
         Err(StationsError::ChecksumMismatch { .. })
     ));
 }
@@ -575,7 +597,10 @@ fn mean_sid_subset_fails_an_asteroid_manifest_row_count_drift() {
         rows - 1
     );
     assert!(matches!(
-        validate_subset(ASTEROID_CSV, &drifted),
+        validate_subset(&SubsetFiles {
+            asteroid_manifest: &drifted,
+            ..SubsetFiles::committed()
+        }),
         Err(StationsError::ManifestDrift { .. })
     ));
 }
@@ -633,4 +658,393 @@ fn full_report_keeps_the_planet_summary_prefix() {
     assert!(merged
         .summary_line
         .ends_with("Asteroid stations: 3 stations validated"));
+}
+
+fn window(lo: f64, hi: f64, se_stations: usize, sides: (i8, i8), miss: f64) -> SpeedWindow {
+    SpeedWindow {
+        group: Group::Geo,
+        body_name: "TrueApogee",
+        turn_jd: 0.5 * (lo + hi),
+        miss,
+        lo,
+        hi,
+        se_stations,
+        lo_side: sides.0,
+        hi_side: sides.1,
+        margin: 0.002,
+    }
+}
+
+#[test]
+fn committed_new_corpora_match_their_manifests_and_windows() {
+    for (csv, manifest, windows, windows_manifest) in [
+        (
+            TRUE_APOGEE_CSV,
+            TRUE_APOGEE_MANIFEST,
+            TRUE_APOGEE_WINDOWS_CSV,
+            TRUE_APOGEE_WINDOWS_MANIFEST,
+        ),
+        (
+            FICTITIOUS_CSV,
+            FICTITIOUS_MANIFEST,
+            FICTITIOUS_WINDOWS_CSV,
+            FICTITIOUS_WINDOWS_MANIFEST,
+        ),
+    ] {
+        let series = check_manifest(csv, manifest).expect("manifest matches");
+        check_windows(windows, windows_manifest, &series).expect("windows match");
+    }
+}
+
+#[test]
+fn new_corpora_hold_the_expected_bodies() {
+    let apogee = check_manifest(TRUE_APOGEE_CSV, TRUE_APOGEE_MANIFEST).unwrap();
+    assert_eq!(apogee.len(), 1);
+    assert_eq!(
+        (apogee[0].group, apogee[0].body_name),
+        (Group::Geo, "TrueApogee")
+    );
+    let fict = check_manifest(FICTITIOUS_CSV, FICTITIOUS_MANIFEST).unwrap();
+    // WhiteMoon and Waldemath never station, so they have no series.
+    assert_eq!(fict.len(), 17);
+    assert!(fict.iter().all(|s| s.group == Group::Mean));
+}
+
+#[test]
+fn subset_fails_tampered_new_corpora_and_windows() {
+    let apogee = TRUE_APOGEE_CSV.replacen(",R\n", ",D\n", 1);
+    assert!(matches!(
+        validate_subset(&SubsetFiles {
+            true_apogee_csv: &apogee,
+            ..SubsetFiles::committed()
+        }),
+        Err(StationsError::ChecksumMismatch { .. })
+    ));
+    let fict = FICTITIOUS_CSV.replacen(",R\n", ",D\n", 1);
+    assert!(matches!(
+        validate_subset(&SubsetFiles {
+            fictitious_csv: &fict,
+            ..SubsetFiles::committed()
+        }),
+        Err(StationsError::ChecksumMismatch { .. })
+    ));
+    let windows = format!("{TRUE_APOGEE_WINDOWS_CSV}# tampered\n");
+    assert!(matches!(
+        validate_subset(&SubsetFiles {
+            true_apogee_windows_csv: &windows,
+            ..SubsetFiles::committed()
+        }),
+        Err(StationsError::ChecksumMismatch { .. })
+    ));
+    let (rows, checksum) = parse_manifest(FICTITIOUS_WINDOWS_MANIFEST).unwrap();
+    let drifted = format!(
+        "slice stations-fictitious-windows file=fictitious-windows.csv role=windows rows={} checksum={checksum}\n",
+        rows + 1
+    );
+    assert!(matches!(
+        validate_subset(&SubsetFiles {
+            fictitious_windows_manifest: &drifted,
+            ..SubsetFiles::committed()
+        }),
+        Err(StationsError::ManifestDrift { .. })
+    ));
+}
+
+const WINDOWS_HEADER: &str = "group,body,turn_jd_tt,miss_deg_per_day,lo_jd_tt,hi_jd_tt,se_stations,lo_side,hi_side,margin_deg_per_day\n";
+
+#[test]
+fn windows_parse_and_reject_bad_rows() {
+    let ok = format!("{WINDOWS_HEADER}geo,TrueApogee,2485441.4310000,5.950e-5,2485441.3000000,2485441.5600000,0,1,1,2.000e-3\n");
+    let w = parse_windows(&ok).unwrap();
+    assert_eq!(w.len(), 1);
+    assert!(!w[0].strict());
+    for bad in [
+        // sides contradict the count's parity
+        "geo,TrueApogee,2485441.431,5.95e-5,2485441.3,2485441.56,1,1,1,2e-3",
+        "geo,TrueApogee,2485441.431,5.95e-5,2485441.3,2485441.56,0,1,-1,2e-3",
+        // turn outside the window, lo >= hi
+        "geo,TrueApogee,2485442.0,5.95e-5,2485441.3,2485441.56,0,1,1,2e-3",
+        "geo,TrueApogee,2485441.431,5.95e-5,2485441.56,2485441.3,0,1,1,2e-3",
+        // miss not within the margin, a non-positive margin, a bad side
+        "geo,TrueApogee,2485441.431,2e-3,2485441.3,2485441.56,0,1,1,2e-3",
+        "geo,TrueApogee,2485441.431,0,2485441.3,2485441.56,0,1,1,0",
+        "geo,TrueApogee,2485441.431,5.95e-5,2485441.3,2485441.56,0,+1,1,2e-3",
+        // unknown body, wrong field count
+        "geo,Moon,2485441.431,5.95e-5,2485441.3,2485441.56,0,1,1,2e-3",
+        "geo,TrueApogee,2485441.431,5.95e-5,2485441.3,2485441.56,0,1,1",
+        // unknown group
+        "xyz,TrueApogee,2485441.431,5.95e-5,2485441.3,2485441.56,0,1,1,2e-3",
+        // second window of a series starts at or before the first one's end
+        "geo,TrueApogee,2485441.431,5.95e-5,2485441.3,2485441.56,0,1,1,2e-3\n\
+         geo,TrueApogee,2485441.6,5.95e-5,2485441.56,2485441.9,0,1,1,2e-3",
+    ] {
+        assert!(
+            matches!(
+                parse_windows(&format!("{WINDOWS_HEADER}{bad}\n")),
+                Err(StationsError::MalformedWindows(_))
+            ),
+            "{bad}"
+        );
+    }
+}
+
+#[test]
+fn a_window_count_that_disagrees_with_the_corpus_fails() {
+    let series = check_manifest(TRUE_APOGEE_CSV, TRUE_APOGEE_MANIFEST).unwrap();
+    let first = series[0].stations[0].jd;
+    // A window around the first station that claims to hold none.
+    let csv = format!(
+        "{WINDOWS_HEADER}geo,TrueApogee,{first:.7},1.000e-4,{:.7},{:.7},0,1,1,2.000e-3\n",
+        first - 0.01,
+        first + 0.01
+    );
+    let manifest = format!(
+        "slice stations-true-apogee-windows file=true-apogee-windows.csv role=windows rows=1 checksum={}\n",
+        fnv1a64(&csv)
+    );
+    assert!(matches!(
+        check_windows(&csv, &manifest, &series),
+        Err(StationsError::WindowStationCount {
+            recorded: 0,
+            corpus: 1,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn near_tangent_windows_accept_any_split_of_the_right_parity() {
+    let w = [window(10.0, 12.0, 2, (1, 1), 0.0005)];
+    let pair = |n: usize| -> Vec<Found> {
+        (0..n)
+            .map(|i| found(10.5 + 0.1 * i as f64, 1.0, if i % 2 == 0 { R } else { D }))
+            .collect()
+    };
+    for (got, want) in [(0, 2), (2, 0), (2, 2), (4, 2)] {
+        let (_, _, stats) = split_windows("t", &w, &pair(got), &pair(want)).unwrap();
+        assert_eq!(stats.differing, usize::from(got != want));
+    }
+    for (got, want) in [(1, 2), (2, 1)] {
+        assert!(matches!(
+            split_windows("t", &w, &pair(got), &pair(want)),
+            Err(StationsError::WindowParity { .. })
+        ));
+    }
+}
+
+#[test]
+fn strict_windows_require_equal_counts() {
+    let w = [window(10.0, 12.0, 2, (1, 1), 0.001)];
+    assert!(w[0].strict());
+    let pair = vec![found(10.5, 1.0, R), found(10.6, 1.0, D)];
+    assert!(matches!(
+        split_windows("t", &w, &[], &pair),
+        Err(StationsError::WindowCount {
+            engine: 0,
+            corpus: 2,
+            ..
+        })
+    ));
+    let (eng, cor, stats) = split_windows("t", &w, &pair, &pair).unwrap();
+    assert!(eng.is_empty() && cor.is_empty());
+    assert_eq!((stats.windows, stats.strict, stats.differing), (1, 1, 0));
+}
+
+#[test]
+fn stations_outside_windows_stay_strict() {
+    let w = [window(10.0, 12.0, 0, (1, 1), 0.0005)];
+    let outside = vec![found(12.000_001, 1.0, R)];
+    let (eng, cor, _) = split_windows("t", &w, &[], &outside).unwrap();
+    assert!(eng.is_empty());
+    assert_eq!(cor.len(), 1);
+}
+
+#[test]
+fn an_engine_speed_on_the_other_side_at_an_edge_fails() {
+    let w = [window(10.0, 12.0, 1, (1, -1), 0.0005)];
+    let falling = |jd: f64| Ok(if jd == 10.0 { 0.01 } else { -0.01 });
+    assert!(check_window_edges("t", &w, falling).is_ok());
+    assert!(matches!(
+        check_window_edges("t", &w, |_| Ok(0.01)),
+        Err(StationsError::WindowEdgeSide { jd_tt, se_side: -1, .. }) if jd_tt == 12.0
+    ));
+    // Exactly zero counts as negative, as in the reference tool.
+    assert!(check_window_edges("t", &w, |jd| Ok(if jd == 10.0 { 0.0 } else { -0.01 })).is_err());
+}
+
+/// The value of the windows file's `# margin_deg_per_day=` header line.
+fn header_margin(windows_csv: &str) -> f64 {
+    windows_csv
+        .lines()
+        .find_map(|l| l.strip_prefix("# margin_deg_per_day="))
+        .expect("margin header")
+        .parse()
+        .expect("margin header is a number")
+}
+
+/// Every extremum below the margin lies in a window, and the engine's central
+/// difference there is within a third of the margin of SE's. Prints the
+/// maximum difference.
+fn check_margin_basis<B: EphemerisBackend>(
+    extrema_csv: &str,
+    windows_csv: &str,
+    h: f64,
+    engine: &EventEngine<B>,
+    frame: CrossingFrame,
+) {
+    let margin = header_margin(windows_csv);
+    let windows = parse_windows(windows_csv).unwrap();
+    assert!(windows.iter().all(|w| w.margin == margin));
+    let mut max_diff = 0.0_f64;
+    let mut rows = 0;
+    for line in extrema_csv.lines() {
+        if line.is_empty() || line.starts_with('#') || line.starts_with("group,") {
+            continue;
+        }
+        let f: Vec<&str> = line.split(',').collect();
+        assert_eq!(f.len(), 4, "{line}");
+        let group = Group::from_name(f[0]).unwrap();
+        let (body, body_name) = body_from_name(f[1]).unwrap();
+        let (jd, cd): (f64, f64) = (f[2].parse().unwrap(), f[3].parse().unwrap());
+        let speed = engine_speed(engine, body, frame, jd, h).unwrap();
+        let diff = (speed - cd).abs();
+        max_diff = max_diff.max(diff);
+        assert!(
+            3.0 * diff <= margin,
+            "{line}: engine {speed:e} differs by {diff:e}, margin {margin:e}"
+        );
+        if cd.abs() < margin {
+            assert!(
+                windows
+                    .iter()
+                    .any(|w| w.group == group && w.body_name == body_name && w.contains(jd)),
+                "{line} is in no window"
+            );
+        }
+        rows += 1;
+    }
+    assert!(rows > 0);
+    eprintln!(
+        "margin basis: {rows} extrema, max |engine - SE| {max_diff:e} deg/day, margin {margin:e}"
+    );
+}
+
+/// Each corpus's margin is at least 3 times the engine-minus-SE speed
+/// difference at every recorded SE extremum below 0.02 deg/day, and every
+/// extremum below the margin lies inside a window (issue #167 (d)).
+#[test]
+fn margins_cover_the_engine_speed_difference_at_every_extremum() {
+    check_margin_basis(
+        TRUE_APOGEE_EXTREMA_CSV,
+        TRUE_APOGEE_WINDOWS_CSV,
+        TRUE_APOGEE_STEP_DAYS,
+        &EventEngine::new(packaged_backend()),
+        CrossingFrame::GeocentricApparentOfDate,
+    );
+    check_margin_basis(
+        FICTITIOUS_EXTREMA_CSV,
+        FICTITIOUS_WINDOWS_CSV,
+        FICTITIOUS_STEP_DAYS,
+        &fictitious_engine(),
+        CrossingFrame::GeocentricMeanOfDate,
+    );
+}
+
+#[test]
+fn new_scopes_scan_the_full_span() {
+    let apogee = check_manifest(TRUE_APOGEE_CSV, TRUE_APOGEE_MANIFEST).unwrap();
+    let fict = check_manifest(FICTITIOUS_CSV, FICTITIOUS_MANIFEST).unwrap();
+    for series in apogee.iter().chain(&fict) {
+        assert_eq!(span(series), FULL_SPAN, "{}", series.label());
+    }
+    // The planet corpus's mean series keep the short span.
+    let planets = check_manifest(CORPUS_CSV, MANIFEST).unwrap();
+    let mean_mars = planets.iter().find(|s| s.label() == "mean Mars").unwrap();
+    assert_eq!(span(mean_mars), SHORT_SPAN);
+}
+
+#[test]
+fn every_new_body_has_ceilings_and_floors_match_the_corpora() {
+    let apogee = check_manifest(TRUE_APOGEE_CSV, TRUE_APOGEE_MANIFEST).unwrap();
+    let fict = check_manifest(FICTITIOUS_CSV, FICTITIOUS_MANIFEST).unwrap();
+    for series in apogee.iter().chain(&fict) {
+        let c = ceilings_for(series.body_name).unwrap_or_else(|| panic!("{}", series.body_name));
+        assert!(c.lon_arcsec >= 2.3);
+    }
+    let in_windows = |csv: &str| -> usize {
+        parse_windows(csv)
+            .unwrap()
+            .iter()
+            .map(|w| w.se_stations)
+            .sum()
+    };
+    let rows = |s: &[Series]| -> usize { s.iter().map(|x| x.stations.len()).sum() };
+    assert_eq!(
+        rows(&apogee) - in_windows(TRUE_APOGEE_WINDOWS_CSV),
+        MIN_ROWS_VALIDATED_TRUE_APOGEE
+    );
+    assert_eq!(
+        rows(&fict) - in_windows(FICTITIOUS_WINDOWS_CSV),
+        MIN_ROWS_VALIDATED_FICTITIOUS
+    );
+}
+
+#[test]
+fn generic_chunked_scan_matches_a_single_scan_on_the_routing_engine() {
+    // One fictitious series over two chunks reproduces the single scan.
+    let fict = check_manifest(FICTITIOUS_CSV, FICTITIOUS_MANIFEST).unwrap();
+    let zeus = fict.iter().find(|s| s.body_name == "Zeus").unwrap();
+    let engine = fictitious_engine();
+    let short = Series {
+        stations: Vec::new(),
+        ..zeus.clone()
+    };
+    let (start, end) = (FULL_SPAN.0, FULL_SPAN.0 + 2.0 * CHUNK_DAYS);
+    let whole = scan_chunk(&engine, &short, start, end).unwrap();
+    let chunks = vec![
+        scan_chunk(&engine, &short, start, start + CHUNK_DAYS).unwrap(),
+        scan_chunk(&engine, &short, start + CHUNK_DAYS, end).unwrap(),
+    ];
+    assert_eq!(join_chunks(chunks), whole);
+}
+
+#[test]
+fn a_window_of_a_series_missing_from_the_corpus_fails() {
+    let series = check_manifest(TRUE_APOGEE_CSV, TRUE_APOGEE_MANIFEST).unwrap();
+    let csv = format!(
+        "{WINDOWS_HEADER}mean,Cupido,2485441.4310000,1.000e-4,2485441.3000000,2485441.5600000,0,1,1,2.000e-3\n"
+    );
+    let manifest = format!(
+        "slice stations-true-apogee-windows file=true-apogee-windows.csv role=windows rows=1 checksum={}\n",
+        fnv1a64(&csv)
+    );
+    assert!(matches!(
+        check_windows(&csv, &manifest, &series),
+        Err(StationsError::MalformedWindows(_))
+    ));
+}
+
+/// The step `h = <value> day` a corpus header states.
+fn header_step_days(csv: &str) -> f64 {
+    let rest = csv
+        .lines()
+        .take_while(|l| l.starts_with('#'))
+        .find_map(|l| l.split("h = ").nth(1))
+        .expect("a header line states h");
+    rest.split(" day")
+        .next()
+        .and_then(|v| v.parse().ok())
+        .expect("h is a number of days")
+}
+
+#[test]
+fn corpus_headers_state_the_step_the_gate_uses() {
+    for (csv, step) in [
+        (TRUE_APOGEE_CSV, TRUE_APOGEE_STEP_DAYS),
+        (TRUE_APOGEE_WINDOWS_CSV, TRUE_APOGEE_STEP_DAYS),
+        (FICTITIOUS_CSV, FICTITIOUS_STEP_DAYS),
+        (FICTITIOUS_WINDOWS_CSV, FICTITIOUS_STEP_DAYS),
+    ] {
+        assert_eq!(header_step_days(csv), step);
+    }
 }

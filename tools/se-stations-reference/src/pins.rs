@@ -43,6 +43,44 @@ pub fn verify_swieph_files(ephe_dir: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// The fictitious-body element file Swiss Ephemeris reads from the ephemeris
+/// path, pinned to the committed copy in tools/se-fictitious-reference/data/.
+/// Without it SE falls back to built-in elements silently, so the
+/// --fictitious mode refuses to run.
+pub const PINNED_SEORBEL: (&str, &str) = (
+    "seorbel.txt",
+    "97b454ff78f4f4716b5cc987a93ca8f33e44ef4b524a165a155a8a4885fd2e18",
+);
+
+/// [`verify_swieph_files`]'s planet and Moon files plus `seorbel.txt`.
+/// `seas_18` is not needed for fictitious bodies, so it is not checked here.
+pub fn verify_fictitious_files(ephe_dir: &str) -> Result<(), String> {
+    // seorbel.txt first: it is the file that distinguishes this mode.
+    for (name, want) in [&PINNED_SEORBEL]
+        .into_iter()
+        .chain(PINNED_FILES.iter().filter(|(n, _)| *n != "seas_18.se1"))
+    {
+        let path = format!("{ephe_dir}/{name}");
+        let bytes = std::fs::read(&path).map_err(|e| {
+            if *name == "seorbel.txt" {
+                format!("cannot read {path}: {e}\nCopy it: cp tools/se-fictitious-reference/data/seorbel.txt {ephe_dir}/")
+            } else {
+                format!(
+                    "cannot read {path}: {e}\nDownload: curl -fLo {path} \
+                     https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/{name}"
+                )
+            }
+        })?;
+        let got = sha256_hex(&bytes);
+        if got != *want {
+            return Err(format!(
+                "SHA-256 mismatch for {path}: got {got}, pinned {want}"
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// FNV-1a 64-bit over the CSV text, the scheme every corpus manifest uses.
 pub fn fnv1a64(text: &str) -> u64 {
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
@@ -80,7 +118,8 @@ pub fn sha256_hex(data: &[u8]) -> String {
         msg.push(0);
     }
     msg.extend_from_slice(&bit_len.to_be_bytes());
-    for chunk in msg.chunks_exact(64) {
+    let (blocks, _) = msg.as_chunks::<64>();
+    for chunk in blocks {
         let mut w = [0u32; 64];
         for (i, word) in w.iter_mut().take(16).enumerate() {
             *word = u32::from_be_bytes([
@@ -156,12 +195,39 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("se-pins-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let dir_str = dir.to_str().unwrap();
-        assert!(verify_swieph_files(dir_str).is_err(), "missing files must fail");
+        assert!(
+            verify_swieph_files(dir_str).is_err(),
+            "missing files must fail"
+        );
         for (name, _) in PINNED_FILES {
             std::fs::write(dir.join(name), b"not the real file").unwrap();
         }
         let err = verify_swieph_files(dir_str).unwrap_err();
         assert!(err.contains("SHA-256 mismatch"), "{err}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn fictitious_verification_rejects_a_seorbel_with_the_wrong_content() {
+        let dir = std::env::temp_dir().join(format!("se-pins-fict-wrong-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join(PINNED_SEORBEL.0), b"not the real elements").unwrap();
+        let err = verify_fictitious_files(dir.to_str().unwrap()).unwrap_err();
+        assert!(err.contains("SHA-256 mismatch"), "{err}");
+        assert!(err.contains("seorbel.txt"), "{err}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn fictitious_verification_rejects_a_missing_seorbel_with_the_copy_hint() {
+        let dir = std::env::temp_dir().join(format!("se-pins-fict-missing-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let err = verify_fictitious_files(dir.to_str().unwrap()).unwrap_err();
+        assert!(err.contains("seorbel.txt"), "{err}");
+        assert!(
+            err.contains("cp tools/se-fictitious-reference/data/seorbel.txt"),
+            "{err}"
+        );
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

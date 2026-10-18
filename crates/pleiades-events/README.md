@@ -146,11 +146,21 @@ J2000 the packaged true node has 102 stations at the default step and 108 at
 0.02 day. The step must be finite, at least one minute
 (`MIN_STATION_STEP_DAYS`) and at most the body's default step; any other is
 `EventError::InvalidStationStep`. The search costs one speed read per step,
-so a finer step costs proportionally more. Stations of fictitious bodies and the osculating
-apogee are found but not gated. The packaged asteroids (Ceres, Pallas,
-Juno, Vesta, Eros) are searched across 1900-2100 but their stations are not gated
-(issue #167 (d)); Apophis is snapshot-only, so its search returns the
-out-of-range error.
+so a finer step costs proportionally more.
+
+The full gate also compares, station for station and 1900-2100, the
+osculating apogee (`TrueApogee`, geocentric apparent; 4774 stations outside
+3 speed-graze windows; largest difference 663.1 s and 1.873″) and the 17
+stationing fictitious bodies (geocentric mean of date; 13845 stations; largest
+94.3 s for Vulcan and 1.565″ for Nibiru, every other body at most 40.6 s)
+against Swiss Ephemeris SWIEPH (issue #167 (d)). For these two the reference
+station is a sign change of the central difference of SE's longitudes, not of
+its reported speed: SE's osculating-apogee speed jumps at isolated instants,
+and its Proserpina speed disagrees with its own positions by about 4.4 h at
+stations. Inside a graze window the counts are compared by parity. The
+packaged asteroids (Ceres, Pallas, Juno, Vesta) are gated against SWIEPH;
+Eros is searched across 1900-2100 but not gated. Apophis is snapshot-only, so
+its search returns the out-of-range error.
 
 ## Aspects
 
