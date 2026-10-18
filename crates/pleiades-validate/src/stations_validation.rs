@@ -20,8 +20,10 @@ use crate::stations_thresholds::{
     TRUE_NODE_MIN_CLOSE_PERCENT,
 };
 use pleiades_apparent::fnv1a64;
+use pleiades_backend::{EphemerisBackend, RoutingBackend};
 use pleiades_data::{packaged_backend, PackagedDataBackend};
 use pleiades_events::{CrossingFrame, CrossingReference, EventEngine, Station, StationKind};
+use pleiades_fict::FictitiousBackend;
 use pleiades_types::{Ayanamsa, CelestialBody, Instant, JulianDay, TimeScale};
 use std::num::NonZero;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -42,6 +44,58 @@ const ASTEROID_MANIFEST: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/data/stations-corpus/asteroids-manifest.txt"
 ));
+
+const TRUE_APOGEE_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/true-apogee.csv"
+));
+const TRUE_APOGEE_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/true-apogee-manifest.txt"
+));
+const TRUE_APOGEE_WINDOWS_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/true-apogee-windows.csv"
+));
+const TRUE_APOGEE_WINDOWS_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/true-apogee-windows-manifest.txt"
+));
+#[cfg(test)]
+const TRUE_APOGEE_EXTREMA_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/true-apogee-extrema.csv"
+));
+const FICTITIOUS_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/fictitious.csv"
+));
+const FICTITIOUS_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/fictitious-manifest.txt"
+));
+const FICTITIOUS_WINDOWS_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/fictitious-windows.csv"
+));
+const FICTITIOUS_WINDOWS_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/fictitious-windows-manifest.txt"
+));
+#[cfg(test)]
+const FICTITIOUS_EXTREMA_CSV: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/data/stations-corpus/fictitious-extrema.csv"
+));
+
+/// The reference tool's central-difference step for the osculating apogee, in
+/// days.
+#[cfg_attr(not(test), allow(dead_code))] // used by the gate scopes (plan Task 4)
+const TRUE_APOGEE_STEP_DAYS: f64 = 0.001;
+/// The reference tool's central-difference step for the fictitious bodies, in
+/// days.
+#[cfg_attr(not(test), allow(dead_code))] // used by the gate scopes (plan Task 4)
+const FICTITIOUS_STEP_DAYS: f64 = 0.01;
 
 /// The spans `tools/se-stations-reference` scanned (Julian days, TT). The
 /// full span is the engine's window less five days at each end, so neither
@@ -233,6 +287,41 @@ pub enum StationsError {
         close: usize,
         compared: usize,
     },
+    MalformedWindows(String),
+    /// A window's recorded `se_stations` disagrees with the corpus.
+    WindowStationCount {
+        series: String,
+        lo: f64,
+        hi: f64,
+        recorded: usize,
+        corpus: usize,
+    },
+    /// The engine's or the corpus's station count in a window has the wrong
+    /// parity.
+    WindowParity {
+        series: String,
+        lo: f64,
+        hi: f64,
+        side: &'static str,
+        count: usize,
+        se_stations: usize,
+    },
+    /// The engine and the corpus disagree on the station count in a window
+    /// whose turn clears zero by half the margin or more.
+    WindowCount {
+        series: String,
+        lo: f64,
+        hi: f64,
+        engine: usize,
+        corpus: usize,
+    },
+    /// The engine's speed at a window edge is on the other side of zero.
+    WindowEdgeSide {
+        series: String,
+        jd_tt: f64,
+        se_side: i8,
+        engine_speed: f64,
+    },
 }
 
 impl std::fmt::Display for StationsError {
@@ -294,6 +383,47 @@ impl std::fmt::Display for StationsError {
                 f,
                 "{series}: only {close} of {compared} compared stations are within {TRUE_NODE_CLOSE_DAYS} d of their counterpart, floor is {TRUE_NODE_MIN_CLOSE_PERCENT} %"
             ),
+            Self::MalformedWindows(s) => write!(f, "malformed speed windows: {s}"),
+            Self::WindowStationCount {
+                series,
+                lo,
+                hi,
+                recorded,
+                corpus,
+            } => write!(
+                f,
+                "{series}: window {lo}..{hi} records {recorded} corpus stations, the corpus has {corpus}"
+            ),
+            Self::WindowParity {
+                series,
+                lo,
+                hi,
+                side,
+                count,
+                se_stations,
+            } => write!(
+                f,
+                "{series}: window {lo}..{hi} holds {count} {side} stations, the wrong parity for the corpus's {se_stations}"
+            ),
+            Self::WindowCount {
+                series,
+                lo,
+                hi,
+                engine,
+                corpus,
+            } => write!(
+                f,
+                "{series}: window {lo}..{hi} holds {engine} engine stations and {corpus} corpus stations, and its turn clears zero"
+            ),
+            Self::WindowEdgeSide {
+                series,
+                jd_tt,
+                se_side,
+                engine_speed,
+            } => write!(
+                f,
+                "{series}: engine speed {engine_speed:.6e} deg/day at window edge jd_tt={jd_tt} is not on the corpus's side ({se_side})"
+            ),
         }
     }
 }
@@ -315,8 +445,64 @@ fn body_from_name(name: &str) -> Option<(CelestialBody, &'static str)> {
         "Pallas" => (CelestialBody::Pallas, "Pallas"),
         "Juno" => (CelestialBody::Juno, "Juno"),
         "Vesta" => (CelestialBody::Vesta, "Vesta"),
+        "TrueApogee" => (CelestialBody::TrueApogee, "TrueApogee"),
+        "Cupido" => (CelestialBody::Cupido, "Cupido"),
+        "Hades" => (CelestialBody::Hades, "Hades"),
+        "Zeus" => (CelestialBody::Zeus, "Zeus"),
+        "Kronos" => (CelestialBody::Kronos, "Kronos"),
+        "Apollon" => (CelestialBody::Apollon, "Apollon"),
+        "Admetos" => (CelestialBody::Admetos, "Admetos"),
+        "Vulkanus" => (CelestialBody::Vulkanus, "Vulkanus"),
+        "Poseidon" => (CelestialBody::Poseidon, "Poseidon"),
+        "Transpluto" => (CelestialBody::Transpluto, "Transpluto"),
+        "Nibiru" => (CelestialBody::Nibiru, "Nibiru"),
+        "Harrington" => (CelestialBody::Harrington, "Harrington"),
+        "NeptuneLeverrier" => (CelestialBody::NeptuneLeverrier, "NeptuneLeverrier"),
+        "NeptuneAdams" => (CelestialBody::NeptuneAdams, "NeptuneAdams"),
+        "PlutoLowell" => (CelestialBody::PlutoLowell, "PlutoLowell"),
+        "PlutoPickering" => (CelestialBody::PlutoPickering, "PlutoPickering"),
+        "Vulcan" => (CelestialBody::Vulcan, "Vulcan"),
+        "WhiteMoon" => (CelestialBody::WhiteMoon, "WhiteMoon"),
+        "Proserpina" => (CelestialBody::Proserpina, "Proserpina"),
+        "Waldemath" => (CelestialBody::Waldemath, "Waldemath"),
         _ => return None,
     })
+}
+
+/// The engine over the packaged backend and the fictitious bodies, routed
+/// side by side.
+#[cfg_attr(not(test), allow(dead_code))] // used by the gate scopes (plan Task 4)
+fn fictitious_engine() -> EventEngine<RoutingBackend> {
+    EventEngine::new(RoutingBackend::new(vec![
+        Box::new(PackagedDataBackend::new()),
+        Box::new(FictitiousBackend::new(PackagedDataBackend::new())),
+    ]))
+}
+
+/// The engine's longitude speed at `jd` (TT days), deg/day: the central
+/// difference over `±h` days, as the reference tool computes SE's, wrapped to
+/// (-180, 180].
+#[cfg_attr(not(test), allow(dead_code))] // used by the gate scopes (plan Task 4)
+pub(super) fn engine_speed<B: EphemerisBackend>(
+    engine: &EventEngine<B>,
+    body: CelestialBody,
+    reference: impl Into<CrossingReference>,
+    jd: f64,
+    h: f64,
+) -> Result<f64, StationsError> {
+    let reference = reference.into();
+    let lon_at = |at: f64| -> Result<f64, StationsError> {
+        engine
+            .longitude_at(body.clone(), reference.clone(), tdb(at))
+            .map(|lon| lon.degrees())
+            .map_err(|e| StationsError::CalculationFailed {
+                series: format!("{body:?}"),
+                reason: e.to_string(),
+            })
+    };
+    let delta = lon_at(jd + h)? - lon_at(jd - h)?;
+    let wrapped = 180.0 - (180.0 - delta).rem_euclid(360.0);
+    Ok(wrapped / (2.0 * h))
 }
 
 fn parse_corpus(csv: &str) -> Result<Vec<Series>, StationsError> {
@@ -881,19 +1067,74 @@ pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {
 /// against its manifest, with no engine scan (issue #254), so a hand-edited
 /// `asteroids.csv` or a stale manifest fails the blocking tier rather than
 /// only the nightly full gate.
+///
+/// The osculating-apogee and fictitious-body corpora get the same check, and
+/// so do their speed-graze windows (issue #167 (d)): checksum, row count and
+/// each window's station count against its corpus, with no scan.
 pub fn validate_stations_corpus_subset() -> Result<StationsReport, StationsError> {
-    validate_subset(ASTEROID_CSV, ASTEROID_MANIFEST)
+    validate_subset(&SubsetFiles::committed())
 }
 
-/// [`validate_stations_corpus_subset`] with the asteroid corpus passed in, so
-/// a test can hand it a tampered file or manifest.
-fn validate_subset(
-    asteroid_csv: &str,
-    asteroid_manifest: &str,
-) -> Result<StationsReport, StationsError> {
-    check_manifest(asteroid_csv, asteroid_manifest)?;
+/// The corpus files the subset checks against their manifests, by name, so a
+/// test can replace one with a tampered copy:
+/// `SubsetFiles { true_apogee_csv: &tampered, ..SubsetFiles::committed() }`.
+#[derive(Clone, Copy)]
+struct SubsetFiles<'a> {
+    asteroid_csv: &'a str,
+    asteroid_manifest: &'a str,
+    true_apogee_csv: &'a str,
+    true_apogee_manifest: &'a str,
+    true_apogee_windows_csv: &'a str,
+    true_apogee_windows_manifest: &'a str,
+    fictitious_csv: &'a str,
+    fictitious_manifest: &'a str,
+    fictitious_windows_csv: &'a str,
+    fictitious_windows_manifest: &'a str,
+}
+
+impl SubsetFiles<'static> {
+    /// The files embedded in this crate.
+    const fn committed() -> Self {
+        SubsetFiles {
+            asteroid_csv: ASTEROID_CSV,
+            asteroid_manifest: ASTEROID_MANIFEST,
+            true_apogee_csv: TRUE_APOGEE_CSV,
+            true_apogee_manifest: TRUE_APOGEE_MANIFEST,
+            true_apogee_windows_csv: TRUE_APOGEE_WINDOWS_CSV,
+            true_apogee_windows_manifest: TRUE_APOGEE_WINDOWS_MANIFEST,
+            fictitious_csv: FICTITIOUS_CSV,
+            fictitious_manifest: FICTITIOUS_MANIFEST,
+            fictitious_windows_csv: FICTITIOUS_WINDOWS_CSV,
+            fictitious_windows_manifest: FICTITIOUS_WINDOWS_MANIFEST,
+        }
+    }
+}
+
+/// [`validate_stations_corpus_subset`] with the checked files passed in, so a
+/// test can hand it a tampered file or manifest.
+fn validate_subset(files: &SubsetFiles) -> Result<StationsReport, StationsError> {
+    check_manifest(files.asteroid_csv, files.asteroid_manifest)?;
+    for (csv, manifest, windows, windows_manifest) in [
+        (
+            files.true_apogee_csv,
+            files.true_apogee_manifest,
+            files.true_apogee_windows_csv,
+            files.true_apogee_windows_manifest,
+        ),
+        (
+            files.fictitious_csv,
+            files.fictitious_manifest,
+            files.fictitious_windows_csv,
+            files.fictitious_windows_manifest,
+        ),
+    ] {
+        let series = check_manifest(csv, manifest)?;
+        windows::check_windows(windows, windows_manifest, &series)?;
+    }
     validate_scoped(CORPUS_CSV, MANIFEST, Scope::MeanSidSubset)
 }
+
+mod windows;
 
 #[cfg(test)]
 mod tests;
