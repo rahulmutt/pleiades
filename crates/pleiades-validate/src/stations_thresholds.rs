@@ -181,96 +181,97 @@ pub(crate) fn ceilings_for(body_name: &str) -> Option<Ceilings> {
             time_s: 85.0,
             lon_arcsec: 2.4,
         }),
-        // Osculating apogee and fictitious bodies (issue #167 (d)): provisional,
-        // the spike's measured maximum x 1.4 rounded up to two significant
-        // figures, `lon_arcsec` never below 2.3"; re-measured by the full gate
-        // run (plan Task 5). Measured figures are the spec's spike table.
-        // measured max 663 s (geo; SWIEPH central difference, h = 0.001 d)
+        // Osculating apogee and fictitious bodies (issue #167 (d)): measured x
+        // 1.4, rounded up to two significant figures; `lon_arcsec` never below
+        // 2.3". Measured by the full gate against the SWIEPH central-difference
+        // corpora (true-apogee.csv, h = 0.001 d; fictitious.csv, h = 0.01 d),
+        // 2026-10-18.
+        // measured max 663.1 s, 1.873" (geo)
         "TrueApogee" => Some(Ceilings {
             time_s: 930.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 17-23 s (spike table row of eight bodies), 0.60"
+        // measured max 22.5 s, 0.600" (mean)
         "Cupido" => Some(Ceilings {
             time_s: 32.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 17-23 s (spike table row of eight bodies), 0.60"
+        // measured max 18.9 s, 0.600" (mean)
         "Hades" => Some(Ceilings {
             time_s: 27.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 17-23 s (spike table row of eight bodies), 0.60"
+        // measured max 21.3 s, 0.600" (mean)
         "Zeus" => Some(Ceilings {
             time_s: 30.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 17-23 s (spike table row of eight bodies), 0.60"
+        // measured max 17.2 s, 0.601" (mean)
         "Kronos" => Some(Ceilings {
             time_s: 25.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 17-23 s (spike table row of eight bodies), 0.60"
+        // measured max 21.2 s, 0.600" (mean)
         "Apollon" => Some(Ceilings {
             time_s: 30.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 17-23 s (spike table row of eight bodies), 0.60"
+        // measured max 18.6 s, 0.600" (mean)
         "Admetos" => Some(Ceilings {
             time_s: 27.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 17-23 s (spike table row of eight bodies), 0.60"
+        // measured max 16.6 s, 0.601" (mean)
         "Vulkanus" => Some(Ceilings {
             time_s: 24.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 17-23 s (spike table row of eight bodies), 0.60"
+        // measured max 21.8 s, 0.600" (mean)
         "Poseidon" => Some(Ceilings {
             time_s: 31.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 13.1 s, 0.47"
+        // measured max 13.1 s, 0.470" (mean)
         "Transpluto" => Some(Ceilings {
             time_s: 19.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 40.6 s, 1.57"
+        // measured max 40.6 s, 1.565" (mean)
         "Nibiru" => Some(Ceilings {
             time_s: 57.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 12.9 s, 0.31"
+        // measured max 12.9 s, 0.305" (mean)
         "Harrington" => Some(Ceilings {
             time_s: 19.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 26.2 s, 0.75"
+        // measured max 26.2 s, 0.752" (mean)
         "NeptuneLeverrier" => Some(Ceilings {
             time_s: 37.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 26.2 s, 0.75"
+        // measured max 25.9 s, 0.752" (mean)
         "NeptuneAdams" => Some(Ceilings {
             time_s: 37.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 19.7 s, 0.51"
+        // measured max 19.7 s, 0.514" (mean)
         "PlutoLowell" => Some(Ceilings {
             time_s: 28.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 15.8 s, 0.51"
+        // measured max 15.8 s, 0.514" (mean)
         "PlutoPickering" => Some(Ceilings {
             time_s: 23.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 94.3 s, 0.32"
+        // measured max 94.3 s, 0.323" (mean)
         "Vulcan" => Some(Ceilings {
             time_s: 140.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 19.0 s, 0.001"
+        // measured max 19.0 s, 0.001" (mean)
         "Proserpina" => Some(Ceilings {
             time_s: 27.0,
             lon_arcsec: 2.3,
