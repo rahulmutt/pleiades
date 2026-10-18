@@ -1059,45 +1059,64 @@ pub fn validate_lunar_point_aspects_corpus() -> Result<AspectsReport, AspectsErr
 /// is checked against its manifest and the lunar-point corpus. The
 /// fictitious-body corpus and its graze windows are checked the same way.
 pub fn validate_aspects_corpus_subset() -> Result<AspectsReport, AspectsError> {
-    validate_subset(
-        ASTEROID_CSV,
-        ASTEROID_MANIFEST,
-        LUNAR_POINT_CSV,
-        LUNAR_POINT_MANIFEST,
-        LUNAR_POINT_GRAZES_CSV,
-        LUNAR_POINT_GRAZES_MANIFEST,
-        FICTITIOUS_CSV,
-        FICTITIOUS_MANIFEST,
-        FICTITIOUS_GRAZES_CSV,
-        FICTITIOUS_GRAZES_MANIFEST,
-    )
+    validate_subset(&SubsetFiles::committed())
+}
+
+/// The corpus files the mean subset checks against their manifests, by name,
+/// so a test can replace one with a tampered copy:
+/// `SubsetFiles { fictitious_csv: &tampered, ..SubsetFiles::committed() }`.
+#[derive(Clone, Copy)]
+struct SubsetFiles<'a> {
+    asteroid_csv: &'a str,
+    asteroid_manifest: &'a str,
+    lunar_csv: &'a str,
+    lunar_manifest: &'a str,
+    lunar_grazes_csv: &'a str,
+    lunar_grazes_manifest: &'a str,
+    fictitious_csv: &'a str,
+    fictitious_manifest: &'a str,
+    fictitious_grazes_csv: &'a str,
+    fictitious_grazes_manifest: &'a str,
+}
+
+impl SubsetFiles<'static> {
+    /// The files embedded in this crate.
+    const fn committed() -> Self {
+        SubsetFiles {
+            asteroid_csv: ASTEROID_CSV,
+            asteroid_manifest: ASTEROID_MANIFEST,
+            lunar_csv: LUNAR_POINT_CSV,
+            lunar_manifest: LUNAR_POINT_MANIFEST,
+            lunar_grazes_csv: LUNAR_POINT_GRAZES_CSV,
+            lunar_grazes_manifest: LUNAR_POINT_GRAZES_MANIFEST,
+            fictitious_csv: FICTITIOUS_CSV,
+            fictitious_manifest: FICTITIOUS_MANIFEST,
+            fictitious_grazes_csv: FICTITIOUS_GRAZES_CSV,
+            fictitious_grazes_manifest: FICTITIOUS_GRAZES_MANIFEST,
+        }
+    }
 }
 
 /// [`validate_aspects_corpus_subset`] with the asteroid, lunar-point,
-/// fictitious-body and graze-window files passed in, so a test can hand it a tampered file or
-/// manifest.
-// One (corpus, manifest) pair per checked file is the point of this seam: a test
-// hands it one tampered file among the otherwise committed ones.
-#[allow(clippy::too_many_arguments)]
-fn validate_subset(
-    asteroid_csv: &str,
-    asteroid_manifest: &str,
-    lunar_csv: &str,
-    lunar_manifest: &str,
-    grazes_csv: &str,
-    grazes_manifest: &str,
-    fictitious_csv: &str,
-    fictitious_manifest: &str,
-    fictitious_grazes_csv: &str,
-    fictitious_grazes_manifest: &str,
-) -> Result<AspectsReport, AspectsError> {
-    check_manifest(asteroid_csv, asteroid_manifest, &ASTEROID_PAIRS)?;
-    let lunar_rows = check_manifest(lunar_csv, lunar_manifest, &LUNAR_POINT_PAIRS)?;
-    check_grazes(grazes_csv, grazes_manifest, &LUNAR_POINT_PAIRS, &lunar_rows)?;
-    let fictitious_rows = check_manifest(fictitious_csv, fictitious_manifest, &FICTITIOUS_PAIRS)?;
+/// fictitious-body and graze-window files passed in, so a test can hand it a
+/// tampered file or manifest.
+fn validate_subset(files: &SubsetFiles) -> Result<AspectsReport, AspectsError> {
+    check_manifest(files.asteroid_csv, files.asteroid_manifest, &ASTEROID_PAIRS)?;
+    let lunar_rows = check_manifest(files.lunar_csv, files.lunar_manifest, &LUNAR_POINT_PAIRS)?;
     check_grazes(
-        fictitious_grazes_csv,
-        fictitious_grazes_manifest,
+        files.lunar_grazes_csv,
+        files.lunar_grazes_manifest,
+        &LUNAR_POINT_PAIRS,
+        &lunar_rows,
+    )?;
+    let fictitious_rows = check_manifest(
+        files.fictitious_csv,
+        files.fictitious_manifest,
+        &FICTITIOUS_PAIRS,
+    )?;
+    check_grazes(
+        files.fictitious_grazes_csv,
+        files.fictitious_grazes_manifest,
         &FICTITIOUS_PAIRS,
         &fictitious_rows,
     )?;
