@@ -30,8 +30,9 @@ const TRUNCATION_NOTE: &str = " Inside 1600-01-01..2600-01-01 TT the VSOP87B ser
 
 /// A pure-Rust planetary backend.
 ///
-/// Inside 1600-01-01..2600-01-01 TT (start inclusive, end exclusive) it
-/// evaluates truncated VSOP87B series: terms whose amplitude times
+/// Inside 1600-01-01..2600-01-01 TT (start inclusive, end exclusive; the window
+/// is applied to the request's Julian day whatever its scale, TT or TDB, which
+/// differ by milliseconds) it evaluates truncated VSOP87B series: terms whose amplitude times
 /// `0.6^alpha` (Julian millennia from J2000.0) is below 1e-8 are dropped,
 /// which keeps every body within about 0.3″ of the full series in that window
 /// and makes each sample cheaper to evaluate. Results there report
@@ -39,6 +40,10 @@ const TRUNCATION_NOTE: &str = " Inside 1600-01-01..2600-01-01 TT the VSOP87B ser
 /// window the full series is evaluated, bit for bit as
 /// [`Vsop87FullSeriesBackend`] does, so output steps by up to about 0.3″ at
 /// the two window edges.
+///
+/// Pluto keeps its usual quality annotation: it is not a VSOP87B body, but the
+/// Earth subtracted from it is truncated inside the window, which moves it by
+/// about 0.001″.
 ///
 /// Choose [`Vsop87FullSeriesBackend`] instead to reproduce the published
 /// VSOP87B series (and this backend's pre-truncation output) exactly inside

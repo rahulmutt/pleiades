@@ -1522,6 +1522,9 @@ pub fn canonical_epoch_outlier_summary() -> Option<Vsop87CanonicalOutlierSummary
 /// at the J2000 reference sample and comparing each body's mean, J2000 ecliptic
 /// result against its expected longitude/latitude/distance and interim limits.
 ///
+/// Evaluates [`Vsop87FullSeriesBackend`], since this evidence checks reproduction
+/// of the source files rather than the default backend's truncated window.
+///
 /// Returns `None` if the backend output cannot be matched to the sample set or a
 /// profile fails validation.
 pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence>> {
@@ -1878,6 +1881,9 @@ pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSumma
 
 /// Returns the canonical J2000 equatorial companion evidence used by
 /// validation reporting.
+///
+/// Evaluates [`Vsop87FullSeriesBackend`], since this evidence checks reproduction
+/// of the source files rather than the default backend's truncated window.
 pub fn canonical_epoch_equatorial_body_evidence(
 ) -> Option<Vec<Vsop87CanonicalEquatorialBodyEvidence>> {
     let backend = Vsop87FullSeriesBackend::new();

@@ -27,7 +27,9 @@ pub(crate) const TRUNCATED_WINDOW_START_JD: f64 = 2_305_447.5;
 /// 2600-01-01 00:00 TT.
 pub(crate) const TRUNCATED_WINDOW_END_JD: f64 = 2_670_690.5;
 
-/// The fidelity the default backend uses at `julian_day_tt`: truncated inside
+/// The fidelity the default backend uses at `julian_day_tt` (the request's
+/// Julian day whatever its scale, TT or TDB, which differ by milliseconds):
+/// truncated inside
 /// `[TRUNCATED_WINDOW_START_JD, TRUNCATED_WINDOW_END_JD)`, full outside it,
 /// where the dropped terms grow as `(|T| / t_max)^alpha`.
 pub(crate) fn default_fidelity_at(julian_day_tt: f64) -> SeriesFidelity {

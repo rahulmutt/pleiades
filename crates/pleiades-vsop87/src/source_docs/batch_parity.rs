@@ -239,6 +239,9 @@ impl fmt::Display for Vsop87CanonicalJ2000BatchParitySummary {
 }
 
 /// Returns the backend-owned canonical J2000 batch-path regression summary.
+///
+/// Evaluates [`Vsop87FullSeriesBackend`], since these summaries check reproduction
+/// of the source files rather than the default backend\'s truncated window.
 pub fn canonical_j2000_batch_parity_summary() -> Option<Vsop87CanonicalJ2000BatchParitySummary> {
     let backend = Vsop87FullSeriesBackend::new();
     let reference_epoch = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt);
@@ -406,6 +409,9 @@ impl fmt::Display for Vsop87CanonicalMixedTimeScaleBatchParitySummary {
 }
 
 /// Returns the backend-owned canonical mixed TT/TDB batch-path regression summary.
+///
+/// Evaluates [`Vsop87FullSeriesBackend`], since these summaries check reproduction
+/// of the source files rather than the default backend\'s truncated window.
 pub fn canonical_mixed_time_scale_batch_parity_summary(
 ) -> Option<Vsop87CanonicalMixedTimeScaleBatchParitySummary> {
     let backend = Vsop87FullSeriesBackend::new();
@@ -556,6 +562,9 @@ impl fmt::Display for Vsop87CanonicalJ1900BatchParitySummary {
 }
 
 /// Returns the backend-owned canonical J1900 batch-path regression summary.
+///
+/// Evaluates [`Vsop87FullSeriesBackend`], since these summaries check reproduction
+/// of the source files rather than the default backend\'s truncated window.
 pub fn canonical_j1900_batch_parity_summary() -> Option<Vsop87CanonicalJ1900BatchParitySummary> {
     let backend = Vsop87FullSeriesBackend::new();
     let requests = canonical_j1900_equatorial_batch_parity_requests();
@@ -698,6 +707,9 @@ impl fmt::Display for Vsop87SupportedBodyJ2000EclipticBatchParitySummary {
 }
 
 /// Returns the backend-owned supported-body J2000 ecliptic batch-path regression summary.
+///
+/// Evaluates [`Vsop87FullSeriesBackend`], since these summaries check reproduction
+/// of the source files rather than the default backend\'s truncated window.
 pub fn supported_body_j2000_ecliptic_batch_parity_summary(
 ) -> Option<Vsop87SupportedBodyJ2000EclipticBatchParitySummary> {
     let backend = Vsop87FullSeriesBackend::new();
@@ -841,6 +853,9 @@ impl fmt::Display for Vsop87SupportedBodyJ2000EquatorialBatchParitySummary {
 }
 
 /// Returns the backend-owned supported-body J2000 equatorial batch-path regression summary.
+///
+/// Evaluates [`Vsop87FullSeriesBackend`], since these summaries check reproduction
+/// of the source files rather than the default backend\'s truncated window.
 pub fn supported_body_j2000_equatorial_batch_parity_summary(
 ) -> Option<Vsop87SupportedBodyJ2000EquatorialBatchParitySummary> {
     let backend = Vsop87FullSeriesBackend::new();
@@ -984,6 +999,9 @@ impl fmt::Display for Vsop87SupportedBodyJ1900EclipticBatchParitySummary {
 }
 
 /// Returns the backend-owned supported-body J1900 ecliptic batch-path regression summary.
+///
+/// Evaluates [`Vsop87FullSeriesBackend`], since these summaries check reproduction
+/// of the source files rather than the default backend\'s truncated window.
 pub fn supported_body_j1900_ecliptic_batch_parity_summary(
 ) -> Option<Vsop87SupportedBodyJ1900EclipticBatchParitySummary> {
     let backend = Vsop87FullSeriesBackend::new();
@@ -1127,6 +1145,9 @@ impl fmt::Display for Vsop87SupportedBodyJ1900EquatorialBatchParitySummary {
 }
 
 /// Returns the backend-owned supported-body J1900 equatorial batch-path regression summary.
+///
+/// Evaluates [`Vsop87FullSeriesBackend`], since these summaries check reproduction
+/// of the source files rather than the default backend\'s truncated window.
 pub fn supported_body_j1900_equatorial_batch_parity_summary(
 ) -> Option<Vsop87SupportedBodyJ1900EquatorialBatchParitySummary> {
     let backend = Vsop87FullSeriesBackend::new();
