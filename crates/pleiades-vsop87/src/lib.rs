@@ -88,7 +88,7 @@ pub use profiles::{
 mod source_docs;
 pub use source_docs::*;
 
-pub use backend::Vsop87Backend;
+pub use backend::{Vsop87Backend, Vsop87FullSeriesBackend};
 
 #[cfg(test)]
 mod tests;

@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn j2000_sun_position_uses_vendored_vsop87b_earth_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Sun);
     let result = backend.position(&request).expect("sun query should work");
     let ecliptic = result.ecliptic.expect("ecliptic result should exist");
@@ -25,7 +25,7 @@ fn j2000_sun_position_uses_vendored_vsop87b_earth_file() {
 
 #[test]
 fn j2000_mercury_position_uses_vendored_vsop87b_mercury_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Mercury);
     let result = backend
         .position(&request)
@@ -55,7 +55,7 @@ fn j2000_mercury_position_uses_vendored_vsop87b_mercury_file() {
 
 #[test]
 fn j2000_venus_position_uses_vendored_vsop87b_venus_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Venus);
     let result = backend.position(&request).expect("Venus query should work");
     let ecliptic = result.ecliptic.expect("ecliptic result should exist");
@@ -75,7 +75,7 @@ fn j2000_venus_position_uses_vendored_vsop87b_venus_file() {
 
 #[test]
 fn j2000_mars_position_uses_generated_vsop87b_mars_table() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Mars);
     let result = backend.position(&request).expect("Mars query should work");
     let ecliptic = result.ecliptic.expect("ecliptic result should exist");
@@ -104,7 +104,7 @@ fn j2000_mars_position_uses_generated_vsop87b_mars_table() {
 
 #[test]
 fn j2000_jupiter_position_uses_full_vsop87b_jupiter_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Jupiter);
     let result = backend
         .position(&request)
@@ -130,7 +130,7 @@ fn j2000_jupiter_position_uses_full_vsop87b_jupiter_file() {
 
 #[test]
 fn j2000_saturn_position_uses_full_vsop87b_saturn_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Saturn);
     let result = backend
         .position(&request)
@@ -156,7 +156,7 @@ fn j2000_saturn_position_uses_full_vsop87b_saturn_file() {
 
 #[test]
 fn j2000_uranus_position_uses_full_vsop87b_uranus_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Uranus);
     let result = backend
         .position(&request)
@@ -182,7 +182,7 @@ fn j2000_uranus_position_uses_full_vsop87b_uranus_file() {
 
 #[test]
 fn j2000_neptune_position_uses_full_vsop87b_neptune_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Neptune);
     let result = backend
         .position(&request)
@@ -208,7 +208,7 @@ fn j2000_neptune_position_uses_full_vsop87b_neptune_file() {
 
 #[test]
 fn batch_query_covers_all_source_backed_vsop87_paths() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let samples = canonical_epoch_samples();
     let requests = samples
         .iter()
@@ -248,7 +248,7 @@ fn batch_query_covers_all_source_backed_vsop87_paths() {
 
 #[test]
 fn batch_query_covers_all_supported_vsop87_paths() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = Vsop87Backend::supported_bodies()
         .iter()
         .cloned()
@@ -318,7 +318,7 @@ fn batch_query_covers_all_supported_vsop87_paths() {
 
 #[test]
 fn batch_query_preserves_supported_vsop87_paths_for_tdb_requests() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = Vsop87Backend::supported_bodies()
         .iter()
         .cloned()
@@ -452,7 +452,7 @@ fn batch_query_preserves_supported_vsop87_paths_for_mixed_time_scales() {
 
 #[test]
 fn batch_query_preserves_canonical_sample_order_for_source_backed_paths() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let mut requests = canonical_epoch_requests();
     let mut samples = canonical_epoch_samples();
     requests.reverse();
@@ -489,7 +489,7 @@ fn batch_query_preserves_canonical_sample_order_for_source_backed_paths() {
 
 #[test]
 fn batch_query_preserves_equatorial_frame_and_values() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let mut requests = canonical_epoch_requests();
     let mut samples = canonical_epoch_samples();
     requests.reverse();
@@ -541,7 +541,7 @@ fn batch_query_preserves_equatorial_frame_and_values() {
 
 #[test]
 fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_reference_epoch() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = requests_for_bodies_at(
         Vsop87Backend::supported_bodies().iter().cloned(),
         Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb),
@@ -595,7 +595,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_reference_epoch() {
 
 #[test]
 fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_ecliptic_reference_epoch() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = requests_for_bodies_at(
         Vsop87Backend::supported_bodies().iter().cloned(),
         Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb),
@@ -649,7 +649,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_ecliptic_reference_
 
 #[test]
 fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = requests_for_bodies_at(
         Vsop87Backend::supported_bodies().iter().cloned(),
         Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb),
@@ -703,7 +703,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch() {
 
 #[test]
 fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_equatorial_frame() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = requests_for_bodies_at(
         Vsop87Backend::supported_bodies().iter().cloned(),
         Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb),
@@ -797,7 +797,7 @@ fn supported_body_j1900_equatorial_batch_parity_summary_has_a_displayable_summar
 
 #[test]
 fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_ecliptic_frame() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = requests_for_bodies_at(
         Vsop87Backend::supported_bodies().iter().cloned(),
         Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb),
@@ -851,7 +851,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_
 
 #[test]
 fn batch_query_preserves_mixed_frame_requests_and_values() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = canonical_epoch_requests()
         .into_iter()
         .enumerate()
@@ -1126,7 +1126,7 @@ fn tdb_requests_are_accepted_like_tt_requests() {
 
 #[test]
 fn batch_query_preserves_mixed_time_scales_and_values() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = canonical_epoch_requests()
         .into_iter()
         .enumerate()

@@ -21,6 +21,8 @@ mod aspects;
 mod bit_identity_tests;
 mod errors;
 #[cfg(test)]
+mod full_series_composite_tests;
+#[cfg(test)]
 mod house_placement_tests;
 mod houses;
 mod motion;

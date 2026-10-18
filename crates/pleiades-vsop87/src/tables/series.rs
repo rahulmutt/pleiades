@@ -16,9 +16,26 @@ pub(crate) enum SeriesFidelity {
     /// Every term of the published series.
     Full,
     /// Terms below [`TRUNCATION_THRESHOLD`] over the supported window removed.
-    // Not yet selected by the backend; it is wired in by the follow-up change.
-    #[allow(dead_code)]
     Truncated,
+}
+
+/// First instant (inclusive) at which the default backend evaluates the
+/// truncated series: 1600-01-01 00:00 TT.
+pub(crate) const TRUNCATED_WINDOW_START_JD: f64 = 2_305_447.5;
+
+/// End (exclusive) of the default backend's truncated window:
+/// 2600-01-01 00:00 TT.
+pub(crate) const TRUNCATED_WINDOW_END_JD: f64 = 2_670_690.5;
+
+/// The fidelity the default backend uses at `julian_day_tt`: truncated inside
+/// `[TRUNCATED_WINDOW_START_JD, TRUNCATED_WINDOW_END_JD)`, full outside it,
+/// where the dropped terms grow as `(|T| / t_max)^alpha`.
+pub(crate) fn default_fidelity_at(julian_day_tt: f64) -> SeriesFidelity {
+    if (TRUNCATED_WINDOW_START_JD..TRUNCATED_WINDOW_END_JD).contains(&julian_day_tt) {
+        SeriesFidelity::Truncated
+    } else {
+        SeriesFidelity::Full
+    }
 }
 
 /// Smallest kept term amplitude, in the series' own units (radians or AU),
@@ -74,6 +91,8 @@ impl Vsop87SeriesSource {
         }
     }
 
+    /// The tables for `fidelity`. The truncated copy is derived from the full
+    /// tables, so asking for it also keeps the full tables resident.
     pub(crate) fn tables(&self, fidelity: SeriesFidelity) -> &Vsop87SeriesTables {
         let full = self
             .full

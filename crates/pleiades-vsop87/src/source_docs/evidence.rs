@@ -5,7 +5,7 @@ use std::fmt;
 
 use pleiades_backend::{EphemerisBackend, EphemerisRequest};
 
-use crate::backend::Vsop87Backend;
+use crate::backend::Vsop87FullSeriesBackend;
 use crate::profiles::{
     body_catalog_entries, body_catalog_entry_for_body, body_source_profiles, source_file_for_body,
     source_kind_for_body, Vsop87BodySourceKind,
@@ -1525,7 +1525,7 @@ pub fn canonical_epoch_outlier_summary() -> Option<Vsop87CanonicalOutlierSummary
 /// Returns `None` if the backend output cannot be matched to the sample set or a
 /// profile fails validation.
 pub fn canonical_epoch_body_evidence() -> Option<Vec<Vsop87CanonicalBodyEvidence>> {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let profiles = body_source_profiles();
     let specs = source_specifications();
     let samples = canonical_epoch_samples();
@@ -1880,7 +1880,7 @@ pub fn canonical_epoch_evidence_summary() -> Option<Vsop87CanonicalEvidenceSumma
 /// validation reporting.
 pub fn canonical_epoch_equatorial_body_evidence(
 ) -> Option<Vec<Vsop87CanonicalEquatorialBodyEvidence>> {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let profiles = body_source_profiles();
     let specs = source_specifications();
     let samples = canonical_epoch_samples();

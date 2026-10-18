@@ -3,7 +3,7 @@ use std::fmt;
 
 use pleiades_backend::{EphemerisBackend, EphemerisRequest, QualityAnnotation};
 
-use crate::backend::Vsop87Backend;
+use crate::backend::{Vsop87Backend, Vsop87FullSeriesBackend};
 use crate::profiles::{source_file_for_body, source_kind_for_body, Vsop87BodySourceKind};
 
 use super::documentation::{body_labels_are_unique, format_celestial_bodies};
@@ -25,7 +25,7 @@ const J1900: f64 = 2_415_020.0;
 const J2000: f64 = 2_451_545.0;
 
 fn canonical_batch_parity_counts(
-    backend: &Vsop87Backend,
+    backend: &Vsop87FullSeriesBackend,
     requests: &[EphemerisRequest],
 ) -> Option<(Vec<CelestialBody>, usize, usize, usize, usize)> {
     let results = backend.positions(requests).ok()?;
@@ -197,7 +197,7 @@ impl Vsop87CanonicalJ2000BatchParitySummary {
                 },
             );
         }
-        let backend = Vsop87Backend::new();
+        let backend = Vsop87FullSeriesBackend::new();
         let requests = canonical_epoch_requests();
         let Some((
             _,
@@ -240,7 +240,7 @@ impl fmt::Display for Vsop87CanonicalJ2000BatchParitySummary {
 
 /// Returns the backend-owned canonical J2000 batch-path regression summary.
 pub fn canonical_j2000_batch_parity_summary() -> Option<Vsop87CanonicalJ2000BatchParitySummary> {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let reference_epoch = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt);
     let requests = canonical_epoch_requests();
     let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
@@ -364,7 +364,7 @@ impl Vsop87CanonicalMixedTimeScaleBatchParitySummary {
                 },
             );
         }
-        let backend = Vsop87Backend::new();
+        let backend = Vsop87FullSeriesBackend::new();
         let requests = canonical_mixed_time_scale_batch_parity_requests();
         let Some((
             _,
@@ -408,7 +408,7 @@ impl fmt::Display for Vsop87CanonicalMixedTimeScaleBatchParitySummary {
 /// Returns the backend-owned canonical mixed TT/TDB batch-path regression summary.
 pub fn canonical_mixed_time_scale_batch_parity_summary(
 ) -> Option<Vsop87CanonicalMixedTimeScaleBatchParitySummary> {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let reference_epoch = Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tt);
     let requests = canonical_mixed_time_scale_batch_parity_requests();
     let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
@@ -514,7 +514,7 @@ impl Vsop87CanonicalJ1900BatchParitySummary {
                 },
             );
         }
-        let backend = Vsop87Backend::new();
+        let backend = Vsop87FullSeriesBackend::new();
         let requests = canonical_j1900_equatorial_batch_parity_requests();
         let Some((
             _,
@@ -557,7 +557,7 @@ impl fmt::Display for Vsop87CanonicalJ1900BatchParitySummary {
 
 /// Returns the backend-owned canonical J1900 batch-path regression summary.
 pub fn canonical_j1900_batch_parity_summary() -> Option<Vsop87CanonicalJ1900BatchParitySummary> {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = canonical_j1900_equatorial_batch_parity_requests();
     let reference_epoch = Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb);
     let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
@@ -656,7 +656,7 @@ impl Vsop87SupportedBodyJ2000EclipticBatchParitySummary {
                 },
             );
         }
-        let backend = Vsop87Backend::new();
+        let backend = Vsop87FullSeriesBackend::new();
         let requests = supported_body_j2000_ecliptic_batch_parity_requests();
         let Some((
             _,
@@ -700,7 +700,7 @@ impl fmt::Display for Vsop87SupportedBodyJ2000EclipticBatchParitySummary {
 /// Returns the backend-owned supported-body J2000 ecliptic batch-path regression summary.
 pub fn supported_body_j2000_ecliptic_batch_parity_summary(
 ) -> Option<Vsop87SupportedBodyJ2000EclipticBatchParitySummary> {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = supported_body_j2000_ecliptic_batch_parity_request_corpus();
     let reference_epoch = requests.first()?.instant;
     let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
@@ -799,7 +799,7 @@ impl Vsop87SupportedBodyJ2000EquatorialBatchParitySummary {
                 },
             );
         }
-        let backend = Vsop87Backend::new();
+        let backend = Vsop87FullSeriesBackend::new();
         let requests = supported_body_j2000_equatorial_batch_parity_requests();
         let Some((
             _,
@@ -843,7 +843,7 @@ impl fmt::Display for Vsop87SupportedBodyJ2000EquatorialBatchParitySummary {
 /// Returns the backend-owned supported-body J2000 equatorial batch-path regression summary.
 pub fn supported_body_j2000_equatorial_batch_parity_summary(
 ) -> Option<Vsop87SupportedBodyJ2000EquatorialBatchParitySummary> {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = supported_body_j2000_equatorial_batch_parity_requests();
     let reference_epoch = requests.first()?.instant;
     let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
@@ -942,7 +942,7 @@ impl Vsop87SupportedBodyJ1900EclipticBatchParitySummary {
                 },
             );
         }
-        let backend = Vsop87Backend::new();
+        let backend = Vsop87FullSeriesBackend::new();
         let requests = supported_body_j1900_ecliptic_batch_parity_requests();
         let Some((
             _,
@@ -986,7 +986,7 @@ impl fmt::Display for Vsop87SupportedBodyJ1900EclipticBatchParitySummary {
 /// Returns the backend-owned supported-body J1900 ecliptic batch-path regression summary.
 pub fn supported_body_j1900_ecliptic_batch_parity_summary(
 ) -> Option<Vsop87SupportedBodyJ1900EclipticBatchParitySummary> {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = supported_body_j1900_ecliptic_batch_parity_requests();
     let reference_epoch = requests.first()?.instant;
     let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
@@ -1085,7 +1085,7 @@ impl Vsop87SupportedBodyJ1900EquatorialBatchParitySummary {
                 },
             );
         }
-        let backend = Vsop87Backend::new();
+        let backend = Vsop87FullSeriesBackend::new();
         let requests = supported_body_j1900_equatorial_batch_parity_requests();
         let Some((
             _,
@@ -1129,7 +1129,7 @@ impl fmt::Display for Vsop87SupportedBodyJ1900EquatorialBatchParitySummary {
 /// Returns the backend-owned supported-body J1900 equatorial batch-path regression summary.
 pub fn supported_body_j1900_equatorial_batch_parity_summary(
 ) -> Option<Vsop87SupportedBodyJ1900EquatorialBatchParitySummary> {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = supported_body_j1900_equatorial_batch_parity_requests();
     let reference_epoch = requests.first()?.instant;
     let (sample_bodies, exact_count, interpolated_count, approximate_count, unknown_count) =
