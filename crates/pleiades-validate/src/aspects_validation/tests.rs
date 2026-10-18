@@ -569,7 +569,7 @@ fn mean_subset_fails_tampered_fictitious_graze_windows() {
         );
         FICTITIOUS_GRAZES_CSV.replacen("# Source: as", "# Source: As", 1)
     } else {
-        FICTITIOUS_GRAZES_CSV.replacen(",2\n", ",4\n", 1)
+        FICTITIOUS_GRAZES_CSV.replacen(",2,", ",4,", 1)
     };
     assert_ne!(tampered, FICTITIOUS_GRAZES_CSV);
     assert!(matches!(
@@ -980,7 +980,7 @@ fn committed_graze_windows_match_their_manifest_and_corpus() {
 
 #[test]
 fn mean_subset_fails_tampered_graze_windows() {
-    let tampered = LUNAR_POINT_GRAZES_CSV.replacen(",2\n", ",4\n", 1);
+    let tampered = LUNAR_POINT_GRAZES_CSV.replacen(",2,", ",4,", 1);
     assert_ne!(tampered, LUNAR_POINT_GRAZES_CSV);
     assert!(matches!(
         validate_subset(&SubsetFiles {
@@ -993,7 +993,7 @@ fn mean_subset_fails_tampered_graze_windows() {
 
 #[test]
 fn mean_subset_fails_a_window_whose_se_events_disagree() {
-    let tampered = LUNAR_POINT_GRAZES_CSV.replacen(",2\n", ",4\n", 1);
+    let tampered = LUNAR_POINT_GRAZES_CSV.replacen(",2,", ",4,", 1);
     assert_ne!(tampered, LUNAR_POINT_GRAZES_CSV);
     let (rows, _) = parse_manifest(LUNAR_POINT_GRAZES_MANIFEST).unwrap();
     let manifest = format!(
@@ -1062,6 +1062,22 @@ fn lunar_point_scope_floor_is_its_own() {
 }
 
 #[test]
+fn committed_lunar_graze_windows_are_strict_unless_near_tangent() {
+    // The two windows whose turn misses the level by at least half the 12"
+    // margin must hold equal counts; the 1.84" and 5.36" Jupiter sextile
+    // grazes keep the parity rule.
+    let windows = parse_grazes(LUNAR_POINT_GRAZES_CSV, &LUNAR_POINT_PAIRS).unwrap();
+    let strict: Vec<(f64, bool)> = windows
+        .iter()
+        .map(|w| (w.miss_arcsec, w.strict()))
+        .collect();
+    assert_eq!(
+        strict,
+        [(8.765, true), (1.843, false), (5.364, false), (7.47, true)]
+    );
+}
+
+#[test]
 fn full_report_keeps_the_planet_summary_prefix() {
     let planets = AspectsReport {
         rows_validated: 2,
@@ -1084,6 +1100,8 @@ fn full_report_keeps_the_planet_summary_prefix() {
         .ends_with("Asteroid aspects: 3 exact aspects validated"));
 }
 
+/// A near-tangent (non-strict) window of pair 0 with both edges above the
+/// positive level of `angle`.
 fn window(angle: usize, lo: f64, hi: f64) -> GrazeWindow {
     GrazeWindow {
         pair: 0,
@@ -1091,6 +1109,11 @@ fn window(angle: usize, lo: f64, hi: f64) -> GrazeWindow {
         lo,
         hi,
         se_events: 0,
+        level_deg: ANGLES_DEG[angle],
+        lo_side: 1,
+        hi_side: 1,
+        miss_arcsec: 0.5,
+        margin_arcsec: 3.0,
     }
 }
 
@@ -1276,11 +1299,8 @@ fn a_window_applies_only_to_its_own_series() {
         },
     ];
     let windows = [GrazeWindow {
-        pair: 0,
-        angle: 1,
-        lo: 10.0,
-        hi: 12.0,
         se_events: 2,
+        ..window(1, 10.0, 12.0)
     }];
     let of_series = super::grazes::windows_of(&windows, 0, 2);
     assert!(of_series.is_empty());
@@ -1292,7 +1312,7 @@ fn a_window_applies_only_to_its_own_series() {
 
 fn grazes_csv(rows: &[&str]) -> String {
     let mut csv = String::from(
-        "# test\ngroup,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events\n",
+        "# test\ngroup,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events,level_deg,lo_side,hi_side,margin_arcsec\n",
     );
     for row in rows {
         csv.push_str(row);
@@ -1304,23 +1324,47 @@ fn grazes_csv(rows: &[&str]) -> String {
 #[test]
 fn graze_rows_parse_and_reject_bad_windows() {
     let ok = grazes_csv(&[
-        "geo,TrueApogee,Jupiter,60,2420750.8200000,1.840,2420750.5000000,2420751.1000000,2",
+        "geo,TrueApogee,Jupiter,60,2420750.8200000,1.840,2420750.5000000,2420751.1000000,2,-60,1,1,12",
+        "geo,TrueApogee,Jupiter,90,2420750.8200000,7.000,2420750.5000000,2420751.1000000,1,90,-1,1,12",
     ]);
     let windows = parse_grazes(&ok, &LUNAR_POINT_PAIRS).expect("parses");
-    assert_eq!(windows.len(), 1);
+    assert_eq!(windows.len(), 2);
     assert_eq!(windows[0].angle, 1);
     assert_eq!(windows[0].se_events, 2);
+    assert_eq!(windows[0].level_deg, -60.0);
+    assert_eq!((windows[0].lo_side, windows[0].hi_side), (1, 1));
+    assert_eq!(
+        (windows[0].miss_arcsec, windows[0].margin_arcsec),
+        (1.84, 12.0)
+    );
+    assert!(!windows[0].strict(), "1.84\" is under half the 12\" margin");
+    assert_eq!((windows[1].lo_side, windows[1].hi_side), (-1, 1));
+    assert!(windows[1].strict(), "7\" is at least half the 12\" margin");
     for bad in [
         // lo >= hi
-        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420751.1,2420750.5,2",
+        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420751.1,2420750.5,2,60,1,1,12",
         // turn outside the window
-        "geo,TrueApogee,Jupiter,60,2420752.0,1.8,2420750.5,2420751.1,2",
+        "geo,TrueApogee,Jupiter,60,2420752.0,1.8,2420750.5,2420751.1,2,60,1,1,12",
         // unknown pair
-        "geo,TrueApogee,Mars,60,2420750.8,1.8,2420750.5,2420751.1,2",
+        "geo,TrueApogee,Mars,60,2420750.8,1.8,2420750.5,2420751.1,2,60,1,1,12",
         // angle not in the plan
-        "geo,TrueApogee,Jupiter,45,2420750.8,1.8,2420750.5,2420751.1,2",
+        "geo,TrueApogee,Jupiter,45,2420750.8,1.8,2420750.5,2420751.1,2,45,1,1,12",
         // wrong field count
-        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1",
+        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1,2,60,1,1",
+        // the level is not one of the angle's
+        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1,2,120,1,1,12",
+        "geo,TrueApogee,Pluto,180,2420750.8,1.8,2420750.5,2420751.1,2,-180,1,1,12",
+        // a side that is not +-1
+        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1,2,60,0,1,12",
+        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1,2,60,1,+1,12",
+        // sides that contradict the parity: straddling with an even count,
+        // one side with an odd count
+        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1,2,60,1,-1,12",
+        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1,1,60,-1,-1,12",
+        // a miss outside the margin, a non-positive margin
+        "geo,TrueApogee,Jupiter,60,2420750.8,12.0,2420750.5,2420751.1,2,60,1,1,12",
+        "geo,TrueApogee,Jupiter,60,2420750.8,-0.1,2420750.5,2420751.1,2,60,1,1,12",
+        "geo,TrueApogee,Jupiter,60,2420750.8,0.0,2420750.5,2420751.1,2,60,1,1,0",
     ] {
         assert!(
             matches!(
@@ -1331,8 +1375,8 @@ fn graze_rows_parse_and_reject_bad_windows() {
         );
     }
     let overlapping = grazes_csv(&[
-        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1,2",
-        "geo,TrueApogee,Jupiter,60,2420751.0,2.0,2420750.9,2420751.4,0",
+        "geo,TrueApogee,Jupiter,60,2420750.8,1.8,2420750.5,2420751.1,2,60,1,1,12",
+        "geo,TrueApogee,Jupiter,60,2420751.0,2.0,2420750.9,2420751.4,0,60,1,1,12",
     ]);
     assert!(matches!(
         parse_grazes(&overlapping, &LUNAR_POINT_PAIRS),
@@ -1354,13 +1398,7 @@ fn a_window_whose_se_events_disagree_with_the_corpus_fails() {
             expected: expected(10.6, 60.0, 0.0, 0.5),
         },
     ];
-    let windows = [GrazeWindow {
-        pair: 0,
-        angle: 1,
-        lo: 10.0,
-        hi: 12.0,
-        se_events: 0,
-    }];
+    let windows = [window(1, 10.0, 12.0)];
     assert!(matches!(
         super::grazes::check_window_counts(&windows, &rows),
         Err(AspectsError::GrazeEventCount {
@@ -1368,5 +1406,103 @@ fn a_window_whose_se_events_disagree_with_the_corpus_fails() {
             corpus: 2,
             ..
         })
+    ));
+}
+
+#[test]
+fn a_strict_window_requires_equal_counts() {
+    // A turn at least half the margin from the level: an event pair the
+    // engine drops (or adds) there fails, though the parity still matches.
+    let strict = [GrazeWindow {
+        se_events: 2,
+        miss_arcsec: 1.5,
+        ..window(1, 10.0, 12.0)
+    }];
+    assert!(strict[0].strict());
+    for (got, want) in [(0, 2), (2, 0), (4, 2)] {
+        let corpus = sextiles_from(10.5, want);
+        let engine = engine_of(&sextiles_from(10.5, got));
+        assert!(
+            matches!(
+                split_windows("t", &strict, &engine, &corpus),
+                Err(AspectsError::GrazeWindowCount { engine: e, corpus: c, .. })
+                    if (e, c) == (got, want)
+            ),
+            "{got} vs {want}"
+        );
+    }
+    let corpus = sextiles_from(10.5, 2);
+    let (_, _, stats) = split_windows("t", &strict, &engine_of(&corpus), &corpus).unwrap();
+    assert_eq!((stats.windows, stats.strict, stats.differing), (1, 1, 0));
+    // Just under half the margin, the same loss is allowed and reported.
+    let near = [GrazeWindow {
+        miss_arcsec: 1.499,
+        ..strict[0]
+    }];
+    let (_, _, stats) = split_windows("t", &near, &[], &corpus).unwrap();
+    assert_eq!((stats.windows, stats.strict, stats.differing), (1, 0, 1));
+}
+
+#[test]
+fn a_window_edge_on_the_other_side_of_the_level_fails() {
+    use super::grazes::check_window_edges;
+    // Both edges 6" above the 60-degree level, as SE recorded.
+    let w = [GrazeWindow {
+        se_events: 2,
+        ..window(1, 10.0, 12.0)
+    }];
+    let above = |_: f64| Ok(60.0 + 6.0 / 3600.0);
+    assert!(check_window_edges("t", &w, above).is_ok());
+    // An engine below the level at hi only: the parity would still hold if it
+    // also crossed once more inside, so only the edge check catches it.
+    let below_at_hi = |jd: f64| {
+        Ok(if jd == 12.0 {
+            60.0 - 6.0 / 3600.0
+        } else {
+            60.0 + 6.0 / 3600.0
+        })
+    };
+    assert!(matches!(
+        check_window_edges("t", &w, below_at_hi),
+        Err(AspectsError::GrazeEdgeSide { jd_tt, se_side: 1, engine_offset_arcsec, .. })
+            if jd_tt == 12.0 && (engine_offset_arcsec + 6.0).abs() < 1e-6
+    ));
+    // Exactly on the level counts as below, as in the reference tool.
+    assert!(matches!(
+        check_window_edges("t", &w, |_| Ok(60.0)),
+        Err(AspectsError::GrazeEdgeSide { jd_tt, .. }) if jd_tt == 10.0
+    ));
+    // A negative level, and edges straddling it.
+    let straddle = [GrazeWindow {
+        se_events: 1,
+        level_deg: -60.0,
+        lo_side: 1,
+        hi_side: -1,
+        ..window(1, 10.0, 12.0)
+    }];
+    let falling = |jd: f64| Ok(if jd == 10.0 { -59.99 } else { -60.01 });
+    assert!(check_window_edges("t", &straddle, falling).is_ok());
+    assert!(check_window_edges("t", &straddle, |_| Ok(-59.99)).is_err());
+    // Across the +-180 seam the offset wraps: wrap180(179.99 - 180) = -0.01
+    // (below), wrap180(-179.99 - 180) = +0.01 (above).
+    let seam = [GrazeWindow {
+        level_deg: 180.0,
+        lo_side: -1,
+        hi_side: 1,
+        se_events: 1,
+        ..window(4, 10.0, 12.0)
+    }];
+    let crossing = |jd: f64| Ok(if jd == 10.0 { 179.99 } else { -179.99 });
+    assert!(check_window_edges("t", &seam, crossing).is_ok());
+    // An engine failure at an edge propagates.
+    let failing = |_: f64| {
+        Err(AspectsError::CalculationFailed {
+            series: "t".into(),
+            reason: "no data".into(),
+        })
+    };
+    assert!(matches!(
+        check_window_edges("t", &w, failing),
+        Err(AspectsError::CalculationFailed { .. })
     ));
 }

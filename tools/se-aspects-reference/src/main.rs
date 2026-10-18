@@ -583,11 +583,15 @@ fn write_graze_windows(
                 second.1,
                 miss * 3600.0
             );
+            let side = |above: bool| if above { 1 } else { -1 };
             out(format!(
-                "{group},{},{},{angle:.0},{turn_jd:.7},{:.3},{lo:.7},{hi:.7},{inside}",
+                "{group},{},{},{angle:.0},{turn_jd:.7},{:.3},{lo:.7},{hi:.7},{inside},{level:.0},{},{},{:.0}",
                 first.1,
                 second.1,
-                miss * 3600.0
+                miss * 3600.0,
+                side(above(lo)),
+                side(above(hi)),
+                margin_deg * 3600.0
             ));
         }
     }
@@ -782,8 +786,11 @@ fn lunar_points_main(args: &[String]) {
     grazes.push_str("# turn_jd_tt/miss_arcsec are the closest turn. se_events counts lunar-points.csv rows of the pair and angle inside [lo, hi]\n");
     grazes.push_str("# (even when both edges lie on one side of the level, odd when they straddle it). Events inside a window may exist\n");
     grazes.push_str("# in one ephemeris only; the gate requires each side's count to have se_events' parity (issue #168 (c)).\n");
+    grazes.push_str("# level_deg is the signed level grazed (+angle or -angle, of wrap180(lon(first) - lon(second))); lo_side and hi_side are\n");
+    grazes.push_str("# the sign (+1 or -1) of wrap180(separation - level) at lo_jd_tt and hi_jd_tt, which the engine must reproduce;\n");
+    grazes.push_str("# margin_arcsec is the pair's graze margin. A window whose miss_arcsec is at least half its margin must hold equal counts.\n");
     grazes.push_str(
-        "group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events\n",
+        "group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events,level_deg,lo_side,hi_side,margin_arcsec\n",
     );
     let mut rows = 0usize;
     let mut graze_rows = 0usize;
@@ -885,8 +892,11 @@ fn fictitious_main(args: &[String]) {
     grazes.push_str("# turn_jd_tt/miss_arcsec are the closest turn. se_events counts fictitious.csv rows of the pair and angle inside [lo, hi]\n");
     grazes.push_str("# (even when both edges lie on one side of the level, odd when they straddle it). Events inside a window may exist\n");
     grazes.push_str("# in one ephemeris only; the gate requires each side's count to have se_events' parity (issue #168 (c)).\n");
+    grazes.push_str("# level_deg is the signed level grazed (+angle or -angle, of wrap180(lon(first) - lon(second))); lo_side and hi_side are\n");
+    grazes.push_str("# the sign (+1 or -1) of wrap180(separation - level) at lo_jd_tt and hi_jd_tt, which the engine must reproduce;\n");
+    grazes.push_str("# margin_arcsec is the pair's graze margin. A window whose miss_arcsec is at least half its margin must hold equal counts.\n");
     grazes.push_str(
-        "group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events\n",
+        "group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events,level_deg,lo_side,hi_side,margin_arcsec\n",
     );
     let mut rows = 0usize;
     let mut graze_rows = 0usize;

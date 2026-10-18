@@ -70,13 +70,13 @@ pub(crate) const MIN_ROWS_VALIDATED_ASTEROIDS: usize = 10_118;
 
 /// Fail-closed floor for the lunar-point corpus: the rows of
 /// `lunar-points.csv` (22600) outside its graze windows, which are compared by
-/// count parity and not counted here (22600 less the 4 rows the windows of
+/// count (or parity) and not counted here (22600 less the 4 rows the windows of
 /// `lunar-points-grazes.csv` hold).
 pub(crate) const MIN_ROWS_VALIDATED_LUNAR_POINTS: usize = 22_596;
 
 /// Fail-closed floor for the fictitious-body corpus: the rows of
 /// `fictitious.csv` (38733) outside its graze windows, which are compared by
-/// count parity and not counted here. `fictitious-grazes.csv` holds no windows,
+/// count (or parity) and not counted here. `fictitious-grazes.csv` holds no windows,
 /// so every row is compared.
 pub(crate) const MIN_ROWS_VALIDATED_FICTITIOUS: usize = 38_733;
 

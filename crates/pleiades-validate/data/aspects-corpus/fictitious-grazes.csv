@@ -5,4 +5,7 @@
 # turn_jd_tt/miss_arcsec are the closest turn. se_events counts fictitious.csv rows of the pair and angle inside [lo, hi]
 # (even when both edges lie on one side of the level, odd when they straddle it). Events inside a window may exist
 # in one ephemeris only; the gate requires each side's count to have se_events' parity (issue #168 (c)).
-group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events
+# level_deg is the signed level grazed (+angle or -angle, of wrap180(lon(first) - lon(second))); lo_side and hi_side are
+# the sign (+1 or -1) of wrap180(separation - level) at lo_jd_tt and hi_jd_tt, which the engine must reproduce;
+# margin_arcsec is the pair's graze margin. A window whose miss_arcsec is at least half its margin must hold equal counts.
+group,first,second,angle_deg,turn_jd_tt,miss_arcsec,lo_jd_tt,hi_jd_tt,se_events,level_deg,lo_side,hi_side,margin_arcsec
