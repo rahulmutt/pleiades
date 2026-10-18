@@ -11,6 +11,12 @@ use crate::error::ApparentPlaceError;
 use crate::nutation::mean_obliquity_degrees;
 use pleiades_types::OBLIQUITY_J2000_DEG;
 
+mod long_term;
+
+pub use long_term::{
+    long_term_mean_obliquity_radians, precess_ecliptic_vector_date_to_j2000_long_term,
+};
+
 fn julian_centuries(jd_tt: f64) -> f64 {
     (jd_tt - 2_451_545.0) / 36_525.0
 }

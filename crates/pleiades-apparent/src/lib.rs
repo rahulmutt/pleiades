@@ -115,7 +115,8 @@ pub use lighttime::{LightTimePosition, LIGHT_TIME_DAYS_PER_AU};
 pub mod precession;
 
 pub use precession::{
-    precess_ecliptic_date_to_j2000, precess_ecliptic_j2000_to_date,
+    long_term_mean_obliquity_radians, precess_ecliptic_date_to_j2000,
+    precess_ecliptic_j2000_to_date, precess_ecliptic_vector_date_to_j2000_long_term,
     precess_ecliptic_vector_j2000_to_date, PrecessedEcliptic,
 };
 

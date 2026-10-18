@@ -48,51 +48,46 @@ fn a_distant_equinox_is_precessed() {
     assert!((x, y, z) != (1.2, -0.7, 0.4));
 }
 
-/// Reference: ecliptic-to-ecliptic precession of Meeus, *Astronomical
-/// Algorithms* 2nd ed. ch. 21 (eqs. 21.5 and 21.7: the angles eta, Pi, p
-/// from the IAU-1976 constants, applied as spherical rotations), evaluated
-/// independently of `pleiades_apparent`, which precesses through the
-/// equatorial frame with the 1976 zeta/z/theta polynomials. The two agree to
-/// about 7e-11 AU on these vectors (measured on the first failing component
-/// with a 1e-12 tolerance, J1900 A x), so the tolerance is 1e-8 AU: still
-/// orders of magnitude below any arithmetic mutant.
+/// Reference: Swiss Ephemeris 2.10.03 carrying the vector the way
+/// `swi_osc_el_plan` does (`swi_coortrf` by -eps(equinox), `swi_precess`
+/// J_TO_J2000, `swi_coortrf` by eps(J2000), default Vondrak 2011 models),
+/// called directly from a throwaway probe. Same formulas in the same order, so
+/// agreement is at rounding level; 1e-11 AU is about 1e-6 arcsec on these
+/// vectors. The IAU-1976 rotation used before misses by about 0.3" at J1900 and
+/// 1.4" at Nibiru's equinox, 1e-6 AU and more.
 #[test]
-fn precession_to_j2000_matches_the_meeus_ecliptic_reference() {
+fn precession_to_j2000_matches_swiss_ephemeris() {
     const J1900: f64 = 2_415_020.0;
-    const B1950: f64 = 2_433_282.423_459_05;
+    const NIBIRU_EQUINOX: f64 = 1_856_113.380_954;
     let cases = [
         (
             "J1900 A",
             (1.2, -0.7, 0.4),
             J1900,
-            [1.216697495156814, -0.670634170169941, 0.39987124812820674],
+            [1.216696534556666, -0.6706358978373615, 0.3998712734489384],
         ),
         (
             "J1900 B",
             (-2.0, 1.5, -1.1),
             J1900,
-            [-2.035945398844941, 1.4510563695624994, -1.0997098459476553],
+            [-2.035943318237606, 1.451059251437099, -1.099709895264407],
         ),
         (
-            "B1950 A",
+            "Nibiru A",
             (1.2, -0.7, 0.4),
-            B1950,
-            [1.208439367814481, -0.6853662776962126, 0.3999341942282199],
+            NIBIRU_EQUINOX,
+            [1.377120554623878, -0.1844039277498070, 0.3994172873860948],
         ),
         (
-            "B1950 B",
-            (-2.0, 1.5, -1.1),
-            B1950,
-            [-2.018124398331545, 1.4756348993249713, -1.0998525159098027],
+            "Nibiru C",
+            (234.0, 10.0, -3.0),
+            NIBIRU_EQUINOX,
+            [212.0305159619357, 99.50501683304390, -2.609966660897776],
         ),
     ];
     for (what, (x, y, z), equinox, want) in cases {
-        assert_xyz(
-            rotate_ecliptic_to_j2000(x, y, z, equinox),
-            want,
-            1.0e-8,
-            what,
-        );
+        let tol = if what == "Nibiru C" { 1.0e-9 } else { 1.0e-11 };
+        assert_xyz(rotate_ecliptic_to_j2000(x, y, z, equinox), want, tol, what);
     }
 }
 
