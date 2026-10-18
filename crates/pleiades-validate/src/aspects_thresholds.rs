@@ -37,9 +37,13 @@
 //! light-time correction for fictitious bodies jumps by up to about 5" at
 //! isolated instants. Each ceiling is the measured maximum times 1.4, rounded
 //! up to two significant figures and floored at 2.3", set separately for
-//! separation and longitude. Nibiru's measured maxima are larger (1.284" separation,
-//! 1.578" longitude) because of a steady +1.26" offset against SE, but still
-//! fall under the same 2.3" floor.
+//! separation and longitude. Re-measured on 2026-10-18, after the element
+//! equinoxes moved to Vondrák 2011 precession as in SE: every pair is now at
+//! most 0.048" in separation (Vulcan-Sun; Nibiru-Sun was 1.284", the J1900
+//! bodies about 0.32") and 0.342" in longitude. The longitude residual of
+//! about 0.31" is common to every pair: it is the IAU-1976 J2000-to-date
+//! precession of the mean-of-date frame against SE's Vondrák at 1900 and 2100,
+//! and cancels in the separation.
 //!
 //! The longitude ceiling bounds the difference of either body's longitude
 //! at the event. It includes the body's motion over the time residual.
@@ -295,144 +299,143 @@ pub(crate) fn ceilings_for(pair: &str) -> Option<Ceilings> {
         // Fictitious bodies are gated in the mean-of-date frame: geometric, with no
         // light-time correction, because SE's light-time correction for fictitious
         // bodies jumps by up to about 5" at isolated instants. Ceilings are measured
-        // × 1.4 rounded up to two significant figures, floored at 2.3"; Nibiru carries
-        // a steady +1.26" offset against SE.
-        // measured max 0.322", 0.613" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // × 1.4 rounded up to two significant figures, floored at 2.3".
+        // measured max 0.021", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Cupido-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.322", 0.612" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.021", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Hades-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.321", 0.612" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.021", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Zeus-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.320", 0.612" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.022", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Kronos-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.320", 0.612" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.022", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Apollon-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.319", 0.608" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.021", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Admetos-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.319", 0.611" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.021", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Vulkanus-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.319", 0.611" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.021", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Poseidon-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.186", 0.482" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.022", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Transpluto-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 1.284", 1.578" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.022", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Nibiru-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.024", 0.317" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.024", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Harrington-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.481", 0.765" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.022", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "NeptuneLeverrier-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.479", 0.765" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.022", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "NeptuneAdams-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.234", 0.525" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.021", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "PlutoLowell-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.234", 0.525" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.022", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "PlutoPickering-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.095", 0.355" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.048", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Vulcan-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.308", 0.061" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.019", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "WhiteMoon-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.316", 0.014" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.021", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Proserpina-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.309", 0.545" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.038", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Waldemath-Sun" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.311", 0.864" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.010", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Cupido-Saturn" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.309", 0.703" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.010", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Hades-Saturn" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.309", 0.698" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.011", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Zeus-Saturn" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.308", 0.776" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.010", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Kronos-Saturn" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.308", 0.649" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.010", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Apollon-Saturn" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.309", 0.630" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.010", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Admetos-Saturn" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.308", 0.656" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.010", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Vulkanus-Saturn" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.308", 0.696" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.010", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Poseidon-Saturn" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,
         }),
-        // measured max 0.175", 0.488" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-17)
+        // measured max 0.010", 0.000" (mean; SWIEPH sepl/semo, seorbel.txt, 2026-10-18)
         "Transpluto-Saturn" => Some(Ceilings {
             sep_arcsec: 2.3,
             lon_arcsec: 2.3,

@@ -77,10 +77,12 @@ const XYPER: [[f64; 14]; 5] = [
 /// periodic terms first, then the cubic, in arcseconds (SE's summation order).
 fn series<const N: usize>(pol: &[[f64; 2]; 4], per: &[[f64; N]; 5], t: f64) -> (f64, f64) {
     let (mut a, mut b) = (0.0, 0.0);
-    for i in 0..N {
-        let (s, c) = (std::f64::consts::TAU * t / per[0][i]).sin_cos();
-        a += c * per[1][i] + s * per[3][i];
-        b += c * per[2][i] + s * per[4][i];
+    let [period, cos_a, cos_b, sin_a, sin_b] = per;
+    let terms = period.iter().zip(cos_a).zip(cos_b).zip(sin_a).zip(sin_b);
+    for ((((period, cos_a), cos_b), sin_a), sin_b) in terms {
+        let (s, c) = (std::f64::consts::TAU * t / period).sin_cos();
+        a += c * cos_a + s * sin_a;
+        b += c * cos_b + s * sin_b;
     }
     let mut w = 1.0;
     for row in pol {
