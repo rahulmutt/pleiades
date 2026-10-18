@@ -222,8 +222,11 @@ Swiss Ephemeris SWIEPH, 1900–2100 (`validate-aspects-lunar`, split from `valid
 (Sun, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto), TrueApogee and
 MeanApogee with four (Sun, Jupiter, Saturn, Pluto), event for event. Near-tangent
 turns are graze windows (`lunar-points-grazes.csv`; four, all TrueApogee):
-inside a window events may exist in one ephemeris only and are compared by
-count parity, outside it strictly. The lunar corpus has 22600 rows, 22596
+inside a window events may exist in one ephemeris only, so they are compared by
+count, by parity alone when the turn misses the level by under half the margin
+(the two Jupiter sextile windows), and the engine must put each window's edges
+on Swiss Ephemeris's side of the level; outside a window events are compared
+strictly. The lunar corpus has 22600 rows, 22596
 compared strictly; outside the windows the separation is within 3.113″
 (TrueApogee–Saturn) and the longitude within 2.232″ (MeanApogee–Saturn), and the
 closest gated turn is a 1.84″ TrueApogee–Jupiter graze, inside a window. The

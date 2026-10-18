@@ -41,9 +41,11 @@
 //! level it records a graze window in `lunar-points-grazes.csv`; there an
 //! event pair may exist in one ephemeris only, so the gate checks that the
 //! engine's and the corpus's event counts in the window both have the
-//! parity of the window's recorded SE count, compares equal counts without
-//! ceilings (reporting their residuals), and compares every event outside a
-//! window strictly. See `grazes`.
+//! parity of the window's recorded SE count, requires equal counts when the
+//! turn misses the level by at least half the margin, checks that the engine
+//! puts the window's edges on the side of the level SE recorded, compares
+//! equal counts without ceilings (reporting their residuals), and compares
+//! every event outside a window strictly. See `grazes`.
 //!
 //! Fictitious bodies (issue #168): the 19 bodies with the Sun, and Cupido to
 //! Poseidon and Transpluto with Saturn (28 pairs, 38733 events), over
@@ -72,7 +74,9 @@ use pleiades_types::{Angle, CelestialBody, Instant, JulianDay, TimeScale};
 
 mod grazes;
 
-use grazes::{check_grazes, split_windows, windows_of, GrazeWindow, WindowStats};
+use grazes::{
+    check_grazes, check_window_edges, split_windows, windows_of, GrazeWindow, WindowStats,
+};
 
 const CORPUS_CSV: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -151,14 +155,15 @@ enum Scope {
     Asteroids,
     /// The lunar-point corpus (`lunar-points.csv`, Swiss Ephemeris SWIEPH): the
     /// true node, osculating apogee, mean node and mean apogee against the
-    /// [`LUNAR_POINT_PAIRS`], with graze windows compared by count parity
+    /// [`LUNAR_POINT_PAIRS`], with graze windows compared by count, or by
+    /// parity in a near-tangent window, and their edges' sides checked
     /// (`lunar-points-grazes.csv`). Part of the full gate only (issue #168).
     LunarPoints,
     /// The fictitious-body corpus (`fictitious.csv`, Swiss Ephemeris SWIEPH with
     /// `seorbel.txt`, mean-of-date frame): the 19 fictitious bodies against the
     /// Sun and nine of them against Saturn ([`FICTITIOUS_PAIRS`]), served by the
     /// fictitious backend routed beside the packaged one, with graze windows
-    /// compared by count parity (`fictitious-grazes.csv`). Part of the full gate
+    /// checked like the lunar points' (`fictitious-grazes.csv`). Part of the full gate
     /// and its own command (issue #168).
     Fictitious,
 }
@@ -477,6 +482,26 @@ pub enum AspectsError {
         count: usize,
         se_events: usize,
     },
+    /// A strict graze window (its turn at least half the margin from the
+    /// level) holds different engine and corpus counts.
+    GrazeWindowCount {
+        series: String,
+        lo: f64,
+        hi: f64,
+        engine: usize,
+        corpus: usize,
+        miss_arcsec: f64,
+        margin_arcsec: f64,
+    },
+    /// The engine puts a graze window's edge on the other side of its level
+    /// from SE.
+    GrazeEdgeSide {
+        series: String,
+        jd_tt: f64,
+        level_deg: f64,
+        se_side: i8,
+        engine_offset_arcsec: f64,
+    },
 }
 
 impl std::fmt::Display for AspectsError {
@@ -544,6 +569,28 @@ impl std::fmt::Display for AspectsError {
             } => write!(
                 f,
                 "{series}: graze window [{lo}, {hi}] holds {count} {side} events; its parity must match the {se_events} SE events'"
+            ),
+            Self::GrazeWindowCount {
+                series,
+                lo,
+                hi,
+                engine,
+                corpus,
+                miss_arcsec,
+                margin_arcsec,
+            } => write!(
+                f,
+                "{series}: graze window [{lo}, {hi}] holds {engine} engine events and {corpus} corpus events; its turn misses the level by {miss_arcsec}\", at least half the {margin_arcsec}\" margin, so the counts must agree"
+            ),
+            Self::GrazeEdgeSide {
+                series,
+                jd_tt,
+                level_deg,
+                se_side,
+                engine_offset_arcsec,
+            } => write!(
+                f,
+                "{series}: at the graze window edge jd_tt={jd_tt} the engine's separation is {engine_offset_arcsec:+.3}\" from the {level_deg} degree level, but SE's side is {se_side:+}"
             ),
         }
     }
@@ -917,12 +964,17 @@ fn compare_scope<B: EphemerisBackend>(
                 })
                 .collect();
             counts.push(format!("{angle_deg:.0}°: {}", found.len()));
-            let (found, corpus, stats) = split_windows(
-                &label,
-                &windows_of(windows, pair_index, angle_index),
-                &found,
-                &corpus,
-            )?;
+            let series_windows = windows_of(windows, pair_index, angle_index);
+            check_window_edges(&label, &series_windows, |jd| {
+                let lon = |body: &CelestialBody| {
+                    engine
+                        .longitude_at(body.clone(), pair.group.reference(), tdb(jd))
+                        .map(|lon| lon.degrees())
+                        .map_err(|e| failed(&label, e.to_string()))
+                };
+                Ok(wrap180(lon(&first)? - lon(&second)?))
+            })?;
+            let (found, corpus, stats) = split_windows(&label, &series_windows, &found, &corpus)?;
             window_stats.absorb(stats);
             residuals.absorb(compare_exact(
                 &label, *angle_deg, &found, &corpus, ceilings,
@@ -939,8 +991,9 @@ fn compare_scope<B: EphemerisBackend>(
         );
         if matches!(scope, Scope::LunarPoints | Scope::Fictitious) {
             line.push_str(&format!(
-                ", graze windows {} ({} differing, {} events compared inside, max sep {:.3}\", max time {:.1} s, max lon {:.3}\")",
+                ", graze windows {} ({} strict, {} differing, {} events compared inside, max sep {:.3}\", max time {:.1} s, max lon {:.3}\")",
                 window_stats.windows,
+                window_stats.strict,
                 window_stats.differing,
                 window_stats.compared,
                 window_stats.max_sep_arcsec,

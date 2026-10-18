@@ -306,7 +306,7 @@ run = "cargo run -q -p pleiades-validate -- validate-aspects"
 # Lunar-point exact-aspect gate (SWIEPH, issue #168): 22 pairs, TrueNode and
 # MeanNode with seven planets, TrueApogee and MeanApogee with four; inside a
 # graze window events may exist in one ephemeris only and are compared by count
-# parity. Split out of `gate-aspects` because the combined step took 15m40s on
+# (by parity in a near-tangent window), with the window edges' sides checked. Split out of `gate-aspects` because the combined step took 15m40s on
 # the nightly runner on 2026-10-17 (run 39039081162), over the 15-minute
 # threshold; it has its own nightly job (.github/workflows/nightly.yml
 # `aspects-lunar-gate`) and is a `release-gate` dependency. Its step took
