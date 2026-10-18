@@ -21,7 +21,7 @@
 //!   (SWIEPH, 4776 stations; the tool drops 5 SE artefact pairs; 3 speed-graze
 //!   windows, one strict). 4774 stations are compared station for station
 //!   outside the windows. Measured maximum 663.1 s and 1.873″; ceiling
-//!   930 s / 2.3″.
+//!   930 s / 2.7″.
 //! - The 17 stationing fictitious bodies (SE 40-58 from `seorbel.txt`;
 //!   WhiteMoon and Waldemath never station), geocentric mean of date,
 //!   1900-2100, against `fictitious.csv` (13845 stations, no windows),
@@ -45,9 +45,15 @@
 //! be equal when the extremum's miss is at least half the margin, and the
 //! engine's speed sign must match SE's at both edges. The margin is three
 //! times the measured engine-minus-SE speed difference at SE's extrema below
-//! 0.02 degrees/day: 8e-4 degrees/day for the apogee (measured 2.39e-4),
-//! 3e-7 for the fictitious bodies (measured 7.39e-8); a blocking test checks
-//! both against the extrema files.
+//! 0.02 degrees/day, rounded up to one significant figure: 8e-4 degrees/day
+//! for the apogee (measured 2.39e-4), 3e-7 for the fictitious bodies (measured
+//! 7.39e-8). A nightly (`test-full`) test,
+//! `margins_cover_the_engine_speed_difference_at_every_extremum`, checks both
+//! against the extrema files (`mise run test` excludes this crate; the
+//! manifest and windows checks are the ones in the blocking `release-smoke`).
+//! The tight fictitious margin is an intended tripwire: an engine change to
+//! fictitious-body speeds fails that test and requires regenerating the
+//! windows with the reference tool.
 
 use crate::stations_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_ASTEROIDS,
@@ -203,11 +209,12 @@ impl Scope {
     }
 
     /// The reference step of the corpus' central-difference speed, for the
-    /// scopes that have speed-graze windows.
-    fn step_days(self) -> f64 {
+    /// scopes that have speed-graze windows; `None` for the scopes without.
+    fn step_days(self) -> Option<f64> {
         match self {
-            Self::TrueApogee => TRUE_APOGEE_STEP_DAYS,
-            _ => FICTITIOUS_STEP_DAYS,
+            Self::TrueApogee => Some(TRUE_APOGEE_STEP_DAYS),
+            Self::Fictitious => Some(FICTITIOUS_STEP_DAYS),
+            Self::Full | Self::MeanSidSubset | Self::Asteroids => None,
         }
     }
 }
@@ -1119,6 +1126,14 @@ fn validate_scoped_with<B: EphemerisBackend>(
             None => compare_series(series, ceilings, &found, &series.stations, None)?,
             Some(all_windows) => {
                 let label = series.label();
+                let step_days =
+                    scope
+                        .step_days()
+                        .ok_or_else(|| StationsError::CalculationFailed {
+                            series: label.clone(),
+                            reason: "this scope has no reference step for speed-graze windows"
+                                .into(),
+                        })?;
                 let own: Vec<SpeedWindow> = all_windows
                     .iter()
                     .filter(|w| w.group == series.group && w.body_name == series.body_name)
@@ -1130,7 +1145,7 @@ fn validate_scoped_with<B: EphemerisBackend>(
                         series.body.clone(),
                         series.group.reference(),
                         jd,
-                        scope.step_days(),
+                        step_days,
                     )
                 })?;
                 let (engine_out, corpus_out, stats) =
@@ -1202,7 +1217,9 @@ fn validate_scoped_with<B: EphemerisBackend>(
 /// `true-apogee.csv` (floor `MIN_ROWS_VALIDATED_TRUE_APOGEE`, 4774 stations
 /// compared outside its speed-graze windows) and the 17 stationing fictitious
 /// bodies against `fictitious.csv` (floor `MIN_ROWS_VALIDATED_FICTITIOUS`,
-/// 13845 stations). Their nightly time is not yet measured.
+/// 13845 stations). With all four passes the "Run full stations gate" step
+/// took 2m14s and the `stations-gate` job 2m55s on the nightly runner (one
+/// run, 39101104860, 2026-10-18), against the 28–29 s and 1m06s–1m27s above.
 pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
     let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;

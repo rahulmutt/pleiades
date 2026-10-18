@@ -46,7 +46,7 @@
 //! discontinuities, and its Proserpina speed is inconsistent with its own
 //! positions (zeros about 4.4 h from those of its longitude's derivative), so
 //! SE's reported speed is not a usable reference for them. Measured maxima:
-//! apogee 663.1 s and 1.873″ (ceiling 930 s / 2.3″); fictitious bodies 94.3 s
+//! apogee 663.1 s and 1.873″ (ceiling 930 s / 2.7″); fictitious bodies 94.3 s
 //! (Vulcan) and 1.565″ (Nibiru), every other body at most 40.6 s.
 //!
 //! True node. Its speed hovers near zero for days, so a station instant is
@@ -201,10 +201,10 @@ pub(crate) fn ceilings_for(body_name: &str) -> Option<Ceilings> {
         // 2.3". Measured by the full gate against the SWIEPH central-difference
         // corpora (true-apogee.csv, h = 0.001 d; fictitious.csv, h = 0.01 d),
         // 2026-10-18.
-        // measured max 663.1 s, 1.873" (geo)
+        // measured max 663.1 s, 1.873" (geo); 1.873" x 1.4 = 2.62" rounds up to 2.7"
         "TrueApogee" => Some(Ceilings {
             time_s: 930.0,
-            lon_arcsec: 2.3,
+            lon_arcsec: 2.7,
         }),
         // measured max 22.5 s, 0.600" (mean)
         "Cupido" => Some(Ceilings {

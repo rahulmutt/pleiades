@@ -2,6 +2,14 @@
 //! (issue #167 (d)), with rejection of the artefact pairs an isolated jump in
 //! the series creates, and graze windows around near-zero speed extrema.
 //!
+//! Two limits of window detection. An extremum is recorded only when the grid
+//! samples on either side of it are on its side of zero, so a dip across zero
+//! lasting two grid samples or fewer makes stations, not a window (the gate
+//! then compares them strictly and fails loudly if the engine differs). And
+//! the recorded miss is the sampled value, not a refined minimum: it is biased
+//! away from zero by at most about curvature x grid^2 / 8, which the 3x margin
+//! factor covers.
+//!
 //! Pure: every function takes the longitude as a closure, so the tests drive
 //! it with synthetic series and `main.rs` with `swe_calc`.
 

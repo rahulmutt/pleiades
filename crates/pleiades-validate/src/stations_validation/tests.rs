@@ -310,7 +310,23 @@ fn stations_gate_passes_within_ceilings() {
     for line in report.series_lines() {
         eprintln!("{line}");
     }
-    assert!(report.rows_validated >= MIN_ROWS_VALIDATED + MIN_ROWS_VALIDATED_ASTEROIDS);
+    assert!(
+        report.rows_validated
+            >= MIN_ROWS_VALIDATED
+                + MIN_ROWS_VALIDATED_ASTEROIDS
+                + MIN_ROWS_VALIDATED_TRUE_APOGEE
+                + MIN_ROWS_VALIDATED_FICTITIOUS
+    );
+    assert!(report.summary_line.contains("Apogee stations"));
+    assert!(report.summary_line.contains("Fictitious-body stations"));
+    assert!(report
+        .series_lines
+        .iter()
+        .any(|l| l.starts_with("geo TrueApogee:")));
+    assert!(report
+        .series_lines
+        .iter()
+        .any(|l| l.starts_with("mean Proserpina:")));
 }
 
 #[test]
@@ -756,6 +772,11 @@ fn windows_parse_and_reject_bad_rows() {
         // unknown body, wrong field count
         "geo,Moon,2485441.431,5.95e-5,2485441.3,2485441.56,0,1,1,2e-3",
         "geo,TrueApogee,2485441.431,5.95e-5,2485441.3,2485441.56,0,1,1",
+        // unknown group
+        "xyz,TrueApogee,2485441.431,5.95e-5,2485441.3,2485441.56,0,1,1,2e-3",
+        // second window of a series starts at or before the first one's end
+        "geo,TrueApogee,2485441.431,5.95e-5,2485441.3,2485441.56,0,1,1,2e-3\n\
+         geo,TrueApogee,2485441.6,5.95e-5,2485441.56,2485441.9,0,1,1,2e-3",
     ] {
         assert!(
             matches!(
@@ -988,17 +1009,42 @@ fn generic_chunked_scan_matches_a_single_scan_on_the_routing_engine() {
 }
 
 #[test]
-#[ignore = "slow: full apogee and fictitious station scans"]
-fn the_full_gate_reports_the_new_scopes() {
-    let report = validate_stations_corpus().expect("gate passes");
-    assert!(report.summary_line.contains("Apogee stations"));
-    assert!(report.summary_line.contains("Fictitious-body stations"));
-    assert!(report
-        .series_lines
-        .iter()
-        .any(|l| l.starts_with("geo TrueApogee:")));
-    assert!(report
-        .series_lines
-        .iter()
-        .any(|l| l.starts_with("mean Proserpina:")));
+fn a_window_of_a_series_missing_from_the_corpus_fails() {
+    let series = check_manifest(TRUE_APOGEE_CSV, TRUE_APOGEE_MANIFEST).unwrap();
+    let csv = format!(
+        "{WINDOWS_HEADER}mean,Cupido,2485441.4310000,1.000e-4,2485441.3000000,2485441.5600000,0,1,1,2.000e-3\n"
+    );
+    let manifest = format!(
+        "slice stations-true-apogee-windows file=true-apogee-windows.csv role=windows rows=1 checksum={}\n",
+        fnv1a64(&csv)
+    );
+    assert!(matches!(
+        check_windows(&csv, &manifest, &series),
+        Err(StationsError::MalformedWindows(_))
+    ));
+}
+
+/// The step `h = <value> day` a corpus header states.
+fn header_step_days(csv: &str) -> f64 {
+    let rest = csv
+        .lines()
+        .take_while(|l| l.starts_with('#'))
+        .find_map(|l| l.split("h = ").nth(1))
+        .expect("a header line states h");
+    rest.split(" day")
+        .next()
+        .and_then(|v| v.parse().ok())
+        .expect("h is a number of days")
+}
+
+#[test]
+fn corpus_headers_state_the_step_the_gate_uses() {
+    for (csv, step) in [
+        (TRUE_APOGEE_CSV, TRUE_APOGEE_STEP_DAYS),
+        (TRUE_APOGEE_WINDOWS_CSV, TRUE_APOGEE_STEP_DAYS),
+        (FICTITIOUS_CSV, FICTITIOUS_STEP_DAYS),
+        (FICTITIOUS_WINDOWS_CSV, FICTITIOUS_STEP_DAYS),
+    ] {
+        assert_eq!(header_step_days(csv), step);
+    }
 }

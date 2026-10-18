@@ -159,10 +159,15 @@ pub(super) fn check_windows(
     for w in &windows {
         let owner = series
             .iter()
-            .find(|s| s.group == w.group && s.body_name == w.body_name);
-        let corpus = owner.map_or(0, |s| {
-            s.stations.iter().filter(|f| w.contains(f.jd)).count()
-        });
+            .find(|s| s.group == w.group && s.body_name == w.body_name)
+            .ok_or_else(|| {
+                StationsError::MalformedWindows(format!(
+                    "window of {} {} has no series in the corpus",
+                    w.group.name(),
+                    w.body_name
+                ))
+            })?;
+        let corpus = owner.stations.iter().filter(|f| w.contains(f.jd)).count();
         if corpus != w.se_stations {
             return Err(StationsError::WindowStationCount {
                 series: format!("{} {}", w.group.name(), w.body_name),

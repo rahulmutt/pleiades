@@ -26,7 +26,8 @@ fn scan_finds_alternating_stations_to_the_tolerance() {
     );
 }
 
-/// The wave plus an isolated 0.7" jump in longitude at `jump` only.
+/// A steady -0.001 deg/day drift plus an isolated 0.7" jump in longitude at
+/// `jump` only.
 fn jumpy(jump: f64) -> impl Fn(f64) -> f64 {
     move |t: f64| {
         // A constant speed of -0.001 deg/day near zero, so a jump of the

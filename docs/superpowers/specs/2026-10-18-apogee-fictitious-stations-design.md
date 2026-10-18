@@ -143,8 +143,9 @@ station inside a window keeps its corpus row; the window only changes how the
 gate compares it.
 
 **Margins.** The margin is 3 times the largest engine-minus-SE difference of
-the speed measured at the SE speed extrema below 0.1°/day, rounded up to a
-round figure, following the 3″ rule of the lunar-point aspect windows (3.6
+the speed measured at the SE speed extrema below 0.02°/day, rounded up to a
+round figure (SE's apogee speed has step discontinuities that make spurious
+extrema between 0.02 and 0.1°/day; Task 2 ruling, 2026-10-18), following the 3″ rule of the lunar-point aspect windows (3.6
 times the measured difference). Task 1 measures that difference (engine speed
 by the same central difference of `EventEngine::longitude_at`) and fixes the
 two constants, `TRUE_APOGEE_SPEED_MARGIN_DEG_PER_DAY` and
@@ -172,7 +173,8 @@ added, and `--fictitious` refuses to run without it.
   file against its manifest and the corpus (`se_stations` equals the corpus
   rows inside). Inside a window each side's station count must have the
   window's parity; a window whose miss is at least half its margin must hold
-  equal counts; equal counts are paired and reported without ceilings. At
+  equal counts. The gate reports the window counts (strict windows and
+  differing windows) and does not pair stations inside windows. At
   each edge the engine's speed, by the tool's central difference of
   `longitude_at`, must have the recorded sign.
 - **Ceilings** (`stations_thresholds`): per body, the measured maximum times
