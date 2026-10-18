@@ -928,3 +928,77 @@ fn margins_cover_the_engine_speed_difference_at_every_extremum() {
         CrossingFrame::GeocentricMeanOfDate,
     );
 }
+
+#[test]
+fn new_scopes_scan_the_full_span() {
+    let apogee = check_manifest(TRUE_APOGEE_CSV, TRUE_APOGEE_MANIFEST).unwrap();
+    let fict = check_manifest(FICTITIOUS_CSV, FICTITIOUS_MANIFEST).unwrap();
+    for series in apogee.iter().chain(&fict) {
+        assert_eq!(span(series), FULL_SPAN, "{}", series.label());
+    }
+    // The planet corpus's mean series keep the short span.
+    let planets = check_manifest(CORPUS_CSV, MANIFEST).unwrap();
+    let mean_mars = planets.iter().find(|s| s.label() == "mean Mars").unwrap();
+    assert_eq!(span(mean_mars), SHORT_SPAN);
+}
+
+#[test]
+fn every_new_body_has_ceilings_and_floors_match_the_corpora() {
+    let apogee = check_manifest(TRUE_APOGEE_CSV, TRUE_APOGEE_MANIFEST).unwrap();
+    let fict = check_manifest(FICTITIOUS_CSV, FICTITIOUS_MANIFEST).unwrap();
+    for series in apogee.iter().chain(&fict) {
+        let c = ceilings_for(series.body_name).unwrap_or_else(|| panic!("{}", series.body_name));
+        assert!(c.lon_arcsec >= 2.3);
+    }
+    let in_windows = |csv: &str| -> usize {
+        parse_windows(csv)
+            .unwrap()
+            .iter()
+            .map(|w| w.se_stations)
+            .sum()
+    };
+    let rows = |s: &[Series]| -> usize { s.iter().map(|x| x.stations.len()).sum() };
+    assert_eq!(
+        rows(&apogee) - in_windows(TRUE_APOGEE_WINDOWS_CSV),
+        MIN_ROWS_VALIDATED_TRUE_APOGEE
+    );
+    assert_eq!(
+        rows(&fict) - in_windows(FICTITIOUS_WINDOWS_CSV),
+        MIN_ROWS_VALIDATED_FICTITIOUS
+    );
+}
+
+#[test]
+fn generic_chunked_scan_matches_a_single_scan_on_the_routing_engine() {
+    // One fictitious series over two chunks reproduces the single scan.
+    let fict = check_manifest(FICTITIOUS_CSV, FICTITIOUS_MANIFEST).unwrap();
+    let zeus = fict.iter().find(|s| s.body_name == "Zeus").unwrap();
+    let engine = fictitious_engine();
+    let short = Series {
+        stations: Vec::new(),
+        ..zeus.clone()
+    };
+    let (start, end) = (FULL_SPAN.0, FULL_SPAN.0 + 2.0 * CHUNK_DAYS);
+    let whole = scan_chunk(&engine, &short, start, end).unwrap();
+    let chunks = vec![
+        scan_chunk(&engine, &short, start, start + CHUNK_DAYS).unwrap(),
+        scan_chunk(&engine, &short, start + CHUNK_DAYS, end).unwrap(),
+    ];
+    assert_eq!(join_chunks(chunks), whole);
+}
+
+#[test]
+#[ignore = "slow: full apogee and fictitious station scans"]
+fn the_full_gate_reports_the_new_scopes() {
+    let report = validate_stations_corpus().expect("gate passes");
+    assert!(report.summary_line.contains("Apogee stations"));
+    assert!(report.summary_line.contains("Fictitious-body stations"));
+    assert!(report
+        .series_lines
+        .iter()
+        .any(|l| l.starts_with("geo TrueApogee:")));
+    assert!(report
+        .series_lines
+        .iter()
+        .any(|l| l.starts_with("mean Proserpina:")));
+}

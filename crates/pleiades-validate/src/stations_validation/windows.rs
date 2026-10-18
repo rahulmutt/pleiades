@@ -34,7 +34,6 @@ impl SpeedWindow {
 
     /// A turn that clears zero by half the margin or more: the engine must
     /// agree on its station count, not only the parity.
-    #[cfg_attr(not(test), allow(dead_code))] // used by the gate scopes (plan Task 4)
     pub(super) fn strict(&self) -> bool {
         self.miss >= 0.5 * self.margin
     }
@@ -49,15 +48,6 @@ pub(super) struct WindowStats {
     /// Windows whose engine and corpus counts differ (allowed when both have
     /// the window's parity).
     pub(super) differing: usize,
-}
-
-impl WindowStats {
-    #[allow(dead_code)] // used by the gate scopes (plan Task 4)
-    pub(super) fn absorb(&mut self, other: WindowStats) {
-        self.windows += other.windows;
-        self.strict += other.strict;
-        self.differing += other.differing;
-    }
 }
 
 /// Parses a windows CSV. Every window holds its turn, has `lo < hi`, a
@@ -190,7 +180,6 @@ pub(super) fn check_windows(
 /// outside every window, for the strict comparison, and what the windows
 /// held. Inside each window both counts must have the window's parity
 /// (`se_stations % 2`); a strict window must also have equal counts.
-#[cfg_attr(not(test), allow(dead_code))] // used by the gate scopes (plan Task 4)
 pub(super) fn split_windows(
     label: &str,
     windows: &[SpeedWindow],
@@ -238,7 +227,6 @@ pub(super) fn split_windows(
 /// At each window edge the engine's speed must be on the side the SE speed
 /// was (zero counts as negative, as in the reference tool), so the parity
 /// argument holds for the engine too.
-#[cfg_attr(not(test), allow(dead_code))] // used by the gate scopes (plan Task 4)
 pub(super) fn check_window_edges(
     label: &str,
     windows: &[SpeedWindow],

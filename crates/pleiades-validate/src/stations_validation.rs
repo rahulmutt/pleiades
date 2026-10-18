@@ -16,7 +16,8 @@
 
 use crate::stations_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_ASTEROIDS,
-    MIN_ROWS_VALIDATED_MEAN_SID_SUBSET, SEPARATION_DAYS, TRUE_NODE_CLOSE_DAYS,
+    MIN_ROWS_VALIDATED_FICTITIOUS, MIN_ROWS_VALIDATED_MEAN_SID_SUBSET,
+    MIN_ROWS_VALIDATED_TRUE_APOGEE, SEPARATION_DAYS, TRUE_NODE_CLOSE_DAYS,
     TRUE_NODE_MIN_CLOSE_PERCENT,
 };
 use pleiades_apparent::fnv1a64;
@@ -90,11 +91,9 @@ const FICTITIOUS_EXTREMA_CSV: &str = include_str!(concat!(
 
 /// The reference tool's central-difference step for the osculating apogee, in
 /// days.
-#[cfg_attr(not(test), allow(dead_code))] // used by the gate scopes (plan Task 4)
 const TRUE_APOGEE_STEP_DAYS: f64 = 0.001;
 /// The reference tool's central-difference step for the fictitious bodies, in
 /// days.
-#[cfg_attr(not(test), allow(dead_code))] // used by the gate scopes (plan Task 4)
 const FICTITIOUS_STEP_DAYS: f64 = 0.01;
 
 /// The spans `tools/se-stations-reference` scanned (Julian days, TT). The
@@ -130,6 +129,12 @@ enum Scope {
     /// seas_18): Ceres, Pallas, Juno, Vesta over 1900–2100. Part of the full
     /// gate only (issue #167 (d)).
     Asteroids,
+    /// The osculating lunar apogee (`true-apogee.csv`) over 1900–2100, with
+    /// its speed-graze windows. Part of the full gate only (issue #167 (d)).
+    TrueApogee,
+    /// The 19 fictitious bodies (`fictitious.csv`) over 1900–2100, with their
+    /// speed-graze windows. Part of the full gate only (issue #167 (d)).
+    Fictitious,
 }
 
 impl Scope {
@@ -137,7 +142,7 @@ impl Scope {
         match self {
             Self::Full => true,
             Self::MeanSidSubset => group != Group::Geo,
-            Self::Asteroids => true,
+            Self::Asteroids | Self::TrueApogee | Self::Fictitious => true,
         }
     }
 
@@ -146,6 +151,8 @@ impl Scope {
             Self::Full => MIN_ROWS_VALIDATED,
             Self::MeanSidSubset => MIN_ROWS_VALIDATED_MEAN_SID_SUBSET,
             Self::Asteroids => MIN_ROWS_VALIDATED_ASTEROIDS,
+            Self::TrueApogee => MIN_ROWS_VALIDATED_TRUE_APOGEE,
+            Self::Fictitious => MIN_ROWS_VALIDATED_FICTITIOUS,
         }
     }
 
@@ -155,6 +162,17 @@ impl Scope {
             Self::Full => "Stations gate",
             Self::MeanSidSubset => "Stations gate (mean/sid subset)",
             Self::Asteroids => "Asteroid stations",
+            Self::TrueApogee => "Apogee stations",
+            Self::Fictitious => "Fictitious-body stations",
+        }
+    }
+
+    /// The reference step of the corpus' central-difference speed, for the
+    /// scopes that have speed-graze windows.
+    fn step_days(self) -> f64 {
+        match self {
+            Self::TrueApogee => TRUE_APOGEE_STEP_DAYS,
+            _ => FICTITIOUS_STEP_DAYS,
         }
     }
 }
@@ -471,7 +489,6 @@ fn body_from_name(name: &str) -> Option<(CelestialBody, &'static str)> {
 
 /// The engine over the packaged backend and the fictitious bodies, routed
 /// side by side.
-#[cfg_attr(not(test), allow(dead_code))] // used by the gate scopes (plan Task 4)
 fn fictitious_engine() -> EventEngine<RoutingBackend> {
     EventEngine::new(RoutingBackend::new(vec![
         Box::new(PackagedDataBackend::new()),
@@ -482,7 +499,6 @@ fn fictitious_engine() -> EventEngine<RoutingBackend> {
 /// The engine's longitude speed at `jd` (TT days), deg/day: the central
 /// difference over `±h` days, as the reference tool computes SE's, wrapped to
 /// (-180, 180].
-#[cfg_attr(not(test), allow(dead_code))] // used by the gate scopes (plan Task 4)
 pub(super) fn engine_speed<B: EphemerisBackend>(
     engine: &EventEngine<B>,
     body: CelestialBody,
@@ -750,8 +766,36 @@ impl StationsReport {
     }
 }
 
+/// The 19 fictitious bodies (Swiss Ephemeris 40–58).
+fn is_fictitious(body: &CelestialBody) -> bool {
+    matches!(
+        body,
+        CelestialBody::Cupido
+            | CelestialBody::Hades
+            | CelestialBody::Zeus
+            | CelestialBody::Kronos
+            | CelestialBody::Apollon
+            | CelestialBody::Admetos
+            | CelestialBody::Vulkanus
+            | CelestialBody::Poseidon
+            | CelestialBody::Transpluto
+            | CelestialBody::Nibiru
+            | CelestialBody::Harrington
+            | CelestialBody::NeptuneLeverrier
+            | CelestialBody::NeptuneAdams
+            | CelestialBody::PlutoLowell
+            | CelestialBody::PlutoPickering
+            | CelestialBody::Vulcan
+            | CelestialBody::WhiteMoon
+            | CelestialBody::Proserpina
+            | CelestialBody::Waldemath
+    )
+}
+
 fn span(series: &Series) -> (f64, f64) {
-    if series.group == Group::Geo && series.body != CelestialBody::TrueNode {
+    if (series.group == Group::Geo && series.body != CelestialBody::TrueNode)
+        || is_fictitious(&series.body)
+    {
         FULL_SPAN
     } else {
         SHORT_SPAN
@@ -760,6 +804,21 @@ fn span(series: &Series) -> (f64, f64) {
 
 fn validate(csv: &str, manifest: &str) -> Result<StationsReport, StationsError> {
     validate_scoped(csv, manifest, Scope::Full)
+}
+
+/// [`validate_scoped_with`] on the packaged backend, without windows.
+fn validate_scoped(
+    csv: &str,
+    manifest: &str,
+    scope: Scope,
+) -> Result<StationsReport, StationsError> {
+    validate_scoped_with(
+        &EventEngine::new(packaged_backend()),
+        csv,
+        manifest,
+        None,
+        scope,
+    )
 }
 
 /// One series' comparison, folded into the report by `validate_scoped`.
@@ -813,8 +872,8 @@ fn join_chunks(chunks: Vec<Vec<Found>>) -> Vec<Found> {
 }
 
 /// Scans `[start, end]` of one series with the engine.
-fn scan_chunk(
-    engine: &EventEngine<PackagedDataBackend>,
+fn scan_chunk<B: EphemerisBackend>(
+    engine: &EventEngine<B>,
     series: &Series,
     start: f64,
     end: f64,
@@ -838,8 +897,8 @@ fn scan_chunk(
 /// all the series share one pool of `available_parallelism` threads, so the
 /// wall-clock is the CPU total spread over the cores rather than the longest
 /// series. A series' error is its first failing window in time order.
-fn scan_series_chunked(
-    engine: &EventEngine<PackagedDataBackend>,
+fn scan_series_chunked<B: EphemerisBackend>(
+    engine: &EventEngine<B>,
     selected: &[&Series],
     chunk_days: f64,
 ) -> Vec<Result<Vec<Found>, StationsError>> {
@@ -913,17 +972,21 @@ fn scan_series_chunked(
         .collect()
 }
 
-/// Compares one series' engine stations with the corpus.
+/// Compares one series' engine stations with `corpus`, its corpus stations
+/// (all of them, or those outside the speed-graze windows). `windows` is what
+/// the window comparison saw, for the scopes that have windows.
 fn compare_series(
     series: &Series,
     ceilings: Ceilings,
     found: &[Found],
+    corpus: &[Found],
+    windows: Option<WindowStats>,
 ) -> Result<SeriesOutcome, StationsError> {
     let label = series.label();
     let residuals = if series.body == CelestialBody::TrueNode {
-        compare_separated(&label, found, &series.stations, ceilings)?
+        compare_separated(&label, found, corpus, ceilings)?
     } else {
-        compare_exact(&label, found, &series.stations, ceilings)?
+        compare_exact(&label, found, corpus, ceilings)?
     };
     let mean_signed_s = if residuals.matched == 0 {
         0.0
@@ -934,11 +997,17 @@ fn compare_series(
         "{label}: {} compared (engine {}, corpus {}), max time {:.1} s, mean signed time {:+.1} s, max lon {:.3}\"",
         residuals.matched,
         found.len(),
-        series.stations.len(),
+        corpus.len(),
         residuals.max_time_s,
         mean_signed_s,
         residuals.max_lon_arcsec,
     );
+    if let Some(stats) = windows {
+        line.push_str(&format!(
+            ", windows {} ({} strict, {} differing)",
+            stats.windows, stats.strict, stats.differing
+        ));
+    }
     if series.body == CelestialBody::TrueNode {
         line.push_str(&format!(
             ", {} within {TRUE_NODE_CLOSE_DAYS} d",
@@ -970,12 +1039,23 @@ fn check_manifest(csv: &str, manifest: &str) -> Result<Vec<Series>, StationsErro
     Ok(all)
 }
 
-fn validate_scoped(
+/// Scans the scope's series with `engine` and compares them with the corpus.
+/// With `windows` (the windows file and its manifest), each series' edges are
+/// checked, its windows are compared by count parity, and only the stations
+/// outside them are compared station for station.
+fn validate_scoped_with<B: EphemerisBackend>(
+    engine: &EventEngine<B>,
     csv: &str,
     manifest: &str,
+    windows: Option<(&str, &str)>,
     scope: Scope,
 ) -> Result<StationsReport, StationsError> {
     let all = check_manifest(csv, manifest)?;
+    let windows = windows
+        .map(|(windows_csv, windows_manifest)| {
+            windows::check_windows(windows_csv, windows_manifest, &all)
+        })
+        .transpose()?;
     let selected: Vec<&Series> = all
         .iter()
         .filter(|series| scope.includes(series.group))
@@ -994,13 +1074,36 @@ fn validate_scoped(
     // pool of threads (FU-23 (e)). The scans are folded in corpus order, so
     // the report lines and the first error are the same as from a sequential
     // loop over the series.
-    let engine = EventEngine::new(packaged_backend());
-    let scans = scan_series_chunked(&engine, &selected, CHUNK_DAYS);
+    let scans = scan_series_chunked(engine, &selected, CHUNK_DAYS);
     let mut validated = 0usize;
     let mut series_lines = Vec::with_capacity(scans.len());
     let (mut max_time_s, mut max_lon_arcsec) = (0.0_f64, 0.0_f64);
     for ((series, ceilings), scan) in selected.iter().zip(ceilings).zip(scans) {
-        let SeriesOutcome { residuals, line } = compare_series(series, ceilings, &scan?)?;
+        let found = scan?;
+        let outcome = match &windows {
+            None => compare_series(series, ceilings, &found, &series.stations, None)?,
+            Some(all_windows) => {
+                let label = series.label();
+                let own: Vec<SpeedWindow> = all_windows
+                    .iter()
+                    .filter(|w| w.group == series.group && w.body_name == series.body_name)
+                    .copied()
+                    .collect();
+                check_window_edges(&label, &own, |jd| {
+                    engine_speed(
+                        engine,
+                        series.body.clone(),
+                        series.group.reference(),
+                        jd,
+                        scope.step_days(),
+                    )
+                })?;
+                let (engine_out, corpus_out, stats) =
+                    split_windows(&label, &own, &found, &series.stations)?;
+                compare_series(series, ceilings, &engine_out, &corpus_out, Some(stats))?
+            }
+        };
+        let SeriesOutcome { residuals, line } = outcome;
         validated += residuals.matched;
         max_time_s = max_time_s.max(residuals.max_time_s);
         max_lon_arcsec = max_lon_arcsec.max(residuals.max_lon_arcsec);
@@ -1010,7 +1113,15 @@ fn validate_scoped(
     if validated < floor {
         return Err(StationsError::TooFewRowsValidated { validated, floor });
     }
-    let summary_line = if scope == Scope::Asteroids {
+    let summary_line = if matches!(scope, Scope::TrueApogee | Scope::Fictitious) {
+        format!(
+            "{}: {validated} stations validated across {} series vs Swiss Ephemeris SWIEPH \
+             central-difference station corpus (station-for-station outside speed-graze windows), \
+             max time {max_time_s:.1} s, max lon {max_lon_arcsec:.3}\"",
+            scope.title(),
+            series_lines.len(),
+        )
+    } else if scope == Scope::Asteroids {
         format!(
             "{}: {validated} stations validated across {} series vs Swiss Ephemeris SWIEPH (seas_18) \
              speed-zero corpus (station-for-station), max time {max_time_s:.1} s, max lon {max_lon_arcsec:.3}\"",
@@ -1054,7 +1165,24 @@ fn validate_scoped(
 pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
     let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;
-    Ok(planets.merged_with(asteroids))
+    let true_apogee = validate_scoped_with(
+        &EventEngine::new(packaged_backend()),
+        TRUE_APOGEE_CSV,
+        TRUE_APOGEE_MANIFEST,
+        Some((TRUE_APOGEE_WINDOWS_CSV, TRUE_APOGEE_WINDOWS_MANIFEST)),
+        Scope::TrueApogee,
+    )?;
+    let fictitious = validate_scoped_with(
+        &fictitious_engine(),
+        FICTITIOUS_CSV,
+        FICTITIOUS_MANIFEST,
+        Some((FICTITIOUS_WINDOWS_CSV, FICTITIOUS_WINDOWS_MANIFEST)),
+        Scope::Fictitious,
+    )?;
+    Ok(planets
+        .merged_with(asteroids)
+        .merged_with(true_apogee)
+        .merged_with(fictitious))
 }
 
 /// The release-battery subset: verifies the checksum and row count of the
@@ -1135,6 +1263,7 @@ fn validate_subset(files: &SubsetFiles) -> Result<StationsReport, StationsError>
 }
 
 mod windows;
+use windows::{check_window_edges, split_windows, SpeedWindow, WindowStats};
 
 #[cfg(test)]
 mod tests;
