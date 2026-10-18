@@ -14,8 +14,13 @@ pub const GRID_OFFSET_DAYS: f64 = 0.001_37;
 pub const CHECK_STEP_RATIO: f64 = 1.3;
 /// Two scans agree on a station when they find it this close (days).
 pub const MATCH_TOLERANCE_DAYS: f64 = 1.0 / 86_400.0;
-/// Only extrema below this |speed| are written to the extrema file (deg/day).
-pub const EXTREMUM_RECORD_DEG_PER_DAY: f64 = 0.1;
+/// Only extrema below this |speed| are written to the extrema file (deg/day),
+/// the margins' basis. SE's osculating-apogee speed has step discontinuities
+/// of 5e-3 to 0.2 deg/day (e.g. at JD 2426487.583 and 2433734.433) that make
+/// sampled extrema of their own; between 0.02 and 0.1 deg/day three of them
+/// differ from the engine by 0.08-0.21 deg/day. 0.02 is 25 times the apogee
+/// margin, so no extremum above it can become a window (spike 2026-10-18).
+pub const EXTREMUM_RECORD_DEG_PER_DAY: f64 = 0.02;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {

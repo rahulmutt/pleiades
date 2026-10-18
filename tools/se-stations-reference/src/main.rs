@@ -41,7 +41,7 @@
 //! and reported; anything else aborts. Writes `true-apogee.csv`,
 //! `true-apogee-windows.csv` (graze windows around near-zero speed extrema,
 //! with the margin), `true-apogee-extrema.csv` (every one-sided extremum with
-//! |cd| < 0.1 deg/day) and the two manifests into `--out`:
+//! |cd| < 0.02 deg/day) and the two manifests into `--out`:
 //! `tools/se-stations-reference/target/release/se-stations-reference --true-apogee --out crates/pleiades-validate/data/stations-corpus`.
 //!
 //! Fictitious mode (`--fictitious --out <dir> [--ephe <dir>]`): the same
@@ -123,10 +123,14 @@ const TRUE_APOGEE_STEP_DAYS: f64 = 0.001;
 const FICTITIOUS_GRID_DAYS: f64 = 0.25;
 const FICTITIOUS_STEP_DAYS: f64 = 0.01;
 /// Graze margins of the central-difference speed (deg/day): 3 times the
-/// largest engine-minus-SE speed difference at the SE extrema below 0.1
-/// deg/day. Provisional values; Task 2 of the plan measures and replaces them.
-const TRUE_APOGEE_SPEED_MARGIN_DEG_PER_DAY: f64 = 2e-3;
-const FICTITIOUS_SPEED_MARGIN_DEG_PER_DAY: f64 = 1e-4;
+/// largest engine-minus-SE speed difference at the SE extrema below
+/// [`cd::EXTREMUM_RECORD_DEG_PER_DAY`], rounded up to one significant figure.
+/// Measured 2026-10-18 (engine: `EventEngine::longitude_at` by the same
+/// central difference): the apogee 2.39e-4 deg/day over 41 extrema (at JD
+/// 2463616.22), the fictitious bodies 7.39e-8 deg/day over 4606 (Kronos, at
+/// JD 2440188.50).
+const TRUE_APOGEE_SPEED_MARGIN_DEG_PER_DAY: f64 = 8e-4;
+const FICTITIOUS_SPEED_MARGIN_DEG_PER_DAY: f64 = 3e-7;
 const FICTITIOUS: [(c_int, &str); 19] = [
     (40, "Cupido"),
     (41, "Hades"),
@@ -512,7 +516,7 @@ fn cd_headers(
          # {group_note}.\n\
          # A window runs from the first grid instant on each side of the extremum at which |cd| >= 2 x margin; overlapping windows merge and keep the closer miss.\n\
          # se_stations counts the stations of the corpus inside [lo, hi]; lo_side and hi_side are the signs of cd at the edges.\n\
-         # Parity: an odd count needs opposite sides, an even count the same side; the gate is strict (no tolerance) when miss >= margin / 2.\n\
+         # Parity: an odd count needs opposite sides, an even count the same side; the gate requires the engine and corpus counts to be equal when miss >= margin / 2, and only the parity otherwise.\n\
          # Margin basis: {margin_basis}\n\
          # margin_deg_per_day={margin:e}\n"
     );
@@ -544,7 +548,7 @@ fn true_apogee_main(args: &[String]) {
         TRUE_APOGEE_STEP_DAYS,
         TRUE_APOGEE_SPEED_MARGIN_DEG_PER_DAY,
         "geo: osculating lunar apogee (SE_OSCU_APOG), apparent, tropical, true equinox of date (default flags)",
-        "3 times the largest engine-minus-SE speed difference at the SE extrema below 0.1 deg/day (provisional until measured).",
+        "3 times the largest engine-minus-SE speed difference at the SE extrema below 0.02 deg/day, rounded up to one significant figure (measured 2026-10-18).",
     );
     out.write(&out_dir, "true-apogee", &corpus, &windows, &extrema);
 }
@@ -571,7 +575,7 @@ fn fictitious_main(args: &[String]) {
         FICTITIOUS_STEP_DAYS,
         FICTITIOUS_SPEED_MARGIN_DEG_PER_DAY,
         "mean: geocentric geometric place in the mean ecliptic and equinox of date (SEFLG_TRUEPOS|SEFLG_NOABERR|SEFLG_NOGDEFL|SEFLG_NONUT), Cupido..Waldemath (SE ids 40-58)",
-        "3 times the largest engine-minus-SE speed difference at the SE extrema below 0.1 deg/day (provisional until measured).",
+        "3 times the largest engine-minus-SE speed difference at the SE extrema below 0.02 deg/day, rounded up to one significant figure (measured 2026-10-18).",
     );
     out.write(&out_dir, "fictitious", &corpus, &windows, &extrema);
 }

@@ -1,0 +1,8 @@
+# Graze windows of the central difference cd (h = 0.01 day, 0.25-day grid) around every one-sided extremum of |cd| below the margin.
+# mean: geocentric geometric place in the mean ecliptic and equinox of date (SEFLG_TRUEPOS|SEFLG_NOABERR|SEFLG_NOGDEFL|SEFLG_NONUT), Cupido..Waldemath (SE ids 40-58).
+# A window runs from the first grid instant on each side of the extremum at which |cd| >= 2 x margin; overlapping windows merge and keep the closer miss.
+# se_stations counts the stations of the corpus inside [lo, hi]; lo_side and hi_side are the signs of cd at the edges.
+# Parity: an odd count needs opposite sides, an even count the same side; the gate requires the engine and corpus counts to be equal when miss >= margin / 2, and only the parity otherwise.
+# Margin basis: 3 times the largest engine-minus-SE speed difference at the SE extrema below 0.02 deg/day, rounded up to one significant figure (measured 2026-10-18).
+# margin_deg_per_day=3e-7
+group,body,turn_jd_tt,miss_deg_per_day,lo_jd_tt,hi_jd_tt,se_stations,lo_side,hi_side,margin_deg_per_day
