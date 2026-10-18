@@ -541,7 +541,7 @@ fn batch_query_preserves_equatorial_frame_and_values() {
 
 #[test]
 fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_reference_epoch() {
-    let backend = Vsop87FullSeriesBackend::new();
+    let backend = Vsop87Backend::new();
     let requests = requests_for_bodies_at(
         Vsop87Backend::supported_bodies().iter().cloned(),
         Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb),
@@ -557,7 +557,10 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_reference_epoch() {
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Equatorial);
-        assert_eq!(result.quality, QualityAnnotation::Exact);
+        assert_eq!(
+            result.quality,
+            default_quality_inside_the_window(&result.body)
+        );
 
         let single = backend
             .position(request)
@@ -595,7 +598,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_reference_epoch() {
 
 #[test]
 fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_ecliptic_reference_epoch() {
-    let backend = Vsop87FullSeriesBackend::new();
+    let backend = Vsop87Backend::new();
     let requests = requests_for_bodies_at(
         Vsop87Backend::supported_bodies().iter().cloned(),
         Instant::new(pleiades_types::JulianDay::from_days(J1900), TimeScale::Tdb),
@@ -611,7 +614,10 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_ecliptic_reference_
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Ecliptic);
-        assert_eq!(result.quality, QualityAnnotation::Exact);
+        assert_eq!(
+            result.quality,
+            default_quality_inside_the_window(&result.body)
+        );
 
         let single = backend
             .position(request)
@@ -649,7 +655,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_ecliptic_reference_
 
 #[test]
 fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch() {
-    let backend = Vsop87FullSeriesBackend::new();
+    let backend = Vsop87Backend::new();
     let requests = requests_for_bodies_at(
         Vsop87Backend::supported_bodies().iter().cloned(),
         Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb),
@@ -665,7 +671,10 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch() {
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Equatorial);
-        assert_eq!(result.quality, QualityAnnotation::Exact);
+        assert_eq!(
+            result.quality,
+            default_quality_inside_the_window(&result.body)
+        );
 
         let single = backend
             .position(request)
@@ -703,7 +712,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch() {
 
 #[test]
 fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_equatorial_frame() {
-    let backend = Vsop87FullSeriesBackend::new();
+    let backend = Vsop87Backend::new();
     let requests = requests_for_bodies_at(
         Vsop87Backend::supported_bodies().iter().cloned(),
         Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb),
@@ -719,7 +728,10 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Equatorial);
-        assert_eq!(result.quality, QualityAnnotation::Exact);
+        assert_eq!(
+            result.quality,
+            default_quality_inside_the_window(&result.body)
+        );
 
         let single = backend
             .position(request)
@@ -797,7 +809,7 @@ fn supported_body_j1900_equatorial_batch_parity_summary_has_a_displayable_summar
 
 #[test]
 fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_ecliptic_frame() {
-    let backend = Vsop87FullSeriesBackend::new();
+    let backend = Vsop87Backend::new();
     let requests = requests_for_bodies_at(
         Vsop87Backend::supported_bodies().iter().cloned(),
         Instant::new(pleiades_types::JulianDay::from_days(J2000), TimeScale::Tdb),
@@ -813,7 +825,10 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Ecliptic);
-        assert_eq!(result.quality, QualityAnnotation::Exact);
+        assert_eq!(
+            result.quality,
+            default_quality_inside_the_window(&result.body)
+        );
 
         let single = backend
             .position(request)
@@ -1248,4 +1263,15 @@ fn equatorial_channel_is_j2000_away_from_j2000() {
         (d_dec - expected_d_dec).abs() < 0.05,
         "Dec {d_dec}″ vs {expected_d_dec}″"
     );
+}
+
+/// Quality the default backend reports inside the 1600–2600 truncation
+/// window: the VSOP87B bodies are evaluated truncated, so `Approximate`;
+/// Pluto keeps its path mapping (its Meeus fit covers J1900 and J2000).
+fn default_quality_inside_the_window(body: &CelestialBody) -> QualityAnnotation {
+    if *body == CelestialBody::Pluto {
+        QualityAnnotation::Exact
+    } else {
+        QualityAnnotation::Approximate
+    }
 }
