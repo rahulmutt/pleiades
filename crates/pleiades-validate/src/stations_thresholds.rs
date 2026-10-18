@@ -28,11 +28,26 @@
 //! speed is the speed 4.32 s earlier and its zero lands 4.32 s late. The
 //! shift is included in the measured maxima; the gate does not compensate
 //! for it. For the slower planets the mean is dominated by scatter (Venus
-//! -1.3 s, Saturn -2.8 s, Neptune +11.0 s), and Pluto's -56.6 s mean
-//! (turning retrograde about -65 s, turning direct about -48 s in the
-//! probe) is not explained by the 4.32 s convention. It is well inside
-//! Pluto's 2000 s ceiling and is recorded as an open observation (issue #167,
-//! item (f)).
+//! -1.3 s, Saturn -2.8 s, Neptune +11.0 s). Pluto's -56.6 s mean (turning
+//! retrograde about -65 s, turning direct about -48 s in the probe) is not
+//! the 4.32 s convention either; it comes from SE's reported apparent speed,
+//! which omits part of the rate of nutation (about 2.5e-7 degrees/day; with
+//! SEFLG_NONUT the gap falls to about +-3 s). Against the zeros of the
+//! derivative of SE's own longitudes the engine is at -6 s (SWIEPH), within
+//! the 198 s rms scatter (issue #167 (f), measured 2026-10-18).
+//!
+//! The osculating-apogee and fictitious-body corpora (issue #167 (d)) use a
+//! different reference convention: a station is a sign change of the central
+//! difference `wrap180(lon(t+h) - lon(t-h)) / 2h` of SE longitudes (h = 0.001
+//! d apogee, 0.01 d fictitious; grid 0.01 d and 0.25 d, offset 0.00137 d;
+//! each body scanned twice, with h and 1.3 h, and a station found by one scan
+//! only is dropped when it forms a retrograde/direct pair under 3 h apart).
+//! SE's osculating-apogee speed jumps at isolated instants and has step
+//! discontinuities, and its Proserpina speed is inconsistent with its own
+//! positions (zeros about 4.4 h from those of its longitude's derivative), so
+//! SE's reported speed is not a usable reference for them. Measured maxima:
+//! apogee 663.1 s and 1.873″ (ceiling 930 s / 2.3″); fictitious bodies 94.3 s
+//! (Vulcan) and 1.565″ (Nibiru), every other body at most 40.6 s.
 //!
 //! True node. Its speed hovers near zero for days, so a station instant is
 //! ill-conditioned, and whether a graze crosses zero depends on the

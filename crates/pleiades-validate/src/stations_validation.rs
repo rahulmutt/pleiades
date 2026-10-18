@@ -13,6 +13,41 @@
 //! seas_18 by the same tool's `--asteroids` mode, in the full gate only; the
 //! release-battery subset checks only that file's checksum and row count
 //! against its manifest, with no scan (issue #254).
+//!
+//! Osculating apogee and fictitious bodies (issue #167 (d)), in the full gate
+//! after the asteroids:
+//!
+//! - `TrueApogee`, geocentric apparent, 1900-2100, against `true-apogee.csv`
+//!   (SWIEPH, 4776 stations; the tool drops 5 SE artefact pairs; 3 speed-graze
+//!   windows, one strict). 4774 stations are compared station for station
+//!   outside the windows. Measured maximum 663.1 s and 1.873″; ceiling
+//!   930 s / 2.3″.
+//! - The 17 stationing fictitious bodies (SE 40-58 from `seorbel.txt`;
+//!   WhiteMoon and Waldemath never station), geocentric mean of date,
+//!   1900-2100, against `fictitious.csv` (13845 stations, no windows),
+//!   served by `RoutingBackend[PackagedDataBackend,
+//!   FictitiousBackend(PackagedDataBackend)]`. Maximum 94.3 s (Vulcan) and
+//!   1.565″ (Nibiru); every other body at most 40.6 s.
+//!
+//! These two corpora take a station as a sign change of the central
+//! difference `wrap180(lon(t+h) - lon(t-h)) / 2h` of SE longitudes, not of
+//! SE's reported speed (h = 0.001 d for the apogee, 0.01 d for the
+//! fictitious bodies). SE's osculating-apogee speed jumps at isolated
+//! instants (+0.081 degrees/day between samples of -0.898 at JD 2424889.42,
+//! with a 0.7″ longitude step) and has step discontinuities, and SE's
+//! Proserpina speed is inconsistent with its own positions: its speed zeros
+//! lie about 4.4 h from the zeros of its longitude's derivative. The planet,
+//! true-node and asteroid corpora keep SE's reported speed.
+//!
+//! Speed-graze windows: a sampled speed extremum within the margin of zero is
+//! a window, with edges where the central difference is at least twice the
+//! margin. Inside a window the station counts are compared by parity, or must
+//! be equal when the extremum's miss is at least half the margin, and the
+//! engine's speed sign must match SE's at both edges. The margin is three
+//! times the measured engine-minus-SE speed difference at SE's extrema below
+//! 0.02 degrees/day: 8e-4 degrees/day for the apogee (measured 2.39e-4),
+//! 3e-7 for the fictitious bodies (measured 7.39e-8); a blocking test checks
+//! both against the extrema files.
 
 use crate::stations_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_ASTEROIDS,
@@ -1162,6 +1197,12 @@ fn validate_scoped_with<B: EphemerisBackend>(
 /// step and 30-min job timeout. The asteroid share is within runner noise:
 /// the gate does not time its passes, and the planets-only run before #250
 /// took 29 s.
+///
+/// Two more passes follow (issue #167 (d)): `TrueApogee` against
+/// `true-apogee.csv` (floor `MIN_ROWS_VALIDATED_TRUE_APOGEE`, 4774 stations
+/// compared outside its speed-graze windows) and the 17 stationing fictitious
+/// bodies against `fictitious.csv` (floor `MIN_ROWS_VALIDATED_FICTITIOUS`,
+/// 13845 stations). Their nightly time is not yet measured.
 pub fn validate_stations_corpus() -> Result<StationsReport, StationsError> {
     let planets = validate(CORPUS_CSV, MANIFEST)?;
     let asteroids = validate_scoped(ASTEROID_CSV, ASTEROID_MANIFEST, Scope::Asteroids)?;

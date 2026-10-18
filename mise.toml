@@ -319,7 +319,9 @@ run = "cargo run -q -p pleiades-validate -- validate-aspects-lunar"
 run = "cargo run -q -p pleiades-validate -- validate-aspects-fictitious"
 
 [tasks.gate-stations]
-# Full planetary-stations gate (every corpus series, including Ceres–Vesta).
+# Full planetary-stations gate (every corpus series, including Ceres–Vesta, the
+# osculating apogee and the 17 stationing fictitious bodies; the last two passes
+# are not yet measured on the nightly runner, #167).
 # On the 4-core nightly runner (3f5849db6, 2026-10-11..15) the command takes
 # 28-29 s and the `stations-gate` job 1m06s-1m27s, far inside its 20-min step /
 # 30-min job timeouts; the asteroid pass is within runner noise (planets alone
