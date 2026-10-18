@@ -53,6 +53,11 @@
 //! as `validate-aspects-fictitious`). The corpus has no graze windows. The
 //! apparent frame is not gated: SE's light-time correction for fictitious
 //! bodies jumps by up to about 5" at isolated instants.
+//!
+//! The mean and osculating perigees have no corpus of their own: each is its
+//! apogee's antipode, so its aspect at an angle is the apogee's at 180 degrees
+//! less that angle, and the angles above map onto themselves under that rule
+//! (`pleiades-events` `tests/lunar_point_aspects.rs` pins the identity).
 
 use crate::aspects_thresholds::{
     ceilings_for, Ceilings, MIN_ROWS_VALIDATED, MIN_ROWS_VALIDATED_ASTEROIDS,
