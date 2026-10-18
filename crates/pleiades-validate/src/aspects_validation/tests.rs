@@ -547,18 +547,10 @@ fn mean_subset_fails_a_tampered_fictitious_corpus() {
     let tampered = FICTITIOUS_CSV.replacen("mean,Cupido,Sun,", "mean,Cupido,Sun, ", 1);
     assert_ne!(tampered, FICTITIOUS_CSV);
     assert!(matches!(
-        validate_subset(
-            ASTEROID_CSV,
-            ASTEROID_MANIFEST,
-            LUNAR_POINT_CSV,
-            LUNAR_POINT_MANIFEST,
-            LUNAR_POINT_GRAZES_CSV,
-            LUNAR_POINT_GRAZES_MANIFEST,
-            &tampered,
-            FICTITIOUS_MANIFEST,
-            FICTITIOUS_GRAZES_CSV,
-            FICTITIOUS_GRAZES_MANIFEST
-        ),
+        validate_subset(&SubsetFiles {
+            fictitious_csv: &tampered,
+            ..SubsetFiles::committed()
+        }),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
 }
@@ -581,18 +573,10 @@ fn mean_subset_fails_tampered_fictitious_graze_windows() {
     };
     assert_ne!(tampered, FICTITIOUS_GRAZES_CSV);
     assert!(matches!(
-        validate_subset(
-            ASTEROID_CSV,
-            ASTEROID_MANIFEST,
-            LUNAR_POINT_CSV,
-            LUNAR_POINT_MANIFEST,
-            LUNAR_POINT_GRAZES_CSV,
-            LUNAR_POINT_GRAZES_MANIFEST,
-            FICTITIOUS_CSV,
-            FICTITIOUS_MANIFEST,
-            &tampered,
-            FICTITIOUS_GRAZES_MANIFEST
-        ),
+        validate_subset(&SubsetFiles {
+            fictitious_grazes_csv: &tampered,
+            ..SubsetFiles::committed()
+        }),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
 }
@@ -605,18 +589,10 @@ fn mean_subset_fails_a_fictitious_manifest_row_count_drift() {
         rows - 1
     );
     assert!(matches!(
-        validate_subset(
-            ASTEROID_CSV,
-            ASTEROID_MANIFEST,
-            LUNAR_POINT_CSV,
-            LUNAR_POINT_MANIFEST,
-            LUNAR_POINT_GRAZES_CSV,
-            LUNAR_POINT_GRAZES_MANIFEST,
-            FICTITIOUS_CSV,
-            &drifted,
-            FICTITIOUS_GRAZES_CSV,
-            FICTITIOUS_GRAZES_MANIFEST
-        ),
+        validate_subset(&SubsetFiles {
+            fictitious_manifest: &drifted,
+            ..SubsetFiles::committed()
+        }),
         Err(AspectsError::ManifestDrift { .. })
     ));
 }
@@ -804,18 +780,10 @@ fn mean_subset_fails_a_tampered_asteroid_corpus() {
     let tampered = ASTEROID_CSV.replacen("geo,Sun,Ceres,", "geo,Sun,Ceres, ", 1);
     assert_ne!(tampered, ASTEROID_CSV);
     assert!(matches!(
-        validate_subset(
-            &tampered,
-            ASTEROID_MANIFEST,
-            LUNAR_POINT_CSV,
-            LUNAR_POINT_MANIFEST,
-            LUNAR_POINT_GRAZES_CSV,
-            LUNAR_POINT_GRAZES_MANIFEST,
-            FICTITIOUS_CSV,
-            FICTITIOUS_MANIFEST,
-            FICTITIOUS_GRAZES_CSV,
-            FICTITIOUS_GRAZES_MANIFEST
-        ),
+        validate_subset(&SubsetFiles {
+            asteroid_csv: &tampered,
+            ..SubsetFiles::committed()
+        }),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
 }
@@ -828,18 +796,10 @@ fn mean_subset_fails_an_asteroid_manifest_row_count_drift() {
         rows - 1
     );
     assert!(matches!(
-        validate_subset(
-            ASTEROID_CSV,
-            &drifted,
-            LUNAR_POINT_CSV,
-            LUNAR_POINT_MANIFEST,
-            LUNAR_POINT_GRAZES_CSV,
-            LUNAR_POINT_GRAZES_MANIFEST,
-            FICTITIOUS_CSV,
-            FICTITIOUS_MANIFEST,
-            FICTITIOUS_GRAZES_CSV,
-            FICTITIOUS_GRAZES_MANIFEST
-        ),
+        validate_subset(&SubsetFiles {
+            asteroid_manifest: &drifted,
+            ..SubsetFiles::committed()
+        }),
         Err(AspectsError::ManifestDrift { .. })
     ));
 }
@@ -969,18 +929,10 @@ fn mean_subset_fails_a_tampered_lunar_point_corpus() {
     let tampered = LUNAR_POINT_CSV.replacen("geo,TrueNode,Sun,", "geo,TrueNode,Sun, ", 1);
     assert_ne!(tampered, LUNAR_POINT_CSV);
     assert!(matches!(
-        validate_subset(
-            ASTEROID_CSV,
-            ASTEROID_MANIFEST,
-            &tampered,
-            LUNAR_POINT_MANIFEST,
-            LUNAR_POINT_GRAZES_CSV,
-            LUNAR_POINT_GRAZES_MANIFEST,
-            FICTITIOUS_CSV,
-            FICTITIOUS_MANIFEST,
-            FICTITIOUS_GRAZES_CSV,
-            FICTITIOUS_GRAZES_MANIFEST
-        ),
+        validate_subset(&SubsetFiles {
+            lunar_csv: &tampered,
+            ..SubsetFiles::committed()
+        }),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
 }
@@ -993,18 +945,10 @@ fn mean_subset_fails_a_lunar_point_manifest_row_count_drift() {
         rows - 1
     );
     assert!(matches!(
-        validate_subset(
-            ASTEROID_CSV,
-            ASTEROID_MANIFEST,
-            LUNAR_POINT_CSV,
-            &drifted,
-            LUNAR_POINT_GRAZES_CSV,
-            LUNAR_POINT_GRAZES_MANIFEST,
-            FICTITIOUS_CSV,
-            FICTITIOUS_MANIFEST,
-            FICTITIOUS_GRAZES_CSV,
-            FICTITIOUS_GRAZES_MANIFEST
-        ),
+        validate_subset(&SubsetFiles {
+            lunar_manifest: &drifted,
+            ..SubsetFiles::committed()
+        }),
         Err(AspectsError::ManifestDrift { .. })
     ));
 }
@@ -1039,18 +983,10 @@ fn mean_subset_fails_tampered_graze_windows() {
     let tampered = LUNAR_POINT_GRAZES_CSV.replacen(",2\n", ",4\n", 1);
     assert_ne!(tampered, LUNAR_POINT_GRAZES_CSV);
     assert!(matches!(
-        validate_subset(
-            ASTEROID_CSV,
-            ASTEROID_MANIFEST,
-            LUNAR_POINT_CSV,
-            LUNAR_POINT_MANIFEST,
-            &tampered,
-            LUNAR_POINT_GRAZES_MANIFEST,
-            FICTITIOUS_CSV,
-            FICTITIOUS_MANIFEST,
-            FICTITIOUS_GRAZES_CSV,
-            FICTITIOUS_GRAZES_MANIFEST
-        ),
+        validate_subset(&SubsetFiles {
+            lunar_grazes_csv: &tampered,
+            ..SubsetFiles::committed()
+        }),
         Err(AspectsError::ChecksumMismatch { .. })
     ));
 }
@@ -1065,18 +1001,11 @@ fn mean_subset_fails_a_window_whose_se_events_disagree() {
         fnv1a64(&tampered)
     );
     assert!(matches!(
-        validate_subset(
-            ASTEROID_CSV,
-            ASTEROID_MANIFEST,
-            LUNAR_POINT_CSV,
-            LUNAR_POINT_MANIFEST,
-            &tampered,
-            &manifest,
-            FICTITIOUS_CSV,
-            FICTITIOUS_MANIFEST,
-            FICTITIOUS_GRAZES_CSV,
-            FICTITIOUS_GRAZES_MANIFEST
-        ),
+        validate_subset(&SubsetFiles {
+            lunar_grazes_csv: &tampered,
+            lunar_grazes_manifest: &manifest,
+            ..SubsetFiles::committed()
+        }),
         Err(AspectsError::GrazeEventCount { .. })
     ));
 }
@@ -1089,18 +1018,10 @@ fn mean_subset_fails_a_graze_manifest_row_count_drift() {
         rows - 1
     );
     assert!(matches!(
-        validate_subset(
-            ASTEROID_CSV,
-            ASTEROID_MANIFEST,
-            LUNAR_POINT_CSV,
-            LUNAR_POINT_MANIFEST,
-            LUNAR_POINT_GRAZES_CSV,
-            &drifted,
-            FICTITIOUS_CSV,
-            FICTITIOUS_MANIFEST,
-            FICTITIOUS_GRAZES_CSV,
-            FICTITIOUS_GRAZES_MANIFEST
-        ),
+        validate_subset(&SubsetFiles {
+            lunar_grazes_manifest: &drifted,
+            ..SubsetFiles::committed()
+        }),
         Err(AspectsError::ManifestDrift { .. })
     ));
 }
