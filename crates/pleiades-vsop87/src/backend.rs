@@ -12,7 +12,7 @@ use pleiades_types::{
 use crate::elements::OrbitalElements;
 use crate::pluto::PlutoPath;
 use crate::profiles::{body_source_profiles, source_kind_for_body, Vsop87BodySourceKind};
-use crate::tables;
+use crate::tables::{self, series::SeriesFidelity};
 use crate::transforms::{
     normalize_degrees, pluralize_body_path, signed_longitude_delta_degrees, solve_kepler,
     spherical_lbr_to_cartesian, true_anomaly_from_eccentric, HeliocentricCoordinates,
@@ -222,12 +222,12 @@ impl Vsop87Backend {
     }
 
     fn heliocentric_earth_from_vsop87b(days: f64) -> HeliocentricCoordinates {
-        let earth = tables::vsop87b_earth::earth_lbr(J2000 + days);
+        let earth = tables::vsop87b_earth::earth_lbr(J2000 + days, SeriesFidelity::Full);
         spherical_lbr_to_cartesian(earth.longitude_rad, earth.latitude_rad, earth.radius_au)
     }
 
     fn heliocentric_mercury_from_vsop87b(days: f64) -> HeliocentricCoordinates {
-        let mercury = tables::vsop87b_mercury::mercury_lbr(J2000 + days);
+        let mercury = tables::vsop87b_mercury::mercury_lbr(J2000 + days, SeriesFidelity::Full);
         spherical_lbr_to_cartesian(
             mercury.longitude_rad,
             mercury.latitude_rad,
@@ -236,17 +236,17 @@ impl Vsop87Backend {
     }
 
     fn heliocentric_venus_from_vsop87b(days: f64) -> HeliocentricCoordinates {
-        let venus = tables::vsop87b_venus::venus_lbr(J2000 + days);
+        let venus = tables::vsop87b_venus::venus_lbr(J2000 + days, SeriesFidelity::Full);
         spherical_lbr_to_cartesian(venus.longitude_rad, venus.latitude_rad, venus.radius_au)
     }
 
     fn heliocentric_mars_from_vsop87b(days: f64) -> HeliocentricCoordinates {
-        let mars = tables::vsop87b_mars::mars_lbr(J2000 + days);
+        let mars = tables::vsop87b_mars::mars_lbr(J2000 + days, SeriesFidelity::Full);
         spherical_lbr_to_cartesian(mars.longitude_rad, mars.latitude_rad, mars.radius_au)
     }
 
     fn heliocentric_jupiter_from_vsop87b(days: f64) -> HeliocentricCoordinates {
-        let jupiter = tables::vsop87b_jupiter::jupiter_lbr(J2000 + days);
+        let jupiter = tables::vsop87b_jupiter::jupiter_lbr(J2000 + days, SeriesFidelity::Full);
         spherical_lbr_to_cartesian(
             jupiter.longitude_rad,
             jupiter.latitude_rad,
@@ -255,17 +255,17 @@ impl Vsop87Backend {
     }
 
     fn heliocentric_saturn_from_vsop87b(days: f64) -> HeliocentricCoordinates {
-        let saturn = tables::vsop87b_saturn::saturn_lbr(J2000 + days);
+        let saturn = tables::vsop87b_saturn::saturn_lbr(J2000 + days, SeriesFidelity::Full);
         spherical_lbr_to_cartesian(saturn.longitude_rad, saturn.latitude_rad, saturn.radius_au)
     }
 
     fn heliocentric_uranus_from_vsop87b(days: f64) -> HeliocentricCoordinates {
-        let uranus = tables::vsop87b_uranus::uranus_lbr(J2000 + days);
+        let uranus = tables::vsop87b_uranus::uranus_lbr(J2000 + days, SeriesFidelity::Full);
         spherical_lbr_to_cartesian(uranus.longitude_rad, uranus.latitude_rad, uranus.radius_au)
     }
 
     fn heliocentric_neptune_from_vsop87b(days: f64) -> HeliocentricCoordinates {
-        let neptune = tables::vsop87b_neptune::neptune_lbr(J2000 + days);
+        let neptune = tables::vsop87b_neptune::neptune_lbr(J2000 + days, SeriesFidelity::Full);
         spherical_lbr_to_cartesian(
             neptune.longitude_rad,
             neptune.latitude_rad,

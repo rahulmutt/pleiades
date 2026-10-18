@@ -6,34 +6,20 @@
 //! coefficient artifact for the innermost planet without relying on a
 //! hand-trimmed coefficient slice.
 
-use std::sync::OnceLock;
+use super::series::{SeriesFidelity, Vsop87SeriesSource};
+use super::vsop87b_earth::SphericalLbr;
 
-use super::vsop87b_earth::{
-    evaluate, parse_generated_vsop87b_tables, SphericalLbr, Vsop87SeriesTables,
-};
+static MERCURY: Vsop87SeriesSource =
+    Vsop87SeriesSource::new(include_bytes!("../../data/VSOP87B.mer.bin"));
 
-static MERCURY_TABLES: OnceLock<Vsop87SeriesTables> = OnceLock::new();
-
-pub(crate) fn mercury_lbr(julian_day_tt: f64) -> SphericalLbr {
-    let t = (julian_day_tt - 2_451_545.0) / 365_250.0;
-    let tables = mercury_tables();
-    SphericalLbr {
-        longitude_rad: evaluate(tables.longitude.iter().map(Vec::as_slice), t)
-            .rem_euclid(core::f64::consts::TAU),
-        latitude_rad: evaluate(tables.latitude.iter().map(Vec::as_slice), t),
-        radius_au: evaluate(tables.radius.iter().map(Vec::as_slice), t),
-    }
-}
-
-fn mercury_tables() -> &'static Vsop87SeriesTables {
-    MERCURY_TABLES.get_or_init(|| {
-        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.mer.bin"))
-    })
+pub(crate) fn mercury_lbr(julian_day_tt: f64, fidelity: SeriesFidelity) -> SphericalLbr {
+    MERCURY.lbr(julian_day_tt, fidelity)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tables::vsop87b_earth::parse_generated_vsop87b_tables;
     use crate::tables::vsop87b_earth::parse_vsop87b_tables;
 
     #[test]
@@ -71,7 +57,7 @@ mod tests {
 
     #[test]
     fn evaluates_j2000_mercury_coordinates_from_the_full_source_file() {
-        let mercury = mercury_lbr(2_451_545.0);
+        let mercury = mercury_lbr(2_451_545.0, SeriesFidelity::Full);
         assert!((mercury.longitude_rad.to_degrees() - 253.782_952_369_111_57).abs() < 1e-12);
         assert!((mercury.latitude_rad.to_degrees() + 3.022_772_980_727_858).abs() < 1e-12);
         assert!((mercury.radius_au - 0.466_471_475_117_196_9).abs() < 1e-15);

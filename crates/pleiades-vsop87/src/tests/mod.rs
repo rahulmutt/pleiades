@@ -10,6 +10,7 @@ mod evidence;
 mod pluto;
 mod position_without_motion;
 mod profiles;
+mod series_truncation;
 
 #[test]
 fn package_name_is_stable() {

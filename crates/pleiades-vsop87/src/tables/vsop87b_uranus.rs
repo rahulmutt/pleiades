@@ -7,33 +7,20 @@
 //! for every supported VSOP87 major planet while Pluto remains outside the
 //! VSOP87 major-planet files.
 
-use super::vsop87b_earth::{
-    evaluate, parse_generated_vsop87b_tables, SphericalLbr, Vsop87SeriesTables,
-};
-use std::sync::OnceLock;
+use super::series::{SeriesFidelity, Vsop87SeriesSource};
+use super::vsop87b_earth::SphericalLbr;
 
-static URANUS_TABLES: OnceLock<Vsop87SeriesTables> = OnceLock::new();
+static URANUS: Vsop87SeriesSource =
+    Vsop87SeriesSource::new(include_bytes!("../../data/VSOP87B.ura.bin"));
 
-pub(crate) fn uranus_lbr(julian_day_tt: f64) -> SphericalLbr {
-    let t = (julian_day_tt - 2_451_545.0) / 365_250.0;
-    let tables = uranus_tables();
-    SphericalLbr {
-        longitude_rad: evaluate(tables.longitude.iter().map(Vec::as_slice), t)
-            .rem_euclid(core::f64::consts::TAU),
-        latitude_rad: evaluate(tables.latitude.iter().map(Vec::as_slice), t),
-        radius_au: evaluate(tables.radius.iter().map(Vec::as_slice), t),
-    }
-}
-
-fn uranus_tables() -> &'static Vsop87SeriesTables {
-    URANUS_TABLES.get_or_init(|| {
-        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.ura.bin"))
-    })
+pub(crate) fn uranus_lbr(julian_day_tt: f64, fidelity: SeriesFidelity) -> SphericalLbr {
+    URANUS.lbr(julian_day_tt, fidelity)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tables::vsop87b_earth::parse_generated_vsop87b_tables;
 
     #[test]
     fn parses_generated_uranus_table_blob_with_expected_series_counts() {
@@ -53,7 +40,7 @@ mod tests {
 
     #[test]
     fn evaluates_j2000_uranus_coordinates_from_the_full_source_file() {
-        let uranus = uranus_lbr(2_451_545.0);
+        let uranus = uranus_lbr(2_451_545.0, SeriesFidelity::Full);
         assert!((uranus.longitude_rad.to_degrees() - 316.418_722_907_632_7).abs() < 1e-12);
         assert!((uranus.latitude_rad.to_degrees() + 0.684_844_296_148_084_3).abs() < 1e-12);
         assert!((uranus.radius_au - 19.924_047_895_208_606).abs() < 1e-12);

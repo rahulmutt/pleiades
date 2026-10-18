@@ -6,7 +6,9 @@
 //! vendored input so the Sun path has a reproducible coefficient artifact while
 //! the text parser remains available for validation and future generator work.
 
-use std::{fmt, sync::OnceLock};
+use std::fmt;
+
+use super::series::{SeriesFidelity, Vsop87SeriesSource};
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Vsop87Term {
@@ -90,18 +92,11 @@ impl fmt::Display for Vsop87ParseError {
 
 impl std::error::Error for Vsop87ParseError {}
 
-static EARTH_TABLES: OnceLock<Vsop87SeriesTables> = OnceLock::new();
+static EARTH: Vsop87SeriesSource =
+    Vsop87SeriesSource::new(include_bytes!("../../data/VSOP87B.ear.bin"));
 
-pub(crate) fn earth_lbr(julian_day_tt: f64) -> SphericalLbr {
-    // VSOP87 uses Julian millennia from J2000.0.
-    let t = (julian_day_tt - 2_451_545.0) / 365_250.0;
-    let tables = earth_tables();
-    SphericalLbr {
-        longitude_rad: evaluate(tables.longitude.iter().map(Vec::as_slice), t)
-            .rem_euclid(core::f64::consts::TAU),
-        latitude_rad: evaluate(tables.latitude.iter().map(Vec::as_slice), t),
-        radius_au: evaluate(tables.radius.iter().map(Vec::as_slice), t),
-    }
+pub(crate) fn earth_lbr(julian_day_tt: f64, fidelity: SeriesFidelity) -> SphericalLbr {
+    EARTH.lbr(julian_day_tt, fidelity)
 }
 
 pub(crate) fn evaluate<I, T>(series_by_power: I, t: f64) -> f64
@@ -125,12 +120,6 @@ where
 
 const GENERATED_EARTH_TABLE_MAGIC: &[u8; 8] = b"PVSBTAB1";
 const GENERATED_EARTH_TABLE_VERSION: u32 = 1;
-
-fn earth_tables() -> &'static Vsop87SeriesTables {
-    EARTH_TABLES.get_or_init(|| {
-        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.ear.bin"))
-    })
-}
 
 pub(crate) fn parse_generated_vsop87b_tables(bytes: &[u8]) -> Vsop87SeriesTables {
     let mut cursor = 0usize;
@@ -434,7 +423,7 @@ mod tests {
 
     #[test]
     fn evaluates_j2000_earth_coordinates_from_the_generated_table_file() {
-        let earth = earth_lbr(2_451_545.0);
+        let earth = earth_lbr(2_451_545.0, SeriesFidelity::Full);
         assert!((earth.longitude_rad.to_degrees() - 100.377_843_416_648_52).abs() < 1e-12);
         assert!((earth.latitude_rad.to_degrees() + 0.000_227_210_514_441_982_95).abs() < 1e-12);
         assert!((earth.radius_au - 0.983_327_682_322_294_2).abs() < 1e-15);
