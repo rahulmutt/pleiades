@@ -21,7 +21,11 @@ use pleiades_vsop87::Vsop87Backend;
 /// Issue #168 re-pinned it from `0xcf5a_ec3b_4586_5ff9`: correcting the apsides μ moved
 /// the true node's distance (by 1.6e-5 relative) and distance speed, and the
 /// last bits of its near-zero latitude and latitude speed; no longitude bit
-/// moved, because the node direction does not depend on μ.
+/// moved, because the node direction does not depend on μ. The fictitious-body
+/// precession fix re-pinned it from `0x09a2_ef17_3058_056d`: Cupido's J1900
+/// element equinox is now precessed with Vondrák 2011 as in Swiss Ephemeris,
+/// moving its 2 rows by -0.29″ in longitude and +0.005″ in latitude; no
+/// other row moved.
 ///
 /// Re-pin it only in a change that intentionally moves positions or speeds,
 /// like the crossings golden: run `cargo test -p pleiades-events --test fu25_bit_identity`,
@@ -29,7 +33,7 @@ use pleiades_vsop87::Vsop87Backend;
 /// pinned bit, for a diff against the old run), and state the re-pin and its
 /// reason in the commit message. The value hashes `libm` output and is pinned
 /// on Linux CI; another platform's libm may differ in the last bit.
-const EVENTS_CHECKSUM: u64 = 0x09a2_ef17_3058_056d;
+const EVENTS_CHECKSUM: u64 = 0xd617_5ad2_2414_2e0e;
 
 fn tdb(jd: f64) -> Instant {
     Instant::new(JulianDay::from_days(jd), TimeScale::Tdb)

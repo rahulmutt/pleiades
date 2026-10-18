@@ -46,8 +46,14 @@
 //! discontinuities, and its Proserpina speed is inconsistent with its own
 //! positions (zeros about 4.4 h from those of its longitude's derivative), so
 //! SE's reported speed is not a usable reference for them. Measured maxima:
-//! apogee 663.1 s and 1.873″ (ceiling 930 s / 2.7″); fictitious bodies 94.3 s
-//! (Vulcan) and 1.565″ (Nibiru), every other body at most 40.6 s.
+//! apogee 663.1 s and 1.873″ (ceiling 930 s / 2.7″); fictitious bodies 94.4 s
+//! and 0.307″ (Vulcan), every other body at most 15.3 s and 0.306″
+//! (re-measured 2026-10-18 after the element equinoxes moved to Vondrák 2011
+//! precession, as in SE; Nibiru was 40.6 s and 1.565″). The ~0.3″ longitude
+//! residual common to all of them is the IAU-1976 J2000-to-date precession of
+//! the mean-of-date frame against SE's Vondrák at 1900 and 2100. Proserpina,
+//! whose elements are of date, was at 0.001″ only because its two IAU-1976
+//! rotations cancelled.
 //!
 //! True node. Its speed hovers near zero for days, so a station instant is
 //! ill-conditioned, and whether a graze crosses zero depends on the
@@ -206,54 +212,54 @@ pub(crate) fn ceilings_for(body_name: &str) -> Option<Ceilings> {
             time_s: 930.0,
             lon_arcsec: 2.7,
         }),
-        // measured max 22.5 s, 0.600" (mean)
+        // measured max 15.3 s, 0.305" (mean)
         "Cupido" => Some(Ceilings {
-            time_s: 32.0,
+            time_s: 22.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 18.9 s, 0.600" (mean)
+        // measured max 12.2 s, 0.305" (mean)
         "Hades" => Some(Ceilings {
-            time_s: 27.0,
+            time_s: 18.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 21.3 s, 0.600" (mean)
+        // measured max 14.4 s, 0.305" (mean)
         "Zeus" => Some(Ceilings {
-            time_s: 30.0,
+            time_s: 21.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 17.2 s, 0.601" (mean)
+        // measured max 10.4 s, 0.306" (mean)
         "Kronos" => Some(Ceilings {
-            time_s: 25.0,
+            time_s: 15.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 21.2 s, 0.600" (mean)
+        // measured max 13.9 s, 0.305" (mean)
         "Apollon" => Some(Ceilings {
-            time_s: 30.0,
+            time_s: 20.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 18.6 s, 0.600" (mean)
+        // measured max 11.6 s, 0.306" (mean)
         "Admetos" => Some(Ceilings {
-            time_s: 27.0,
+            time_s: 17.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 16.6 s, 0.601" (mean)
+        // measured max 9.6 s, 0.306" (mean)
         "Vulkanus" => Some(Ceilings {
-            time_s: 24.0,
+            time_s: 14.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 21.8 s, 0.600" (mean)
+        // measured max 14.5 s, 0.305" (mean)
         "Poseidon" => Some(Ceilings {
-            time_s: 31.0,
+            time_s: 21.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 13.1 s, 0.470" (mean)
+        // measured max 9.3 s, 0.306" (mean)
         "Transpluto" => Some(Ceilings {
-            time_s: 19.0,
+            time_s: 14.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 40.6 s, 1.565" (mean)
+        // measured max 9.3 s, 0.306" (mean)
         "Nibiru" => Some(Ceilings {
-            time_s: 57.0,
+            time_s: 14.0,
             lon_arcsec: 2.3,
         }),
         // measured max 12.9 s, 0.305" (mean)
@@ -261,34 +267,34 @@ pub(crate) fn ceilings_for(body_name: &str) -> Option<Ceilings> {
             time_s: 19.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 26.2 s, 0.752" (mean)
+        // measured max 15.3 s, 0.305" (mean)
         "NeptuneLeverrier" => Some(Ceilings {
-            time_s: 37.0,
+            time_s: 22.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 25.9 s, 0.752" (mean)
+        // measured max 15.2 s, 0.305" (mean)
         "NeptuneAdams" => Some(Ceilings {
-            time_s: 37.0,
+            time_s: 22.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 19.7 s, 0.514" (mean)
+        // measured max 14.5 s, 0.306" (mean)
         "PlutoLowell" => Some(Ceilings {
-            time_s: 28.0,
+            time_s: 21.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 15.8 s, 0.514" (mean)
+        // measured max 10.9 s, 0.306" (mean)
         "PlutoPickering" => Some(Ceilings {
-            time_s: 23.0,
+            time_s: 16.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 94.3 s, 0.323" (mean)
+        // measured max 94.4 s, 0.307" (mean)
         "Vulcan" => Some(Ceilings {
             time_s: 140.0,
             lon_arcsec: 2.3,
         }),
-        // measured max 19.0 s, 0.001" (mean)
+        // measured max 14.2 s, 0.305" (mean)
         "Proserpina" => Some(Ceilings {
-            time_s: 27.0,
+            time_s: 20.0,
             lon_arcsec: 2.3,
         }),
         _ => None,

@@ -15,14 +15,11 @@
 //! exactly, so this is a like-for-like comparison with no frame or
 //! light-time correction needed.
 //!
-//! **Nibiru** (SE body 49) is a documented outlier: its `seorbel.txt` equinox
-//! is ~370 AD (~1630 years before J2000), well beyond the accurate range of
-//! the IAU-1976 precession helper `pleiades_fict::frame::rotate_ecliptic_to_j2000`
-//! uses to carry its elements to the J2000 mean ecliptic (see
-//! `docs/plans/fictitious-bodies` Reconciliation §2). Its residual is gated
-//! under a separate, wider per-body ceiling
-//! (`crate::fictitious_thresholds::NIBIRU_LONGITUDE_ARCSEC` etc.) rather than
-//! inflating the global ceilings that gate the other 18 bodies.
+//! All 19 bodies share one set of ceilings. Nibiru, whose `seorbel.txt`
+//! equinox is ~370 CE, once needed its own wider ceilings: its elements were
+//! precessed to J2000 with IAU-1976 while SE uses Vondrák 2011, a 1.26″
+//! offset. `pleiades_fict::frame::rotate_ecliptic_to_j2000` now uses Vondrák
+//! too, and Nibiru matches SE to 0.0001″.
 //!
 //! A sibling `manifest.txt` records the fnv1a64 digest of the CSV (drift
 //! guard); a mismatch fails the gate closed.
@@ -84,8 +81,7 @@ impl std::error::Error for FictitiousError {}
 #[derive(Debug, Default)]
 pub struct FictitiousReport {
     pub rows: usize,
-    /// Max ecliptic-longitude residual vs SE (arcseconds), over ALL 19 bodies
-    /// (including Nibiru).
+    /// Max ecliptic-longitude residual vs SE (arcseconds), over all 19 bodies.
     pub max_lon_arcsec: f64,
     /// Max ecliptic-latitude residual vs SE (arcseconds), over ALL 19 bodies.
     pub max_lat_arcsec: f64,
@@ -110,23 +106,16 @@ impl FictitiousReport {
     }
 }
 
-/// All measured residual maxima over the committed corpus, split into
-/// Nibiru / non-Nibiru so each can be gated under its own ceiling (see the
-/// module doc). Tier-1 self-consistency is enforced during measurement (it
-/// never depends on the numeric ceilings); ceiling gating is applied
-/// afterwards by [`validate_fictitious_corpus`].
+/// All measured residual maxima over the committed corpus. Tier-1
+/// self-consistency is enforced during measurement (it never depends on the
+/// numeric ceilings); ceiling gating is applied afterwards by
+/// [`validate_fictitious_corpus`].
 #[derive(Debug, Default)]
 struct Measured {
     rows: usize,
     max_lon_arcsec: f64,
     max_lat_arcsec: f64,
     max_dist_au: f64,
-    non_nibiru_max_lon_arcsec: f64,
-    non_nibiru_max_lat_arcsec: f64,
-    non_nibiru_max_dist_au: f64,
-    nibiru_max_lon_arcsec: f64,
-    nibiru_max_lat_arcsec: f64,
-    nibiru_max_dist_au: f64,
 }
 
 impl Measured {
@@ -206,8 +195,7 @@ fn parse_i64(s: &str, row: &str) -> Result<i64, FictitiousError> {
 
 /// Runs the checksum guard, parses the corpus, recomputes every row via a
 /// freshly built [`FictitiousBackend`], enforces Tier-1 self-consistency, and
-/// accumulates every Tier-2 residual maximum (overall, and split Nibiru /
-/// non-Nibiru for the per-body carve-out). Numeric ceiling gating is NOT
+/// accumulates every Tier-2 residual maximum. Numeric ceiling gating is NOT
 /// applied here (that is [`validate_fictitious_corpus`]'s job) — so this
 /// succeeds regardless of the ceiling constants.
 fn measure() -> Result<Measured, FictitiousError> {
@@ -278,16 +266,6 @@ fn measure() -> Result<Measured, FictitiousError> {
         m.max_lat_arcsec = m.max_lat_arcsec.max(lat_res);
         m.max_dist_au = m.max_dist_au.max(dist_res);
 
-        if matches!(body_from_se(se_body), Some(CelestialBody::Nibiru)) {
-            m.nibiru_max_lon_arcsec = m.nibiru_max_lon_arcsec.max(lon_res);
-            m.nibiru_max_lat_arcsec = m.nibiru_max_lat_arcsec.max(lat_res);
-            m.nibiru_max_dist_au = m.nibiru_max_dist_au.max(dist_res);
-        } else {
-            m.non_nibiru_max_lon_arcsec = m.non_nibiru_max_lon_arcsec.max(lon_res);
-            m.non_nibiru_max_lat_arcsec = m.non_nibiru_max_lat_arcsec.max(lat_res);
-            m.non_nibiru_max_dist_au = m.non_nibiru_max_dist_au.max(dist_res);
-        }
-
         m.rows += 1;
     }
 
@@ -308,59 +286,21 @@ pub fn run_fictitious_tier1_only() -> Result<FictitiousReport, FictitiousError> 
 }
 
 /// Full two-tier gate: Tier-1 self-consistency (via `measure`) plus Tier-2
-/// SE parity gated under the global ceilings in
-/// `crate::fictitious_thresholds` for the 18 well-behaved bodies, and the
-/// separate, wider Nibiru ceilings for the one documented outlier (see the
-/// module doc). Fails closed on any exceeded ceiling.
+/// SE parity gated under the ceilings in `crate::fictitious_thresholds`, shared
+/// by all 19 bodies. Fails closed on any exceeded ceiling.
 pub fn validate_fictitious_corpus() -> Result<FictitiousReport, FictitiousError> {
     let m = measure()?;
 
     let checks: [(&'static str, f64, f64); 3] = [
-        (
-            "longitude_arcsec",
-            m.non_nibiru_max_lon_arcsec,
-            LONGITUDE_ARCSEC,
-        ),
-        (
-            "latitude_arcsec",
-            m.non_nibiru_max_lat_arcsec,
-            LATITUDE_ARCSEC,
-        ),
-        ("distance_au", m.non_nibiru_max_dist_au, DISTANCE_AU),
+        ("longitude_arcsec", m.max_lon_arcsec, LONGITUDE_ARCSEC),
+        ("latitude_arcsec", m.max_lat_arcsec, LATITUDE_ARCSEC),
+        ("distance_au", m.max_dist_au, DISTANCE_AU),
     ];
     for (category, residual, ceiling) in checks {
         if !residual.is_finite() || residual > ceiling {
             return Err(FictitiousError::ToleranceExceeded {
                 category,
-                label: "corpus-max (excl. Nibiru)".to_string(),
-                residual,
-                ceiling,
-            });
-        }
-    }
-
-    let nibiru_checks: [(&'static str, f64, f64); 3] = [
-        (
-            "nibiru_longitude_arcsec",
-            m.nibiru_max_lon_arcsec,
-            NIBIRU_LONGITUDE_ARCSEC,
-        ),
-        (
-            "nibiru_latitude_arcsec",
-            m.nibiru_max_lat_arcsec,
-            NIBIRU_LATITUDE_ARCSEC,
-        ),
-        (
-            "nibiru_distance_au",
-            m.nibiru_max_dist_au,
-            NIBIRU_DISTANCE_AU,
-        ),
-    ];
-    for (category, residual, ceiling) in nibiru_checks {
-        if !residual.is_finite() || residual > ceiling {
-            return Err(FictitiousError::ToleranceExceeded {
-                category,
-                label: "Nibiru".to_string(),
+                label: "corpus-max".to_string(),
                 residual,
                 ceiling,
             });

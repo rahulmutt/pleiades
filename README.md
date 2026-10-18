@@ -103,7 +103,7 @@ are published to crates.io, each with its own version:
 unpublished; see [docs/cli.md](docs/cli.md).
 <!-- /audit:unpublished-crates -->
 
-**Minimum supported Rust version: 1.99.0.** Raising it is a breaking change
+**Minimum supported Rust version: 1.99.1.** Raising it is a breaking change
 and is released as one.
 
 ## Status

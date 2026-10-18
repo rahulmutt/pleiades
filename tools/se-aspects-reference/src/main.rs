@@ -240,8 +240,10 @@ const PROSERPINA: Body = (57, "Proserpina");
 const WALDEMATH: Body = (58, "Waldemath");
 
 /// 3 arcseconds: at least 1.9 times the largest engine-minus-SE difference of
-/// any fictitious body in the mean frame (Nibiru, 1.57", a steady +1.26"
-/// offset) and 3.9 times every other body's (0.76").
+/// any fictitious body in the mean frame when the corpus was generated (Nibiru,
+/// 1.57", a steady +1.26" offset) and 3.9 times every other body's (0.76").
+/// Since the engine precesses element equinoxes with Vondrák 2011 as SE does
+/// (2026-10-18), every body is within 0.34", so the margin is now about 8.8x.
 const FICTITIOUS_GRAZE_MARGIN_DEG: f64 = 3.0 / 3600.0;
 /// Vulcan circles inside Mercury's orbit, so its separation from the Sun
 /// turns about 37 times a year (7460 turns over the span); the other pairs

@@ -110,29 +110,22 @@ this repo. The Task 8 gate loads the CSV and `manifest.txt` via
 `include_str!` at compile time and recomputes the digest, failing closed if
 it does not match the recorded value.
 
-## Measured SE parity (Task 8) and the Nibiru carve-out
+## Measured SE parity
 
-Every one of the 18 non-Nibiru bodies matches this corpus to a small
-fraction of an arcsecond in longitude/latitude and a few microAU in distance
-— see `crates/pleiades-validate/src/fictitious_thresholds.rs` for the exact
-measured maxima and the resulting gate ceilings (`LONGITUDE_ARCSEC`,
-`LATITUDE_ARCSEC`, `DISTANCE_AU`, each ~1.4× the observed max over those 18
-bodies).
+All 19 bodies are gated under one set of ceilings (`LONGITUDE_ARCSEC`,
+`LATITUDE_ARCSEC`, `DISTANCE_AU` in
+`crates/pleiades-validate/src/fictitious_thresholds.rs`, each ~1.4× the
+observed maximum). Re-measured on 2026-10-18: Vulcan sets the angular maxima
+(0.054″ longitude, 0.059″ latitude); every other body is within 0.0017″,
+and every distance within 2.71e-7 AU.
 
-**Nibiru** (SE 49) is a documented, expected outlier: its `seorbel.txt`
-equinox is ~370 AD — about 1630 years before J2000 — well outside the most
-accurate range of the IAU-1976 precession helper
-(`pleiades_fict::frame::rotate_ecliptic_to_j2000`) used to carry every
-fictitious body's elements to the J2000 mean ecliptic. Its residual (~1.26″
-longitude, ~0.71″ latitude, ~6.1e-6 AU distance) is still small in absolute
-terms but measurably larger than the other 18 bodies (roughly 2.7× the worst
-non-Nibiru longitude residual, ~12× the worst latitude residual). Rather than
-inflate the global ceilings above to swallow this one body, Nibiru is gated
-under its own wider per-body ceilings (`NIBIRU_LONGITUDE_ARCSEC`,
-`NIBIRU_LATITUDE_ARCSEC`, `NIBIRU_DISTANCE_AU`, ~1.4× Nibiru's own measured
-maxima) in `validate_fictitious_corpus`. This is a known, explained
-limitation of the fictitious-body model for bodies with far-from-J2000
-equinoxes, not a defect.
+**Nibiru** (SE 49) was gated under its own wider ceilings until 2026-10-18.
+Its `seorbel.txt` equinox is ~370 CE, and its elements were carried to J2000
+with IAU-1976 precession while SE uses Vondrák 2011: a 1.26″ longitude and
+0.71″ latitude offset, plus up to 0.46″ for the J1900 bodies.
+`pleiades_fict::frame::rotate_ecliptic_to_j2000` now uses Vondrák 2011
+(`pleiades_apparent::precess_ecliptic_vector_date_to_j2000_long_term`), and
+Nibiru matches this corpus to 0.0001″.
 
 ## A boundary interaction fixed during Task 8
 
