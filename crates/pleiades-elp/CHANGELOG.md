@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.5.8] - 2026-10-18
+
+### Added
+
+- Generate README capability blocks from backend metadata and audit them ([#166](https://github.com/rahulmutt/pleiades/pull/166)) ([#267](https://github.com/rahulmutt/pleiades/pull/267)) ([feb59f6](https://github.com/rahulmutt/pleiades/commit/feb59f628ebd0ccfe57a54b96e478de54bc6fa72))
+
+### Fixed
+
+- Compute the Earth-Moon μ from its derivation; the osculating apogee now matches Swiss Ephemeris to 1.8″ ([#168](https://github.com/rahulmutt/pleiades/pull/168)) ([#271](https://github.com/rahulmutt/pleiades/pull/271)) ([fbce23b](https://github.com/rahulmutt/pleiades/commit/fbce23b341aeeba1e610ae3473b754161e73450a))
+
 ## [0.5.7] - 2026-10-08
 
 _No user-facing changes; released for a dependency or manifest update._
