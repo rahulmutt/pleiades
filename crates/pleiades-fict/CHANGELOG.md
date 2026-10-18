@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.6.0] - 2026-10-18
+
+### Breaking Changes
+
+- Precess fictitious-body element equinoxes with Vondrák 2011; raise MSRV to 1.99.1 ([#279](https://github.com/rahulmutt/pleiades/pull/279)) ([4292c63](https://github.com/rahulmutt/pleiades/commit/4292c636e1a79c74521d294fbda906408ab8205f))
+
 ## [0.5.7] - 2026-10-08
 
 _No user-facing changes; released for a dependency or manifest update._

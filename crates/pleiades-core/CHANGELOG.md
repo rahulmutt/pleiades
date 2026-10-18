@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.11.0] - 2026-10-18
+
+### Breaking Changes
+
+- Precess fictitious-body element equinoxes with Vondrák 2011; raise MSRV to 1.99.1 ([#279](https://github.com/rahulmutt/pleiades/pull/279)) ([4292c63](https://github.com/rahulmutt/pleiades/commit/4292c636e1a79c74521d294fbda906408ab8205f))
+
+### Added
+
+- Find aspects at several angles in one scan (#168 (e)) ([#266](https://github.com/rahulmutt/pleiades/pull/266)) ([18a0163](https://github.com/rahulmutt/pleiades/commit/18a016317bb4514d8bc46191bdc6091e10191a86))
+- Generate README capability blocks from backend metadata and audit them ([#166](https://github.com/rahulmutt/pleiades/pull/166)) ([#267](https://github.com/rahulmutt/pleiades/pull/267)) ([feb59f6](https://github.com/rahulmutt/pleiades/commit/feb59f628ebd0ccfe57a54b96e478de54bc6fa72))
+
+### Fixed
+
+- Restore Apophis's snapshot rows from one Horizons request per epoch ([#201](https://github.com/rahulmutt/pleiades/pull/201)) ([#263](https://github.com/rahulmutt/pleiades/pull/263)) ([dccf630](https://github.com/rahulmutt/pleiades/commit/dccf6302aa085140a856240d187d463ab0957d96))
+- Compute the Earth-Moon μ from its derivation; the osculating apogee now matches Swiss Ephemeris to 1.8″ ([#168](https://github.com/rahulmutt/pleiades/pull/168)) ([#271](https://github.com/rahulmutt/pleiades/pull/271)) ([fbce23b](https://github.com/rahulmutt/pleiades/commit/fbce23b341aeeba1e610ae3473b754161e73450a))
+
+### Performance
+
+- Interpolate the third light-time step instead of querying the backend ([#247](https://github.com/rahulmutt/pleiades/pull/247)) ([#248](https://github.com/rahulmutt/pleiades/pull/248)) ([cc8e20b](https://github.com/rahulmutt/pleiades/commit/cc8e20bb3447d779002f82a16b76b5c65cc8a300))
+
 ## [0.10.0] - 2026-10-08
 
 ### Breaking Changes
