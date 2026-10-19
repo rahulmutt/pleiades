@@ -29,9 +29,9 @@ use pleiades_vsop87::Vsop87Backend;
 /// Issue #281 re-pinned it from `0xd617_5ad2_2414_2e0e`: the default
 /// `Vsop87Backend` evaluates truncated VSOP87B series inside 1600–2600, moving
 /// the 42 Sun, Mercury, Mars, Saturn and Pluto rows by at most 0.028″ in
-/// longitude and 0.015″ in latitude, and the 2 fictitious rows by 0.0001″; the
-/// Moon and error rows did not move. `Vsop87FullSeriesBackend` still gives the
-/// old value.
+/// longitude and 0.015″ in latitude, and the 2 fictitious rows by at most
+/// 0.00013″; the Moon and error rows did not move. `Vsop87FullSeriesBackend`
+/// still gives the old value.
 ///
 /// Re-pin it only in a change that intentionally moves positions or speeds,
 /// like the crossings golden: run `cargo test -p pleiades-events --test fu25_bit_identity`,

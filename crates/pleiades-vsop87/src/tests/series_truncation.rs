@@ -165,29 +165,121 @@ use pleiades_backend::{
 };
 use pleiades_types::{CelestialBody, EclipticCoordinates, Instant, JulianDay, TimeScale};
 
-/// Per-body ceilings on |Δλ| and |Δβ| (arcseconds) between the default and
-/// the full-series backend over 1600–2600 CE: `min(0.30, ⌈1.25 × max⌉₀.₀₁)`
-/// of the maxima measured on the 2,000-instant grid below.
-const TRUNCATION_DRIFT_CEILINGS_ARCSEC: [(CelestialBody, f64, f64); 9] = [
-    // Measured maxima (lon, lat): 0.0366, 0.0237.
-    (CelestialBody::Sun, 0.05, 0.03),
-    // 0.0542, 0.0389.
-    (CelestialBody::Mercury, 0.07, 0.05),
-    // 0.1126, 0.0942.
-    (CelestialBody::Venus, 0.15, 0.12),
-    // 0.1886, 0.0997.
-    (CelestialBody::Mars, 0.24, 0.13),
-    // 0.0571, 0.0318.
-    (CelestialBody::Jupiter, 0.08, 0.04),
-    // 0.0693, 0.0363.
-    (CelestialBody::Saturn, 0.09, 0.05),
-    // 0.0619, 0.0344.
-    (CelestialBody::Uranus, 0.08, 0.05),
-    // 0.0350, 0.0180.
-    (CelestialBody::Neptune, 0.05, 0.03),
-    // 0.0010, 0.0009: only the VSOP87B Earth subtracted from Pluto is truncated.
-    (CelestialBody::Pluto, 0.01, 0.01),
+/// One body's drift ceilings and where its dense-scan maxima sit.
+struct DriftCeiling {
+    body: CelestialBody,
+    /// Ceiling on |Δλ|, arcseconds.
+    longitude_arcsec: f64,
+    /// Ceiling on |Δβ|, arcseconds.
+    latitude_arcsec: f64,
+    /// Julian day (TT) of the dense-scan |Δλ| maximum.
+    longitude_peak_jd: f64,
+    /// Julian day (TT) of the dense-scan |Δβ| maximum.
+    latitude_peak_jd: f64,
+}
+
+const fn ceiling(
+    body: CelestialBody,
+    longitude_arcsec: f64,
+    latitude_arcsec: f64,
+    longitude_peak_jd: f64,
+    latitude_peak_jd: f64,
+) -> DriftCeiling {
+    DriftCeiling {
+        body,
+        longitude_arcsec,
+        latitude_arcsec,
+        longitude_peak_jd,
+        latitude_peak_jd,
+    }
+}
+
+/// Per-body ceilings on |Δλ| and |Δβ| (arcseconds, mean geometric TT place)
+/// between the default and the full-series backend over 1600–2600 CE:
+/// `min(0.30, ⌈1.25 × max⌉₀.₀₁)` of the dense maxima.
+///
+/// The maxima were measured on 2026-10-19 on 200,000 evenly spaced instants
+/// over the window, then refined over ±15 days at 0.005-day steps around each
+/// body's longitude and latitude argmax (the refinement added under 0.001″).
+/// The peaks are spread over the window, not at its 2600 edge: the largest
+/// sit near 2412 (Sun, Mercury) and 2508 (Venus, Mars). Mars longitude is
+/// capped at the 0.30″ spec limit (1.25 × 0.2625″ would be 0.33″), which
+/// leaves it 14% headroom.
+const TRUNCATION_DRIFT_CEILINGS: [DriftCeiling; 9] = [
+    // Dense maxima (lon, lat): 0.0504″ at 2412.0, 0.0334″ at 2459.9.
+    ceiling(CelestialBody::Sun, 0.07, 0.05, 2_602_027.420, 2_619_508.285),
+    // 0.0751″ at 2413.9, 0.0470″ at 2490.7.
+    ceiling(
+        CelestialBody::Mercury,
+        0.10,
+        0.06,
+        2_602_705.947,
+        2_630_760.707,
+    ),
+    // 0.1738″ at 2508.0, 0.1420″ at 2540.0.
+    ceiling(
+        CelestialBody::Venus,
+        0.22,
+        0.18,
+        2_637_091.463,
+        2_648_782.912,
+    ),
+    // 0.2625″ at 2507.6 (capped at 0.30″), 0.1329″ at 1956.7.
+    ceiling(
+        CelestialBody::Mars,
+        0.30,
+        0.17,
+        2_636_940.599,
+        2_435_729.736,
+    ),
+    // 0.0592″ at 1675.4, 0.0389″ at 2500.0.
+    ceiling(
+        CelestialBody::Jupiter,
+        0.08,
+        0.05,
+        2_332_976.768,
+        2_634_176.689,
+    ),
+    // 0.0883″ at 2357.0, 0.0369″ at 2004.9.
+    ceiling(
+        CelestialBody::Saturn,
+        0.12,
+        0.05,
+        2_581_940.792,
+        2_453_348.517,
+    ),
+    // 0.0668″ at 2304.7, 0.0347″ at 1661.6.
+    ceiling(
+        CelestialBody::Uranus,
+        0.09,
+        0.05,
+        2_562_827.295,
+        2_327_948.978,
+    ),
+    // 0.0369″ at 1847.7, 0.0191″ at 1733.8.
+    ceiling(
+        CelestialBody::Neptune,
+        0.05,
+        0.03,
+        2_395_929.090,
+        2_354_323.900,
+    ),
+    // 0.0012″ at 2475.8, 0.0011″ at 2491.8: only the VSOP87B Earth subtracted
+    // from Pluto is truncated.
+    ceiling(
+        CelestialBody::Pluto,
+        0.01,
+        0.01,
+        2_625_328.243,
+        2_631_165.236,
+    ),
 ];
+
+/// Bound on the step at either window edge, in both axes (arcseconds). The
+/// measured steps are at most 0.085″ (Venus longitude at 1600-01-01) and
+/// 0.013″ in longitude (Saturn) at 2600-01-01; see
+/// `edge_step_is_within_the_drift_ceiling`.
+const EDGE_STEP_LIMIT_ARCSEC: f64 = 0.10;
 
 fn tt_request(body: CelestialBody, jd: f64) -> EphemerisRequest {
     let mut request =
@@ -222,31 +314,81 @@ fn latitude_delta_arcsec(a: &EclipticCoordinates, b: &EclipticCoordinates) -> f6
     (a.latitude.degrees() - b.latitude.degrees()).abs() * 3600.0
 }
 
-#[test]
-fn truncation_drift_stays_within_ceilings_over_1600_2600() {
-    const SAMPLES: usize = 2_000;
-    let span = TRUNCATED_WINDOW_END_JD - TRUNCATED_WINDOW_START_JD;
+/// Largest |Δλ| and |Δβ| (arcseconds) between the default and the
+/// full-series backend over `instants`.
+fn max_drift(body: &CelestialBody, instants: impl Iterator<Item = f64>) -> (f64, f64) {
     let default = Vsop87Backend::new();
     let full = Vsop87FullSeriesBackend::new();
-    for (body, longitude_ceiling, latitude_ceiling) in TRUNCATION_DRIFT_CEILINGS_ARCSEC {
-        let (mut max_lon, mut max_lat) = (0.0_f64, 0.0_f64);
-        for i in 0..SAMPLES {
-            let jitter = (i as f64 * 0.618_034).fract();
-            let jd = TRUNCATED_WINDOW_START_JD + (i as f64 + jitter) * span / SAMPLES as f64;
-            let truncated = mean_place(&default, body.clone(), jd);
-            let reference = mean_place(&full, body.clone(), jd);
-            max_lon = max_lon.max(longitude_delta_arcsec(&truncated, &reference));
-            max_lat = max_lat.max(latitude_delta_arcsec(&truncated, &reference));
-        }
-        println!("{body:?}: max |dlon| = {max_lon:.4}\", max |dlat| = {max_lat:.4}\"");
-        assert!(
-            max_lon <= longitude_ceiling,
-            "{body:?} longitude drift {max_lon}\" over ceiling {longitude_ceiling}\""
-        );
-        assert!(
-            max_lat <= latitude_ceiling,
-            "{body:?} latitude drift {max_lat}\" over ceiling {latitude_ceiling}\""
-        );
+    instants.fold((0.0_f64, 0.0_f64), |(max_lon, max_lat), jd| {
+        let truncated = mean_place(&default, body.clone(), jd);
+        let reference = mean_place(&full, body.clone(), jd);
+        (
+            max_lon.max(longitude_delta_arcsec(&truncated, &reference)),
+            max_lat.max(latitude_delta_arcsec(&truncated, &reference)),
+        )
+    })
+}
+
+/// `samples` evenly spaced instants over the window, at the centres of
+/// `samples` equal cells.
+fn uniform_grid(samples: usize) -> impl Iterator<Item = f64> {
+    let span = TRUNCATED_WINDOW_END_JD - TRUNCATED_WINDOW_START_JD;
+    (0..samples).map(move |i| TRUNCATED_WINDOW_START_JD + (i as f64 + 0.5) * span / samples as f64)
+}
+
+/// ±15 days at 0.05-day steps (601 instants) around `centre`.
+fn peak_neighbourhood(centre: f64) -> impl Iterator<Item = f64> {
+    (-300..=300).map(move |i| centre + f64::from(i) * 0.05)
+}
+
+fn assert_within_ceiling(ceiling: &DriftCeiling, (max_lon, max_lat): (f64, f64)) {
+    let body = &ceiling.body;
+    println!("{body:?}: max |dlon| = {max_lon:.4}\", max |dlat| = {max_lat:.4}\"");
+    assert!(
+        max_lon <= ceiling.longitude_arcsec,
+        "{body:?} longitude drift {max_lon}\" over ceiling {}\"",
+        ceiling.longitude_arcsec
+    );
+    assert!(
+        max_lat <= ceiling.latitude_arcsec,
+        "{body:?} latitude drift {max_lat}\" over ceiling {}\"",
+        ceiling.latitude_arcsec
+    );
+}
+
+/// Blocking tier: a 2,000-instant uniform grid plus the neighbourhood of each
+/// body's dense-scan longitude and latitude peaks, so the gate reaches the
+/// dense maxima the sparse grid would miss.
+#[test]
+fn truncation_drift_stays_within_ceilings_over_1600_2600() {
+    for ceiling in &TRUNCATION_DRIFT_CEILINGS {
+        let instants = uniform_grid(2_000)
+            .chain(peak_neighbourhood(ceiling.longitude_peak_jd))
+            .chain(peak_neighbourhood(ceiling.latitude_peak_jd));
+        assert_within_ceiling(ceiling, max_drift(&ceiling.body, instants));
+    }
+}
+
+/// Slow tier: the 200,000-instant scan the ceilings were derived from, so a
+/// change that moves a peak away from its pinned neighbourhood is still caught.
+/// One thread per body, so the scan is not a single-core long pole in
+/// `test-full`.
+#[test]
+#[ignore = "slow: 3.6 million backend evaluations; run with --ignored"]
+fn truncation_drift_stays_within_ceilings_on_the_dense_scan() {
+    let ceilings = TRUNCATION_DRIFT_CEILINGS;
+    let maxima: Vec<(f64, f64)> = std::thread::scope(|scope| {
+        let scans: Vec<_> = ceilings
+            .iter()
+            .map(|ceiling| scope.spawn(move || max_drift(&ceiling.body, uniform_grid(200_000))))
+            .collect();
+        scans
+            .into_iter()
+            .map(|scan| scan.join().expect("dense scan thread"))
+            .collect()
+    });
+    for (ceiling, maximum) in ceilings.iter().zip(maxima) {
+        assert_within_ceiling(ceiling, maximum);
     }
 }
 
@@ -283,65 +425,80 @@ fn default_backend_is_full_series_outside_the_window() {
     }
 }
 
+/// The step at each window edge is the truncated-minus-full difference at the
+/// first instant inside the window, since the default backend is bit-identical
+/// to the full series just outside it
+/// (`default_backend_is_full_series_outside_the_window`).
 #[test]
 fn edge_step_is_within_the_drift_ceiling() {
     let default = Vsop87Backend::new();
-    for (body, longitude_ceiling, _) in TRUNCATION_DRIFT_CEILINGS_ARCSEC {
-        for (outside, inside) in [
-            (TRUNCATED_WINDOW_START_JD - 1e-6, TRUNCATED_WINDOW_START_JD),
-            (TRUNCATED_WINDOW_END_JD, TRUNCATED_WINDOW_END_JD - 1e-6),
-        ] {
-            let step = longitude_delta_arcsec(
-                &mean_place(&default, body.clone(), outside),
-                &mean_place(&default, body.clone(), inside),
+    let full = Vsop87FullSeriesBackend::new();
+    for ceiling in &TRUNCATION_DRIFT_CEILINGS {
+        let body = &ceiling.body;
+        for inside in [TRUNCATED_WINDOW_START_JD, TRUNCATED_WINDOW_END_JD - 1e-6] {
+            let truncated = mean_place(&default, body.clone(), inside);
+            let reference = mean_place(&full, body.clone(), inside);
+            let longitude_step = longitude_delta_arcsec(&truncated, &reference);
+            let latitude_step = latitude_delta_arcsec(&truncated, &reference);
+            println!("{body:?} at {inside}: step {longitude_step:.4}\", {latitude_step:.4}\"");
+            assert!(
+                longitude_step <= ceiling.longitude_arcsec.min(EDGE_STEP_LIMIT_ARCSEC),
+                "{body:?} longitude edge step {longitude_step}\" at {inside}"
             );
             assert!(
-                step <= longitude_ceiling + 1e-4,
-                "{body:?} edge step {step}\" at {inside}"
+                latitude_step <= ceiling.latitude_arcsec.min(EDGE_STEP_LIMIT_ARCSEC),
+                "{body:?} latitude edge step {latitude_step}\" at {inside}"
             );
         }
     }
 }
 
+/// Both stencil points take the request's fidelity, including where one of
+/// them falls outside the window: at START+0.001 the −0.005-day point is
+/// before the window, at END−0.001 the +0.005-day point is after it.
 #[test]
 fn motion_uses_the_request_fidelity_on_both_stencil_points() {
     const HALF_SPAN_DAYS: f64 = 0.005;
-    let jd = TRUNCATED_WINDOW_START_JD + 0.001;
-    let days = jd - 2_451_545.0;
-    let pluto_path = PlutoPath::for_julian_day(jd);
-    let sample = |offset: f64| {
-        Vsop87Backend::to_ecliptic(
-            Vsop87Backend::geocentric_coordinates_on(
-                CelestialBody::Mars,
-                days + offset,
-                pluto_path,
-                SeriesFidelity::Truncated,
+    for jd in [
+        TRUNCATED_WINDOW_START_JD + 0.001,
+        TRUNCATED_WINDOW_END_JD - 0.001,
+    ] {
+        let days = jd - 2_451_545.0;
+        let pluto_path = PlutoPath::for_julian_day(jd);
+        let sample = |offset: f64| {
+            Vsop87Backend::to_ecliptic(
+                Vsop87Backend::geocentric_coordinates_on(
+                    CelestialBody::Mars,
+                    days + offset,
+                    pluto_path,
+                    SeriesFidelity::Truncated,
+                )
+                .expect("Mars geocentric"),
             )
-            .expect("Mars geocentric"),
-        )
-    };
-    let expected = signed_longitude_delta_degrees(
-        sample(-HALF_SPAN_DAYS).longitude.degrees(),
-        sample(HALF_SPAN_DAYS).longitude.degrees(),
-    ) / (2.0 * HALF_SPAN_DAYS);
+        };
+        let expected = signed_longitude_delta_degrees(
+            sample(-HALF_SPAN_DAYS).longitude.degrees(),
+            sample(HALF_SPAN_DAYS).longitude.degrees(),
+        ) / (2.0 * HALF_SPAN_DAYS);
 
-    let motion = Vsop87Backend::motion(
-        CelestialBody::Mars,
-        days,
-        pluto_path,
-        SeriesFidelity::Truncated,
-    )
-    .expect("Mars motion");
-    let default_speed = full_result(&Vsop87Backend::new(), CelestialBody::Mars, jd)
-        .motion
-        .expect("default motion")
-        .longitude_deg_per_day
-        .expect("longitude speed");
-    assert_eq!(motion.longitude_deg_per_day, Some(default_speed));
-    assert!(
-        (default_speed - expected).abs() <= 1e-9,
-        "default speed {default_speed} vs truncated stencil {expected}"
-    );
+        let motion = Vsop87Backend::motion(
+            CelestialBody::Mars,
+            days,
+            pluto_path,
+            SeriesFidelity::Truncated,
+        )
+        .expect("Mars motion");
+        let default_speed = full_result(&Vsop87Backend::new(), CelestialBody::Mars, jd)
+            .motion
+            .expect("default motion")
+            .longitude_deg_per_day
+            .expect("longitude speed");
+        assert_eq!(motion.longitude_deg_per_day, Some(default_speed), "{jd}");
+        assert!(
+            (default_speed - expected).abs() <= 1e-9,
+            "default speed {default_speed} vs truncated stencil {expected} at {jd}"
+        );
+    }
 }
 
 #[test]
