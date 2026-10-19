@@ -26,20 +26,21 @@ const BACKEND_LABEL: &str = "the VSOP87 backend";
 const J2000: f64 = 2_451_545.0;
 
 /// Provenance sentence the default backend adds to the full-series summary.
-const TRUNCATION_NOTE: &str = " Inside 1600-01-01..2600-01-01 TT the VSOP87B series are truncated (terms with |A|·0.6^α < 1e-8 dropped, at most 0.3″ from the full series); outside it the full series is evaluated.";
+const TRUNCATION_NOTE: &str = " Inside 1600-01-01..2600-01-01 (TT or TDB Julian day) the VSOP87B series are truncated (terms with |A|·0.6^α < 1e-8 dropped, measured within 0.3″ of the full series); outside it the full series is evaluated.";
 
 /// A pure-Rust planetary backend.
 ///
-/// Inside 1600-01-01..2600-01-01 TT (start inclusive, end exclusive; the window
-/// is applied to the request's Julian day whatever its scale, TT or TDB, which
-/// differ by milliseconds) it evaluates truncated VSOP87B series: terms whose amplitude times
-/// `0.6^alpha` (Julian millennia from J2000.0) is below 1e-8 are dropped,
-/// which keeps every body within about 0.3″ of the full series in that window
-/// and makes each sample cheaper to evaluate. Results there report
+/// Inside 1600-01-01..2600-01-01 TT (start inclusive, end exclusive; the
+/// window is applied to the request's Julian day whatever its scale, TT or
+/// TDB, which differ by milliseconds) it evaluates truncated VSOP87B series:
+/// terms whose amplitude times `0.6^alpha` (Julian millennia from J2000.0) is
+/// below 1e-8 are dropped, which keeps every body within about 0.3″ of the
+/// full series in that window (Mars is the worst, at 0.26″) and makes each
+/// sample cheaper to evaluate. Results there report
 /// [`QualityAnnotation::Approximate`] for the VSOP87B bodies. Outside the
 /// window the full series is evaluated, bit for bit as
-/// [`Vsop87FullSeriesBackend`] does, so output steps by up to about 0.3″ at
-/// the two window edges.
+/// [`Vsop87FullSeriesBackend`] does, so output steps at the two window edges
+/// by under 0.1″ (measured 0.085″, Venus, at 1600; 0.013″ at 2600).
 ///
 /// Pluto keeps its usual quality annotation: it is not a VSOP87B body, but the
 /// Earth subtracted from it is truncated inside the window, which moves it by
@@ -57,8 +58,8 @@ pub struct Vsop87Backend;
 ///
 /// Same bodies, frames, Pluto paths and metadata as [`Vsop87Backend`], minus
 /// that backend's truncation inside 1600-01-01..2600-01-01 TT: there it is
-/// slower, but reproduces the published series exactly and has no step of up
-/// to about 0.3″ at the window edges. Outside the window both backends return
+/// slower, but reproduces the published series exactly and has no step (under
+/// 0.1″) at the window edges. Outside the window both backends return
 /// identical results. Choose it when bit-for-bit reproduction of VSOP87B (or
 /// of `Vsop87Backend` output from before the truncation) is required; it
 /// composes like any backend, e.g. inside

@@ -365,7 +365,7 @@ fn full_series_backend_reports_exact_and_default_reports_approximate_inside_the_
 
 #[test]
 fn full_series_backend_metadata_matches_the_default_except_the_truncation_note() {
-    const NOTE: &str = " Inside 1600-01-01..2600-01-01 TT the VSOP87B series are truncated (terms with |A|·0.6^α < 1e-8 dropped, at most 0.3″ from the full series); outside it the full series is evaluated.";
+    const NOTE: &str = " Inside 1600-01-01..2600-01-01 (TT or TDB Julian day) the VSOP87B series are truncated (terms with |A|·0.6^α < 1e-8 dropped, measured within 0.3″ of the full series); outside it the full series is evaluated.";
     let mut default = Vsop87Backend::new().metadata();
     let full = Vsop87FullSeriesBackend::new().metadata();
     assert_eq!(

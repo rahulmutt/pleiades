@@ -29,9 +29,8 @@ pub(crate) const TRUNCATED_WINDOW_END_JD: f64 = 2_670_690.5;
 
 /// The fidelity the default backend uses at `julian_day_tt` (the request's
 /// Julian day whatever its scale, TT or TDB, which differ by milliseconds):
-/// truncated inside
-/// `[TRUNCATED_WINDOW_START_JD, TRUNCATED_WINDOW_END_JD)`, full outside it,
-/// where the dropped terms grow as `(|T| / t_max)^alpha`.
+/// truncated inside `[TRUNCATED_WINDOW_START_JD, TRUNCATED_WINDOW_END_JD)`,
+/// full outside it, where the dropped terms grow as `(|T| / t_max)^alpha`.
 pub(crate) fn default_fidelity_at(julian_day_tt: f64) -> SeriesFidelity {
     if (TRUNCATED_WINDOW_START_JD..TRUNCATED_WINDOW_END_JD).contains(&julian_day_tt) {
         SeriesFidelity::Truncated
@@ -44,8 +43,9 @@ pub(crate) fn default_fidelity_at(julian_day_tt: f64) -> SeriesFidelity {
 /// evaluated at the edge of the supported window.
 pub(crate) const TRUNCATION_THRESHOLD: f64 = 1e-8;
 
-/// Half-width of the supported window in Julian millennia from J2000.0
-/// (1600-2600 CE is |T| <= 0.5; 0.6 leaves margin).
+/// Largest |T| inside the window, in Julian millennia from J2000.0:
+/// 1600–2600 CE is T ∈ [−0.4, +0.6], so 0.6 is the 2600 edge. Lowering it
+/// would let the dropped terms exceed [`TRUNCATION_THRESHOLD`] near 2600.
 pub(crate) const TRUNCATION_T_MAX_MILLENNIA: f64 = 0.6;
 
 /// Keeps a term when `|amplitude| * t_max^alpha >= threshold`, where `alpha`

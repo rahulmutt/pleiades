@@ -60,7 +60,14 @@ impl fmt::Display for Vsop87BodySourceKind {
 }
 
 /// Per-body source profile for the current implementation state of
-/// [`crate::Vsop87Backend`].
+/// [`crate::Vsop87Backend`] and [`crate::Vsop87FullSeriesBackend`].
+///
+/// The profile describes the checked-in tables both backends load.
+/// `Vsop87Backend` evaluates a truncated copy of them inside
+/// 1600-01-01..2600-01-01 and reports
+/// [`QualityAnnotation::Approximate`](pleiades_backend::QualityAnnotation::Approximate)
+/// for the VSOP87B bodies there; `Vsop87FullSeriesBackend` evaluates the full
+/// tables everywhere.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vsop87BodySource {
     /// Body covered by this source profile.
@@ -71,7 +78,9 @@ pub struct Vsop87BodySource {
     pub provenance: &'static str,
     /// Series-fidelity class of this body's checked-in path: `Exact` means the
     /// generated table reproduces the full, untruncated VSOP87B series for the
-    /// body (`Exact` also marks Pluto's full published Table 37.A), while
+    /// body (`Exact` also marks Pluto's full published Table 37.A), as
+    /// `Vsop87FullSeriesBackend` evaluates it everywhere and `Vsop87Backend`
+    /// outside 1600–2600 (inside it, a truncated copy), while
     /// `Approximate` marks a mean-element path. This
     /// describes source-reproduction fidelity, not observational position
     /// accuracy: the backend's chart-facing `BodyClaim` for these source-backed

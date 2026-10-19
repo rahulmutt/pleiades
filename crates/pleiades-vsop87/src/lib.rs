@@ -23,16 +23,20 @@
 //! instants in 1600-01-01..2600-01-01 TT (start inclusive, end exclusive; the
 //! window is applied to the request's Julian day whatever its scale, TT or
 //! TDB). A term is dropped when `|A|·0.6^α < 1e-8`, where `A` is its amplitude
-//! and `α` the power of Julian millennia from J2000.0 multiplying its series;
-//! 0.6 millennia is the edge of the window, so a dropped term contributes less
-//! than 1e-8 radians or AU anywhere inside it. Measured against the full series
-//! over the window, the largest drift in any body is under 0.3″ (Mars is the
-//! worst, at 0.19″ in longitude); Pluto moves by about 0.001″ through the
-//! Earth it subtracts. Inside the window the VSOP87B bodies report
-//! [`QualityAnnotation`](pleiades_backend::QualityAnnotation)`::Approximate`.
+//! and `α` the power of Julian millennia from J2000.0 multiplying its series.
+//! The window spans T ∈ [−0.4, +0.6] millennia, so 0.6 is the largest |T| in
+//! it (the 2600 edge) and a dropped term contributes less than 1e-8 radians or
+//! AU anywhere inside it. Measured against the full series on a 200,000-instant
+//! scan of the window, the largest drift in any body is under 0.3″: Mars is the
+//! worst, at 0.26″ in longitude near 2508, then Venus at 0.17″; Pluto moves by
+//! about 0.001″ through the Earth it subtracts. Each apparent sample is
+//! 2.2–9.5× cheaper per body, and a Sun–Pluto set 3.4× (measured 2026-10-19).
+//! Inside the window the VSOP87B bodies report
+//! [`QualityAnnotation::Approximate`](pleiades_backend::QualityAnnotation::Approximate).
 //! Outside the window the default backend evaluates the full series, bit for
-//! bit as [`Vsop87FullSeriesBackend`] does, so its output steps by up to about
-//! 0.3″ at 1600-01-01 and 2600-01-01.
+//! bit as [`Vsop87FullSeriesBackend`] does, so its output steps at 1600-01-01
+//! and 2600-01-01 by under 0.1″ (measured 0.085″, Venus, at 1600; 0.013″ at
+//! 2600).
 //!
 //! [`Vsop87FullSeriesBackend`] evaluates every term everywhere: it reproduces
 //! the published series exactly and has no edge step, at the cost of speed
