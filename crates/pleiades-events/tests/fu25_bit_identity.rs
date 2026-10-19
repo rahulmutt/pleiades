@@ -26,6 +26,12 @@ use pleiades_vsop87::Vsop87Backend;
 /// element equinox is now precessed with Vondrák 2011 as in Swiss Ephemeris,
 /// moving its 2 rows by -0.29″ in longitude and +0.005″ in latitude; no
 /// other row moved.
+/// Issue #281 re-pinned it from `0xd617_5ad2_2414_2e0e`: the default
+/// `Vsop87Backend` evaluates truncated VSOP87B series inside 1600–2600, moving
+/// the 42 Sun, Mercury, Mars, Saturn and Pluto rows by at most 0.028″ in
+/// longitude and 0.015″ in latitude, and the 2 fictitious rows by at most
+/// 0.00013″; the Moon and error rows did not move. `Vsop87FullSeriesBackend`
+/// still gives the old value.
 ///
 /// Re-pin it only in a change that intentionally moves positions or speeds,
 /// like the crossings golden: run `cargo test -p pleiades-events --test fu25_bit_identity`,
@@ -33,7 +39,7 @@ use pleiades_vsop87::Vsop87Backend;
 /// pinned bit, for a diff against the old run), and state the re-pin and its
 /// reason in the commit message. The value hashes `libm` output and is pinned
 /// on Linux CI; another platform's libm may differ in the last bit.
-const EVENTS_CHECKSUM: u64 = 0xd617_5ad2_2414_2e0e;
+const EVENTS_CHECKSUM: u64 = 0x3004_9a28_81ed_c55b;
 
 fn tdb(jd: f64) -> Instant {
     Instant::new(JulianDay::from_days(jd), TimeScale::Tdb)

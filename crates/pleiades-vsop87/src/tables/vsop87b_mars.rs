@@ -6,35 +6,20 @@
 //! coefficient artifact for the outer inner planet without relying on a
 //! hand-trimmed coefficient slice.
 
-use std::sync::OnceLock;
+use super::series::{SeriesFidelity, Vsop87SeriesSource};
+use super::vsop87b_earth::SphericalLbr;
 
-use super::vsop87b_earth::{
-    evaluate, parse_generated_vsop87b_tables, SphericalLbr, Vsop87SeriesTables,
-};
+static MARS: Vsop87SeriesSource =
+    Vsop87SeriesSource::new(include_bytes!("../../data/VSOP87B.mar.bin"));
 
-static MARS_TABLES: OnceLock<Vsop87SeriesTables> = OnceLock::new();
-
-pub(crate) fn mars_lbr(julian_day_tt: f64) -> SphericalLbr {
-    let t = (julian_day_tt - 2_451_545.0) / 365_250.0;
-    let tables = mars_tables();
-    SphericalLbr {
-        longitude_rad: evaluate(tables.longitude.iter().map(Vec::as_slice), t)
-            .rem_euclid(core::f64::consts::TAU),
-        latitude_rad: evaluate(tables.latitude.iter().map(Vec::as_slice), t),
-        radius_au: evaluate(tables.radius.iter().map(Vec::as_slice), t),
-    }
-}
-
-fn mars_tables() -> &'static Vsop87SeriesTables {
-    MARS_TABLES.get_or_init(|| {
-        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.mar.bin"))
-    })
+pub(crate) fn mars_lbr(julian_day_tt: f64, fidelity: SeriesFidelity) -> SphericalLbr {
+    MARS.lbr(julian_day_tt, fidelity)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tables::vsop87b_earth::parse_vsop87b_tables;
+    use crate::tables::vsop87b_earth::{parse_generated_vsop87b_tables, parse_vsop87b_tables};
 
     #[test]
     fn parses_full_mars_tables_with_expected_series_counts() {
@@ -71,7 +56,7 @@ mod tests {
 
     #[test]
     fn evaluates_j2000_mars_coordinates_from_the_generated_table_file() {
-        let mars = mars_lbr(2_451_545.0);
+        let mars = mars_lbr(2_451_545.0, SeriesFidelity::Full);
         assert!((mars.longitude_rad.to_degrees() - 359.447_306_577_956_9).abs() < 1e-12);
         assert!((mars.latitude_rad.to_degrees() + 1.419_673_814_332_492_7).abs() < 1e-12);
         assert!((mars.radius_au - 1.391_207_693_715_968).abs() < 1e-12);

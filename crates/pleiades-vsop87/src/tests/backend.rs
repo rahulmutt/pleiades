@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn j2000_sun_position_uses_vendored_vsop87b_earth_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Sun);
     let result = backend.position(&request).expect("sun query should work");
     let ecliptic = result.ecliptic.expect("ecliptic result should exist");
@@ -25,7 +25,7 @@ fn j2000_sun_position_uses_vendored_vsop87b_earth_file() {
 
 #[test]
 fn j2000_mercury_position_uses_vendored_vsop87b_mercury_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Mercury);
     let result = backend
         .position(&request)
@@ -55,7 +55,7 @@ fn j2000_mercury_position_uses_vendored_vsop87b_mercury_file() {
 
 #[test]
 fn j2000_venus_position_uses_vendored_vsop87b_venus_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Venus);
     let result = backend.position(&request).expect("Venus query should work");
     let ecliptic = result.ecliptic.expect("ecliptic result should exist");
@@ -75,7 +75,7 @@ fn j2000_venus_position_uses_vendored_vsop87b_venus_file() {
 
 #[test]
 fn j2000_mars_position_uses_generated_vsop87b_mars_table() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Mars);
     let result = backend.position(&request).expect("Mars query should work");
     let ecliptic = result.ecliptic.expect("ecliptic result should exist");
@@ -104,7 +104,7 @@ fn j2000_mars_position_uses_generated_vsop87b_mars_table() {
 
 #[test]
 fn j2000_jupiter_position_uses_full_vsop87b_jupiter_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Jupiter);
     let result = backend
         .position(&request)
@@ -130,7 +130,7 @@ fn j2000_jupiter_position_uses_full_vsop87b_jupiter_file() {
 
 #[test]
 fn j2000_saturn_position_uses_full_vsop87b_saturn_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Saturn);
     let result = backend
         .position(&request)
@@ -156,7 +156,7 @@ fn j2000_saturn_position_uses_full_vsop87b_saturn_file() {
 
 #[test]
 fn j2000_uranus_position_uses_full_vsop87b_uranus_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Uranus);
     let result = backend
         .position(&request)
@@ -182,7 +182,7 @@ fn j2000_uranus_position_uses_full_vsop87b_uranus_file() {
 
 #[test]
 fn j2000_neptune_position_uses_full_vsop87b_neptune_file() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let request = mean_request(CelestialBody::Neptune);
     let result = backend
         .position(&request)
@@ -208,7 +208,7 @@ fn j2000_neptune_position_uses_full_vsop87b_neptune_file() {
 
 #[test]
 fn batch_query_covers_all_source_backed_vsop87_paths() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let samples = canonical_epoch_samples();
     let requests = samples
         .iter()
@@ -248,7 +248,7 @@ fn batch_query_covers_all_source_backed_vsop87_paths() {
 
 #[test]
 fn batch_query_covers_all_supported_vsop87_paths() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = Vsop87Backend::supported_bodies()
         .iter()
         .cloned()
@@ -318,7 +318,7 @@ fn batch_query_covers_all_supported_vsop87_paths() {
 
 #[test]
 fn batch_query_preserves_supported_vsop87_paths_for_tdb_requests() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = Vsop87Backend::supported_bodies()
         .iter()
         .cloned()
@@ -452,7 +452,7 @@ fn batch_query_preserves_supported_vsop87_paths_for_mixed_time_scales() {
 
 #[test]
 fn batch_query_preserves_canonical_sample_order_for_source_backed_paths() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let mut requests = canonical_epoch_requests();
     let mut samples = canonical_epoch_samples();
     requests.reverse();
@@ -489,7 +489,7 @@ fn batch_query_preserves_canonical_sample_order_for_source_backed_paths() {
 
 #[test]
 fn batch_query_preserves_equatorial_frame_and_values() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let mut requests = canonical_epoch_requests();
     let mut samples = canonical_epoch_samples();
     requests.reverse();
@@ -557,7 +557,10 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_reference_epoch() {
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Equatorial);
-        assert_eq!(result.quality, QualityAnnotation::Exact);
+        assert_eq!(
+            result.quality,
+            default_quality_inside_the_window(&result.body)
+        );
 
         let single = backend
             .position(request)
@@ -611,7 +614,10 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j1900_ecliptic_reference_
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Ecliptic);
-        assert_eq!(result.quality, QualityAnnotation::Exact);
+        assert_eq!(
+            result.quality,
+            default_quality_inside_the_window(&result.body)
+        );
 
         let single = backend
             .position(request)
@@ -665,7 +671,10 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch() {
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Equatorial);
-        assert_eq!(result.quality, QualityAnnotation::Exact);
+        assert_eq!(
+            result.quality,
+            default_quality_inside_the_window(&result.body)
+        );
 
         let single = backend
             .position(request)
@@ -719,7 +728,10 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Equatorial);
-        assert_eq!(result.quality, QualityAnnotation::Exact);
+        assert_eq!(
+            result.quality,
+            default_quality_inside_the_window(&result.body)
+        );
 
         let single = backend
             .position(request)
@@ -813,7 +825,10 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_
         assert_eq!(result.body, request.body);
         assert_eq!(result.instant, request.instant);
         assert_eq!(result.frame, CoordinateFrame::Ecliptic);
-        assert_eq!(result.quality, QualityAnnotation::Exact);
+        assert_eq!(
+            result.quality,
+            default_quality_inside_the_window(&result.body)
+        );
 
         let single = backend
             .position(request)
@@ -851,7 +866,7 @@ fn batch_query_preserves_supported_vsop87_paths_at_the_j2000_reference_epoch_in_
 
 #[test]
 fn batch_query_preserves_mixed_frame_requests_and_values() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = canonical_epoch_requests()
         .into_iter()
         .enumerate()
@@ -1126,7 +1141,7 @@ fn tdb_requests_are_accepted_like_tt_requests() {
 
 #[test]
 fn batch_query_preserves_mixed_time_scales_and_values() {
-    let backend = Vsop87Backend::new();
+    let backend = Vsop87FullSeriesBackend::new();
     let requests = canonical_epoch_requests()
         .into_iter()
         .enumerate()
@@ -1248,4 +1263,15 @@ fn equatorial_channel_is_j2000_away_from_j2000() {
         (d_dec - expected_d_dec).abs() < 0.05,
         "Dec {d_dec}″ vs {expected_d_dec}″"
     );
+}
+
+/// Quality the default backend reports inside the 1600–2600 truncation
+/// window: the VSOP87B bodies are evaluated truncated, so `Approximate`;
+/// Pluto keeps its path mapping (its Meeus fit covers J1900 and J2000).
+fn default_quality_inside_the_window(body: &CelestialBody) -> QualityAnnotation {
+    if *body == CelestialBody::Pluto {
+        QualityAnnotation::Exact
+    } else {
+        QualityAnnotation::Approximate
+    }
 }

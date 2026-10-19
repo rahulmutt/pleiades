@@ -30,6 +30,12 @@ use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 /// the true node's distance (by 1.6e-5 relative) and distance speed, and the
 /// last bits of its near-zero latitude and latitude speed; no longitude bit
 /// moved, because the node direction does not depend on μ.
+/// Issue #281 re-pinned it from `0xd626_5b6c_3ea9_849d`: the default
+/// `Vsop87Backend` evaluates truncated VSOP87B series inside 1600–2600, moving
+/// the 27 Sun and Mercury-to-Pluto composite rows by at most 0.028″ in
+/// longitude and 0.032″ in latitude (Venus at J2000+25); the Moon, true-node
+/// and packaged rows did not move. `Vsop87FullSeriesBackend` still gives the
+/// old value.
 ///
 /// Re-pin it only in a change that intentionally moves positions or speeds,
 /// like the crossings golden: run `cargo test -p pleiades-core --lib apparent_chart_outputs_are_pinned`,
@@ -37,7 +43,7 @@ use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 /// pinned bit, for a diff against the old run), and state the re-pin and its
 /// reason in the commit message. The value hashes `libm` output and is pinned
 /// on Linux CI; another platform's libm may differ in the last bit.
-const CHART_CHECKSUM: u64 = 0xd626_5b6c_3ea9_849d;
+const CHART_CHECKSUM: u64 = 0x7b8e_ac03_49f8_371b;
 
 fn eleven_bodies() -> Vec<CelestialBody> {
     vec![

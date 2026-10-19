@@ -6,34 +6,20 @@
 //! coefficient artifact for the inner planet without relying on a hand-trimmed
 //! coefficient slice.
 
-use std::sync::OnceLock;
+use super::series::{SeriesFidelity, Vsop87SeriesSource};
+use super::vsop87b_earth::SphericalLbr;
 
-use super::vsop87b_earth::{
-    evaluate, parse_generated_vsop87b_tables, SphericalLbr, Vsop87SeriesTables,
-};
+static VENUS: Vsop87SeriesSource =
+    Vsop87SeriesSource::new(include_bytes!("../../data/VSOP87B.ven.bin"));
 
-static VENUS_TABLES: OnceLock<Vsop87SeriesTables> = OnceLock::new();
-
-pub(crate) fn venus_lbr(julian_day_tt: f64) -> SphericalLbr {
-    let t = (julian_day_tt - 2_451_545.0) / 365_250.0;
-    let tables = venus_tables();
-    SphericalLbr {
-        longitude_rad: evaluate(tables.longitude.iter().map(Vec::as_slice), t)
-            .rem_euclid(core::f64::consts::TAU),
-        latitude_rad: evaluate(tables.latitude.iter().map(Vec::as_slice), t),
-        radius_au: evaluate(tables.radius.iter().map(Vec::as_slice), t),
-    }
-}
-
-fn venus_tables() -> &'static Vsop87SeriesTables {
-    VENUS_TABLES.get_or_init(|| {
-        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.ven.bin"))
-    })
+pub(crate) fn venus_lbr(julian_day_tt: f64, fidelity: SeriesFidelity) -> SphericalLbr {
+    VENUS.lbr(julian_day_tt, fidelity)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tables::vsop87b_earth::parse_generated_vsop87b_tables;
     use crate::tables::vsop87b_earth::parse_vsop87b_tables;
 
     #[test]
@@ -71,7 +57,7 @@ mod tests {
 
     #[test]
     fn evaluates_j2000_venus_coordinates_from_the_generated_table_file() {
-        let venus = venus_lbr(2_451_545.0);
+        let venus = venus_lbr(2_451_545.0, SeriesFidelity::Full);
         assert!((venus.longitude_rad.to_degrees() - 182.602_920_758_433_04).abs() < 1e-12);
         assert!((venus.latitude_rad.to_degrees() - 3.264_615_250_767_216).abs() < 1e-12);
         assert!((venus.radius_au - 0.720_212_924_846_730_5).abs() < 1e-15);

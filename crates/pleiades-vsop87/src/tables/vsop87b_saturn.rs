@@ -7,33 +7,20 @@
 //! supported VSOP87 major planet while Pluto remains outside the VSOP87
 //! major-planet files.
 
-use super::vsop87b_earth::{
-    evaluate, parse_generated_vsop87b_tables, SphericalLbr, Vsop87SeriesTables,
-};
-use std::sync::OnceLock;
+use super::series::{SeriesFidelity, Vsop87SeriesSource};
+use super::vsop87b_earth::SphericalLbr;
 
-static SATURN_TABLES: OnceLock<Vsop87SeriesTables> = OnceLock::new();
+static SATURN: Vsop87SeriesSource =
+    Vsop87SeriesSource::new(include_bytes!("../../data/VSOP87B.sat.bin"));
 
-pub(crate) fn saturn_lbr(julian_day_tt: f64) -> SphericalLbr {
-    let t = (julian_day_tt - 2_451_545.0) / 365_250.0;
-    let tables = saturn_tables();
-    SphericalLbr {
-        longitude_rad: evaluate(tables.longitude.iter().map(Vec::as_slice), t)
-            .rem_euclid(core::f64::consts::TAU),
-        latitude_rad: evaluate(tables.latitude.iter().map(Vec::as_slice), t),
-        radius_au: evaluate(tables.radius.iter().map(Vec::as_slice), t),
-    }
-}
-
-fn saturn_tables() -> &'static Vsop87SeriesTables {
-    SATURN_TABLES.get_or_init(|| {
-        parse_generated_vsop87b_tables(include_bytes!("../../data/VSOP87B.sat.bin"))
-    })
+pub(crate) fn saturn_lbr(julian_day_tt: f64, fidelity: SeriesFidelity) -> SphericalLbr {
+    SATURN.lbr(julian_day_tt, fidelity)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tables::vsop87b_earth::parse_generated_vsop87b_tables;
 
     #[test]
     fn parses_generated_saturn_table_blob_with_expected_series_counts() {
@@ -53,7 +40,7 @@ mod tests {
 
     #[test]
     fn evaluates_j2000_saturn_coordinates_from_the_full_source_file() {
-        let saturn = saturn_lbr(2_451_545.0);
+        let saturn = saturn_lbr(2_451_545.0, SeriesFidelity::Full);
         assert!((saturn.longitude_rad.to_degrees() - 45.722_254_745_568_414).abs() < 1e-12);
         assert!((saturn.latitude_rad.to_degrees() + 2.303_199_518_162_094).abs() < 1e-12);
         assert!((saturn.radius_au - 9.183_848_288_052_635).abs() < 1e-12);

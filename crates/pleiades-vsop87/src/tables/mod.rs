@@ -7,6 +7,7 @@
 //! `pluto_meeus` holds Meeus Table 37.A for Pluto, which the VSOP87 files exclude.
 
 pub(crate) mod pluto_meeus;
+pub(crate) mod series;
 pub(crate) mod vsop87b_earth;
 pub(crate) mod vsop87b_jupiter;
 pub(crate) mod vsop87b_mars;

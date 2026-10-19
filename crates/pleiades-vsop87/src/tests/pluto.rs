@@ -273,8 +273,12 @@ fn the_position_switches_path_exactly_at_each_window_bound() {
 #[test]
 fn the_speed_inside_the_window_differences_the_fit_even_next_to_a_bound() {
     for jd in [PLUTO_FIT_START_JD + 0.25, PLUTO_FIT_END_JD - 0.5] {
-        let expected =
-            Vsop87Backend::motion(CelestialBody::Pluto, jd - J2000, PlutoPath::PeriodicTermFit);
+        let expected = Vsop87Backend::motion(
+            CelestialBody::Pluto,
+            jd - J2000,
+            PlutoPath::PeriodicTermFit,
+            crate::tables::series::default_fidelity_at(jd),
+        );
         assert_eq!(pluto_at(jd, TimeScale::Tt).motion, expected, "{jd}");
     }
 }
