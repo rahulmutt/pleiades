@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.5.10] - 2026-10-23
+
+### Fixed
+
+- Route transcendentals through pure-Rust libm so pins don't depend on host glibc ([#288](https://github.com/rahulmutt/pleiades/pull/288)) ([#289](https://github.com/rahulmutt/pleiades/pull/289)) ([a5c5600](https://github.com/rahulmutt/pleiades/commit/a5c56008cd60deda01c455a0331a8803bdda708d))
+
 ## [0.5.9] - 2026-10-18
 
 _No user-facing changes; released for a dependency or manifest update._
