@@ -457,9 +457,10 @@ mod tests {
     use pleiades_backend::test_backend::LinearSunMoon;
 
     /// Issue #288 re-pinned the Saturn and Pluto lanes (from
-    /// `4566141178696634184` and `4629851122814407423`): the packaged artifact
-    /// was regenerated with `libm` transcendentals, moving Saturn by 3.0e-11″
-    /// and Pluto by 4.6e-6″; Mercury and Mars did not move.
+    /// `4566141178696634184` and `4629851122814407423`). Saturn moved by
+    /// 3.0e-11″, which is `libm` last-bit rounding (sub-quantum: the artifact
+    /// coefficients are quantized at 1e-9° ≈ 3.6e-6″); only Pluto's 4.6e-6″
+    /// comes from the regenerated artifact. Mercury and Mars did not move.
     const PINNED_HELIO_LONGITUDE_BITS: [u64; 4] = [
         4640199238401330988,
         4645031011594974728,

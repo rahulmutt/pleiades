@@ -1,3 +1,7 @@
+# Transcendentals must go through the pure-Rust `libm` crate (#288) so results
+# do not depend on the host C library. `sqrt`, `powi`, `mul_add`, rounding and
+# degree/radian conversion are deliberately absent: they are IEEE-exact or
+# compiler-lowered, so they never reach the host C library.
 disallowed-methods = [
     { path = "f64::sin", reason = "use libm::sin (host-libm-independent results, #288)" },
     { path = "f64::cos", reason = "use libm::cos (host-libm-independent results, #288)" },

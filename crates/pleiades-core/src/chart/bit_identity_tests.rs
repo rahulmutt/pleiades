@@ -43,8 +43,9 @@ use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 /// The composite rows moved by at most 2.1e-10″ in position (1-2 ulp) and
 /// 3.4e-16 relative in distance, except the true node, whose longitude moved
 /// by 1.4e-5″, distance by 3.0e-11 relative and longitude speed by
-/// 1.0e-8 °/day: its direction is the cross product of the Moon's position
-/// and velocity, which amplifies the last-bit differences. The other
+/// 1.0e-8 °/day: the Moon's velocity is differenced over ±1e-4 day, which
+/// divides last-bit position differences by 2e-4 d, and the node direction
+/// adds a ~1/sin i (≈11) factor. The other
 /// composite speeds moved by at most 5.7e-12 (Sun, in °/day). The
 /// packaged rows moved partly from the regenerated artifact: Mars by at most
 /// 1.5e-5″ in longitude, 1.1e-8″ in latitude and 2.3e-8 °/day in longitude
@@ -54,8 +55,9 @@ use crate::chart::{ChartEngine, ChartRequest, ChartSnapshot};
 /// like the crossings golden: run `cargo test -p pleiades-core --lib apparent_chart_outputs_are_pinned`,
 /// copy the `got 0x...` value from the failure message (it also prints every
 /// pinned bit, for a diff against the old run), and state the re-pin and its
-/// reason in the commit message. The value hashes `libm` output and is pinned
-/// on Linux CI; another platform's libm may differ in the last bit.
+/// reason in the commit message. The value hashes output of the pure-Rust
+/// `libm` crate (#288), so it does not depend on the host C library; it is
+/// checked on x86_64 Linux CI only.
 const CHART_CHECKSUM: u64 = 0xa10a_83ec_be6f_c696;
 
 fn eleven_bodies() -> Vec<CelestialBody> {
