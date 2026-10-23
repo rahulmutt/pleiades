@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   nightly:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - name: Checkout repository
@@ -112,7 +112,7 @@ jobs:
               done
 
   aspects-gate:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
       - name: Checkout repository
@@ -183,7 +183,7 @@ jobs:
   # The lunar-point pass is split out of `aspects-gate`: the combined step
   # took 15m40s on 2026-10-17 (run 39039081162), over the 15-minute threshold.
   aspects-lunar-gate:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
       - name: Checkout repository
@@ -254,7 +254,7 @@ jobs:
   # The full stations gate was `test-full-validate`'s long pole (FU-23 (u));
   # it runs here, in parallel with the nightly tier, like `aspects-gate`.
   stations-gate:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Checkout repository
