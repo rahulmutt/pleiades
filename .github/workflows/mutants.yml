@@ -17,7 +17,7 @@ permissions:
   issues: write
 
 env:
-  # ubuntu-latest is a 4-vCPU runner; cargo-mutants reads this natively.
+  # The ubuntu-24.04 standard runner has 4 vCPUs; cargo-mutants reads this natively.
   # Pinned rather than left to default so the weekly wall-clock stays
   # comparable run to run.
   CARGO_MUTANTS_JOBS: 4
@@ -25,7 +25,7 @@ env:
 jobs:
   mutants:
     name: mutants (shard ${{ matrix.shard }}/4)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Four round-robin shards in parallel (`mise run mutants --shard k/4`),
     # one runner each. History and calibration:
     #
@@ -148,7 +148,7 @@ jobs:
   report:
     needs: mutants
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout repository
