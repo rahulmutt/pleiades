@@ -32,6 +32,8 @@ keywords = ["astrology", "astronomy", "ephemeris"]
 categories = ["science"]
 
 [workspace.dependencies]
+# Pure-Rust libm: transcendentals independent of the host C library (#288).
+libm = "0.2.16"
 proptest = { version = "1", default-features = false, features = ["std"] }
 serde = { version = "1", default-features = false, features = ["derive", "std"] }
 # Pure-Rust HTTPS for the optional, default-off `horizons-fetch` path: ureq over

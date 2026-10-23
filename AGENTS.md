@@ -321,6 +321,7 @@ This project deals with astronomy/astrology computations, so correctness is crit
 - Avoid hidden assumptions in angle math, time scales, and coordinate conversions.
 - Add regression tests for edge cases such as boundary dates, polar latitudes, and normalization wraparound.
 - Document expected precision and known limitations.
+- Call transcendentals through `libm::` (`libm::sin(x)`, not `x.sin()`); `clippy.toml` enforces it so results do not depend on the host C library (#288).
 
 ---
 
