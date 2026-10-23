@@ -86,7 +86,7 @@ pub fn fixed_star_apparent(name: &str, at: Instant) -> Result<EquatorialCoordina
     //    the great circle, so recover the coordinate rate by dividing by cosδ
     //    (sefstars convention already folds cosδ into `pm_ra_mas_yr`).
     let dec0 = e.dec_j2000_deg.to_radians();
-    let ra = e.ra_j2000_deg + (e.pm_ra_mas_yr / 3_600_000.0) * years / dec0.cos();
+    let ra = e.ra_j2000_deg + (e.pm_ra_mas_yr / 3_600_000.0) * years / libm::cos(dec0);
     let dec = e.dec_j2000_deg + (e.pm_dec_mas_yr / 3_600_000.0) * years;
 
     // 2. Equatorial J2000 → ecliptic J2000 for the precession/nutation helpers,

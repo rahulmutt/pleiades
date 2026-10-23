@@ -30,7 +30,7 @@ const DISTANCE_CEILING: f64 = 1e-6;
 /// arcseconds, and the relative distance difference.
 fn difference(got: Place, want: Place) -> (f64, f64, f64) {
     let longitude = ((got.0 - want.0 + 180.0).rem_euclid(360.0) - 180.0).abs()
-        * want.1.to_radians().cos()
+        * libm::cos(want.1.to_radians())
         * 3600.0;
     let latitude = (got.1 - want.1).abs() * 3600.0;
     let distance = ((got.2 - want.2) / want.2).abs();

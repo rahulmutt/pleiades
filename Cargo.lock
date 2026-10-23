@@ -186,6 +186,7 @@ dependencies = [
 name = "pleiades-cli"
 version = "0.5.2"
 dependencies = [
+ "libm",
  "pleiades-core",
  "pleiades-data",
  "pleiades-elp",
@@ -212,6 +213,7 @@ dependencies = [
 name = "pleiades-core"
 version = "0.11.1"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-ayanamsa",
  "pleiades-backend",
@@ -240,6 +242,7 @@ dependencies = [
 name = "pleiades-eclipse"
 version = "0.8.1"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-backend",
  "pleiades-data",
@@ -263,6 +266,7 @@ dependencies = [
 name = "pleiades-events"
 version = "0.10.1"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-apsides",
  "pleiades-ayanamsa",
@@ -334,6 +338,7 @@ dependencies = [
 name = "pleiades-validate"
 version = "0.5.2"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-ayanamsa",
  "pleiades-backend",

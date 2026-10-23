@@ -172,9 +172,10 @@ fn hindu_moonrise_roots_the_geocentric_place() {
             equ.declination.degrees().to_radians(),
         );
         let ha = (lst - equ.right_ascension.degrees()).to_radians();
-        (phi.sin() * dec.sin() + phi.cos() * dec.cos() * ha.cos())
-            .asin()
-            .to_degrees()
+        libm::asin(
+            libm::sin(phi) * libm::sin(dec) + libm::cos(phi) * libm::cos(dec) * libm::cos(ha),
+        )
+        .to_degrees()
     };
     // Settled within 0.5 s after the crossing: the Moon climbs at most
     // ~15″/s, so the geocentric centre is above the horizon by under 8″.

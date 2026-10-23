@@ -19,8 +19,8 @@ pub(crate) fn cartesian_velocity(
     let lon_rate = motion.longitude_deg_per_day?.to_radians();
     let lat_rate = motion.latitude_deg_per_day?.to_radians();
     let r_rate = motion.distance_au_per_day?;
-    let (sin_lon, cos_lon) = lon_deg.to_radians().sin_cos();
-    let (sin_lat, cos_lat) = lat_deg.to_radians().sin_cos();
+    let (sin_lon, cos_lon) = libm::sincos(lon_deg.to_radians());
+    let (sin_lat, cos_lat) = libm::sincos(lat_deg.to_radians());
     Some([
         r_rate * cos_lat * cos_lon
             - r_au * sin_lat * cos_lon * lat_rate

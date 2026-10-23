@@ -37,11 +37,11 @@ use pleiades_types::Instant;
 /// `(longitude_deg, latitude_deg)` of a Cartesian ecliptic vector.
 fn lon_lat_deg(v: [f64; 3]) -> (f64, f64) {
     let r = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
-    let lon = v[1].atan2(v[0]).to_degrees().rem_euclid(360.0);
+    let lon = libm::atan2(v[1], v[0]).to_degrees().rem_euclid(360.0);
     let lat = if r == 0.0 {
         0.0
     } else {
-        (v[2] / r).clamp(-1.0, 1.0).asin().to_degrees()
+        libm::asin((v[2] / r).clamp(-1.0, 1.0)).to_degrees()
     };
     (lon, lat)
 }
@@ -103,11 +103,11 @@ impl<B: EphemerisBackend> EventEngine<B> {
         // Phase angle and elongation via law of cosines (§E4).
         let cos_alpha =
             ((r * r + delta * delta - r_sun * r_sun) / (2.0 * r * delta)).clamp(-1.0, 1.0);
-        let phase_angle_deg = cos_alpha.acos().to_degrees();
+        let phase_angle_deg = libm::acos(cos_alpha).to_degrees();
         let phase_fraction = (1.0 + cos_alpha) / 2.0;
         let cos_elong =
             ((delta * delta + r_sun * r_sun - r * r) / (2.0 * delta * r_sun)).clamp(-1.0, 1.0);
-        let elongation_deg = cos_elong.acos().to_degrees();
+        let elongation_deg = libm::acos(cos_elong).to_degrees();
 
         let magnitude_inputs = MagInputs {
             phase_angle_deg,

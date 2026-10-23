@@ -19,10 +19,11 @@ const FIXTURE_CHECKSUM: u64 = 5834603876026131102;
 fn great_circle_deg(ra1: f64, dec1: f64, ra2: f64, dec2: f64) -> f64 {
     let (a1, d1) = (ra1.to_radians(), dec1.to_radians());
     let (a2, d2) = (ra2.to_radians(), dec2.to_radians());
-    (d1.sin() * d2.sin() + d1.cos() * d2.cos() * (a1 - a2).cos())
-        .clamp(-1.0, 1.0)
-        .acos()
-        .to_degrees()
+    libm::acos(
+        (libm::sin(d1) * libm::sin(d2) + libm::cos(d1) * libm::cos(d2) * libm::cos(a1 - a2))
+            .clamp(-1.0, 1.0),
+    )
+    .to_degrees()
 }
 
 fn body_from_se(se: i64) -> Option<CelestialBody> {

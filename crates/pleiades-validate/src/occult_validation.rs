@@ -766,8 +766,10 @@ fn parse_i64(s: &str, row: &str) -> Result<i64, OccultError> {
 fn great_circle_deg(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     let (a1, d1) = (lon1.to_radians(), lat1.to_radians());
     let (a2, d2) = (lon2.to_radians(), lat2.to_radians());
-    let cos_sep = (d1.sin() * d2.sin() + d1.cos() * d2.cos() * (a1 - a2).cos()).clamp(-1.0, 1.0);
-    cos_sep.acos().to_degrees()
+    let cos_sep = (libm::sin(d1) * libm::sin(d2)
+        + libm::cos(d1) * libm::cos(d2) * libm::cos(a1 - a2))
+    .clamp(-1.0, 1.0);
+    libm::acos(cos_sep).to_degrees()
 }
 
 /// Whether a star (by curated catalog name) sits permanently outside the

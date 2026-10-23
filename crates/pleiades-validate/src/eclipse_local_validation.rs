@@ -245,7 +245,7 @@ fn azimuth_arcsec(a: f64, b: f64) -> f64 {
 /// SP-2b already treats horizontal parity, and avoids a giant flat raw-azimuth
 /// ceiling that would mask real regressions at moderate altitudes.
 fn azimuth_sky_arcsec(eng_az_deg: f64, se_az_deg: f64, alt_deg: f64) -> f64 {
-    azimuth_arcsec(eng_az_deg, se_az_deg) * alt_deg.to_radians().cos().abs()
+    azimuth_arcsec(eng_az_deg, se_az_deg) * libm::cos(alt_deg.to_radians()).abs()
 }
 
 fn parse_manifest() -> Result<BTreeMap<String, (usize, u64)>, EclipseLocalError> {

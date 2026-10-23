@@ -87,7 +87,7 @@ fn a_sinusoidal_residual_settles_well_under_bisection() {
     // An altitude-like residual: a day-period sine with its zero inside an
     // hour bracket, rising.
     let root = T0 + 0.61 * HOUR;
-    let g = move |t: f64| (std::f64::consts::TAU * (t - root)).sin();
+    let g = move |t: f64| libm::sin(std::f64::consts::TAU * (t - root));
     let (got, calls) = counted(&itp, &g, T0, T0 + HOUR);
     let (_, bisect_calls) = counted(&bisection, &g, T0, T0 + HOUR);
     assert_settled(&g, true, got);
@@ -184,7 +184,7 @@ fn a_bracket_already_within_tolerance_is_returned_without_evaluating() {
 fn itp_and_bisection_agree_to_the_tolerance() {
     for k in 0..200_u32 {
         let root = T0 + (f64::from(k) + 0.5) / 200.0 * HOUR;
-        let g = move |t: f64| (std::f64::consts::TAU * (t - root)).sin();
+        let g = move |t: f64| libm::sin(std::f64::consts::TAU * (t - root));
         let (a, _) = counted(&itp, &g, T0, T0 + HOUR);
         let (b, _) = counted(&bisection, &g, T0, T0 + HOUR);
         assert_settled(&g, true, a);

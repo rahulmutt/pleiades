@@ -75,9 +75,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
             observer.latitude.degrees().to_radians(),
         );
         // Standard equatorial → horizontal rotation (azimuth from south, west +).
-        let sin_alt = phi.sin() * dec.sin() + phi.cos() * dec.cos() * h.cos();
-        let alt = sin_alt.clamp(-1.0, 1.0).asin();
-        let az = (h.sin()).atan2(h.cos() * phi.sin() - dec.tan() * phi.cos());
+        let sin_alt =
+            libm::sin(phi) * libm::sin(dec) + libm::cos(phi) * libm::cos(dec) * libm::cos(h);
+        let alt = libm::asin(sin_alt.clamp(-1.0, 1.0));
+        let az = libm::atan2(
+            libm::sin(h),
+            libm::cos(h) * libm::sin(phi) - libm::tan(dec) * libm::cos(phi),
+        );
         let true_altitude = alt.to_degrees();
         Ok(Horizontal {
             azimuth: az.to_degrees().rem_euclid(360.0),
@@ -123,9 +127,13 @@ impl<B: EphemerisBackend> EventEngine<B> {
             alt_deg.to_radians(),
             observer.latitude.degrees().to_radians(),
         );
-        let sin_dec = phi.sin() * alt.sin() - phi.cos() * alt.cos() * az.cos();
-        let dec = sin_dec.clamp(-1.0, 1.0).asin();
-        let h = (az.sin()).atan2(phi.sin() * az.cos() + phi.cos() * alt.tan());
+        let sin_dec =
+            libm::sin(phi) * libm::sin(alt) - libm::cos(phi) * libm::cos(alt) * libm::cos(az);
+        let dec = libm::asin(sin_dec.clamp(-1.0, 1.0));
+        let h = libm::atan2(
+            libm::sin(az),
+            libm::sin(phi) * libm::cos(az) + libm::cos(phi) * libm::tan(alt),
+        );
         let lst = local_apparent_sidereal_deg(tdb_jd(at)?, observer.longitude)?;
         let ra = (lst - h.to_degrees()).rem_euclid(360.0);
         Ok((

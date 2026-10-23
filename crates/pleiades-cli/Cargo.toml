@@ -7,6 +7,7 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
+libm.workspace = true
 pleiades-core = { path = "../pleiades-core" }
 pleiades-data = { path = "../pleiades-data" }
 pleiades-elp = { path = "../pleiades-elp" }

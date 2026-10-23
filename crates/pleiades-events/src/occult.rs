@@ -180,8 +180,10 @@ pub(crate) struct OccGeom {
 pub(crate) fn angular_separation_deg(ra1: f64, dec1: f64, ra2: f64, dec2: f64) -> f64 {
     let (a1, d1) = (ra1.to_radians(), dec1.to_radians());
     let (a2, d2) = (ra2.to_radians(), dec2.to_radians());
-    let cos_sep = (d1.sin() * d2.sin() + d1.cos() * d2.cos() * (a1 - a2).cos()).clamp(-1.0, 1.0);
-    cos_sep.acos().to_degrees()
+    let cos_sep = (libm::sin(d1) * libm::sin(d2)
+        + libm::cos(d1) * libm::cos(d2) * libm::cos(a1 - a2))
+    .clamp(-1.0, 1.0);
+    libm::acos(cos_sep).to_degrees()
 }
 
 /// Covered fraction of the TARGET's diameter (SE `attr[0]`). For a point star
@@ -215,12 +217,8 @@ pub(crate) fn obscuration_fraction(g: &OccGeom) -> f64 {
     }
     let r_t2 = r_t * r_t;
     let r_m2 = r_m * r_m;
-    let a_t = ((d * d + r_t2 - r_m2) / (2.0 * d * r_t))
-        .clamp(-1.0, 1.0)
-        .acos();
-    let a_m = ((d * d + r_m2 - r_t2) / (2.0 * d * r_m))
-        .clamp(-1.0, 1.0)
-        .acos();
+    let a_t = libm::acos(((d * d + r_t2 - r_m2) / (2.0 * d * r_t)).clamp(-1.0, 1.0));
+    let a_m = libm::acos(((d * d + r_m2 - r_t2) / (2.0 * d * r_m)).clamp(-1.0, 1.0));
     let lens = r_t2 * a_t + r_m2 * a_m
         - 0.5
             * ((r_t + r_m + d) * (-r_t + r_m + d) * (r_t - r_m + d) * (r_t + r_m - d))
@@ -491,10 +489,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let sep_deg = angular_separation_deg(moon.0, moon.1, tgt.0, tgt.1);
         // Moon semidiameter from its topocentric/geocentric distance.
         let moon_dist = self.body_distance_au(&CelestialBody::Moon, observer, jd)?;
-        let s_moon_deg = (R_MOON_KM / (moon_dist * AU_KM))
-            .clamp(-1.0, 1.0)
-            .asin()
-            .to_degrees();
+        let s_moon_deg =
+            libm::asin((R_MOON_KM / (moon_dist * AU_KM)).clamp(-1.0, 1.0)).to_degrees();
         let s_tgt_deg = match target {
             OccultTarget::Body(b) => {
                 let dist = self.body_distance_au(b, observer, jd)?;
@@ -680,9 +676,14 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let ha = (lst - ra_deg).to_radians();
         let dec = dec_deg.to_radians();
         let phi = observer.latitude.degrees().to_radians();
-        let sin_alt = (phi.sin() * dec.sin() + phi.cos() * dec.cos() * ha.cos()).clamp(-1.0, 1.0);
-        let true_alt = sin_alt.asin().to_degrees();
-        let az = ha.sin().atan2(ha.cos() * phi.sin() - dec.tan() * phi.cos());
+        let sin_alt = (libm::sin(phi) * libm::sin(dec)
+            + libm::cos(phi) * libm::cos(dec) * libm::cos(ha))
+        .clamp(-1.0, 1.0);
+        let true_alt = libm::asin(sin_alt).to_degrees();
+        let az = libm::atan2(
+            libm::sin(ha),
+            libm::cos(ha) * libm::sin(phi) - libm::tan(dec) * libm::cos(phi),
+        );
         let app_alt = apparent_from_true(
             true_alt,
             atmos.at_elevation(observer.elevation_m.unwrap_or(0.0)),
@@ -1180,10 +1181,8 @@ impl<B: EphemerisBackend> EventEngine<B> {
             )?;
             let g = self.occ_geom(&target, None, max_jd)?;
             let moon_dist = self.body_distance_au(&CelestialBody::Moon, None, max_jd)?;
-            let pi_moon = (R_EARTH_KM / (moon_dist * AU_KM))
-                .clamp(-1.0, 1.0)
-                .asin()
-                .to_degrees();
+            let pi_moon =
+                libm::asin((R_EARTH_KM / (moon_dist * AU_KM)).clamp(-1.0, 1.0)).to_degrees();
             if g.sep_deg < g.s_moon_deg + g.s_tgt_deg + pi_moon && max_jd > after_jd {
                 // Central-observation point: the geographic (lat, lon) on
                 // Earth's surface at `max_jd` where the TOPOCENTRIC Moon–target
