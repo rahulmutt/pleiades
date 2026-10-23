@@ -541,9 +541,11 @@ fn independent_holdout_summary_reports_the_expected_envelope() {
     assert!(summary.median_distance_error_au.is_finite());
     assert!(summary.percentile_distance_error_au.is_finite());
     assert!(summary.rms_distance_error_au.is_finite());
-    assert!(!summary.max_longitude_error_body.is_empty());
-    assert!(!summary.max_latitude_error_body.is_empty());
-    assert!(!summary.max_distance_error_body.is_empty());
+    // The body is only recorded when its max error is > 0 (#288: with libm the
+    // holdout longitude error is exactly 0.0).
+    assert!(summary.max_longitude_error_deg == 0.0 || !summary.max_longitude_error_body.is_empty());
+    assert!(summary.max_latitude_error_deg == 0.0 || !summary.max_latitude_error_body.is_empty());
+    assert!(summary.max_distance_error_au == 0.0 || !summary.max_distance_error_body.is_empty());
 }
 
 #[test]
