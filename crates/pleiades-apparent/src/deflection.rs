@@ -27,7 +27,11 @@ pub struct DeflectionOffset {
 
 fn unit(lambda_deg: f64, beta_deg: f64) -> [f64; 3] {
     let (l, b) = (lambda_deg.to_radians(), beta_deg.to_radians());
-    [b.cos() * l.cos(), b.cos() * l.sin(), b.sin()]
+    [
+        libm::cos(b) * libm::cos(l),
+        libm::cos(b) * libm::sin(l),
+        libm::sin(b),
+    ]
 }
 
 /// The Sun's deflection of light from a star at ecliptic `(λ, β)` (mean
@@ -58,8 +62,8 @@ pub fn gravitational_deflection(lambda_deg: f64, beta_deg: f64, jd_tt: f64) -> D
         };
     }
     let d: [f64; 3] = std::array::from_fn(|i| u[i] + g1 / g2 * (e[i] - ue * u[i]));
-    let lambda = d[1].atan2(d[0]).to_degrees();
-    let beta = d[2].atan2(d[0].hypot(d[1])).to_degrees();
+    let lambda = libm::atan2(d[1], d[0]).to_degrees();
+    let beta = libm::atan2(d[2], libm::hypot(d[0], d[1])).to_degrees();
     DeflectionOffset {
         d_lambda_arcsec: ((lambda - lambda_deg + 540.0).rem_euclid(360.0) - 180.0) * 3600.0,
         d_beta_arcsec: (beta - beta_deg) * 3600.0,

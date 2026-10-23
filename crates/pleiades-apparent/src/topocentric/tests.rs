@@ -28,11 +28,10 @@ fn moon_parallax_is_about_one_degree() {
     // Moon at ~0.00257 AU (60.3 Earth radii). For an observer with the Moon
     // near the horizon the parallax approaches ~0.95°. Assert it is large.
     let out = topocentric_position(ecl(100.0, 0.0, 0.002_57), &observer(0.0), 100.0, 23.4).unwrap();
-    let shift = out
-        .provenance
-        .parallax_longitude_arcsec
-        .hypot(out.provenance.parallax_latitude_arcsec)
-        / 3600.0;
+    let shift = libm::hypot(
+        out.provenance.parallax_longitude_arcsec,
+        out.provenance.parallax_latitude_arcsec,
+    ) / 3600.0;
     assert!(shift > 0.3, "moon parallax {shift}° too small");
 }
 
@@ -40,10 +39,10 @@ fn moon_parallax_is_about_one_degree() {
 fn distant_body_parallax_is_negligible() {
     // A body at 30 AU: parallax < 1".
     let out = topocentric_position(ecl(100.0, 0.0, 30.0), &observer(0.0), 100.0, 23.4).unwrap();
-    let shift = out
-        .provenance
-        .parallax_longitude_arcsec
-        .hypot(out.provenance.parallax_latitude_arcsec);
+    let shift = libm::hypot(
+        out.provenance.parallax_longitude_arcsec,
+        out.provenance.parallax_latitude_arcsec,
+    );
     assert!(shift < 1.0, "distant parallax {shift}\" too large");
 }
 

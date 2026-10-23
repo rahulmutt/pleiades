@@ -43,9 +43,9 @@ pub fn topocentric_position(
 
     // Geocentric body vector in Earth equatorial radii.
     let d = distance_au * AU_IN_EARTH_RADII;
-    let bx = d * dec.cos() * ra.cos();
-    let by = d * dec.cos() * ra.sin();
-    let bz = d * dec.sin();
+    let bx = d * libm::cos(dec) * libm::cos(ra);
+    let by = d * libm::cos(dec) * libm::sin(ra);
+    let bz = d * libm::sin(dec);
 
     // Observer vector and topocentric (observer-relative) vector.
     let geo = ObserverGeocentric::from_location(observer);
@@ -59,16 +59,18 @@ pub fn topocentric_position(
             stage: "topocentric",
         });
     }
-    let mut ra_topo = ty.atan2(tx);
-    let dec_topo = (tz / topo_distance).asin();
+    let mut ra_topo = libm::atan2(ty, tx);
+    let dec_topo = libm::asin(tz / topo_distance);
 
     // Diurnal aberration: observer moves east at ω·ρcosφ′. Hour angle H = LAST - RA.
     let hour_angle =
         (local_sidereal_time_deg.to_radians() - ra_topo).rem_euclid(std::f64::consts::TAU);
-    let aberr_ra_arcsec =
-        DIURNAL_ABERRATION_ARCSEC * geo.rho_cos_phi_prime * hour_angle.cos() / dec_topo.cos();
-    let aberr_dec_arcsec =
-        DIURNAL_ABERRATION_ARCSEC * geo.rho_cos_phi_prime * hour_angle.sin() * dec_topo.sin();
+    let aberr_ra_arcsec = DIURNAL_ABERRATION_ARCSEC * geo.rho_cos_phi_prime * libm::cos(hour_angle)
+        / libm::cos(dec_topo);
+    let aberr_dec_arcsec = DIURNAL_ABERRATION_ARCSEC
+        * geo.rho_cos_phi_prime
+        * libm::sin(hour_angle)
+        * libm::sin(dec_topo);
     ra_topo += (aberr_ra_arcsec / 3600.0).to_radians();
     let dec_topo = dec_topo + (aberr_dec_arcsec / 3600.0).to_radians();
 
@@ -103,7 +105,10 @@ pub fn topocentric_position(
         provenance: TopocentricProvenance {
             parallax_longitude_arcsec: d_lon * 3600.0,
             parallax_latitude_arcsec: d_lat * 3600.0,
-            diurnal_aberration_arcsec: (aberr_ra_arcsec * dec_topo.cos()).hypot(aberr_dec_arcsec),
+            diurnal_aberration_arcsec: libm::hypot(
+                aberr_ra_arcsec * libm::cos(dec_topo),
+                aberr_dec_arcsec,
+            ),
             distance_au_used: distance_au,
         },
     })

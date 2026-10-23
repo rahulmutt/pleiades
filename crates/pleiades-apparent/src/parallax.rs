@@ -25,10 +25,10 @@ impl ObserverGeocentric {
     pub fn from_location(observer: &ObserverLocation) -> Self {
         let phi = observer.latitude.degrees().to_radians();
         let height_m = observer.elevation_m.unwrap_or(0.0);
-        let u = (EARTH_B_OVER_A * phi.tan()).atan();
+        let u = libm::atan(EARTH_B_OVER_A * libm::tan(phi));
         let h_over_a = height_m / EARTH_EQUATORIAL_RADIUS_M;
-        let rho_sin_phi_prime = EARTH_B_OVER_A * u.sin() + h_over_a * phi.sin();
-        let rho_cos_phi_prime = u.cos() + h_over_a * phi.cos();
+        let rho_sin_phi_prime = EARTH_B_OVER_A * libm::sin(u) + h_over_a * libm::sin(phi);
+        let rho_cos_phi_prime = libm::cos(u) + h_over_a * libm::cos(phi);
         Self {
             rho_sin_phi_prime,
             rho_cos_phi_prime,
@@ -40,8 +40,8 @@ impl ObserverGeocentric {
     pub fn equatorial_vector(self, local_sidereal_time_deg: f64) -> [f64; 3] {
         let lst = local_sidereal_time_deg.to_radians();
         [
-            self.rho_cos_phi_prime * lst.cos(),
-            self.rho_cos_phi_prime * lst.sin(),
+            self.rho_cos_phi_prime * libm::cos(lst),
+            self.rho_cos_phi_prime * libm::sin(lst),
             self.rho_sin_phi_prime,
         ]
     }

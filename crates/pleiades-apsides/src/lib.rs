@@ -98,8 +98,8 @@ fn to_ecliptic(p: [f64; 3]) -> Result<ApsisPoint, ApsidesError> {
     if !r.is_finite() || r == 0.0 {
         return Err(ApsidesError::NonFinite);
     }
-    let longitude_deg = p[1].atan2(p[0]).to_degrees().rem_euclid(360.0);
-    let latitude_deg = (p[2] / r).asin().to_degrees();
+    let longitude_deg = libm::atan2(p[1], p[0]).to_degrees().rem_euclid(360.0);
+    let latitude_deg = libm::asin(p[2] / r).to_degrees();
     if !longitude_deg.is_finite() || !latitude_deg.is_finite() {
         return Err(ApsidesError::NonFinite);
     }
@@ -248,19 +248,23 @@ pub fn elements_from_state(
     if n_mag < 1e-12 * h_mag {
         return Err(ApsidesError::DegenerateNode);
     }
-    let node_deg = n[1].atan2(n[0]).to_degrees().rem_euclid(360.0);
-    let incl_deg = (h[2] / h_mag).acos().to_degrees();
+    let node_deg = libm::atan2(n[1], n[0]).to_degrees().rem_euclid(360.0);
+    let incl_deg = libm::acos(h[2] / h_mag).to_degrees();
     // ϖ = Ω + ω where ω is the in-plane angle from the node to perihelion; the
     // perihelion direction is the apsides() perigee point's unit vector.
     let peri = aps.perigee;
     let peri_vec = {
         let lon = peri.longitude_deg.to_radians();
         let lat = peri.latitude_deg.to_radians();
-        [lat.cos() * lon.cos(), lat.cos() * lon.sin(), lat.sin()]
+        [
+            libm::cos(lat) * libm::cos(lon),
+            libm::cos(lat) * libm::sin(lon),
+            libm::sin(lat),
+        ]
     };
     let n_hat = [n[0] / n_mag, n[1] / n_mag, 0.0];
     let cos_omega = dot(n_hat, peri_vec).clamp(-1.0, 1.0);
-    let mut omega = cos_omega.acos();
+    let mut omega = libm::acos(cos_omega);
     if peri_vec[2] < 0.0 {
         omega = 2.0 * core::f64::consts::PI - omega;
     }
@@ -304,15 +308,15 @@ pub fn points_from_elements(
     // rotated into the reference frame.
     let in_plane = |u: f64, r: f64| -> [f64; 3] {
         [
-            r * (u.cos() * node.cos() - u.sin() * incl.cos() * node.sin()),
-            r * (u.cos() * node.sin() + u.sin() * incl.cos() * node.cos()),
-            r * (u.sin() * incl.sin()),
+            r * (libm::cos(u) * libm::cos(node) - libm::sin(u) * libm::cos(incl) * libm::sin(node)),
+            r * (libm::cos(u) * libm::sin(node) + libm::sin(u) * libm::cos(incl) * libm::cos(node)),
+            r * (libm::sin(u) * libm::sin(incl)),
         ]
     };
     // At the ascending node u = 0 and ν = −ω (so cos ν = cos ω); descending
     // node u = π, ν = π − ω.
-    let r_asc = p / (1.0 + e * omega.cos());
-    let r_dsc = p / (1.0 - e * omega.cos());
+    let r_asc = p / (1.0 + e * libm::cos(omega));
+    let r_dsc = p / (1.0 - e * libm::cos(omega));
     let apo_dist = if second_focus {
         2.0 * a * e
     } else {

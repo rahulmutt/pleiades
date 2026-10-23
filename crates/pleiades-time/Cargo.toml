@@ -15,6 +15,7 @@ readme = "README.md"
 serde = ["dep:serde", "pleiades-types/serde"]
 
 [dependencies]
+libm.workspace = true
 pleiades-types = { workspace = true }
 serde = { workspace = true, optional = true }
 

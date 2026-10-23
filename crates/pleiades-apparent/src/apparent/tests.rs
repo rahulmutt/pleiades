@@ -463,7 +463,7 @@ mod retarded_earth {
 
     pub fn earth_helio(t_days: f64) -> Vec3 {
         let a = core::f64::consts::TAU / 365.25 * t_days;
-        [a.cos(), a.sin(), 0.0]
+        [libm::cos(a), libm::sin(a), 0.0]
     }
 
     pub fn body_helio(t_days: f64) -> Vec3 {
@@ -471,9 +471,9 @@ mod retarded_earth {
         let a = core::f64::consts::TAU / 4332.6 * t_days + 1.0;
         let (r, inc) = (5.2, 1.3_f64.to_radians());
         [
-            r * a.cos(),
-            r * a.sin() * inc.cos(),
-            r * a.sin() * inc.sin(),
+            r * libm::cos(a),
+            r * libm::sin(a) * libm::cos(inc),
+            r * libm::sin(a) * libm::sin(inc),
         ]
     }
 
@@ -487,8 +487,8 @@ mod retarded_earth {
 
     pub fn to_ecliptic(v: Vec3) -> EclipticCoordinates {
         let d = norm(v);
-        let lon = v[1].atan2(v[0]).to_degrees().rem_euclid(360.0);
-        let lat = (v[2] / d).asin().to_degrees();
+        let lon = libm::atan2(v[1], v[0]).to_degrees().rem_euclid(360.0);
+        let lat = libm::asin(v[2] / d).to_degrees();
         fixed(lon, lat, d)
     }
 

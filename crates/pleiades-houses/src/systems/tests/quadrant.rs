@@ -457,9 +457,8 @@ fn topocentric_latitude_at_sea_level_matches_the_closed_form() {
     let flattening = 1.0 / 298.257_223_563;
     let one_minus_f_squared = (1.0 - flattening) * (1.0 - flattening);
     for latitude in [40.0_f64, 55.0, -33.0, 66.0] {
-        let expected = (one_minus_f_squared * latitude.to_radians().tan())
-            .atan()
-            .to_degrees();
+        let expected =
+            libm::atan(one_minus_f_squared * libm::tan(latitude.to_radians())).to_degrees();
         assert_close_degrees(
             topocentric_latitude(latitude, None)
                 .expect("absent elevation is accepted")
@@ -715,10 +714,10 @@ fn topocentric_latitude_matches_the_parametric_latitude_formulation() {
         let f = 1.0 / WGS84_INV_F;
         let b = WGS84_A * (1.0 - f);
         let phi = latitude.to_radians();
-        let beta = ((1.0 - f) * phi.tan()).atan();
-        let x = WGS84_A * beta.cos() + elevation_m * phi.cos();
-        let z = b * beta.sin() + elevation_m * phi.sin();
-        let expected = z.atan2(x).to_degrees();
+        let beta = libm::atan((1.0 - f) * libm::tan(phi));
+        let x = WGS84_A * libm::cos(beta) + elevation_m * libm::cos(phi);
+        let z = b * libm::sin(beta) + elevation_m * libm::sin(phi);
+        let expected = libm::atan2(z, x).to_degrees();
 
         assert_close_degrees(
             topocentric_latitude(latitude, Some(elevation_m))

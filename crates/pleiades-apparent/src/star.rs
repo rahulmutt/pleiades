@@ -29,9 +29,11 @@ pub fn polar_projection_deg(lambda_deg: f64, beta_deg: f64, obliquity_deg: f64) 
         beta_deg.to_radians(),
         obliquity_deg.to_radians(),
     );
-    let ra = (l.sin() * eps.cos() - b.tan() * eps.sin()).atan2(l.cos());
-    ra.sin()
-        .atan2(ra.cos() * eps.cos())
+    let ra = libm::atan2(
+        libm::sin(l) * libm::cos(eps) - libm::tan(b) * libm::sin(eps),
+        libm::cos(l),
+    );
+    libm::atan2(libm::sin(ra), libm::cos(ra) * libm::cos(eps))
         .to_degrees()
         .rem_euclid(360.0)
 }

@@ -48,7 +48,7 @@ fn zero_inclination_circular_orbit_lies_in_ecliptic_at_radius_a() {
     // mean anomaly 0 on a circle of radius a in the J2000 ecliptic plane.
     let (x, y, z) = circular_j2000(3.0).state_at(crate::J2000_JD);
     assert!(z.abs() < 1.0e-12, "z={z}");
-    assert!((x.hypot(y) - 3.0).abs() < 1.0e-12);
+    assert!((libm::hypot(x, y) - 3.0).abs() < 1.0e-12);
 }
 
 #[test]

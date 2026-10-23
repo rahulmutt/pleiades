@@ -93,9 +93,9 @@ impl KeplerElements {
 
         // Rotate orbital plane → equinox-frame ecliptic by argp, incl, node
         // (classic 3-1-3). The matrix is linear, applied to the position vector.
-        let (sa, ca) = argp.sin_cos();
-        let (si, ci) = incl.sin_cos();
-        let (sn, cn) = node.sin_cos();
+        let (sa, ca) = libm::sincos(argp);
+        let (si, ci) = libm::sincos(incl);
+        let (sn, cn) = libm::sincos(node);
         let xp = ca * xo - sa * yo;
         let yp = sa * xo + ca * yo;
         let x = cn * xp - sn * ci * yp;

@@ -36,7 +36,7 @@ fn the_deflection_grows_as_cot_half_elongation() {
     let (sun_lon, r) = sun();
     for psi in [10.0_f64, 2.0, 0.5] {
         let d = gravitational_deflection(sun_lon + psi, 0.0, JD);
-        let expected = SCALE_ARCSEC / r / (psi.to_radians() / 2.0).tan();
+        let expected = SCALE_ARCSEC / r / libm::tan(psi.to_radians() / 2.0);
         assert!(
             (d.d_lambda_arcsec - expected).abs() < 1e-4 * expected,
             "{psi}: {d:?}"
@@ -52,7 +52,7 @@ fn inside_the_disc_the_mass_is_tapered_by_meff() {
     let radius_deg = 959.63 / 3600.0 / r;
     let psi = 0.1 * radius_deg;
     let d = gravitational_deflection(sun_lon + psi, 0.0, JD);
-    let expected = 0.186_794 * SCALE_ARCSEC / r / (psi.to_radians() / 2.0).tan();
+    let expected = 0.186_794 * SCALE_ARCSEC / r / libm::tan(psi.to_radians() / 2.0);
     assert!(
         (d.d_lambda_arcsec - expected).abs() < 1e-3 * expected,
         "{d:?}"

@@ -62,7 +62,7 @@ impl Atmosphere {
             return self;
         }
         Atmosphere {
-            pressure_mbar: 1013.25 * (1.0 - 0.0065 * elevation_m / 288.0).powf(5.255),
+            pressure_mbar: 1013.25 * libm::pow(1.0 - 0.0065 * elevation_m / 288.0, 5.255),
             ..self
         }
     }
@@ -80,7 +80,7 @@ const SE_EARTH_RADIUS_M: f64 = 6_378_136.6;
 fn sinclair_refraction_deg(apparent_alt_deg: f64, atmos: Atmosphere) -> f64 {
     let h = apparent_alt_deg;
     let r = if h > 17.904104638432 {
-        0.97 / h.to_radians().tan()
+        0.97 / libm::tan(h.to_radians())
     } else {
         (34.46 + 4.23 * h + 0.004 * h * h) / (1.0 + 0.505 * h + 0.0845 * h * h)
     };
@@ -97,10 +97,7 @@ fn horizon_dip_deg(elevation_m: f64, atmos: Atmosphere) -> f64 {
     let krefr = (0.0342 + SE_LAPSE_RATE) / (0.154 * 0.0238);
     let t = 273.15 + atmos.temperature_c;
     let d = 1.0 - 1.8480 * krefr * atmos.pressure_mbar / t / t;
-    -(1.0 / (1.0 + elevation_m / SE_EARTH_RADIUS_M))
-        .acos()
-        .to_degrees()
-        * d.sqrt()
+    -libm::acos(1.0 / (1.0 + elevation_m / SE_EARTH_RADIUS_M)).to_degrees() * d.sqrt()
 }
 
 /// The refraction rise/set uses, degrees: SE's apparent→true refraction at
@@ -151,11 +148,11 @@ const BELOW_HORIZON_BLEND_START_DEG: f64 = -1.0;
 const BELOW_HORIZON_BLEND_END_DEG: f64 = -10.0;
 
 fn bennett_refraction_arcmin(h: f64, atmos: Atmosphere) -> f64 {
-    scale(atmos) * 1.02 / ((h + 10.3 / (h + 5.11)).to_radians().tan())
+    scale(atmos) * 1.02 / (libm::tan((h + 10.3 / (h + 5.11)).to_radians()))
 }
 
 fn saemundsson_refraction_arcmin(h: f64, atmos: Atmosphere) -> f64 {
-    scale(atmos) * 1.0 / ((h + 7.31 / (h + 4.4)).to_radians().tan())
+    scale(atmos) * 1.0 / (libm::tan((h + 7.31 / (h + 4.4)).to_radians()))
 }
 
 /// Below-horizon (`true_alt_deg < 0`) branch of `apparent_from_true`.
