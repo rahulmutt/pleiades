@@ -11,11 +11,11 @@ const TOL: f64 = 1.0 / 86_400.0;
 /// crossing zero where `sin = 0.3`. Ascending root at `k + a()`, descending at
 /// `k + 0.5 − a()`.
 fn diurnal(t: f64) -> f64 {
-    60.0 * (TAU * (t - T0)).sin() - 18.0
+    60.0 * libm::sin(TAU * (t - T0)) - 18.0
 }
 /// `asin(0.3) / TAU`: the ascending root's offset into each day of `diurnal`.
 fn a() -> f64 {
-    0.3_f64.asin() / TAU
+    libm::asin(0.3_f64) / TAU
 }
 
 /// A graze: the same diurnal curve, shifted so its daily peak (at `T0 + 0.25`)
@@ -23,12 +23,12 @@ fn a() -> f64 {
 /// 1-hour grid step used by every test here.
 const EPS: f64 = 9.5e-4;
 fn graze(t: f64) -> f64 {
-    60.0 * (TAU * (t - T0)).sin() - 60.0 * (1.0 - EPS)
+    60.0 * libm::sin(TAU * (t - T0)) - 60.0 * (1.0 - EPS)
 }
 /// Its roots: `sin(TAU x) = 1 − EPS` → `x = asin(1 − EPS) / TAU` (ascending)
 /// and `0.5 − x` (descending), i.e. `0.25 ∓ τ`.
 fn graze_tau() -> f64 {
-    0.25 - (1.0 - EPS).asin() / TAU
+    0.25 - libm::asin(1.0 - EPS) / TAU
 }
 
 fn ok<F: Fn(f64) -> f64>(f: F) -> impl FnMut(f64) -> Result<f64, EventError> {
@@ -205,7 +205,7 @@ fn graze_is_found_by_first_after_and_last_before() {
 fn near_miss_peak_below_zero_yields_nothing() {
     // Same curve with the peak 0.057° BELOW zero: a discrete local maximum
     // near the horizon that must not be mistaken for a crossing.
-    let miss = |t: f64| 60.0 * (TAU * (t - T0)).sin() - 60.0 * (1.0 + EPS);
+    let miss = |t: f64| 60.0 * libm::sin(TAU * (t - T0)) - 60.0 * (1.0 + EPS);
     let lo = T0 + 0.3 * HOUR;
     let hi = T0 + 1.0;
     for want in [true, false] {
@@ -752,7 +752,7 @@ fn a_graze_next_to_the_anchor_is_found_without_a_guard() {
 fn a_near_miss_next_to_a_limit_yields_nothing() {
     // The same peak 0.06° BELOW the horizon: the edge check refines it and
     // finds no crossing.
-    let near_miss = |t: f64| 60.0 * (TAU * (t - T0)).sin() - 60.0 * (1.0 + EPS);
+    let near_miss = |t: f64| 60.0 * libm::sin(TAU * (t - T0)) - 60.0 * (1.0 + EPS);
     let hi = T0 + 0.26;
     let roots =
         directed_crossings_in_range(ok(near_miss), T0 + 0.02, hi, HOUR, until(hi), true).unwrap();

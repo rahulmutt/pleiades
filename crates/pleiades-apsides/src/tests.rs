@@ -93,16 +93,14 @@ fn points_from_elements_places_nodes_and_apsides() {
     // at true anomaly ∓ω (argument of latitude 0 / π).
     assert!((pts.ascending.longitude_deg - 40.0).abs() < 1e-9);
     assert!(pts.ascending.latitude_deg.abs() < 1e-12);
-    let r_asc = p / (1.0 + el.eccentricity * omega.cos());
+    let r_asc = p / (1.0 + el.eccentricity * libm::cos(omega));
     assert!((pts.ascending.distance_au - r_asc).abs() < 1e-12);
     assert!((pts.descending.longitude_deg - 220.0).abs() < 1e-9);
-    let r_dsc = p / (1.0 - el.eccentricity * omega.cos());
+    let r_dsc = p / (1.0 - el.eccentricity * libm::cos(omega));
     assert!((pts.descending.distance_au - r_dsc).abs() < 1e-12);
     // Perihelion at r = a(1−e), latitude sin β = sin i · sin ω.
     assert!((pts.perihelion.distance_au - 2.0 * 0.8).abs() < 1e-12);
-    let beta = (el.incl_deg.to_radians().sin() * omega.sin())
-        .asin()
-        .to_degrees();
+    let beta = libm::asin(libm::sin(el.incl_deg.to_radians()) * libm::sin(omega)).to_degrees();
     assert!((pts.perihelion.latitude_deg - beta).abs() < 1e-9);
     // Aphelion opposite at r = a(1+e).
     assert!((pts.aphelion.distance_au - 2.0 * 1.2).abs() < 1e-12);
@@ -135,9 +133,9 @@ fn elements_from_state_round_trips_through_points() {
     // In-plane basis: P̂ toward perihelion, Q̂ 90° ahead in the motion.
     let rot = |u: f64, s: f64| -> [f64; 3] {
         [
-            s * (u.cos() * node.cos() - u.sin() * incl.cos() * node.sin()),
-            s * (u.cos() * node.sin() + u.sin() * incl.cos() * node.cos()),
-            s * (u.sin() * incl.sin()),
+            s * (libm::cos(u) * libm::cos(node) - libm::sin(u) * libm::cos(incl) * libm::sin(node)),
+            s * (libm::cos(u) * libm::sin(node) + libm::sin(u) * libm::cos(incl) * libm::cos(node)),
+            s * (libm::sin(u) * libm::sin(incl)),
         ]
     };
     let pos = rot(omega, r_peri);
@@ -182,11 +180,18 @@ fn state_from_elements(
         nu_deg.to_radians(),
     );
     let p = a * (1.0 - e * e);
-    let r = p / (1.0 + e * nu.cos());
-    let rp = [r * nu.cos(), r * nu.sin(), 0.0];
+    let r = p / (1.0 + e * libm::cos(nu));
+    let rp = [r * libm::cos(nu), r * libm::sin(nu), 0.0];
     let k = (mu / p).sqrt();
-    let vp = [-k * nu.sin(), k * (e + nu.cos()), 0.0];
-    let (co, so, ci, si, cw, sw) = (o.cos(), o.sin(), i.cos(), i.sin(), w.cos(), w.sin());
+    let vp = [-k * libm::sin(nu), k * (e + libm::cos(nu)), 0.0];
+    let (co, so, ci, si, cw, sw) = (
+        libm::cos(o),
+        libm::sin(o),
+        libm::cos(i),
+        libm::sin(i),
+        libm::cos(w),
+        libm::sin(w),
+    );
     let m = [
         [co * cw - so * sw * ci, -co * sw - so * cw * ci, so * si],
         [so * cw + co * sw * ci, -so * sw + co * cw * ci, -co * si],
@@ -234,8 +239,8 @@ fn apsides_match_forward_construction_at_non_degenerate_geometry() {
     let (pa, _) = state_from_elements(a, e, incl, node, argp, 180.0, mu);
     for (got, want) in [(aps.perigee, pp), (aps.apogee, pa)] {
         let r = (want[0] * want[0] + want[1] * want[1] + want[2] * want[2]).sqrt();
-        let lon = want[1].atan2(want[0]).to_degrees().rem_euclid(360.0);
-        let lat = (want[2] / r).asin().to_degrees();
+        let lon = libm::atan2(want[1], want[0]).to_degrees().rem_euclid(360.0);
+        let lat = libm::asin(want[2] / r).to_degrees();
         assert!(
             (got.longitude_deg - lon).abs() < 1e-10,
             "lon {}",

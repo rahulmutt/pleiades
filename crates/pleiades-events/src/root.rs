@@ -98,12 +98,12 @@ where
     }
     let epsilon = 0.5 * REFINE_TOLERANCE_DAYS * (1.0 - ITP_EPSILON_MARGIN);
     let kappa1 = ITP_KAPPA1_SCALE / width;
-    let n_max = (width / REFINE_TOLERANCE_DAYS).log2().ceil() + ITP_N0;
+    let n_max = libm::log2(width / REFINE_TOLERANCE_DAYS).ceil() + ITP_N0;
     let mut step = 0.0_f64;
     while (hi - lo) > REFINE_TOLERANCE_DAYS {
         let mid = 0.5 * (lo + hi);
         let span = hi - lo;
-        let radius = (epsilon * (n_max - step).exp2() - 0.5 * span).max(0.0);
+        let radius = (epsilon * libm::exp2(n_max - step) - 0.5 * span).max(0.0);
         let delta = kappa1 * span * span;
         // Interpolate: the regula-falsi point. The ends carry opposite sign
         // classes, so `f_lo != f_hi`. An overflowing or NaN `falsi` (an

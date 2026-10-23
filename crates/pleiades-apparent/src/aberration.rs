@@ -53,10 +53,12 @@ pub fn annual_aberration(
     let sun = sun_true_longitude_deg.to_radians();
     let pi = pi_deg.to_radians();
 
-    let cos_beta = beta.cos();
-    let d_lambda =
-        (-KAPPA_ARCSEC * (sun - lambda).cos() + e * KAPPA_ARCSEC * (pi - lambda).cos()) / cos_beta;
-    let d_beta = -KAPPA_ARCSEC * beta.sin() * ((sun - lambda).sin() - e * (pi - lambda).sin());
+    let cos_beta = libm::cos(beta);
+    let d_lambda = (-KAPPA_ARCSEC * libm::cos(sun - lambda)
+        + e * KAPPA_ARCSEC * libm::cos(pi - lambda))
+        / cos_beta;
+    let d_beta =
+        -KAPPA_ARCSEC * libm::sin(beta) * (libm::sin(sun - lambda) - e * libm::sin(pi - lambda));
 
     AberrationOffset {
         d_lambda_arcsec: d_lambda,
@@ -84,9 +86,9 @@ pub fn sun_true_longitude_of_date_deg(jd: f64) -> f64 {
     // Mean anomaly of the Sun (Meeus 25.3).
     let m = (357.529_11 + 35_999.050_29 * t - 0.000_153_7 * t * t).to_radians();
     // Equation of the center (Meeus, ch. 25).
-    let c = (1.914_602 - 0.004_817 * t - 0.000_014 * t * t) * m.sin()
-        + (0.019_993 - 0.000_101 * t) * (2.0 * m).sin()
-        + 0.000_289 * (3.0 * m).sin();
+    let c = (1.914_602 - 0.004_817 * t - 0.000_014 * t * t) * libm::sin(m)
+        + (0.019_993 - 0.000_101 * t) * libm::sin(2.0 * m)
+        + 0.000_289 * libm::sin(3.0 * m);
     (l0 + c).rem_euclid(360.0)
 }
 
@@ -98,12 +100,12 @@ pub fn sun_radius_vector_au_of_date(jd: f64) -> f64 {
     let t = (jd - 2_451_545.0) / 36_525.0;
     let m_deg = 357.529_11 + 35_999.050_29 * t - 0.000_153_7 * t * t;
     let m = m_deg.to_radians();
-    let c = (1.914_602 - 0.004_817 * t - 0.000_014 * t * t) * m.sin()
-        + (0.019_993 - 0.000_101 * t) * (2.0 * m).sin()
-        + 0.000_289 * (3.0 * m).sin();
+    let c = (1.914_602 - 0.004_817 * t - 0.000_014 * t * t) * libm::sin(m)
+        + (0.019_993 - 0.000_101 * t) * libm::sin(2.0 * m)
+        + 0.000_289 * libm::sin(3.0 * m);
     let (e, _) = earth_orbit_elements(t);
     let nu = (m_deg + c).to_radians();
-    1.000_001_018 * (1.0 - e * e) / (1.0 + e * nu.cos())
+    1.000_001_018 * (1.0 - e * e) / (1.0 + e * libm::cos(nu))
 }
 
 #[cfg(test)]

@@ -243,8 +243,10 @@ pub(crate) struct SolarGeom {
 fn angular_separation_deg(lon1: f64, lat1: f64, lon2: f64, lat2: f64) -> f64 {
     let (l1, b1) = (lon1.to_radians(), lat1.to_radians());
     let (l2, b2) = (lon2.to_radians(), lat2.to_radians());
-    let cos_sep = (b1.sin() * b2.sin() + b1.cos() * b2.cos() * (l1 - l2).cos()).clamp(-1.0, 1.0);
-    cos_sep.acos().to_degrees()
+    let cos_sep = (libm::sin(b1) * libm::sin(b2)
+        + libm::cos(b1) * libm::cos(b2) * libm::cos(l1 - l2))
+    .clamp(-1.0, 1.0);
+    libm::acos(cos_sep).to_degrees()
 }
 
 /// Topocentric two-circle geometry at one instant.
@@ -252,8 +254,8 @@ pub(crate) fn solar_geom(t: &TopoSunMoon) -> SolarGeom {
     use solar_consts::*;
     let sep_deg =
         angular_separation_deg(t.sun_lon_deg, t.sun_lat_deg, t.moon_lon_deg, t.moon_lat_deg);
-    let s_sun_deg = (R_SUN_KM / (t.sun_dist_au * AU_KM)).asin().to_degrees();
-    let s_moon_deg = (R_MOON_KM / (t.moon_dist_au * AU_KM)).asin().to_degrees();
+    let s_sun_deg = libm::asin(R_SUN_KM / (t.sun_dist_au * AU_KM)).to_degrees();
+    let s_moon_deg = libm::asin(R_MOON_KM / (t.moon_dist_au * AU_KM)).to_degrees();
     SolarGeom {
         sep_deg,
         s_sun_deg,
@@ -283,12 +285,8 @@ pub(crate) fn obscuration_fraction(g: &SolarGeom) -> f64 {
     }
     let r_s2 = r_s * r_s;
     let r_m2 = r_m * r_m;
-    let a_s = ((d * d + r_s2 - r_m2) / (2.0 * d * r_s))
-        .clamp(-1.0, 1.0)
-        .acos();
-    let a_m = ((d * d + r_m2 - r_s2) / (2.0 * d * r_m))
-        .clamp(-1.0, 1.0)
-        .acos();
+    let a_s = libm::acos(((d * d + r_s2 - r_m2) / (2.0 * d * r_s)).clamp(-1.0, 1.0));
+    let a_m = libm::acos(((d * d + r_m2 - r_s2) / (2.0 * d * r_m)).clamp(-1.0, 1.0));
     let lens_area = r_s2 * a_s + r_m2 * a_m
         - 0.5
             * ((r_s + r_m + d) * (-r_s + r_m + d) * (r_s - r_m + d) * (r_s + r_m - d))
@@ -605,9 +603,14 @@ pub(crate) fn body_horizontal<B: EphemerisBackend>(
     let dec = dec_deg.to_radians();
     let phi = observer.latitude.degrees().to_radians();
     // Standard equatorial → horizontal (azimuth from south, increasing west).
-    let sin_alt = (phi.sin() * dec.sin() + phi.cos() * dec.cos() * ha.cos()).clamp(-1.0, 1.0);
-    let true_alt = sin_alt.asin().to_degrees();
-    let az = ha.sin().atan2(ha.cos() * phi.sin() - dec.tan() * phi.cos());
+    let sin_alt = (libm::sin(phi) * libm::sin(dec)
+        + libm::cos(phi) * libm::cos(dec) * libm::cos(ha))
+    .clamp(-1.0, 1.0);
+    let true_alt = libm::asin(sin_alt).to_degrees();
+    let az = libm::atan2(
+        libm::sin(ha),
+        libm::cos(ha) * libm::sin(phi) - libm::tan(dec) * libm::cos(phi),
+    );
     let apparent_alt = apparent_from_true(
         true_alt,
         atmos.at_elevation(observer.elevation_m.unwrap_or(0.0)),

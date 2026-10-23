@@ -34,7 +34,7 @@ fn rates_match_a_central_difference_on_an_inclined_orbit() {
     // Position as an explicit function of time; velocity by a tiny central
     // difference of the Cartesian position, independent of cartesian_velocity.
     let at =
-        |t: f64| spherical_to_cartesian(40.0 + 0.5 * t, 7.0 * (0.03 * t).sin(), 1.5 + 0.01 * t);
+        |t: f64| spherical_to_cartesian(40.0 + 0.5 * t, 7.0 * libm::sin(0.03 * t), 1.5 + 0.01 * t);
     let h = 1e-4;
     let (a, b, p) = (at(-h), at(h), at(0.0));
     let v = [

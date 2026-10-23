@@ -116,8 +116,8 @@ pub fn nutation(jd_tt: f64) -> Result<Nutation, ApparentPlaceError> {
             arg_deg += mult * args[i];
         }
         let arg = arg_deg.to_radians();
-        psi += (term.psi_a + term.psi_b * t) * arg.sin();
-        eps += (term.eps_c + term.eps_d * t) * arg.cos();
+        psi += (term.psi_a + term.psi_b * t) * libm::sin(arg);
+        eps += (term.eps_c + term.eps_d * t) * libm::cos(arg);
     }
     let delta_psi_arcsec = psi * 0.0001;
     let delta_eps_arcsec = eps * 0.0001;

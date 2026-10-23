@@ -16,3 +16,6 @@ pleiades-jpl = { path = "../pleiades-jpl" }
 pleiades-time = { workspace = true }
 pleiades-vsop87 = { path = "../pleiades-vsop87" }
 pleiades-validate = { path = "../pleiades-validate" }
+
+[dev-dependencies]
+libm.workspace = true

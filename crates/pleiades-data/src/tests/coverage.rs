@@ -2607,8 +2607,8 @@ fn fit_segment_within_span_reproduces_a_smooth_synthetic_body() {
 
         // Ground-truth from the Synthetic backend.
         let gt_lon = (probe_jd * 1.0).rem_euclid(360.0);
-        let gt_lat = 0.1 * (probe_jd / 50.0).sin();
-        let gt_dist = 1.0 + 0.01 * (probe_jd / 80.0).cos();
+        let gt_lat = 0.1 * libm::sin(probe_jd / 50.0);
+        let gt_dist = 1.0 + 0.01 * libm::cos(probe_jd / 80.0);
 
         // Decoded from the fitted segment via the real encode/decode path.
         let decoded = artifact

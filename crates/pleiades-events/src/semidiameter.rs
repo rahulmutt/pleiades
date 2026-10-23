@@ -37,7 +37,7 @@ pub(crate) fn semidiameter_deg(target: &RiseSetTarget, distance_au: f64, fixed: 
     // Guard the asin domain: a pathologically tiny distance_au could push r/d
     // above 1.0 despite r/d << 1 for all real bodies. Clamp to keep this
     // never-NaN per the crate's fail-closed convention.
-    (r / d).clamp(-1.0, 1.0).asin().to_degrees()
+    libm::asin((r / d).clamp(-1.0, 1.0)).to_degrees()
 }
 
 #[cfg(test)]

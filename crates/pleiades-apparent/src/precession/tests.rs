@@ -168,11 +168,11 @@ fn vector_precession_preserves_magnitude_and_matches_the_angular_form() {
     let r_in = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
     let r_out = (out[0] * out[0] + out[1] * out[1] + out[2] * out[2]).sqrt();
     assert!((r_in - r_out).abs() < 1e-15, "magnitude {r_in} -> {r_out}");
-    let lon = v[1].atan2(v[0]).to_degrees().rem_euclid(360.0);
-    let lat = (v[2] / r_in).asin().to_degrees();
+    let lon = libm::atan2(v[1], v[0]).to_degrees().rem_euclid(360.0);
+    let lat = libm::asin(v[2] / r_in).to_degrees();
     let p = precess_ecliptic_j2000_to_date(lon, lat, jd).unwrap();
-    let lon_out = out[1].atan2(out[0]).to_degrees().rem_euclid(360.0);
-    let lat_out = (out[2] / r_out).asin().to_degrees();
+    let lon_out = libm::atan2(out[1], out[0]).to_degrees().rem_euclid(360.0);
+    let lat_out = libm::asin(out[2] / r_out).to_degrees();
     assert!(
         (lon_out - p.longitude_deg).abs() < 1e-9,
         "{lon_out} vs {}",

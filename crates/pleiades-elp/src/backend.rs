@@ -150,8 +150,8 @@ impl ElpBackend {
     /// Geocentric J2000 Cartesian position of the compact ELP Moon, AU.
     fn moon_cartesian_j2000(days: f64) -> [f64; 3] {
         let moon = Self::moon_ecliptic_coordinates(days);
-        let (sin_lon, cos_lon) = moon.longitude.degrees().to_radians().sin_cos();
-        let (sin_lat, cos_lat) = moon.latitude.degrees().to_radians().sin_cos();
+        let (sin_lon, cos_lon) = libm::sincos(moon.longitude.degrees().to_radians());
+        let (sin_lat, cos_lat) = libm::sincos(moon.latitude.degrees().to_radians());
         let distance = moon
             .distance_au
             .expect("the ELP Moon series always carries a distance");

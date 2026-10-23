@@ -10,7 +10,7 @@
 pub fn tdb_minus_tt_seconds(jd_tt: f64) -> f64 {
     let g_deg = 357.53 + 0.985_600_3 * (jd_tt - 2451545.0);
     let g = g_deg.to_radians();
-    0.001_658 * g.sin() + 0.000_014 * (2.0 * g).sin()
+    0.001_658 * libm::sin(g) + 0.000_014 * libm::sin(2.0 * g)
 }
 
 #[cfg(test)]

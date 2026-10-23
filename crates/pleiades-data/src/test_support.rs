@@ -32,8 +32,8 @@ impl pleiades_backend::EphemerisBackend for Synthetic {
     ) -> Result<pleiades_backend::EphemerisResult, pleiades_backend::EphemerisError> {
         let jd = req.instant.julian_day.days();
         let lon = (jd * 1.0).rem_euclid(360.0);
-        let lat = 0.1 * (jd / 50.0).sin();
-        let dist = 1.0 + 0.01 * (jd / 80.0).cos();
+        let lat = 0.1 * libm::sin(jd / 50.0);
+        let dist = 1.0 + 0.01 * libm::cos(jd / 80.0);
         let mut r = pleiades_backend::EphemerisResult::new(
             pleiades_backend::BackendId::new("synthetic"),
             req.body.clone(),

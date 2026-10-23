@@ -46,7 +46,7 @@ fn equation_of_equinoxes_is_small() {
 fn equation_of_equinoxes_helper_matches_formula() {
     let delta_psi_deg: f64 = 0.001_234;
     let true_obliquity_deg: f64 = 23.44;
-    let expected = delta_psi_deg * true_obliquity_deg.to_radians().cos();
+    let expected = delta_psi_deg * libm::cos(true_obliquity_deg.to_radians());
     assert!((equation_of_equinoxes(delta_psi_deg, true_obliquity_deg) - expected).abs() < 1e-15);
 }
 

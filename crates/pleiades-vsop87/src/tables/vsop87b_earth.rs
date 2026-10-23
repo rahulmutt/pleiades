@@ -110,7 +110,7 @@ where
         let terms = terms.as_ref();
         let subtotal: f64 = terms
             .iter()
-            .map(|term| term.amplitude * (term.phase + term.frequency * t).cos())
+            .map(|term| term.amplitude * libm::cos(term.phase + term.frequency * t))
             .sum();
         value += subtotal * t_power;
         t_power *= t;

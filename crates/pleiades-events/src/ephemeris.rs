@@ -389,8 +389,8 @@ pub(crate) fn j2000_spherical(position: [f64; 3]) -> (f64, f64, f64) {
     let [x, y, z] = position;
     let planar = (x * x + y * y).sqrt();
     (
-        y.atan2(x).to_degrees().rem_euclid(360.0),
-        z.atan2(planar).to_degrees(),
+        libm::atan2(y, x).to_degrees().rem_euclid(360.0),
+        libm::atan2(z, planar).to_degrees(),
         (x * x + y * y + z * z).sqrt(),
     )
 }
@@ -445,9 +445,9 @@ pub(crate) fn spherical_to_cartesian(lon_deg: f64, lat_deg: f64, r_au: f64) -> [
     let lon = lon_deg.to_radians();
     let lat = lat_deg.to_radians();
     [
-        r_au * lat.cos() * lon.cos(),
-        r_au * lat.cos() * lon.sin(),
-        r_au * lat.sin(),
+        r_au * libm::cos(lat) * libm::cos(lon),
+        r_au * libm::cos(lat) * libm::sin(lon),
+        r_au * libm::sin(lat),
     ]
 }
 
@@ -456,11 +456,16 @@ mod tests {
     use super::*;
     use pleiades_backend::test_backend::LinearSunMoon;
 
+    /// Issue #288 re-pinned the Saturn and Pluto lanes (from
+    /// `4566141178696634184` and `4629851122814407423`). Saturn moved by
+    /// 3.0e-11″, which is `libm` last-bit rounding (sub-quantum: the artifact
+    /// coefficients are quantized at 1e-9° ≈ 3.6e-6″); only Pluto's 4.6e-6″
+    /// comes from the regenerated artifact. Mercury and Mars did not move.
     const PINNED_HELIO_LONGITUDE_BITS: [u64; 4] = [
         4640199238401330988,
         4645031011594974728,
-        4566141178696634184,
-        4629851122814407423,
+        4566141178696673152,
+        4629851122814229366,
     ];
 
     /// The longitude wrapper must not move by a single bit when the

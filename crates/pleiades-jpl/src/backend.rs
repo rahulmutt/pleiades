@@ -1233,9 +1233,10 @@ impl SnapshotEntry {
     pub(crate) fn ecliptic(&self) -> EclipticCoordinates {
         let radius_km =
             (self.x_km * self.x_km + self.y_km * self.y_km + self.z_km * self.z_km).sqrt();
-        let longitude = Longitude::from_degrees(self.y_km.atan2(self.x_km).to_degrees());
-        let latitude =
-            Latitude::from_degrees((self.z_km / radius_km).clamp(-1.0, 1.0).asin().to_degrees());
+        let longitude = Longitude::from_degrees(libm::atan2(self.y_km, self.x_km).to_degrees());
+        let latitude = Latitude::from_degrees(
+            libm::asin((self.z_km / radius_km).clamp(-1.0, 1.0)).to_degrees(),
+        );
         EclipticCoordinates::new(longitude, latitude, Some(radius_km / AU_IN_KM))
     }
 

@@ -45,7 +45,7 @@ fn error_arcsec(
 ) -> (f64, f64) {
     let dlon =
         (got.longitude.degrees() - want.longitude.degrees() + 180.0).rem_euclid(360.0) - 180.0;
-    let lon = dlon.abs() * want.latitude.degrees().to_radians().cos() * 3600.0;
+    let lon = dlon.abs() * libm::cos(want.latitude.degrees().to_radians()) * 3600.0;
     let lat = (got.latitude.degrees() - want.latitude.degrees()).abs() * 3600.0;
     (lon, lat)
 }

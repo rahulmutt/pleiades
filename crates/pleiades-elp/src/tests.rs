@@ -3091,7 +3091,7 @@ fn the_equatorial_channel_is_of_date_not_a_rotation_of_the_j2000_ecliptic() {
         let d_ra = signed_longitude_delta_degrees(
             j2000.right_ascension.degrees(),
             equatorial.right_ascension.degrees(),
-        ) * equatorial.declination.degrees().to_radians().cos()
+        ) * libm::cos(equatorial.declination.degrees().to_radians())
             * 3600.0;
         let d_dec = (equatorial.declination.degrees() - j2000.declination.degrees()) * 3600.0;
         (d_ra, d_dec)

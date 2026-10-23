@@ -80,7 +80,7 @@ fn series<const N: usize>(pol: &[[f64; 2]; 4], per: &[[f64; N]; 5], t: f64) -> (
     let [period, cos_a, cos_b, sin_a, sin_b] = per;
     let terms = period.iter().zip(cos_a).zip(cos_b).zip(sin_a).zip(sin_b);
     for ((((period, cos_a), cos_b), sin_a), sin_b) in terms {
-        let (s, c) = (std::f64::consts::TAU * t / period).sin_cos();
+        let (s, c) = libm::sincos(std::f64::consts::TAU * t / period);
         a += c * cos_a + s * sin_a;
         b += c * cos_b + s * sin_b;
     }
@@ -118,7 +118,7 @@ fn precession_matrix(jd_tt: f64) -> [[f64; 3]; 3] {
     let (p, q) = series(&PQPOL, &PQPER, t);
     let (p, q) = (p * ARCSEC_TO_RAD, q * ARCSEC_TO_RAD);
     let z = (1.0 - p * p - q * q).max(0.0).sqrt();
-    let (s, c) = (EPS0_ARCSEC * ARCSEC_TO_RAD).sin_cos();
+    let (s, c) = libm::sincos(EPS0_ARCSEC * ARCSEC_TO_RAD);
     let ecliptic_pole = [p, -q * c - z * s, -q * s + z * c];
 
     let v = cross(equator_pole, ecliptic_pole);
@@ -138,7 +138,7 @@ fn cross(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
 /// Rotates about the x-axis from equatorial to ecliptic coordinates by the
 /// obliquity `eps` (radians); `-eps` goes the other way (SE `swi_coortrf`).
 fn rotate_x(v: [f64; 3], eps: f64) -> [f64; 3] {
-    let (s, c) = eps.sin_cos();
+    let (s, c) = libm::sincos(eps);
     [v[0], v[1] * c + v[2] * s, -v[1] * s + v[2] * c]
 }
 

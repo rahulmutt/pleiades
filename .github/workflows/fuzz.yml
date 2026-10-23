@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   fuzz:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 105 # ~10 min x 5 targets, plus toolchain install, build, and cmin
     steps:
       - name: Checkout repository

@@ -85,9 +85,9 @@ fn push_corpus_row(
     let r_km = ec.distance_au.unwrap_or(0.0) * AU_IN_KM;
     let lon = ec.longitude.degrees().to_radians();
     let lat = ec.latitude.degrees().to_radians();
-    let x = r_km * lat.cos() * lon.cos();
-    let y = r_km * lat.cos() * lon.sin();
-    let z = r_km * lat.sin();
+    let x = r_km * libm::cos(lat) * libm::cos(lon);
+    let y = r_km * libm::cos(lat) * libm::sin(lon);
+    let z = r_km * libm::sin(lat);
     out.push_str(&format!("{jd},{body},{x:.6},{y:.6},{z:.6}\n"));
     Ok(())
 }
@@ -114,9 +114,9 @@ fn push_holdout_row(
     let r_km = ec.distance_au.unwrap_or(0.0) * AU_IN_KM;
     let lon = ec.longitude.degrees().to_radians();
     let lat = ec.latitude.degrees().to_radians();
-    let x = r_km * lat.cos() * lon.cos();
-    let y = r_km * lat.cos() * lon.sin();
-    let z = r_km * lat.sin();
+    let x = r_km * libm::cos(lat) * libm::cos(lon);
+    let y = r_km * libm::cos(lat) * libm::sin(lon);
+    let z = r_km * libm::sin(lat);
     // Velocity: same obliquity rotation as the position path.
     let [vx, vy, vz] = backend
         .ecliptic_velocity(body, inst)

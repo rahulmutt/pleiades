@@ -12,6 +12,7 @@ categories.workspace = true
 readme = "README.md"
 
 [dependencies]
+libm.workspace = true
 pleiades-apparent = { workspace = true }
 pleiades-apsides = { workspace = true }
 pleiades-backend = { workspace = true }

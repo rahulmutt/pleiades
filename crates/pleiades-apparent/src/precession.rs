@@ -49,28 +49,39 @@ pub fn precess_ecliptic_date_to_j2000(
     let eps = mean_obliquity_degrees(jd_tt).to_radians();
     let lambda = lambda_deg.to_radians();
     let beta = beta_deg.to_radians();
-    let alpha_d = (lambda.sin() * eps.cos() - beta.tan() * eps.sin()).atan2(lambda.cos());
-    let delta_d = (beta.sin() * eps.cos() + beta.cos() * eps.sin() * lambda.sin())
-        .clamp(-1.0, 1.0)
-        .asin();
+    let alpha_d = libm::atan2(
+        libm::sin(lambda) * libm::cos(eps) - libm::tan(beta) * libm::sin(eps),
+        libm::cos(lambda),
+    );
+    let delta_d = libm::asin(
+        (libm::sin(beta) * libm::cos(eps) + libm::cos(beta) * libm::sin(eps) * libm::sin(lambda))
+            .clamp(-1.0, 1.0),
+    );
 
     // precess equatorial (of date) -> equatorial (J2000): inverse rotation,
     // ζ→−z, z→−ζ, θ→−θ (Meeus 21.4 reduction-to-J2000 form).
     let zeta_r = zeta.to_radians();
     let z_r = z.to_radians();
     let theta_r = theta.to_radians();
-    let a = delta_d.cos() * (alpha_d - z_r).sin();
-    let b = theta_r.cos() * delta_d.cos() * (alpha_d - z_r).cos() + theta_r.sin() * delta_d.sin();
-    let c = -theta_r.sin() * delta_d.cos() * (alpha_d - z_r).cos() + theta_r.cos() * delta_d.sin();
-    let alpha0 = a.atan2(b) - zeta_r;
-    let delta0 = c.clamp(-1.0, 1.0).asin();
+    let a = libm::cos(delta_d) * libm::sin(alpha_d - z_r);
+    let b = libm::cos(theta_r) * libm::cos(delta_d) * libm::cos(alpha_d - z_r)
+        + libm::sin(theta_r) * libm::sin(delta_d);
+    let c = -libm::sin(theta_r) * libm::cos(delta_d) * libm::cos(alpha_d - z_r)
+        + libm::cos(theta_r) * libm::sin(delta_d);
+    let alpha0 = libm::atan2(a, b) - zeta_r;
+    let delta0 = libm::asin(c.clamp(-1.0, 1.0));
 
     // equatorial (J2000) -> ecliptic (J2000), Meeus 13.1/13.2, ε₀.
     let eps0 = OBLIQUITY_J2000_DEG.to_radians();
-    let lon = (alpha0.sin() * eps0.cos() + delta0.tan() * eps0.sin()).atan2(alpha0.cos());
-    let lat = (delta0.sin() * eps0.cos() - delta0.cos() * eps0.sin() * alpha0.sin())
-        .clamp(-1.0, 1.0)
-        .asin();
+    let lon = libm::atan2(
+        libm::sin(alpha0) * libm::cos(eps0) + libm::tan(delta0) * libm::sin(eps0),
+        libm::cos(alpha0),
+    );
+    let lat = libm::asin(
+        (libm::sin(delta0) * libm::cos(eps0)
+            - libm::cos(delta0) * libm::sin(eps0) * libm::sin(alpha0))
+        .clamp(-1.0, 1.0),
+    );
 
     let longitude_deg = lon.to_degrees().rem_euclid(360.0);
     let latitude_deg = lat.to_degrees();
@@ -103,28 +114,38 @@ pub fn precess_ecliptic_j2000_to_date(
     let eps0 = OBLIQUITY_J2000_DEG.to_radians();
     let lambda = lambda_deg.to_radians();
     let beta = beta_deg.to_radians();
-    let alpha0 = (lambda.sin() * eps0.cos() - beta.tan() * eps0.sin()).atan2(lambda.cos());
-    let delta0 = (beta.sin() * eps0.cos() + beta.cos() * eps0.sin() * lambda.sin())
-        .clamp(-1.0, 1.0)
-        .asin();
+    let alpha0 = libm::atan2(
+        libm::sin(lambda) * libm::cos(eps0) - libm::tan(beta) * libm::sin(eps0),
+        libm::cos(lambda),
+    );
+    let delta0 = libm::asin(
+        (libm::sin(beta) * libm::cos(eps0) + libm::cos(beta) * libm::sin(eps0) * libm::sin(lambda))
+            .clamp(-1.0, 1.0),
+    );
 
     // precess equatorial (J2000) -> equatorial (of date), Meeus 21.4.
     let zeta_r = zeta.to_radians();
     let z_r = z.to_radians();
     let theta_r = theta.to_radians();
-    let a = delta0.cos() * (alpha0 + zeta_r).sin();
-    let b = theta_r.cos() * delta0.cos() * (alpha0 + zeta_r).cos() - theta_r.sin() * delta0.sin();
-    let c = theta_r.sin() * delta0.cos() * (alpha0 + zeta_r).cos() + theta_r.cos() * delta0.sin();
-    let alpha = a.atan2(b) + z_r;
-    let delta = c.clamp(-1.0, 1.0).asin();
+    let a = libm::cos(delta0) * libm::sin(alpha0 + zeta_r);
+    let b = libm::cos(theta_r) * libm::cos(delta0) * libm::cos(alpha0 + zeta_r)
+        - libm::sin(theta_r) * libm::sin(delta0);
+    let c = libm::sin(theta_r) * libm::cos(delta0) * libm::cos(alpha0 + zeta_r)
+        + libm::cos(theta_r) * libm::sin(delta0);
+    let alpha = libm::atan2(a, b) + z_r;
+    let delta = libm::asin(c.clamp(-1.0, 1.0));
 
     // equatorial (of date) -> ecliptic (of date), Meeus 13.1/13.2, using the
     // mean obliquity OF DATE.
     let eps = mean_obliquity_degrees(jd_tt).to_radians();
-    let lon = (alpha.sin() * eps.cos() + delta.tan() * eps.sin()).atan2(alpha.cos());
-    let lat = (delta.sin() * eps.cos() - delta.cos() * eps.sin() * alpha.sin())
-        .clamp(-1.0, 1.0)
-        .asin();
+    let lon = libm::atan2(
+        libm::sin(alpha) * libm::cos(eps) + libm::tan(delta) * libm::sin(eps),
+        libm::cos(alpha),
+    );
+    let lat = libm::asin(
+        (libm::sin(delta) * libm::cos(eps) - libm::cos(delta) * libm::sin(eps) * libm::sin(alpha))
+            .clamp(-1.0, 1.0),
+    );
 
     let longitude_deg = lon.to_degrees().rem_euclid(360.0);
     let latitude_deg = lat.to_degrees();
@@ -165,11 +186,11 @@ pub fn precess_ecliptic_vector_j2000_to_date(
     if r == 0.0 {
         return Ok(v);
     }
-    let lon_deg = v[1].atan2(v[0]).to_degrees().rem_euclid(360.0);
-    let lat_deg = (v[2] / r).clamp(-1.0, 1.0).asin().to_degrees();
+    let lon_deg = libm::atan2(v[1], v[0]).to_degrees().rem_euclid(360.0);
+    let lat_deg = libm::asin((v[2] / r).clamp(-1.0, 1.0)).to_degrees();
     let p = precess_ecliptic_j2000_to_date(lon_deg, lat_deg, jd_tt)?;
-    let (sl, cl) = p.longitude_deg.to_radians().sin_cos();
-    let (sb, cb) = p.latitude_deg.to_radians().sin_cos();
+    let (sl, cl) = libm::sincos(p.longitude_deg.to_radians());
+    let (sb, cb) = libm::sincos(p.latitude_deg.to_radians());
     Ok([r * cb * cl, r * cb * sl, r * sb])
 }
 

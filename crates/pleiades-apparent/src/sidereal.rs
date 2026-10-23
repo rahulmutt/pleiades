@@ -29,7 +29,7 @@ pub fn greenwich_mean_sidereal_time_degrees(jd: f64) -> f64 {
 /// formula, shared by `equation_of_equinoxes_degrees` and the chart layer's
 /// topocentric-LAST path (`pleiades-core`).
 pub fn equation_of_equinoxes(delta_psi_deg: f64, true_obliquity_deg: f64) -> f64 {
-    delta_psi_deg * true_obliquity_deg.to_radians().cos()
+    delta_psi_deg * libm::cos(true_obliquity_deg.to_radians())
 }
 
 /// Equation of the equinoxes in degrees: `Δψ · cos(ε_true)`.

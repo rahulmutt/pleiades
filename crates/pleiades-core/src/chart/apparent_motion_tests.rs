@@ -55,24 +55,24 @@ impl SmoothBackend {
             CelestialBody::Mars | CelestialBody::Jupiter => {
                 let (w_lon, w_lat, w_dist) = (TAU / 400.0, TAU / 300.0, TAU / 700.0);
                 Sample {
-                    longitude_deg: 77.0 + 5.0 * (w_lon * d).sin(),
-                    latitude_deg: 1.5 * (w_lat * d + 0.4).sin(),
-                    distance_au: 1.5 + 0.3 * (w_dist * d).cos(),
+                    longitude_deg: 77.0 + 5.0 * libm::sin(w_lon * d),
+                    latitude_deg: 1.5 * libm::sin(w_lat * d + 0.4),
+                    distance_au: 1.5 + 0.3 * libm::cos(w_dist * d),
                     motion: Motion::new(
-                        Some(5.0 * w_lon * (w_lon * d).cos()),
-                        Some(1.5 * w_lat * (w_lat * d + 0.4).cos()),
-                        Some(-0.3 * w_dist * (w_dist * d).sin()),
+                        Some(5.0 * w_lon * libm::cos(w_lon * d)),
+                        Some(1.5 * w_lat * libm::cos(w_lat * d + 0.4)),
+                        Some(-0.3 * w_dist * libm::sin(w_dist * d)),
                     ),
                 }
             }
             CelestialBody::TrueNode => {
                 let w = TAU / 173.0;
                 Sample {
-                    longitude_deg: 30.0 - 0.052_9 * d + 1.5 * (w * d).sin(),
+                    longitude_deg: 30.0 - 0.052_9 * d + 1.5 * libm::sin(w * d),
                     latitude_deg: 0.0,
                     distance_au: 0.002_5,
                     motion: Motion::new(
-                        Some(-0.052_9 + 1.5 * w * (w * d).cos()),
+                        Some(-0.052_9 + 1.5 * w * libm::cos(w * d)),
                         Some(0.0),
                         Some(0.0),
                     ),

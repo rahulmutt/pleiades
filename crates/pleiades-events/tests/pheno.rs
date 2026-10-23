@@ -61,6 +61,6 @@ fn inner_planet_phase_tracks_phase_angle() {
     // Illuminated fraction must fall as the phase angle grows.
     let e = engine();
     let d = e.pheno(CelestialBody::Venus, tdb(2_451_545.0)).unwrap();
-    let expected = (1.0 + d.phase_angle_deg.to_radians().cos()) / 2.0;
+    let expected = (1.0 + libm::cos(d.phase_angle_deg.to_radians())) / 2.0;
     assert!((d.phase_fraction - expected).abs() < 1e-9);
 }

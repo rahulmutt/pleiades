@@ -18,8 +18,8 @@ const ROWS_PER_BODY: usize = 407;
 fn truth_longitude_latitude(row: &SnapshotEntry) -> (f64, f64) {
     let radius = (row.x_km * row.x_km + row.y_km * row.y_km + row.z_km * row.z_km).sqrt();
     (
-        row.y_km.atan2(row.x_km).to_degrees(),
-        (row.z_km / radius).clamp(-1.0, 1.0).asin().to_degrees(),
+        libm::atan2(row.y_km, row.x_km).to_degrees(),
+        libm::asin((row.z_km / radius).clamp(-1.0, 1.0)).to_degrees(),
     )
 }
 
@@ -41,7 +41,7 @@ fn packaged_asteroids_match_the_sb441_rows() {
                 .expect("ecliptic");
             let (lon, lat) = truth_longitude_latitude(row);
             let dlon = (got.longitude.degrees() - lon + 180.0).rem_euclid(360.0) - 180.0;
-            max_lon = max_lon.max(dlon.abs() * lat.to_radians().cos() * 3600.0);
+            max_lon = max_lon.max(dlon.abs() * libm::cos(lat.to_radians()) * 3600.0);
             max_lat = max_lat.max((got.latitude.degrees() - lat).abs() * 3600.0);
         }
         eprintln!("{body}: max lon {max_lon:.4}\", max lat {max_lat:.4}\"");

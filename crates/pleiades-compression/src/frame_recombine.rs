@@ -9,9 +9,9 @@ pub fn ecliptic_to_cartesian_au(coords: &EclipticCoordinates) -> Option<[f64; 3]
     let lon = coords.longitude.degrees().to_radians();
     let lat = coords.latitude.degrees().to_radians();
     Some([
-        r * lat.cos() * lon.cos(),
-        r * lat.cos() * lon.sin(),
-        r * lat.sin(),
+        r * libm::cos(lat) * libm::cos(lon),
+        r * libm::cos(lat) * libm::sin(lon),
+        r * libm::sin(lat),
     ])
 }
 
@@ -20,11 +20,11 @@ pub fn ecliptic_to_cartesian_au(coords: &EclipticCoordinates) -> Option<[f64; 3]
 pub fn cartesian_au_to_ecliptic(v: [f64; 3]) -> EclipticCoordinates {
     let [x, y, z] = v;
     let radius = (x * x + y * y + z * z).sqrt();
-    let longitude = Longitude::from_degrees(y.atan2(x).to_degrees());
+    let longitude = Longitude::from_degrees(libm::atan2(y, x).to_degrees());
     let latitude = if radius == 0.0 {
         Latitude::from_degrees(0.0)
     } else {
-        Latitude::from_degrees((z / radius).clamp(-1.0, 1.0).asin().to_degrees())
+        Latitude::from_degrees(libm::asin((z / radius).clamp(-1.0, 1.0)).to_degrees())
     };
     EclipticCoordinates::new(longitude, latitude, Some(radius))
 }
@@ -72,8 +72,8 @@ pub struct CartesianState {
 
 /// Converts a spherical ecliptic state to Cartesian using the chain rule.
 pub fn spherical_state_to_cartesian(s: SphericalState) -> CartesianState {
-    let (sl, cl) = s.lon_rad.sin_cos();
-    let (sb, cb) = s.lat_rad.sin_cos();
+    let (sl, cl) = libm::sincos(s.lon_rad);
+    let (sb, cb) = libm::sincos(s.lat_rad);
     let r = s.dist_au;
     let pos = [r * cb * cl, r * cb * sl, r * sb];
     let dr = s.dist_rate_au_per_day;
@@ -119,8 +119,8 @@ pub fn cartesian_state_to_spherical(c: CartesianState) -> SphericalState {
         (rho * vz - z * drho) / (r * r)
     };
     SphericalState {
-        lon_rad: y.atan2(x),
-        lat_rad: z.atan2(rho),
+        lon_rad: libm::atan2(y, x),
+        lat_rad: libm::atan2(z, rho),
         dist_au: r,
         lon_rate_rad_per_day: dl,
         lat_rate_rad_per_day: db,

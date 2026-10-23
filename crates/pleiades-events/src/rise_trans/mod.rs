@@ -285,9 +285,10 @@ impl<B: EphemerisBackend> EventEngine<B> {
         let lst = local_apparent_sidereal_deg(jd, observer.longitude)?;
         let ha = (lst - ra_deg).to_radians();
         let dec = dec_deg.to_radians();
-        let sin_alt = phi.sin() * dec.sin() + phi.cos() * dec.cos() * ha.cos();
+        let sin_alt =
+            libm::sin(phi) * libm::sin(dec) + libm::cos(phi) * libm::cos(dec) * libm::cos(ha);
         // Guard the asin domain: fail-closed, never-NaN.
-        Ok(sin_alt.clamp(-1.0, 1.0).asin().to_degrees())
+        Ok(libm::asin(sin_alt.clamp(-1.0, 1.0)).to_degrees())
     }
 
     /// The standard altitude `h0` the event is defined at: the TRUE altitude

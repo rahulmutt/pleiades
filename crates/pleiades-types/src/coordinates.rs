@@ -39,15 +39,15 @@ impl EclipticCoordinates {
         let latitude = self.latitude.degrees().to_radians();
         let obliquity = obliquity.radians();
 
-        let x = longitude.cos() * latitude.cos();
-        let y =
-            longitude.sin() * latitude.cos() * obliquity.cos() - latitude.sin() * obliquity.sin();
-        let z =
-            longitude.sin() * latitude.cos() * obliquity.sin() + latitude.sin() * obliquity.cos();
+        let x = libm::cos(longitude) * libm::cos(latitude);
+        let y = libm::sin(longitude) * libm::cos(latitude) * libm::cos(obliquity)
+            - libm::sin(latitude) * libm::sin(obliquity);
+        let z = libm::sin(longitude) * libm::cos(latitude) * libm::sin(obliquity)
+            + libm::sin(latitude) * libm::cos(obliquity);
 
         EquatorialCoordinates::new(
-            Angle::from_degrees(y.atan2(x).to_degrees()).normalized_0_360(),
-            Latitude::from_degrees(z.atan2((x * x + y * y).sqrt()).to_degrees()),
+            Angle::from_degrees(libm::atan2(y, x).to_degrees()).normalized_0_360(),
+            Latitude::from_degrees(libm::atan2(z, (x * x + y * y).sqrt()).to_degrees()),
             self.distance_au,
         )
     }
@@ -128,15 +128,15 @@ impl EquatorialCoordinates {
         let declination = self.declination.degrees().to_radians();
         let obliquity = obliquity.radians();
 
-        let x = right_ascension.cos() * declination.cos();
-        let y = right_ascension.sin() * declination.cos() * obliquity.cos()
-            + declination.sin() * obliquity.sin();
-        let z = -right_ascension.sin() * declination.cos() * obliquity.sin()
-            + declination.sin() * obliquity.cos();
+        let x = libm::cos(right_ascension) * libm::cos(declination);
+        let y = libm::sin(right_ascension) * libm::cos(declination) * libm::cos(obliquity)
+            + libm::sin(declination) * libm::sin(obliquity);
+        let z = -libm::sin(right_ascension) * libm::cos(declination) * libm::sin(obliquity)
+            + libm::sin(declination) * libm::cos(obliquity);
 
         EclipticCoordinates::new(
-            Longitude::from_degrees(y.atan2(x).to_degrees()),
-            Latitude::from_degrees(z.atan2((x * x + y * y).sqrt()).to_degrees()),
+            Longitude::from_degrees(libm::atan2(y, x).to_degrees()),
+            Latitude::from_degrees(libm::atan2(z, (x * x + y * y).sqrt()).to_degrees()),
             self.distance_au,
         )
     }

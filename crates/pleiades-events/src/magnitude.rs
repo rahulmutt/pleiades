@@ -45,7 +45,7 @@ pub(crate) fn diameter_deg(body: &CelestialBody, delta_au: f64) -> f64 {
     }
     let sin_semi = dd / 2.0 / AUNIT_M / delta_au.max(1e-12);
     // Guard the asin domain (never-NaN convention).
-    (sin_semi.clamp(-1.0, 1.0)).asin() * 2.0 * (180.0 / core::f64::consts::PI)
+    libm::asin(sin_semi.clamp(-1.0, 1.0)) * 2.0 * (180.0 / core::f64::consts::PI)
 }
 
 /// Inputs to the per-body magnitude model.
@@ -73,7 +73,7 @@ pub(crate) struct MagInputs {
 
 /// `5·log10(r·Δ)`, the common distance term.
 fn dist_term(m: &MagInputs) -> f64 {
-    5.0 * (m.r_helio_au * m.delta_geo_au).log10()
+    5.0 * libm::log10(m.r_helio_au * m.delta_geo_au)
 }
 
 /// Apparent visual magnitude for the ten majors; `None` otherwise.
@@ -87,16 +87,16 @@ pub(crate) fn apparent_magnitude(body: &CelestialBody, m: &MagInputs) -> Option<
             // fac = (Δ-diameter / mean-diameter-at-1AU)².
             let mean = diameter_deg(&CelestialBody::Sun, 1.0);
             let fac = (m.diameter_deg / mean).powi(2);
-            -26.86 - 2.5 * fac.log10()
+            -26.86 - 2.5 * libm::log10(fac)
         }
         CelestialBody::Moon => {
             // Vreijs (swecl.c:3900-3914).
             let base = if a <= 147.138_546_5 {
                 -21.62 + 0.026 * a.abs() + 0.000_000_004 * a.powi(4)
             } else {
-                -4.5444 - 2.5 * (180.0 - a).powi(3).log10()
+                -4.5444 - 2.5 * libm::log10((180.0 - a).powi(3))
             };
-            base + 5.0 * (m.delta_geo_au * m.r_helio_au * AUNIT_M / EARTH_RADIUS_M).log10()
+            base + 5.0 * libm::log10(m.delta_geo_au * m.r_helio_au * AUNIT_M / EARTH_RADIUS_M)
         }
         CelestialBody::Mercury => {
             // Mallama 2018 (swecl.c:3923-3927).
@@ -140,18 +140,20 @@ pub(crate) fn apparent_magnitude(body: &CelestialBody, m: &MagInputs) -> Option<
             let t = (m.jd_tdb - m.light_time_days - J2000_JD) / 36_525.0;
             let inc = (28.075216 - 0.012998 * t + 0.000004 * t * t).to_radians();
             let om = (169.508470 + 1.394681 * t + 0.000412 * t * t).to_radians();
-            let sin_b = inc.sin()
-                * m.geo_lat_deg.to_radians().cos()
-                * (m.geo_lon_deg.to_radians() - om).sin()
-                - inc.cos() * m.geo_lat_deg.to_radians().sin();
-            let sin_b2 = inc.sin()
-                * m.helio_lat_deg.to_radians().cos()
-                * (m.helio_lon_deg.to_radians() - om).sin()
-                - inc.cos() * m.helio_lat_deg.to_radians().sin();
-            let sin_b = ((sin_b.clamp(-1.0, 1.0).asin() + sin_b2.clamp(-1.0, 1.0).asin()) / 2.0)
-                .sin()
-                .abs();
-            (-8.914 - 1.825 * sin_b + 0.026 * a - 0.378 * sin_b * 2.7182818_f64.powf(-2.25 * a))
+            let sin_b = libm::sin(inc)
+                * libm::cos(m.geo_lat_deg.to_radians())
+                * libm::sin(m.geo_lon_deg.to_radians() - om)
+                - libm::cos(inc) * libm::sin(m.geo_lat_deg.to_radians());
+            let sin_b2 = libm::sin(inc)
+                * libm::cos(m.helio_lat_deg.to_radians())
+                * libm::sin(m.helio_lon_deg.to_radians() - om)
+                - libm::cos(inc) * libm::sin(m.helio_lat_deg.to_radians());
+            let sin_b = libm::sin(
+                (libm::asin(sin_b.clamp(-1.0, 1.0)) + libm::asin(sin_b2.clamp(-1.0, 1.0))) / 2.0,
+            )
+            .abs();
+            (-8.914 - 1.825 * sin_b + 0.026 * a
+                - 0.378 * sin_b * libm::pow(2.7182818_f64, -2.25 * a))
                 + dist_term(m)
         }
         CelestialBody::Uranus => {
@@ -216,7 +218,7 @@ mod tests {
         i.r_helio_au = 5.0;
         i.delta_geo_au = 4.0;
         let m = apparent_magnitude(&CelestialBody::Pluto, &i).unwrap();
-        let expected = -1.00 + 5.0 * (20.0_f64).log10();
+        let expected = -1.00 + 5.0 * libm::log10(20.0_f64);
         assert!((m - expected).abs() < 1e-9, "pluto far {m}");
     }
 

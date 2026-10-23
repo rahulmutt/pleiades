@@ -63,8 +63,10 @@ fn separation_rad(sample: &SunMoonSample) -> f64 {
         sample.moon_longitude_deg.to_radians(),
         sample.moon_latitude_deg.to_radians(),
     );
-    let cos_sep = (b1.sin() * b2.sin() + b1.cos() * b2.cos() * (l1 - l2).cos()).clamp(-1.0, 1.0);
-    cos_sep.acos()
+    let cos_sep = (libm::sin(b1) * libm::sin(b2)
+        + libm::cos(b1) * libm::cos(b2) * libm::cos(l1 - l2))
+    .clamp(-1.0, 1.0);
+    libm::acos(cos_sep)
 }
 
 /// Classifies a solar eclipse from a new-moon sample.
@@ -94,9 +96,9 @@ fn separation_rad(sample: &SunMoonSample) -> f64 {
 pub(crate) fn classify_solar(sample: &SunMoonSample) -> Option<SolarCircumstances> {
     let sun_dist_km = sample.sun_distance_au * AU_KM;
     let moon_dist_km = sample.moon_distance_au * AU_KM;
-    let s = (R_SUN_KM / sun_dist_km).asin();
-    let m_geo = (R_MOON_KM / moon_dist_km).asin();
-    let parallax = (R_EARTH_KM / moon_dist_km).asin();
+    let s = libm::asin(R_SUN_KM / sun_dist_km);
+    let m_geo = libm::asin(R_MOON_KM / moon_dist_km);
+    let parallax = libm::asin(R_EARTH_KM / moon_dist_km);
     let sigma = separation_rad(sample);
 
     if sigma >= parallax + s + m_geo {
@@ -173,10 +175,10 @@ pub(crate) fn classify_solar(sample: &SunMoonSample) -> Option<SolarCircumstance
     let to_sun = sub(s_vec, observer);
     let d_moon_topo = norm(to_moon);
     let d_sun_topo = norm(to_sun);
-    let m_topo = ((R_MOON_KM / AU_KM) / d_moon_topo).asin();
-    let s_topo = ((R_SUN_KM / AU_KM) / d_sun_topo).asin();
+    let m_topo = libm::asin((R_MOON_KM / AU_KM) / d_moon_topo);
+    let s_topo = libm::asin((R_SUN_KM / AU_KM) / d_sun_topo);
     let cos_sep = (dot(to_moon, to_sun) / (d_moon_topo * d_sun_topo)).clamp(-1.0, 1.0);
-    let sigma_topo = cos_sep.acos();
+    let sigma_topo = libm::acos(cos_sep);
 
     // NASA reports the magnitude at the greatest-eclipse point on Earth's surface.
     // When the shadow axis truly reaches the surface (|γ| < CENTRAL_GAMMA_LIMIT,
@@ -246,10 +248,10 @@ pub(crate) struct LunarShadow {
 
 /// Computes the lunar shadow geometry at a full-moon sample.
 pub(crate) fn lunar_shadow(sample: &SunMoonSample) -> LunarShadow {
-    let s = (R_SUN_KM / (sample.sun_distance_au * AU_KM)).asin();
-    let m_moon = (R_MOON_KM / (sample.moon_distance_au * AU_KM)).asin();
-    let pi_moon = (R_EARTH_KM / (sample.moon_distance_au * AU_KM)).asin();
-    let pi_sun = (R_EARTH_KM / (sample.sun_distance_au * AU_KM)).asin();
+    let s = libm::asin(R_SUN_KM / (sample.sun_distance_au * AU_KM));
+    let m_moon = libm::asin(R_MOON_KM / (sample.moon_distance_au * AU_KM));
+    let pi_moon = libm::asin(R_EARTH_KM / (sample.moon_distance_au * AU_KM));
+    let pi_sun = libm::asin(R_EARTH_KM / (sample.sun_distance_au * AU_KM));
 
     // Earth's geometric shadow is enlarged by SHADOW_INFLATION (atmospheric
     // extinction, the value the NASA canon uses) — applied to Earth's angular
@@ -266,7 +268,7 @@ pub(crate) fn lunar_shadow(sample: &SunMoonSample) -> LunarShadow {
 }
 
 pub(crate) fn classify_lunar(sample: &SunMoonSample) -> Option<LunarCircumstances> {
-    let pi_moon = (R_EARTH_KM / (sample.moon_distance_au * AU_KM)).asin();
+    let pi_moon = libm::asin(R_EARTH_KM / (sample.moon_distance_au * AU_KM));
     let LunarShadow {
         sigma,
         u,
@@ -308,9 +310,9 @@ fn rect(lon_deg: f64, lat_deg: f64, dist_au: f64) -> [f64; 3] {
     let l = lon_deg.to_radians();
     let b = lat_deg.to_radians();
     [
-        dist_au * b.cos() * l.cos(),
-        dist_au * b.cos() * l.sin(),
-        dist_au * b.sin(),
+        dist_au * libm::cos(b) * libm::cos(l),
+        dist_au * libm::cos(b) * libm::sin(l),
+        dist_au * libm::sin(b),
     ]
 }
 
@@ -351,13 +353,13 @@ const OBLIQUITY_RAD: f64 = OBLIQUITY_J2000_DEG * core::f64::consts::PI / 180.0;
 
 /// Rotate an ecliptic vector to the equatorial frame (about the +x/equinox axis).
 fn ecliptic_to_equatorial(v: [f64; 3]) -> [f64; 3] {
-    let (c, s) = (OBLIQUITY_RAD.cos(), OBLIQUITY_RAD.sin());
+    let (c, s) = (libm::cos(OBLIQUITY_RAD), libm::sin(OBLIQUITY_RAD));
     [v[0], v[1] * c - v[2] * s, v[1] * s + v[2] * c]
 }
 
 /// Inverse of [`ecliptic_to_equatorial`].
 fn equatorial_to_ecliptic(v: [f64; 3]) -> [f64; 3] {
-    let (c, s) = (OBLIQUITY_RAD.cos(), OBLIQUITY_RAD.sin());
+    let (c, s) = (libm::cos(OBLIQUITY_RAD), libm::sin(OBLIQUITY_RAD));
     [v[0], v[1] * c + v[2] * s, -v[1] * s + v[2] * c]
 }
 

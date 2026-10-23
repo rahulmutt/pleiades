@@ -6,9 +6,7 @@ on:
 
 jobs:
   test:
-    # Pinned, not ubuntu-latest: the bit-identity tests pin f64 bits that depend
-    # on glibc libm, and the ubuntu-26.04 image rounds differently (see #285).
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20 # blocking-CI budget: target <=10 min; hard cap raised to 20 for cold-cache / runner-variance headroom (real runs land ~10-13 min)
     steps:
       - name: Checkout repository

@@ -146,8 +146,8 @@ mod tests {
         // Point on +x, observer velocity on +y: shift ≈ |v|/c radians toward +y.
         let v = 0.0172; // ~Earth orbital speed, AU/day
         let p = aberrate([2.0, 0.0, 0.0], [0.0, v, 0.0]).expect("finite point");
-        let expected = (v / LIGHT_SPEED_AU_PER_DAY).atan();
-        let got = p[1].atan2(p[0]);
+        let expected = libm::atan(v / LIGHT_SPEED_AU_PER_DAY);
+        let got = libm::atan2(p[1], p[0]);
         assert!((got - expected).abs() < 1e-9);
         // Distance preserved.
         let r = (p[0] * p[0] + p[1] * p[1] + p[2] * p[2]).sqrt();
@@ -311,8 +311,8 @@ fn direction_norm(p: [f64; 3]) -> Result<f64, EventError> {
 fn cartesian_to_raw(p: [f64; 3]) -> Result<RawPoint, EventError> {
     let r = direction_norm(p)?;
     Ok(RawPoint {
-        lon_deg: p[1].atan2(p[0]).to_degrees().rem_euclid(360.0),
-        lat_deg: (p[2] / r).asin().to_degrees(),
+        lon_deg: libm::atan2(p[1], p[0]).to_degrees().rem_euclid(360.0),
+        lat_deg: libm::asin(p[2] / r).to_degrees(),
         dist_au: r,
     })
 }

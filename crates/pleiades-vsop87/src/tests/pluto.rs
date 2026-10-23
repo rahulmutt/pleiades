@@ -216,9 +216,11 @@ fn mean_element_orbit_longitude_includes_the_argument_of_perihelion() {
     // or mis-scales it cannot land there.
     let elements = OrbitalElements::new(0.0, 0.0, 90.0, 1.0, 0.0, 0.0);
     let coords = Vsop87Backend::heliocentric_coordinates(elements);
-    let longitude = coords.yh.atan2(coords.xh).to_degrees().rem_euclid(360.0);
+    let longitude = libm::atan2(coords.yh, coords.xh)
+        .to_degrees()
+        .rem_euclid(360.0);
     assert_degrees_close(longitude, 90.0, 1e-9);
-    assert_close(coords.xh.hypot(coords.yh), 1.0, 1e-12);
+    assert_close(libm::hypot(coords.xh, coords.yh), 1.0, 1e-12);
 }
 
 /// Meeus, Astronomical Algorithms (2nd ed.), Example 37.a: 1992-10-13 0h TD.

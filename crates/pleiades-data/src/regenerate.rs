@@ -318,11 +318,8 @@ fn unwrap_longitude_samples(samples: &[f64]) -> Vec<f64> {
 pub(crate) fn coordinates(entry: &SnapshotEntry) -> EclipticCoordinates {
     let radius_km =
         (entry.x_km * entry.x_km + entry.y_km * entry.y_km + entry.z_km * entry.z_km).sqrt();
-    let longitude = entry.y_km.atan2(entry.x_km).to_degrees();
-    let latitude = (entry.z_km / radius_km)
-        .clamp(-1.0, 1.0)
-        .asin()
-        .to_degrees();
+    let longitude = libm::atan2(entry.y_km, entry.x_km).to_degrees();
+    let latitude = libm::asin((entry.z_km / radius_km).clamp(-1.0, 1.0)).to_degrees();
     EclipticCoordinates::new(
         pleiades_backend::Longitude::from_degrees(longitude),
         pleiades_backend::Latitude::from_degrees(latitude),

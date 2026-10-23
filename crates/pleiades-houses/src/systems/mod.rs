@@ -173,8 +173,9 @@ fn asc_mc_from(armc_deg: f64, lat_deg: f64, obliquity_deg: f64) -> Result<AscMc,
     let theta = armc_deg.to_radians();
 
     let ascendant = ascendant_for(armc_deg, lat_deg, obl);
-    let midheaven =
-        Longitude::from_degrees(theta.sin().atan2(theta.cos() * obl.cos()).to_degrees());
+    let midheaven = Longitude::from_degrees(
+        libm::atan2(libm::sin(theta), libm::cos(theta) * libm::cos(obl)).to_degrees(),
+    );
 
     // The following five points are faithful ports of Swiss Ephemeris
     // `swehouse.c` (function `swe_houses_armc` / `CalcH`, lines ~2001-2048),
@@ -712,16 +713,14 @@ fn derive_angles(instant: Instant, observer: &ObserverLocation, obliquity: Angle
     let theta = sidereal_time.degrees().to_radians();
 
     let ascendant = Longitude::from_degrees(
-        theta
-            .cos()
-            .atan2(-(theta.sin() * obliquity.cos() + latitude.tan() * obliquity.sin()))
-            .to_degrees(),
+        libm::atan2(
+            libm::cos(theta),
+            -(libm::sin(theta) * libm::cos(obliquity) + libm::tan(latitude) * libm::sin(obliquity)),
+        )
+        .to_degrees(),
     );
     let midheaven = Longitude::from_degrees(
-        theta
-            .sin()
-            .atan2(theta.cos() * obliquity.cos())
-            .to_degrees(),
+        libm::atan2(libm::sin(theta), libm::cos(theta) * libm::cos(obliquity)).to_degrees(),
     );
     HouseAngles::new(ascendant, midheaven)
 }
@@ -730,10 +729,12 @@ fn ascendant_for(sidereal_time_deg: f64, latitude_deg: f64, obliquity_rad: f64) 
     let theta = sidereal_time_deg.to_radians();
     let latitude = latitude_deg.to_radians();
     Longitude::from_degrees(
-        theta
-            .cos()
-            .atan2(-(theta.sin() * obliquity_rad.cos() + latitude.tan() * obliquity_rad.sin()))
-            .to_degrees(),
+        libm::atan2(
+            libm::cos(theta),
+            -(libm::sin(theta) * libm::cos(obliquity_rad)
+                + libm::tan(latitude) * libm::sin(obliquity_rad)),
+        )
+        .to_degrees(),
     )
 }
 
@@ -904,8 +905,8 @@ fn koch_houses(
     let obliquity_deg = obliquity.degrees();
     let latitude = latitude_deg.to_radians();
     let obliquity = obliquity_deg.to_radians();
-    let sine = obliquity.sin();
-    let cose = obliquity.cos();
+    let sine = libm::sin(obliquity);
+    let cose = libm::cos(obliquity);
 
     // Koch is undefined within the polar circle, where the Midheaven's
     // ascensional difference is no longer real. Fail closed rather than
@@ -921,10 +922,10 @@ fn koch_houses(
     // λ_MC is the ecliptic longitude of the MC (`angles.midheaven`). `sina`
     // divides this by cos(latitude) (the cosine of the geographic pole height).
     let mc = angles.midheaven.degrees().to_radians();
-    let sina = (mc.sin() * sine / latitude.cos()).clamp(-1.0, 1.0);
+    let sina = (libm::sin(mc) * sine / libm::cos(latitude)).clamp(-1.0, 1.0);
     let cosa = (1.0 - sina * sina).max(0.0).sqrt();
-    let c = (latitude.tan() / cosa).atan();
-    let ad3 = (c.sin() * sina).clamp(-1.0, 1.0).asin().to_degrees() / 3.0;
+    let c = libm::atan(libm::tan(latitude) / cosa);
+    let ad3 = libm::asin((libm::sin(c) * sina).clamp(-1.0, 1.0)).to_degrees() / 3.0;
 
     cusps[10] = asc1(th + 30.0 - 2.0 * ad3, latitude_deg, sine, cose);
     cusps[11] = asc1(th + 60.0 - ad3, latitude_deg, sine, cose);
@@ -964,11 +965,10 @@ fn alcabitius_houses(
     let latitude = observer.latitude.degrees().to_radians();
     let obliquity = obliquity.degrees().to_radians();
     let ascendant_longitude = angles.ascendant.degrees().to_radians();
-    let ascendant_declination = (ascendant_longitude.sin() * obliquity.sin()).asin();
-    let ascensional_difference = (latitude.tan() * ascendant_declination.tan())
-        .clamp(-1.0, 1.0)
-        .asin()
-        .to_degrees();
+    let ascendant_declination = libm::asin(libm::sin(ascendant_longitude) * libm::sin(obliquity));
+    let ascensional_difference =
+        libm::asin((libm::tan(latitude) * libm::tan(ascendant_declination)).clamp(-1.0, 1.0))
+            .to_degrees();
     let diurnal = 90.0 + ascensional_difference;
     let nocturnal = 90.0 - ascensional_difference;
 
@@ -1014,10 +1014,10 @@ fn regiomontanus_houses(
         }
 
         let d = house_phase(house).to_radians();
-        let v = d.sin() * latitude.sin() * obliquity.sin();
-        let x = (st + d).cos() * latitude.cos() * obliquity.cos() - v;
-        let y = (st + d).sin() * latitude.cos();
-        cusps[house - 1] = Longitude::from_degrees(y.atan2(x).to_degrees());
+        let v = libm::sin(d) * libm::sin(latitude) * libm::sin(obliquity);
+        let x = libm::cos(st + d) * libm::cos(latitude) * libm::cos(obliquity) - v;
+        let y = libm::sin(st + d) * libm::cos(latitude);
+        cusps[house - 1] = Longitude::from_degrees(libm::atan2(y, x).to_degrees());
     }
 
     cusps
@@ -1059,11 +1059,11 @@ fn campanus_houses(
         //
         // where θ = RAMC (local sidereal time), φ = geographic latitude, ε = obliquity.
         let d = house_phase(house).to_radians();
-        let y = d.cos() * st.sin() + d.sin() * latitude.cos() * st.cos();
-        let x = d.cos() * st.cos() * obliquity.cos()
-            - d.sin() * latitude.cos() * st.sin() * obliquity.cos()
-            - d.sin() * latitude.sin() * obliquity.sin();
-        cusps[house - 1] = Longitude::from_degrees(y.atan2(x).to_degrees());
+        let y = libm::cos(d) * libm::sin(st) + libm::sin(d) * libm::cos(latitude) * libm::cos(st);
+        let x = libm::cos(d) * libm::cos(st) * libm::cos(obliquity)
+            - libm::sin(d) * libm::cos(latitude) * libm::sin(st) * libm::cos(obliquity)
+            - libm::sin(d) * libm::sin(latitude) * libm::sin(obliquity);
+        cusps[house - 1] = Longitude::from_degrees(libm::atan2(y, x).to_degrees());
     }
 
     cusps
@@ -1105,11 +1105,11 @@ fn morinus_houses(
 ) -> [Longitude; 12] {
     let st = local_sidereal_time(instant, observer.longitude).degrees();
     let eps = obliquity.degrees().to_radians();
-    let cos_eps = eps.cos();
+    let cos_eps = libm::cos(eps);
 
     core::array::from_fn(|index| {
         let ra = (st + 90.0 + (index as f64) * 30.0).to_radians();
-        Longitude::from_degrees(ra.sin().atan2(ra.cos() / cos_eps).to_degrees())
+        Longitude::from_degrees(libm::atan2(libm::sin(ra), libm::cos(ra) / cos_eps).to_degrees())
     })
 }
 
@@ -1169,11 +1169,9 @@ fn horizon_houses(
         };
     }
     let transformed_latitude_rad = transformed_latitude.to_radians();
-    let fh1 = (transformed_latitude_rad.sin() / 2.0).asin().to_degrees();
-    let fh2 = ((3.0_f64).sqrt() / 2.0 * transformed_latitude_rad.sin())
-        .asin()
-        .to_degrees();
-    let cosfi = transformed_latitude_rad.cos();
+    let fh1 = libm::asin(libm::sin(transformed_latitude_rad) / 2.0).to_degrees();
+    let fh2 = libm::asin((3.0_f64).sqrt() / 2.0 * libm::sin(transformed_latitude_rad)).to_degrees();
+    let cosfi = libm::cos(transformed_latitude_rad);
     let (xh1, xh2) = if cosfi == 0.0 {
         if transformed_latitude > 0.0 {
             (90.0, 90.0)
@@ -1182,8 +1180,8 @@ fn horizon_houses(
         }
     } else {
         (
-            (3.0_f64.sqrt() / cosfi).atan().to_degrees(),
-            (1.0 / 3.0_f64.sqrt() / cosfi).atan().to_degrees(),
+            libm::atan(3.0_f64.sqrt() / cosfi).to_degrees(),
+            libm::atan(1.0 / 3.0_f64.sqrt() / cosfi).to_degrees(),
         )
     };
 
@@ -1210,11 +1208,13 @@ fn horizon_houses(
 }
 
 fn apc_sector(n: usize, latitude_rad: f64, obliquity_rad: f64, sidereal_rad: f64) -> Longitude {
-    let tan_lat = latitude_rad.tan();
-    let tan_obliquity = obliquity_rad.tan();
-    let kv = (tan_lat * tan_obliquity * sidereal_rad.cos())
-        .atan2(1.0 + tan_lat * tan_obliquity * sidereal_rad.sin());
-    let sin_kv = kv.sin();
+    let tan_lat = libm::tan(latitude_rad);
+    let tan_obliquity = libm::tan(obliquity_rad);
+    let kv = libm::atan2(
+        tan_lat * tan_obliquity * libm::cos(sidereal_rad),
+        1.0 + tan_lat * tan_obliquity * libm::sin(sidereal_rad),
+    );
+    let sin_kv = libm::sin(kv);
     let is_below_hor = n < 8;
     let k = if is_below_hor {
         (n as isize - 1) as f64
@@ -1230,10 +1230,10 @@ fn apc_sector(n: usize, latitude_rad: f64, obliquity_rad: f64, sidereal_rad: f64
             + core::f64::consts::FRAC_PI_2
             + k * (core::f64::consts::FRAC_PI_2 + kv) / 3.0
     };
-    let y = sin_kv * sidereal_rad.sin() + a.sin();
-    let x = obliquity_rad.cos() * (sin_kv * sidereal_rad.cos() + a.cos())
-        + obliquity_rad.sin() * tan_lat * (sidereal_rad - a).sin();
-    Longitude::from_degrees(y.atan2(x).to_degrees())
+    let y = sin_kv * libm::sin(sidereal_rad) + libm::sin(a);
+    let x = libm::cos(obliquity_rad) * (sin_kv * libm::cos(sidereal_rad) + libm::cos(a))
+        + libm::sin(obliquity_rad) * tan_lat * libm::sin(sidereal_rad - a);
+    Longitude::from_degrees(libm::atan2(y, x).to_degrees())
 }
 
 fn apc_houses(
@@ -1380,8 +1380,8 @@ fn solve_gauquelin_sector(
 ) -> Result<Longitude, HouseError> {
     let latitude = latitude_deg.to_radians();
     let obliquity = obliquity_deg.to_radians();
-    let tan_lat = latitude.tan();
-    let tan_obliquity = obliquity.tan();
+    let tan_lat = libm::tan(latitude);
+    let tan_obliquity = libm::tan(obliquity);
     let deg_per_rad = 180.0 / core::f64::consts::PI;
 
     let mut q = sign * fraction * 90.0;
@@ -1389,10 +1389,11 @@ fn solve_gauquelin_sector(
     for _ in 0..64 {
         let alpha = ramc_deg + q;
         let alpha_rad = alpha.to_radians();
-        let tan_delta = alpha_rad.sin() * tan_obliquity;
+        let tan_delta = libm::sin(alpha_rad) * tan_obliquity;
         let arg = (q / fraction).to_radians();
-        let g = arg.cos() + tan_lat * tan_delta;
-        let gp = (-(1.0 / fraction) * arg.sin() + tan_lat * tan_obliquity * alpha_rad.cos())
+        let g = libm::cos(arg) + tan_lat * tan_delta;
+        let gp = (-(1.0 / fraction) * libm::sin(arg)
+            + tan_lat * tan_obliquity * libm::cos(alpha_rad))
             / deg_per_rad;
         if gp.abs() < 1.0e-12 {
             return Err(HouseError::new(
@@ -1513,10 +1514,11 @@ fn pullen_sr_houses(angles: HouseAngles) -> [Longitude; 12] {
     } else {
         let c = (180.0 - q) / q;
         let csq = c * c;
-        let ccr = (csq - c).cbrt();
-        let cqx = (2.0_f64.powf(2.0 / 3.0) * ccr + 1.0).sqrt();
+        let ccr = libm::cbrt(csq - c);
+        let cqx = (libm::pow(2.0_f64, 2.0 / 3.0) * ccr + 1.0).sqrt();
         let r1 = 0.5 * cqx;
-        let r2 = 0.5 * (-2.0 * (1.0 - 2.0 * c) / cqx - 2.0_f64.powf(2.0 / 3.0) * ccr + 2.0).sqrt();
+        let r2 =
+            0.5 * (-2.0 * (1.0 - 2.0 * c) / cqx - libm::pow(2.0_f64, 2.0 / 3.0) * ccr + 2.0).sqrt();
         let r = r1 + r2 - 0.5;
         let x = q / (2.0 * r + 1.0);
         let xr = r * x;
@@ -1565,10 +1567,10 @@ fn topocentric_houses(
     cusps[9] = angles.midheaven;
 
     let st = local_sidereal_time(instant, observer.longitude).degrees();
-    let tan_latitude = observer.latitude.degrees().to_radians().tan();
+    let tan_latitude = libm::tan(observer.latitude.degrees().to_radians());
     let obliquity = obliquity.degrees().to_radians();
-    let sine = obliquity.sin();
-    let cose = obliquity.cos();
+    let sine = libm::sin(obliquity);
+    let cose = libm::cos(obliquity);
 
     // (house index, RAMC offset in degrees, fraction of tan(latitude)).
     // Only the four cusps adjacent to the meridian are solved directly; cusps
@@ -1581,7 +1583,7 @@ fn topocentric_houses(
     ];
 
     for (house, offset, fraction) in SPEC {
-        let pole = (fraction * tan_latitude).atan().to_degrees();
+        let pole = libm::atan(fraction * tan_latitude).to_degrees();
         let cusp = asc1(st + offset, pole, sine, cose);
         if !cusp.degrees().is_finite() {
             return Err(HouseError::new(
@@ -1636,39 +1638,38 @@ fn sunshine_houses(
     cusps[9] = midheaven;
 
     let offsets = sunshine_offsets(latitude, sundec);
-    let sin_ecl = obliquity_deg.to_radians().sin();
-    let cos_ecl = obliquity_deg.to_radians().cos();
+    let sin_ecl = libm::sin(obliquity_deg.to_radians());
+    let cos_ecl = libm::cos(obliquity_deg.to_radians());
 
     for house in [2usize, 3, 5, 6, 8, 9, 11, 12] {
         let offset = offsets[house];
         let xhs = 2.0
-            * (sundec.to_radians().cos() * (offset.to_radians() / 2.0).sin())
-                .asin()
+            * libm::asin(libm::cos(sundec.to_radians()) * libm::sin(offset.to_radians() / 2.0))
                 .to_degrees();
-        let cosa = (sundec.to_radians().tan() * (xhs.to_radians() / 2.0).tan()).clamp(-1.0, 1.0);
-        let alph = cosa.acos().to_degrees();
+        let cosa =
+            (libm::tan(sundec.to_radians()) * libm::tan(xhs.to_radians() / 2.0)).clamp(-1.0, 1.0);
+        let alph = libm::acos(cosa).to_degrees();
         let (alpha2, b) = if house > 7 {
             (180.0 - alph, 90.0 - latitude + sundec)
         } else {
             (alph, 90.0 - latitude - sundec)
         };
 
-        let cosc = xhs.to_radians().cos() * b.to_radians().cos()
-            + xhs.to_radians().sin() * b.to_radians().sin() * alpha2.to_radians().cos();
-        let c = cosc.clamp(-1.0, 1.0).acos().to_degrees();
+        let cosc = libm::cos(xhs.to_radians()) * libm::cos(b.to_radians())
+            + libm::sin(xhs.to_radians())
+                * libm::sin(b.to_radians())
+                * libm::cos(alpha2.to_radians());
+        let c = libm::acos(cosc.clamp(-1.0, 1.0)).to_degrees();
         let sinzd = if c.abs() < f64::EPSILON {
             0.0
         } else {
-            xhs.to_radians().sin() * alpha2.to_radians().sin() / c.to_radians().sin()
+            libm::sin(xhs.to_radians()) * libm::sin(alpha2.to_radians()) / libm::sin(c.to_radians())
         };
-        let zd = sinzd.clamp(-1.0, 1.0).asin().to_degrees();
-        let rax = (latitude.to_radians().cos() * zd.to_radians().tan())
-            .atan()
-            .to_degrees();
-        let pole = (sinzd * latitude.to_radians().sin())
-            .clamp(-1.0, 1.0)
-            .asin()
-            .to_degrees();
+        let zd = libm::asin(sinzd.clamp(-1.0, 1.0)).to_degrees();
+        let rax =
+            libm::atan(libm::cos(latitude.to_radians()) * libm::tan(zd.to_radians())).to_degrees();
+        let pole =
+            libm::asin((sinzd * libm::sin(latitude.to_radians())).clamp(-1.0, 1.0)).to_degrees();
         let pole = if house <= 6 { -pole } else { pole };
         let a = if house <= 6 {
             sidereal_time + 180.0 + rax
@@ -1689,8 +1690,9 @@ fn sunshine_houses(
 
 fn sunshine_offsets(latitude_deg: f64, sun_declination_deg: f64) -> [f64; 13] {
     let mut offsets = [0.0; 13];
-    let tan_product = sun_declination_deg.to_radians().tan() * latitude_deg.to_radians().tan();
-    let ascensional_difference = tan_product.clamp(-1.0, 1.0).asin().to_degrees();
+    let tan_product =
+        libm::tan(sun_declination_deg.to_radians()) * libm::tan(latitude_deg.to_radians());
+    let ascensional_difference = libm::asin(tan_product.clamp(-1.0, 1.0)).to_degrees();
     let nocturnal_semi_arc = 90.0 - ascensional_difference;
     let diurnal_semi_arc = 90.0 + ascensional_difference;
     offsets[2] = -2.0 * nocturnal_semi_arc / 3.0;
@@ -1710,20 +1712,17 @@ fn apparent_solar_declination(instant: Instant, obliquity: Angle) -> Angle {
     let mean_anomaly = Angle::from_degrees(357.528 + 0.985_600_3 * days).normalized_0_360();
     let lambda = Angle::from_degrees(
         mean_longitude.degrees()
-            + 1.915 * mean_anomaly.radians().sin()
-            + 0.020 * (2.0 * mean_anomaly.radians()).sin(),
+            + 1.915 * libm::sin(mean_anomaly.radians())
+            + 0.020 * libm::sin(2.0 * mean_anomaly.radians()),
     )
     .normalized_0_360();
     Angle::from_degrees(
-        (obliquity.radians().sin() * lambda.radians().sin())
-            .asin()
-            .to_degrees(),
+        libm::asin(libm::sin(obliquity.radians()) * libm::sin(lambda.radians())).to_degrees(),
     )
 }
 
 fn apparent_midheaven_declination(sidereal_time_deg: f64, obliquity_deg: f64) -> f64 {
-    (sidereal_time_deg.to_radians().sin() * obliquity_deg.to_radians().tan())
-        .atan()
+    libm::atan(libm::sin(sidereal_time_deg.to_radians()) * libm::tan(obliquity_deg.to_radians()))
         .to_degrees()
 }
 
@@ -1749,12 +1748,12 @@ pub(crate) fn topocentric_latitude(
     let semi_major_m = 6_378_137.0;
     let flattening = 1.0 / 298.257_223_563;
     let eccentricity_sq = flattening * (2.0 - flattening);
-    let sin_lat = latitude.sin();
-    let cos_lat = latitude.cos();
+    let sin_lat = libm::sin(latitude);
+    let cos_lat = libm::cos(latitude);
     let prime_vertical = semi_major_m / (1.0 - eccentricity_sq * sin_lat * sin_lat).sqrt();
     let x = (prime_vertical + elevation) * cos_lat;
     let z = (prime_vertical * (1.0 - eccentricity_sq) + elevation) * sin_lat;
-    Ok(Angle::from_degrees(z.atan2(x).to_degrees()))
+    Ok(Angle::from_degrees(libm::atan2(z, x).to_degrees()))
 }
 
 fn solve_placidian_cusp(
@@ -1793,8 +1792,8 @@ fn solve_placidian_cusp(
 
     let latitude = latitude_deg.to_radians();
     let obliquity = obliquity_deg.to_radians();
-    let tan_lat = latitude.tan();
-    let tan_obliquity = obliquity.tan();
+    let tan_lat = libm::tan(latitude);
+    let tan_obliquity = libm::tan(obliquity);
     let deg_per_rad = 180.0 / core::f64::consts::PI;
 
     // Residual g(q) = cos(q/f) + tan(phi)*tan(delta(alpha)), with alpha = st + q.
@@ -1805,12 +1804,13 @@ fn solve_placidian_cusp(
     for _ in 0..64 {
         let alpha = st_deg + q;
         let alpha_rad = alpha.to_radians();
-        let tan_delta = alpha_rad.sin() * tan_obliquity;
+        let tan_delta = libm::sin(alpha_rad) * tan_obliquity;
         let arg = (q / fraction).to_radians();
-        let g = arg.cos() + tan_lat * tan_delta;
+        let g = libm::cos(arg) + tan_lat * tan_delta;
         // dg/dq (per degree): derivative of cos(q/f) is -(1/f)*sin(q/f)*(pi/180);
         // derivative of tan(delta) term is tan(phi)*tan(eps)*cos(alpha)*(pi/180).
-        let gp = (-(1.0 / fraction) * arg.sin() + tan_lat * tan_obliquity * alpha_rad.cos())
+        let gp = (-(1.0 / fraction) * libm::sin(arg)
+            + tan_lat * tan_obliquity * libm::cos(alpha_rad))
             / deg_per_rad;
         if gp.abs() < 1.0e-12 {
             return Err(HouseError::new(
@@ -1845,14 +1845,18 @@ fn solve_placidian_cusp(
 
 fn right_ascension_from_ecliptic_longitude(longitude: Longitude, obliquity: f64) -> f64 {
     let longitude = longitude.degrees().to_radians();
-    (longitude.sin() * obliquity.cos())
-        .atan2(longitude.cos())
-        .to_degrees()
+    libm::atan2(
+        libm::sin(longitude) * libm::cos(obliquity),
+        libm::cos(longitude),
+    )
+    .to_degrees()
 }
 
 fn ecliptic_longitude_from_ra(ra_deg: f64, obliquity: f64) -> Longitude {
     let ra = ra_deg.to_radians();
-    Longitude::from_degrees(ra.sin().atan2(ra.cos() * obliquity.cos()).to_degrees())
+    Longitude::from_degrees(
+        libm::atan2(libm::sin(ra), libm::cos(ra) * libm::cos(obliquity)).to_degrees(),
+    )
 }
 
 fn interpolate_longitude(start: Longitude, end: Longitude, fraction: f64) -> Longitude {
@@ -1877,11 +1881,11 @@ fn asc1(x1: f64, pole_height: f64, sine: f64, cose: f64) -> Longitude {
 }
 
 fn asc2(x: f64, pole_height: f64, sine: f64, cose: f64) -> f64 {
-    let mut value = -pole_height.to_radians().tan() * sine + cose * x.to_radians().cos();
+    let mut value = -libm::tan(pole_height.to_radians()) * sine + cose * libm::cos(x.to_radians());
     if value.abs() < 1.0e-12 {
         value = 0.0;
     }
-    let sinx = x.to_radians().sin();
+    let sinx = libm::sin(x.to_radians());
     let mut longitude = if sinx.abs() < 1.0e-12 {
         if value < 0.0 {
             -1.0e-12
@@ -1895,7 +1899,7 @@ fn asc2(x: f64, pole_height: f64, sine: f64, cose: f64) -> f64 {
             90.0
         }
     } else {
-        (sinx / value).atan().to_degrees()
+        libm::atan(sinx / value).to_degrees()
     };
     if longitude < 0.0 {
         longitude += 180.0;
@@ -1936,17 +1940,17 @@ fn spherical_cotrans(coord: &mut [f64; 3], angle_deg: f64) {
     let lon = coord[0].to_radians();
     let lat = coord[1].to_radians();
     let radius = coord[2];
-    let x = radius * lat.cos() * lon.cos();
-    let y = radius * lat.cos() * lon.sin();
-    let z = radius * lat.sin();
+    let x = radius * libm::cos(lat) * libm::cos(lon);
+    let y = radius * libm::cos(lat) * libm::sin(lon);
+    let z = radius * libm::sin(lat);
 
     let angle = angle_deg.to_radians();
-    let y_rot = y * angle.cos() + z * angle.sin();
-    let z_rot = -y * angle.sin() + z * angle.cos();
+    let y_rot = y * libm::cos(angle) + z * libm::sin(angle);
+    let z_rot = -y * libm::sin(angle) + z * libm::cos(angle);
     let radius = (x * x + y_rot * y_rot + z_rot * z_rot).sqrt();
 
-    coord[0] = y_rot.atan2(x).to_degrees();
-    coord[1] = z_rot.atan2((x * x + y_rot * y_rot).sqrt()).to_degrees();
+    coord[0] = libm::atan2(y_rot, x).to_degrees();
+    coord[1] = libm::atan2(z_rot, (x * x + y_rot * y_rot).sqrt()).to_degrees();
     coord[2] = radius;
 }
 

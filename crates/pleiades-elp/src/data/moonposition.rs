@@ -32,19 +32,20 @@ pub fn position(jde: f64) -> (Longitude, Latitude, f64) {
     let e = horner(t, &[1.0, -0.002_516, -0.000_007_4]);
     let e2 = e * e;
 
-    let mut sigma_l = 3_958.0 * a1.sin() + 1_962.0 * (l_prime - f).sin() + 318.0 * a2.sin();
+    let mut sigma_l =
+        3_958.0 * libm::sin(a1) + 1_962.0 * libm::sin(l_prime - f) + 318.0 * libm::sin(a2);
     let mut sigma_r = 0.0;
-    let mut sigma_b = -2_235.0 * l_prime.sin()
-        + 382.0 * a3.sin()
-        + 175.0 * (a1 - f).sin()
-        + 175.0 * (a1 + f).sin()
-        + 127.0 * (l_prime - m_prime).sin()
-        - 115.0 * (l_prime + m_prime).sin();
+    let mut sigma_b = -2_235.0 * libm::sin(l_prime)
+        + 382.0 * libm::sin(a3)
+        + 175.0 * libm::sin(a1 - f)
+        + 175.0 * libm::sin(a1 + f)
+        + 127.0 * libm::sin(l_prime - m_prime)
+        - 115.0 * libm::sin(l_prime + m_prime);
 
     for &(dd, mm, mp, ff, sl, sr) in TA {
         let arg = dd * d + mm * m + mp * m_prime + ff * f;
-        let sin_arg = arg.sin();
-        let cos_arg = arg.cos();
+        let sin_arg = libm::sin(arg);
+        let cos_arg = libm::cos(arg);
         match mm as i32 {
             0 => {
                 sigma_l += sl * sin_arg;
@@ -64,7 +65,7 @@ pub fn position(jde: f64) -> (Longitude, Latitude, f64) {
 
     for &(dd, mm, mp, ff, sb) in TB {
         let arg = dd * d + mm * m + mp * m_prime + ff * f;
-        let sin_arg = arg.sin();
+        let sin_arg = libm::sin(arg);
         match mm as i32 {
             0 => sigma_b += sb * sin_arg,
             1 | -1 => sigma_b += sb * sin_arg * e,

@@ -110,38 +110,37 @@ fn recompose_sunshine(
     cusps[9] = midheaven.degrees();
 
     let offsets = sunshine_offsets(latitude, sundec);
-    let sin_ecl = obliquity_deg.to_radians().sin();
-    let cos_ecl = obliquity_deg.to_radians().cos();
+    let sin_ecl = libm::sin(obliquity_deg.to_radians());
+    let cos_ecl = libm::cos(obliquity_deg.to_radians());
 
     for house in [2usize, 3, 5, 6, 8, 9, 11, 12] {
         let offset = offsets[house];
         let xhs = 2.0
-            * (sundec.to_radians().cos() * (offset.to_radians() / 2.0).sin())
-                .asin()
+            * libm::asin(libm::cos(sundec.to_radians()) * libm::sin(offset.to_radians() / 2.0))
                 .to_degrees();
-        let cosa = (sundec.to_radians().tan() * (xhs.to_radians() / 2.0).tan()).clamp(-1.0, 1.0);
-        let alph = cosa.acos().to_degrees();
+        let cosa =
+            (libm::tan(sundec.to_radians()) * libm::tan(xhs.to_radians() / 2.0)).clamp(-1.0, 1.0);
+        let alph = libm::acos(cosa).to_degrees();
         let (alpha2, b) = if house > 7 {
             (180.0 - alph, 90.0 - latitude + sundec)
         } else {
             (alph, 90.0 - latitude - sundec)
         };
-        let cosc = xhs.to_radians().cos() * b.to_radians().cos()
-            + xhs.to_radians().sin() * b.to_radians().sin() * alpha2.to_radians().cos();
-        let c = cosc.clamp(-1.0, 1.0).acos().to_degrees();
+        let cosc = libm::cos(xhs.to_radians()) * libm::cos(b.to_radians())
+            + libm::sin(xhs.to_radians())
+                * libm::sin(b.to_radians())
+                * libm::cos(alpha2.to_radians());
+        let c = libm::acos(cosc.clamp(-1.0, 1.0)).to_degrees();
         let sinzd = if c.abs() < f64::EPSILON {
             0.0
         } else {
-            xhs.to_radians().sin() * alpha2.to_radians().sin() / c.to_radians().sin()
+            libm::sin(xhs.to_radians()) * libm::sin(alpha2.to_radians()) / libm::sin(c.to_radians())
         };
-        let zd = sinzd.clamp(-1.0, 1.0).asin().to_degrees();
-        let rax = (latitude.to_radians().cos() * zd.to_radians().tan())
-            .atan()
-            .to_degrees();
-        let pole = (sinzd * latitude.to_radians().sin())
-            .clamp(-1.0, 1.0)
-            .asin()
-            .to_degrees();
+        let zd = libm::asin(sinzd.clamp(-1.0, 1.0)).to_degrees();
+        let rax =
+            libm::atan(libm::cos(latitude.to_radians()) * libm::tan(zd.to_radians())).to_degrees();
+        let pole =
+            libm::asin((sinzd * libm::sin(latitude.to_radians())).clamp(-1.0, 1.0)).to_degrees();
         let pole = if house <= 6 { -pole } else { pole };
         let a = if house <= 6 {
             sidereal_time + 180.0 + rax
@@ -361,15 +360,15 @@ fn sunshine_houses_degenerate_semi_arc_guard_is_killed() {
     let offsets = sunshine_offsets(latitude, sundec);
     let offset = offsets[9];
     let xhs = 2.0
-        * (sundec.to_radians().cos() * (offset.to_radians() / 2.0).sin())
-            .asin()
+        * libm::asin(libm::cos(sundec.to_radians()) * libm::sin(offset.to_radians() / 2.0))
             .to_degrees();
-    let cosa = (sundec.to_radians().tan() * (xhs.to_radians() / 2.0).tan()).clamp(-1.0, 1.0);
-    let alph = cosa.acos().to_degrees();
+    let cosa =
+        (libm::tan(sundec.to_radians()) * libm::tan(xhs.to_radians() / 2.0)).clamp(-1.0, 1.0);
+    let alph = libm::acos(cosa).to_degrees();
     let alpha2 = 180.0 - alph;
-    let cosc = xhs.to_radians().cos() * b.to_radians().cos()
-        + xhs.to_radians().sin() * b.to_radians().sin() * alpha2.to_radians().cos();
-    let c = cosc.clamp(-1.0, 1.0).acos().to_degrees();
+    let cosc = libm::cos(xhs.to_radians()) * libm::cos(b.to_radians())
+        + libm::sin(xhs.to_radians()) * libm::sin(b.to_radians()) * libm::cos(alpha2.to_radians());
+    let c = libm::acos(cosc.clamp(-1.0, 1.0)).to_degrees();
     assert_eq!(c, 0.0, "c==0 precondition failed for house 9: c={c}");
 
     // At HEAD, `c.abs() < f64::EPSILON` fires in both the crate and

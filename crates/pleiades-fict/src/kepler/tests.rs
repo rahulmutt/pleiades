@@ -6,7 +6,7 @@ fn solve_kepler_inverts_the_equation() {
         for step in 0..12 {
             let m = step as f64 * 0.5;
             let ea = solve_kepler(m, e);
-            let recovered = ea - e * ea.sin();
+            let recovered = ea - e * libm::sin(ea);
             let diff = (recovered - m.rem_euclid(std::f64::consts::TAU)).abs();
             assert!(diff < 1.0e-12, "e={e} m={m} diff={diff}");
         }
@@ -23,7 +23,7 @@ fn solve_kepler_converges_for_the_high_eccentricity_orbits() {
         for degrees in [0.5, 7.5, 9.5, 15.0, 17.0, 90.0, 180.0, 270.0, 343.0, 359.5] {
             let m: f64 = f64::to_radians(degrees);
             let ea = solve_kepler(m, e);
-            let diff = (ea - e * ea.sin() - m).abs();
+            let diff = (ea - e * libm::sin(ea) - m).abs();
             assert!(diff < 1.0e-12, "e={e} M={degrees} deg diff={diff}");
         }
     }
@@ -41,7 +41,7 @@ fn solve_kepler_of_a_circular_orbit_is_the_mean_anomaly() {
 #[test]
 fn circular_orbit_has_radius_a() {
     let (x, y) = orbital_plane_position(2.5, 0.0, 1.0);
-    assert!((x.hypot(y) - 2.5).abs() < 1.0e-12);
+    assert!((libm::hypot(x, y) - 2.5).abs() < 1.0e-12);
 }
 
 #[test]

@@ -170,19 +170,19 @@ fn spherical_to_cartesian(ecl: &EclipticCoordinates) -> (f64, f64, f64) {
     let lon = ecl.longitude.degrees().to_radians();
     let lat = ecl.latitude.degrees().to_radians();
     (
-        r * lat.cos() * lon.cos(),
-        r * lat.cos() * lon.sin(),
-        r * lat.sin(),
+        r * libm::cos(lat) * libm::cos(lon),
+        r * libm::cos(lat) * libm::sin(lon),
+        r * libm::sin(lat),
     )
 }
 
 fn cartesian_to_ecliptic(x: f64, y: f64, z: f64) -> EclipticCoordinates {
     let r = (x * x + y * y + z * z).sqrt();
-    let lon = y.atan2(x).to_degrees().rem_euclid(360.0);
+    let lon = libm::atan2(y, x).to_degrees().rem_euclid(360.0);
     let lat = if r == 0.0 {
         0.0
     } else {
-        (z / r).asin().to_degrees()
+        libm::asin(z / r).to_degrees()
     };
     EclipticCoordinates::new(
         Longitude::from_degrees(lon),

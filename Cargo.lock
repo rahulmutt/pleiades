@@ -110,6 +110,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 
 [[package]]
+name = "libm"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
+
+[[package]]
 name = "log"
 version = "0.4.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -146,6 +152,7 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 name = "pleiades-apparent"
 version = "0.10.0"
 dependencies = [
+ "libm",
  "pleiades-time",
  "pleiades-types",
  "serde",
@@ -155,6 +162,7 @@ dependencies = [
 name = "pleiades-apsides"
 version = "0.5.5"
 dependencies = [
+ "libm",
  "proptest",
 ]
 
@@ -178,6 +186,7 @@ dependencies = [
 name = "pleiades-cli"
 version = "0.5.2"
 dependencies = [
+ "libm",
  "pleiades-core",
  "pleiades-data",
  "pleiades-elp",
@@ -193,6 +202,7 @@ dependencies = [
 name = "pleiades-compression"
 version = "0.5.6"
 dependencies = [
+ "libm",
  "pleiades-types",
  "proptest",
  "serde",
@@ -203,6 +213,7 @@ dependencies = [
 name = "pleiades-core"
 version = "0.11.1"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-ayanamsa",
  "pleiades-backend",
@@ -219,6 +230,7 @@ dependencies = [
 name = "pleiades-data"
 version = "0.6.1"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-apsides",
  "pleiades-backend",
@@ -230,6 +242,7 @@ dependencies = [
 name = "pleiades-eclipse"
 version = "0.8.1"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-backend",
  "pleiades-data",
@@ -242,6 +255,7 @@ dependencies = [
 name = "pleiades-elp"
 version = "0.5.8"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-apsides",
  "pleiades-backend",
@@ -252,6 +266,7 @@ dependencies = [
 name = "pleiades-events"
 version = "0.10.1"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-apsides",
  "pleiades-ayanamsa",
@@ -272,6 +287,7 @@ dependencies = [
 name = "pleiades-fict"
 version = "0.6.0"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-backend",
  "pleiades-types",
@@ -281,6 +297,7 @@ dependencies = [
 name = "pleiades-houses"
 version = "0.5.9"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-time",
  "pleiades-types",
@@ -290,6 +307,7 @@ dependencies = [
 name = "pleiades-jpl"
 version = "0.6.1"
 dependencies = [
+ "libm",
  "pleiades-backend",
  "pleiades-types",
  "rustls",
@@ -301,6 +319,7 @@ dependencies = [
 name = "pleiades-time"
 version = "0.7.2"
 dependencies = [
+ "libm",
  "pleiades-types",
  "proptest",
  "serde",
@@ -310,6 +329,7 @@ dependencies = [
 name = "pleiades-types"
 version = "0.6.0"
 dependencies = [
+ "libm",
  "proptest",
  "serde",
 ]
@@ -318,6 +338,7 @@ dependencies = [
 name = "pleiades-validate"
 version = "0.5.2"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-ayanamsa",
  "pleiades-backend",
@@ -338,6 +359,7 @@ dependencies = [
 name = "pleiades-vsop87"
 version = "0.6.3"
 dependencies = [
+ "libm",
  "pleiades-backend",
  "pleiades-data",
  "pleiades-types",

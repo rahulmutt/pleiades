@@ -243,7 +243,7 @@ pub fn validate_equatorial_goldens() -> Result<EquatorialValidationReport, Equat
         let got_ra = eq.right_ascension.degrees();
         let got_dec = eq.declination.degrees();
         // cos(Dec)-weighted RA residual (pole-safe), arcsec.
-        let cos_dec = row.dec_deg.to_radians().cos();
+        let cos_dec = libm::cos(row.dec_deg.to_radians());
         let ra_resid = (wrap_deg(got_ra - row.ra_deg).abs() * cos_dec) * 3600.0;
         let dec_resid = (got_dec - row.dec_deg).abs() * 3600.0;
         if ra_resid > row.ra_tol_arcsec {
@@ -509,7 +509,7 @@ pub fn validate_equatorial_se_corpus() -> Result<EquatorialSeReport, EquatorialS
                 jd_tt: *jd,
                 body: label.clone(),
             })?;
-        let cos_dec = se_dec.to_radians().cos();
+        let cos_dec = libm::cos(se_dec.to_radians());
         let ra_resid = wrap_deg(eq.right_ascension.degrees() - se_ra).abs() * cos_dec * 3600.0;
         let dec_resid = (eq.declination.degrees() - se_dec).abs() * 3600.0;
         let (ra_ceiling, dec_ceiling) = se_ceilings(label)?;
@@ -641,7 +641,7 @@ mod se_tests {
                 Some(e) => e,
                 None => continue,
             };
-            let cos_dec = se_dec.to_radians().cos();
+            let cos_dec = libm::cos(se_dec.to_radians());
             let ra_r = wrap_deg(eq.right_ascension.degrees() - se_ra).abs() * cos_dec * 3600.0;
             let dec_r = (eq.declination.degrees() - se_dec).abs() * 3600.0;
             let body_max = by_body.entry(label.clone()).or_default();
@@ -717,7 +717,7 @@ mod tests {
             let snap = engine.chart(&req).expect("chart");
             let p = snap.placement_for(&row.body).expect("placement");
             let eq = p.position.equatorial.expect("equatorial");
-            let cos_dec = row.dec_deg.to_radians().cos();
+            let cos_dec = libm::cos(row.dec_deg.to_radians());
             let ra_resid =
                 (wrap_deg(eq.right_ascension.degrees() - row.ra_deg).abs() * cos_dec) * 3600.0;
             let dec_resid = (eq.declination.degrees() - row.dec_deg).abs() * 3600.0;

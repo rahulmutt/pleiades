@@ -52,8 +52,8 @@ struct QueriedSample {
 
 impl QueriedSample {
     fn new(tau: f64, ecliptic: &EclipticCoordinates, distance_au: f64) -> Self {
-        let (sin_lon, cos_lon) = ecliptic.longitude.degrees().to_radians().sin_cos();
-        let (sin_lat, cos_lat) = ecliptic.latitude.degrees().to_radians().sin_cos();
+        let (sin_lon, cos_lon) = libm::sincos(ecliptic.longitude.degrees().to_radians());
+        let (sin_lat, cos_lat) = libm::sincos(ecliptic.latitude.degrees().to_radians());
         Self {
             tau,
             position: [
@@ -83,8 +83,8 @@ fn interpolate(
     });
     let distance = (x * x + y * y + z * z).sqrt();
     Some(EclipticCoordinates::new(
-        Longitude::from_degrees(y.atan2(x).to_degrees()),
-        Latitude::from_degrees(z.atan2(x.hypot(y)).to_degrees()),
+        Longitude::from_degrees(libm::atan2(y, x).to_degrees()),
+        Latitude::from_degrees(libm::atan2(z, libm::hypot(x, y)).to_degrees()),
         Some(distance),
     ))
 }

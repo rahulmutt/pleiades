@@ -90,14 +90,14 @@ fn agrees_with_iau_1976_near_j2000() {
     // -0.294" at J1900 and +0.306" at J2100, and under 0.005" in latitude.
     const RATE_CORRECTION_ARCSEC_PER_CENTURY: f64 = 0.30;
     let (lon, lat) = (123.456_f64, 4.5_f64);
-    let (sl, cl) = lon.to_radians().sin_cos();
-    let (sb, cb) = lat.to_radians().sin_cos();
+    let (sl, cl) = libm::sincos(lon.to_radians());
+    let (sb, cb) = libm::sincos(lat.to_radians());
     let v = [cb * cl, cb * sl, sb];
     for jd in [2_415_020.0, 2_488_070.0] {
         let lt = precess_ecliptic_vector_date_to_j2000_long_term(v, jd).unwrap();
         let iau = crate::precess_ecliptic_date_to_j2000(lon, lat, jd).unwrap();
-        let lt_lon = lt[1].atan2(lt[0]).to_degrees().rem_euclid(360.0);
-        let lt_lat = lt[2].asin().to_degrees();
+        let lt_lon = libm::atan2(lt[1], lt[0]).to_degrees().rem_euclid(360.0);
+        let lt_lat = libm::asin(lt[2]).to_degrees();
         let t = (jd - J2000) / 36_525.0;
         let dlon = (lt_lon - iau.longitude_deg) * 3600.0;
         let dlat = (lt_lat - iau.latitude_deg) * 3600.0;

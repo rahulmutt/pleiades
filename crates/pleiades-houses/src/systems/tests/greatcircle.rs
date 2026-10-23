@@ -218,9 +218,9 @@ fn recompose_horizon(
         tl = if tl < 0.0 { -90.0 + VS } else { 90.0 - VS };
     }
     let tlr = tl.to_radians();
-    let fh1 = (tlr.sin() / 2.0).asin().to_degrees();
-    let fh2 = ((3.0_f64).sqrt() / 2.0 * tlr.sin()).asin().to_degrees();
-    let cosfi = tlr.cos();
+    let fh1 = libm::asin(libm::sin(tlr) / 2.0).to_degrees();
+    let fh2 = libm::asin((3.0_f64).sqrt() / 2.0 * libm::sin(tlr)).to_degrees();
+    let cosfi = libm::cos(tlr);
     let (xh1, xh2) = if cosfi == 0.0 {
         if tl > 0.0 {
             (90.0, 90.0)
@@ -229,8 +229,8 @@ fn recompose_horizon(
         }
     } else {
         (
-            (3.0_f64.sqrt() / cosfi).atan().to_degrees(),
-            (1.0 / 3.0_f64.sqrt() / cosfi).atan().to_degrees(),
+            libm::atan(3.0_f64.sqrt() / cosfi).to_degrees(),
+            libm::atan(1.0 / 3.0_f64.sqrt() / cosfi).to_degrees(),
         )
     };
     let mut c = [Longitude::from_degrees(0.0); 12];
@@ -339,7 +339,7 @@ fn horizon_pole_singularity_equivalent_mutants_are_documented() {
         -57.0,
     ] {
         assert!(
-            tl.to_radians().cos() != 0.0,
+            libm::cos(tl.to_radians()) != 0.0,
             "cosfi==0.0 arm is dead (tl={tl})"
         );
     }

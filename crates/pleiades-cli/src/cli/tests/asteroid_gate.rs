@@ -14,8 +14,8 @@ const TRUTH_TOLERANCE_ARCSEC: f64 = 5.0;
 /// Cartesian position.
 fn truth_longitude_latitude(row: &SnapshotEntry) -> (f64, f64) {
     let radius_km = (row.x_km * row.x_km + row.y_km * row.y_km + row.z_km * row.z_km).sqrt();
-    let longitude = row.y_km.atan2(row.x_km).to_degrees();
-    let latitude = (row.z_km / radius_km).clamp(-1.0, 1.0).asin().to_degrees();
+    let longitude = libm::atan2(row.y_km, row.x_km).to_degrees();
+    let latitude = libm::asin((row.z_km / radius_km).clamp(-1.0, 1.0)).to_degrees();
     (longitude, latitude)
 }
 
@@ -54,7 +54,7 @@ fn the_default_chain_serves_every_truth_epoch_within_tolerance() {
                         .rem_euclid(360.0)
                         - 180.0)
                         .abs()
-                        * truth_latitude.to_radians().cos()
+                        * libm::cos(truth_latitude.to_radians())
                         * 3600.0;
                     let latitude = (got.latitude.degrees() - truth_latitude).abs() * 3600.0;
                     assert!(

@@ -15,6 +15,7 @@ readme = "README.md"
 serde = ["dep:serde"]
 
 [dependencies]
+libm.workspace = true
 serde = { workspace = true, optional = true }
 
 [dev-dependencies]

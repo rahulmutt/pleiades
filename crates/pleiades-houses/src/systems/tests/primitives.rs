@@ -40,8 +40,9 @@ fn chart_points_from_armc_mc_obliquity_coefficient_is_pinned() {
             eps,
         )
         .expect("defined at 40N");
-        let lhs = pts.midheaven.degrees().to_radians().tan() * eps.degrees().to_radians().cos();
-        let rhs = armc.to_radians().tan();
+        let lhs =
+            libm::tan(pts.midheaven.degrees().to_radians()) * libm::cos(eps.degrees().to_radians());
+        let rhs = libm::tan(armc.to_radians());
         assert!(
             (lhs - rhs).abs() < 1e-9,
             "ARMC {armc}: tan(MC)·cos(ε)={lhs} vs tan(ARMC)={rhs}"
@@ -182,7 +183,7 @@ fn asc2_matches_independent_swehouse_kernel() {
     // pole height 52°, obliquity sine/cosine. Four x values, one per asc1
     // quadrant; each takes the normal atan branch. Cross-validated to 1e-12.
     let eps = 23.4366_f64;
-    let (sine, cose) = (eps.to_radians().sin(), eps.to_radians().cos());
+    let (sine, cose) = (libm::sin(eps.to_radians()), libm::cos(eps.to_radians()));
     let cases = [
         (30.0_f64, 60.273_411_210_075),
         (120.0, 138.177_359_444_927),
@@ -201,7 +202,7 @@ fn asc1_dispatches_each_quadrant_to_independent_reference() {
     // 30° -> Q1, 120° -> Q2, 210° -> Q3, 300° -> Q4 exercise all four match
     // arms and the ±pole / (180-x)/(x-180)/(360-x) argument folding.
     let eps = 23.4366_f64;
-    let (sine, cose) = (eps.to_radians().sin(), eps.to_radians().cos());
+    let (sine, cose) = (libm::sin(eps.to_radians()), libm::cos(eps.to_radians()));
     let cases = [
         (30.0_f64, 60.273_411_210_075),
         (120.0, 138.177_359_444_927),
@@ -350,7 +351,7 @@ fn asc2_degenerate_sinx_zero_branch_pins() {
     // Kills the sinx~0 guard/sign mutants: 1811 `< -> ==`, 1812 `< -> ==`/`>`,
     // and `delete -` on the -1e-12 sentinel (1813).
     let eps = 23.4366_f64;
-    let (sine, cose) = (eps.to_radians().sin(), eps.to_radians().cos());
+    let (sine, cose) = (libm::sin(eps.to_radians()), libm::cos(eps.to_radians()));
     // asc2(0) is the +1e-12 sentinel exactly; tolerance below the sentinel so a
     // mutant that skips the branch (returns 0.0) or flips the sign (returns
     // ~180) fails.
@@ -469,7 +470,7 @@ fn asc2_value_zero_guard_reachable_at_exact_equality() {
     // equality too. Independent reference (houses-reference.py `asc2`),
     // cross-validated to 1e-12: both calls below equal 1e-12 exactly.
     let eps = 23.4366_f64;
-    let (sine, cose) = (eps.to_radians().sin(), eps.to_radians().cos());
+    let (sine, cose) = (libm::sin(eps.to_radians()), libm::cos(eps.to_radians()));
 
     // Kills mod.rs `value < 0.0 -> <= 0.0`: value is exactly 0.0 here, so
     // HEAD's strict `<` takes the `else` arm (+1e-12 sentinel); the mutant's
@@ -564,7 +565,7 @@ fn asc_geometry_equivalent_mutants_are_documented() {
     // crate. The identities below are asserted so the reasoning itself is
     // regression-tested.
     let eps = 23.4366_f64;
-    let (sine, cose) = (eps.to_radians().sin(), eps.to_radians().cos());
+    let (sine, cose) = (libm::sin(eps.to_radians()), libm::cos(eps.to_radians()));
 
     // 360-periodicity of asc2 in x (asc1 arm-3 `x1-180 -> x1+180`): below
     // tolerance, not bit-identical (see comment above).
