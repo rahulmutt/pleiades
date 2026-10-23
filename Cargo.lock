@@ -150,7 +150,7 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "pleiades-apparent"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "libm",
  "pleiades-time",
@@ -160,7 +160,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-apsides"
-version = "0.5.5"
+version = "0.5.6"
 dependencies = [
  "libm",
  "proptest",
@@ -168,14 +168,14 @@ dependencies = [
 
 [[package]]
 name = "pleiades-ayanamsa"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "pleiades-types",
 ]
 
 [[package]]
 name = "pleiades-backend"
-version = "0.5.7"
+version = "0.5.8"
 dependencies = [
  "pleiades-types",
  "serde",
@@ -200,7 +200,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-compression"
-version = "0.5.6"
+version = "0.5.7"
 dependencies = [
  "libm",
  "pleiades-types",
@@ -211,7 +211,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-core"
-version = "0.11.1"
+version = "0.11.2"
 dependencies = [
  "libm",
  "pleiades-apparent",
@@ -228,7 +228,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-data"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "libm",
  "pleiades-apparent",
@@ -240,7 +240,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-eclipse"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "libm",
  "pleiades-apparent",
@@ -253,7 +253,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-elp"
-version = "0.5.8"
+version = "0.5.9"
 dependencies = [
  "libm",
  "pleiades-apparent",
@@ -264,7 +264,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-events"
-version = "0.10.1"
+version = "0.10.2"
 dependencies = [
  "libm",
  "pleiades-apparent",
@@ -285,7 +285,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-fict"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "libm",
  "pleiades-apparent",
@@ -295,7 +295,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-houses"
-version = "0.5.9"
+version = "0.5.10"
 dependencies = [
  "libm",
  "pleiades-apparent",
@@ -305,7 +305,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-jpl"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "libm",
  "pleiades-backend",
@@ -317,7 +317,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-time"
-version = "0.7.2"
+version = "0.7.3"
 dependencies = [
  "libm",
  "pleiades-types",
@@ -327,7 +327,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-types"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "libm",
  "proptest",
@@ -357,7 +357,7 @@ dependencies = [
 
 [[package]]
 name = "pleiades-vsop87"
-version = "0.6.3"
+version = "0.6.4"
 dependencies = [
  "libm",
  "pleiades-backend",
