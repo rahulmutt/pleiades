@@ -30,7 +30,7 @@ fallback for cutting a release by hand.
   the crates are versioned independently.
 - **CI workflow:** `.github/workflows/release-plz.yml` (two jobs: `release-plz-pr`
   opens/updates the Release PR; `release-plz-release` publishes + tags on merge).
-- **Manual fallback config:** `release.toml` (cargo-release, pinned to `1.1.6` in
+- **Manual fallback config:** `release.toml` (cargo-release, pinned to `1.1.7` in
   `mise.toml`).
 
 ## One-time setup
