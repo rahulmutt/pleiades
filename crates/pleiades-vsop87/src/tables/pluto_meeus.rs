@@ -154,9 +154,7 @@ pub(crate) fn pluto_lbr(jd_tt: f64) -> SphericalLbr {
     let pluto = 238.96 + 144.96 * t;
     let (mut longitude, mut latitude, mut radius) = (0.0_f64, 0.0_f64, 0.0_f64);
     for [i, j, k, lon_a, lon_b, lat_a, lat_b, r_a, r_b] in PLUTO_TERMS {
-        let (sin_a, cos_a) = (i * jupiter + j * saturn + k * pluto)
-            .to_radians()
-            .sin_cos();
+        let (sin_a, cos_a) = libm::sincos((i * jupiter + j * saturn + k * pluto).to_radians());
         longitude += lon_a * sin_a + lon_b * cos_a;
         latitude += lat_a * sin_a + lat_b * cos_a;
         radius += r_a * sin_a + r_b * cos_a;

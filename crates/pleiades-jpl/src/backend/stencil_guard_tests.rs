@@ -42,7 +42,7 @@ fn truth_bodies() -> [CelestialBody; 5] {
 /// Longitude (scaled by cos latitude) and latitude differences, arcseconds.
 fn separation_arcsec(got: &EclipticCoordinates, truth: &EclipticCoordinates) -> (f64, f64) {
     let longitude = angular_degrees_delta(got.longitude.degrees(), truth.longitude.degrees())
-        * truth.latitude.degrees().to_radians().cos()
+        * libm::cos(truth.latitude.degrees().to_radians())
         * 3600.0;
     let latitude = (got.latitude.degrees() - truth.latitude.degrees()).abs() * 3600.0;
     (longitude, latitude)

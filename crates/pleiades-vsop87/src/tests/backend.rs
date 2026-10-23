@@ -1242,19 +1242,19 @@ fn equatorial_channel_is_j2000_away_from_j2000() {
     // below is the independent reference for both components.
     assert!((d_dec - -44.8).abs() < 0.15, "Dec {d_dec}″");
     assert!(
-        (d_ra * delta.cos() - 5.4).abs() < 0.1,
+        (d_ra * libm::cos(delta) - 5.4).abs() < 0.1,
         "RA·cosδ {}″",
-        d_ra * delta.cos()
+        d_ra * libm::cos(delta)
     );
     let (x, y, z) = (
-        delta.cos() * alpha.cos(),
-        delta.cos() * alpha.sin(),
-        delta.sin(),
+        libm::cos(delta) * libm::cos(alpha),
+        libm::cos(delta) * libm::sin(alpha),
+        libm::sin(delta),
     );
     // Rotating by eps about the x axis: dy/deps = -z, dz/deps = y.
     let d_eps = (instant.mean_obliquity().degrees() - pleiades_types::OBLIQUITY_J2000_DEG) * 3600.0;
     let expected_d_ra = -x * z / (x * x + y * y) * d_eps;
-    let expected_d_dec = y / delta.cos() * d_eps;
+    let expected_d_dec = y / libm::cos(delta) * d_eps;
     assert!(
         (d_ra - expected_d_ra).abs() < 0.05,
         "RA {d_ra}″ vs {expected_d_ra}″"

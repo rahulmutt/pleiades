@@ -229,5 +229,5 @@ fn separation_arcsec(left: [f64; 3], right: [f64; 3]) -> f64 {
         left[0] * right[1] - left[1] * right[0],
     ];
     let cross_norm = (cross[0] * cross[0] + cross[1] * cross[1] + cross[2] * cross[2]).sqrt();
-    cross_norm.atan2(dot).to_degrees() * 3600.0
+    libm::atan2(cross_norm, dot).to_degrees() * 3600.0
 }

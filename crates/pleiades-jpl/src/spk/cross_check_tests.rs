@@ -48,9 +48,9 @@ fn spk_reduction_matches_snapshot_entry_ecliptic() {
     // Independent reference: rotate the same vector by mean obliquity here.
     let eps = inst.mean_obliquity().radians();
     let (x, ye, ze) = (body_icrf[0], body_icrf[1], body_icrf[2]);
-    let y = ye * eps.cos() + ze * eps.sin();
-    let _z = -ye * eps.sin() + ze * eps.cos();
-    let expect_lon = y.atan2(x).to_degrees().rem_euclid(360.0);
+    let y = ye * libm::cos(eps) + ze * libm::sin(eps);
+    let _z = -ye * libm::sin(eps) + ze * libm::cos(eps);
+    let expect_lon = libm::atan2(y, x).to_degrees().rem_euclid(360.0);
     assert!(
         (ec.longitude.degrees() - expect_lon).abs() < 1e-6,
         "lon {} vs {}",
@@ -87,10 +87,10 @@ fn spk_reduction_is_j2000_frame_at_non_j2000_epoch() {
     // Independent J2000 reference: rotate by ε₀, NOT by the of-date obliquity.
     let eps0 = pleiades_types::OBLIQUITY_J2000_DEG.to_radians();
     let (x, ye, ze) = (body_icrf[0], body_icrf[1], body_icrf[2]);
-    let y = ye * eps0.cos() + ze * eps0.sin();
-    let z = -ye * eps0.sin() + ze * eps0.cos();
+    let y = ye * libm::cos(eps0) + ze * libm::sin(eps0);
+    let z = -ye * libm::sin(eps0) + ze * libm::cos(eps0);
     let r = (x * x + y * y + z * z).sqrt();
-    let expect_lat = (z / r).asin().to_degrees();
+    let expect_lat = libm::asin(z / r).to_degrees();
     assert!(
         (ec.latitude.degrees() - expect_lat).abs() < 1e-9,
         "lat {} should equal the ε₀ rotation {} at 1900 (J2000 frame)",
@@ -101,10 +101,10 @@ fn spk_reduction_is_j2000_frame_at_non_j2000_epoch() {
     // And it must DIFFER from the of-date rotation by ~tens of arcsec — proving
     // the test is frame-discriminating, not vacuous.
     let eps_d = inst_1900.mean_obliquity().radians();
-    let z_d = -ye * eps_d.sin() + ze * eps_d.cos();
-    let of_date_lat = (z_d
-        / (x * x + (ye * eps_d.cos() + ze * eps_d.sin()).powi(2) + z_d * z_d).sqrt())
-    .asin()
+    let z_d = -ye * libm::sin(eps_d) + ze * libm::cos(eps_d);
+    let of_date_lat = libm::asin(
+        z_d / (x * x + (ye * libm::cos(eps_d) + ze * libm::sin(eps_d)).powi(2) + z_d * z_d).sqrt(),
+    )
     .to_degrees();
     assert!(
         (ec.latitude.degrees() - of_date_lat).abs() * 3600.0 > 1.0,
@@ -129,8 +129,8 @@ fn spk_equatorial_channel_is_the_kernel_icrf_direction() {
         .build();
     let (x, y, z) = (body_icrf[0], body_icrf[1], body_icrf[2]);
     let r = (x * x + y * y + z * z).sqrt();
-    let want_ra = y.atan2(x).to_degrees().rem_euclid(360.0);
-    let want_dec = (z / r).asin().to_degrees();
+    let want_ra = libm::atan2(y, x).to_degrees().rem_euclid(360.0);
+    let want_dec = libm::asin(z / r).to_degrees();
     for jd in [2_415_020.5, 2_451_545.0, 2_488_069.5] {
         let inst = Instant::new(JulianDay::from_days(jd), TimeScale::Tt);
         let eq = backend

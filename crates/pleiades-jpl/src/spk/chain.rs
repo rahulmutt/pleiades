@@ -114,8 +114,8 @@ pub fn icrf_velocity_to_ecliptic(vel_km_s: [f64; 3], _instant: Instant) -> [f64;
     let eps = pleiades_types::OBLIQUITY_J2000_DEG.to_radians();
     let (vx, vy_eq, vz_eq) = (vel_km_s[0], vel_km_s[1], vel_km_s[2]);
     // Rotate about X by +ε₀: J2000-equatorial -> J2000-ecliptic (same as position path).
-    let vy = vy_eq * eps.cos() + vz_eq * eps.sin();
-    let vz = -vy_eq * eps.sin() + vz_eq * eps.cos();
+    let vy = vy_eq * libm::cos(eps) + vz_eq * libm::sin(eps);
+    let vz = -vy_eq * libm::sin(eps) + vz_eq * libm::cos(eps);
     [vx, vy, vz]
 }
 
@@ -150,11 +150,11 @@ pub fn icrf_to_ecliptic(position_km: [f64; 3], _instant: Instant) -> EclipticCoo
     let eps = pleiades_types::OBLIQUITY_J2000_DEG.to_radians();
     let (x, y_eq, z_eq) = (position_km[0], position_km[1], position_km[2]);
     // Rotate about X by +ε₀: J2000-equatorial -> J2000-ecliptic.
-    let y = y_eq * eps.cos() + z_eq * eps.sin();
-    let z = -y_eq * eps.sin() + z_eq * eps.cos();
+    let y = y_eq * libm::cos(eps) + z_eq * libm::sin(eps);
+    let z = -y_eq * libm::sin(eps) + z_eq * libm::cos(eps);
     let radius = (x * x + y * y + z * z).sqrt();
-    let longitude = Longitude::from_degrees(y.atan2(x).to_degrees());
-    let latitude = Latitude::from_degrees((z / radius).clamp(-1.0, 1.0).asin().to_degrees());
+    let longitude = Longitude::from_degrees(libm::atan2(y, x).to_degrees());
+    let latitude = Latitude::from_degrees(libm::asin((z / radius).clamp(-1.0, 1.0)).to_degrees());
     EclipticCoordinates::new(longitude, latitude, Some(radius / AU_IN_KM))
 }
 

@@ -201,6 +201,7 @@ dependencies = [
 name = "pleiades-compression"
 version = "0.5.6"
 dependencies = [
+ "libm",
  "pleiades-types",
  "proptest",
  "serde",
@@ -227,6 +228,7 @@ dependencies = [
 name = "pleiades-data"
 version = "0.6.1"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-apsides",
  "pleiades-backend",
@@ -250,6 +252,7 @@ dependencies = [
 name = "pleiades-elp"
 version = "0.5.8"
 dependencies = [
+ "libm",
  "pleiades-apparent",
  "pleiades-apsides",
  "pleiades-backend",
@@ -300,6 +303,7 @@ dependencies = [
 name = "pleiades-jpl"
 version = "0.6.1"
 dependencies = [
+ "libm",
  "pleiades-backend",
  "pleiades-types",
  "rustls",
@@ -350,6 +354,7 @@ dependencies = [
 name = "pleiades-vsop87"
 version = "0.6.3"
 dependencies = [
+ "libm",
  "pleiades-backend",
  "pleiades-data",
  "pleiades-types",

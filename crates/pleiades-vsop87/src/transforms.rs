@@ -11,11 +11,11 @@ pub(crate) fn spherical_lbr_to_cartesian(
     latitude_rad: f64,
     radius_au: f64,
 ) -> HeliocentricCoordinates {
-    let cos_latitude = latitude_rad.cos();
+    let cos_latitude = libm::cos(latitude_rad);
     HeliocentricCoordinates {
-        xh: radius_au * cos_latitude * longitude_rad.cos(),
-        yh: radius_au * cos_latitude * longitude_rad.sin(),
-        zh: radius_au * latitude_rad.sin(),
+        xh: radius_au * cos_latitude * libm::cos(longitude_rad),
+        yh: radius_au * cos_latitude * libm::sin(longitude_rad),
+        zh: radius_au * libm::sin(latitude_rad),
     }
 }
 
@@ -37,9 +37,9 @@ pub(crate) fn pluralize_body_path(count: usize) -> &'static str {
 
 pub(crate) fn solve_kepler(mean_anomaly_degrees: f64, eccentricity: f64) -> f64 {
     let m = mean_anomaly_degrees.to_radians();
-    let mut e = m + eccentricity * m.sin() * (1.0 + eccentricity * m.cos());
+    let mut e = m + eccentricity * libm::sin(m) * (1.0 + eccentricity * libm::cos(m));
     for _ in 0..10 {
-        let delta = (e - eccentricity * e.sin() - m) / (1.0 - eccentricity * e.cos());
+        let delta = (e - eccentricity * libm::sin(e) - m) / (1.0 - eccentricity * libm::cos(e));
         e -= delta;
         if delta.abs() < 1e-12 {
             break;
@@ -53,9 +53,9 @@ pub(crate) fn true_anomaly_from_eccentric(
     eccentricity: f64,
 ) -> f64 {
     let e = eccentric_anomaly_degrees.to_radians();
-    let numerator = (1.0 + eccentricity).sqrt() * (e / 2.0).sin();
-    let denominator = (1.0 - eccentricity).sqrt() * (e / 2.0).cos();
-    (2.0 * numerator.atan2(denominator))
+    let numerator = (1.0 + eccentricity).sqrt() * libm::sin(e / 2.0);
+    let denominator = (1.0 - eccentricity).sqrt() * libm::cos(e / 2.0);
+    (2.0 * libm::atan2(numerator, denominator))
         .to_degrees()
         .rem_euclid(360.0)
 }

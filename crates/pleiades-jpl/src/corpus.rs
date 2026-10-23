@@ -219,7 +219,7 @@ mod tests {
             ];
             let cross_norm = cross.iter().map(|c| c * c).sum::<f64>().sqrt();
             let dot = a.iter().zip(b).map(|(p, q)| p * q).sum::<f64>();
-            let separation_arcsec = cross_norm.atan2(dot).to_degrees() * 3600.0;
+            let separation_arcsec = libm::atan2(cross_norm, dot).to_degrees() * 3600.0;
             assert!(
                 separation_arcsec < TOLERANCE_ARCSEC,
                 "{body}: sb441 and Horizons rows {separation_arcsec}″ apart"

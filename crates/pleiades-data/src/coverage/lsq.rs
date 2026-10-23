@@ -100,7 +100,7 @@ mod tests {
     #[test]
     fn fits_higher_degree_smooth_function_within_tolerance() {
         // sin over [0,1] fit at degree 8 with oversampling -> tiny residual.
-        let f = |x: f64| (x * std::f64::consts::PI).sin();
+        let f = |x: f64| libm::sin(x * std::f64::consts::PI);
         let samples: Vec<(f64, f64)> = (0..27)
             .map(|i| {
                 let x = i as f64 / 26.0;

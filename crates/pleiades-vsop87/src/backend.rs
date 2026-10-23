@@ -205,8 +205,8 @@ impl Vsop87Backend {
         let eccentric_anomaly = solve_kepler(mean_anomaly, elements.eccentricity);
         let true_anomaly = true_anomaly_from_eccentric(eccentric_anomaly, elements.eccentricity);
         let eccentric_anomaly_rad = eccentric_anomaly.to_radians();
-        let radius =
-            elements.semi_major_axis * (1.0 - elements.eccentricity * eccentric_anomaly_rad.cos());
+        let radius = elements.semi_major_axis
+            * (1.0 - elements.eccentricity * libm::cos(eccentric_anomaly_rad));
 
         let node = elements.ascending_node.to_radians();
         let inclination = elements.inclination.to_radians();
@@ -216,9 +216,13 @@ impl Vsop87Backend {
         // converting the sum shrank the perihelion to 1/57 of its value).
         let lon = true_anomaly.to_radians() + elements.argument_of_perihelion.to_radians();
 
-        let xh = radius * (node.cos() * lon.cos() - node.sin() * lon.sin() * inclination.cos());
-        let yh = radius * (node.sin() * lon.cos() + node.cos() * lon.sin() * inclination.cos());
-        let zh = radius * (lon.sin() * inclination.sin());
+        let xh = radius
+            * (libm::cos(node) * libm::cos(lon)
+                - libm::sin(node) * libm::sin(lon) * libm::cos(inclination));
+        let yh = radius
+            * (libm::sin(node) * libm::cos(lon)
+                + libm::cos(node) * libm::sin(lon) * libm::cos(inclination));
+        let zh = radius * (libm::sin(lon) * libm::sin(inclination));
 
         HeliocentricCoordinates { xh, yh, zh }
     }
@@ -365,16 +369,17 @@ impl Vsop87Backend {
     }
 
     fn distance_au(coords: HeliocentricCoordinates) -> f64 {
-        coords.xh.hypot(coords.yh.hypot(coords.zh))
+        libm::hypot(coords.xh, libm::hypot(coords.yh, coords.zh))
     }
 
     pub(crate) fn to_ecliptic(coords: HeliocentricCoordinates) -> EclipticCoordinates {
-        let longitude = Longitude::from_degrees(coords.yh.atan2(coords.xh).to_degrees());
+        let longitude = Longitude::from_degrees(libm::atan2(coords.yh, coords.xh).to_degrees());
         let latitude = Latitude::from_degrees(
-            coords
-                .zh
-                .atan2((coords.xh * coords.xh + coords.yh * coords.yh).sqrt())
-                .to_degrees(),
+            libm::atan2(
+                coords.zh,
+                (coords.xh * coords.xh + coords.yh * coords.yh).sqrt(),
+            )
+            .to_degrees(),
         );
         EclipticCoordinates::new(longitude, latitude, Some(Self::distance_au(coords)))
     }
