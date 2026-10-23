@@ -456,11 +456,15 @@ mod tests {
     use super::*;
     use pleiades_backend::test_backend::LinearSunMoon;
 
+    /// Issue #288 re-pinned the Saturn and Pluto lanes (from
+    /// `4566141178696634184` and `4629851122814407423`): the packaged artifact
+    /// was regenerated with `libm` transcendentals, moving Saturn by 3.0e-11″
+    /// and Pluto by 4.6e-6″; Mercury and Mars did not move.
     const PINNED_HELIO_LONGITUDE_BITS: [u64; 4] = [
         4640199238401330988,
         4645031011594974728,
-        4566141178696634184,
-        4629851122814407423,
+        4566141178696673152,
+        4629851122814229366,
     ];
 
     /// The longitude wrapper must not move by a single bit when the
